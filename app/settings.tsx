@@ -61,8 +61,6 @@ export default function SettingsScreen() {
 
   return (
     <Screen>
-      <Paragraph color="$color10">{text.accountHint}</Paragraph>
-
       <FintCard p={0} overflow="hidden">
         <SettingsRow
           icon={avatarUrl ? <Image source={{ uri: avatarUrl }} style={{ width: 48, height: 48, borderRadius: 24 }} /> : <IconBubble><UserRound size={21} color="$primary" /></IconBubble>}
