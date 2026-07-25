@@ -10,7 +10,7 @@ Aplicacion mobile nueva para finanzas personales, creada desde cero con Expo Rou
 - Tamagui 2 con `defaultConfig` de `@tamagui/config/v5`
 - Supabase Auth
 - TanStack Query
-- i18next ES/EN
+- i18next ES/EN/PT
 - EAS Build
 
 ## Configuracion
@@ -28,3 +28,7 @@ Aplicacion mobile nueva para finanzas personales, creada desde cero con Expo Rou
 ## Alcance Inicial
 
 La app queda preparada con login/registro, Google OAuth, tabs de dashboard/cuentas/movimientos/deudas, formularios base y cliente API contra `finanzas-api` mediante Bearer token de Supabase.
+
+## Licencia
+
+Software propietario. Consulta `LICENSE`; el acceso al repositorio no concede derechos de uso, modificacion o distribucion.

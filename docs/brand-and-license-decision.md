@@ -1,121 +1,107 @@
 # Decision de marca y licencia
 
+## Decisiones confirmadas
+
+- Modelo: producto comercial cerrado.
+- Titular del copyright: `Cristhofer Moises Ventura Villanueva`.
+- Ambos repositorios usan licencia propietaria y su visibilidad privada fue validada.
+- La marca definitiva puede tomar una referencia sutil de Annie, la gata del creador, sin convertirla en una mascota literal.
+
 ## Estado actual
 
-- `Fint`, el icono y el splash deben tratarse como temporales hasta completar una revision de marca.
-- Los repositorios `finanzas-mobilev2` y `finanzas-api` no contienen una licencia.
-- Un repositorio publico sin licencia no concede permiso para copiar, modificar o distribuir el codigo. Conserva los derechos por defecto, pero no comunica claramente el modelo del proyecto.
-- Antes de publicar documentos legales se necesita un nombre definitivo, identidad visual, titular legal, correo de soporte y dominio oficial.
+- `Fint`, el icono y el splash son temporales hasta completar la revision de marca.
+- Los repositorios `finanzas-mobilev2` y `finanzas-api` incluyen licencia propietaria y son privados.
+- Antes de publicar documentos legales se necesita un nombre definitivo, identidad visual, dominio oficial y correo de soporte.
 
-## Recomendacion de proceso
+## Proceso recomendado
 
-1. Definir si el producto sera comercial cerrado, open source o open core.
-2. Seleccionar tres nombres finalistas.
-3. Revisar marcas registradas en los paises objetivo, resultados en Google Play y App Store, dominios y usuarios en redes sociales.
-4. Probar pronunciacion y recordacion con usuarios hispanohablantes y lusofonos.
-5. Elegir nombre y registrar el dominio antes de producir el logo final.
-6. Actualizar nombre, package metadata, icono, splash, textos legales y OAuth consent screen en una sola version de marca.
+1. Seleccionar tres nombres finalistas.
+2. Revisar marcas registradas en los paises objetivo, resultados en Google Play y App Store, dominios y usuarios en redes sociales.
+3. Probar pronunciacion y recordacion con usuarios hispanohablantes y lusofonos.
+4. Elegir nombre y registrar el dominio antes de producir el logo final.
+5. Actualizar nombre, package metadata, icono, splash, textos legales y OAuth consent screen en una sola version de marca.
 
 La disponibilidad de los nombres siguientes no esta validada legalmente. Son territorios creativos, no autorizaciones de uso.
 
-## Territorios de nombre
+## Territorios de nombre inspirados en Annie
 
-### Numora
+La relacion con Annie debe vivir en el origen de la marca y, si se desea, en un detalle de identidad. El nombre no necesita incluir `Annie` de manera literal ni usar naranja.
 
-- Idea: numeros, orden y una relacion mas calmada con el dinero.
-- Ventaja: pronunciacion sencilla en espanol y portugues.
-- Personalidad: clara, tecnologica y cercana.
-- Simbolo posible: una `N` construida con dos barras y un flujo ascendente.
+### Anvia
 
-### Cauce
+- Inspiracion: una referencia discreta a `Annie` y a una via clara para el dinero.
+- Personalidad: sobria, corta y orientada a progreso.
+- Ventaja: funciona en espanol, ingles y portugues sin requerir explicacion.
+- Simbolo posible: dos trazos ocean-blue que convergen en una `A` abierta.
 
-- Idea: darle direccion al flujo del dinero.
-- Ventaja: concepto fuerte y facil de explicar en espanol.
-- Riesgo: palabra comun; requiere una revision de marca especialmente cuidadosa.
-- Simbolo posible: una `C` abierta formada por dos corrientes.
+### Anira
 
-### Saldoa
+- Inspiracion: deriva foneticamente de Annie, con una terminacion madura y propia.
+- Personalidad: tranquila, cercana y de producto de consumo.
+- Ventaja: mantiene el vinculo personal sin sonar a aplicacion de mascotas.
+- Simbolo posible: una curva continua que forma una `A` y un balance central.
 
-- Idea: saldos y control cotidiano.
-- Ventaja: comunica finanzas rapidamente.
-- Personalidad: practica y accesible.
-- Simbolo posible: una `S` compuesta por flechas de ingreso y gasto.
+### Nivana
 
-### Orveta
+- Inspiracion: toma la `N` de Annie y la idea de nivel, equilibrio y panorama financiero.
+- Personalidad: serena, premium y regional.
+- Ventaja: permite crecer mas alla del registro de gastos.
+- Simbolo posible: niveles apilados que evolucionan el icono actual sin parecer monedas.
 
-- Idea: nombre inventado asociado con orden, avance y estabilidad.
-- Ventaja: mayor posibilidad de diferenciacion verbal.
-- Riesgo: necesita inversion inicial para explicar la categoria.
-- Simbolo posible: orbita circular con un punto de balance.
+### Avela
 
-### Nuvora
+- Inspiracion: `A` de Annie y una sonoridad suave asociada con avance.
+- Personalidad: clara, amable y tecnologica.
+- Ventaja: visualmente puede convertirse en un wordmark de lineas redondeadas acorde al sistema actual.
+- Simbolo posible: una `A` de espacio negativo dentro de un circulo ocean-blue.
 
-- Idea: una nueva vision del dinero y su evolucion.
-- Ventaja: funciona como marca tecnologica regional.
-- Riesgo: debe comprobarse que no se confunda con marcas existentes de software.
-- Simbolo posible: arco ascendente dentro de una forma circular.
+### Nera
 
-## Direccion visual recomendada
+- Inspiracion: extrae el nucleo sonoro de Annie sin ser literal.
+- Personalidad: minimalista y contemporanea.
+- Ventaja: muy corta para icono, URL y navegacion; requiere una revision legal mas cuidadosa por ser un nombre breve.
+- Simbolo posible: un monograma `N` con dos lineas de flujo.
 
-Mantener la base ocean-blue de la interfaz porque ya expresa confianza y continuidad, pero evitar el recurso generico de una moneda o un signo de dolar.
+## Finalistas recomendados
 
-El sistema de identidad deberia incluir:
+1. `Anvia`: mejor equilibrio entre origen personal, claridad y tono fintech.
+2. `Nivana`: opcion mas independiente y premium.
+3. `Anira`: opcion mas calida sin alterar la estetica visual del producto.
+
+## Direccion visual
+
+Mantener la base ocean-blue de la interfaz porque expresa confianza y continuidad. Annie inspira la historia de la marca, no su paleta.
+
+El sistema de identidad debe incluir:
 
 - Simbolo geometrico reconocible a 24 px.
 - Logotipo horizontal para web, documentos y OAuth.
 - Icono cuadrado sin texto para Android e iOS.
 - Version monocromatica clara y oscura.
 - Area de seguridad y tamano minimo.
-- Paleta primaria, secundaria y colores semanticos.
 - Archivos fuente SVG y exportaciones PNG de Play Store.
 
-Tres direcciones visuales posibles:
+### Evolucion del icono actual
 
-1. Flujo: dos trayectorias que representan ingreso y gasto convergen en balance.
-2. Claridad: una apertura o ventana dentro de una forma estable.
-3. Progreso sereno: barras redondeadas sin apariencia especulativa o de trading.
+Los archivos de `assets/images` usan tres ovalos blancos apilados sobre azul. La forma puede interpretarse como monedas o piedras de balance, pero actualmente es generica.
 
-La direccion `Flujo` encaja mejor con las funciones actuales de cuentas, movimientos, Gmail y reportes.
+La evolucion recomendada es:
 
-## Licencia
+- Mantener azul profundo, cian y blanco como unico sistema de color de marca.
+- Evolucionar los ovalos a tres niveles fluidos o a dos trayectorias que convergen, evitando una lectura literal de monedas.
+- Incorporar una referencia felina solo mediante espacio negativo o dos cortes geometricos sutiles, sin cabeza, huella ni ilustracion explicita.
+- Preparar una variante adaptive icon con zona segura amplia y una variante monocromatica para Android themed icons.
 
-### Opcion recomendada para un producto comercial cerrado
+Concepto recomendado: dos corrientes ocean-blue que forman un balance central y dejan una apertura sutil en la parte superior. La apertura puede recordar vagamente a orejas sin ser una mascota reconocible. Asi el vinculo con Annie permanece personal, mientras la identidad publica sigue siendo sobria y financiera.
 
-- Cambiar ambos repositorios a privados.
-- Agregar un aviso propietario con titular y ano.
+## Licencia propietaria
+
+Se agrego un archivo `LICENSE` propietario en mobile y API con `Cristhofer Moises Ventura Villanueva` como titular.
+
 - No aceptar contribuciones externas sin un acuerdo especifico.
 - Mantener publicos solo la pagina de producto, documentacion de usuario y politica de privacidad.
-
-Esta es la recomendacion para el MVP mientras se valida el modelo de negocio. Publicar el codigo no es necesario para distribuir la app en Play Store.
-
-### Apache License 2.0
-
-- Adecuada si se desea permitir uso, modificacion y distribucion, incluso comercial.
-- Incluye una concesion explicita de patentes.
-- Otros pueden crear productos cerrados a partir del codigo.
-- Es preferible a MIT cuando se desea una licencia permisiva con mayor claridad legal.
-
-### GNU AGPL 3.0
-
-- Adecuada si el proyecto debe permanecer abierto incluso cuando una version modificada se ofrece como servicio web.
-- Obliga a ofrecer el codigo fuente de las modificaciones a usuarios del servicio.
-- Puede reducir adopcion empresarial y requiere revisar compatibilidad y estrategia comercial.
-
-### MIT
-
-- Muy simple y permisiva.
-- Permite forks y productos comerciales cerrados.
-- Tiene menos detalle sobre patentes que Apache 2.0.
-
-## Decision pendiente
-
-Elegir una sola direccion antes de crear archivos `LICENSE`:
-
-- Producto comercial cerrado: repositorios privados y licencia propietaria.
-- Proyecto abierto permisivo: Apache 2.0.
-- Proyecto abierto con reciprocidad para servicios: AGPL 3.0.
-
-No se recomienda mantener indefinidamente repositorios publicos sin licencia: aunque los derechos se conservan, colaboradores y usuarios no saben que usos estan permitidos.
+- La licencia limita el uso por terceros.
+- La visibilidad privada de ambos repositorios fue validada; se recomienda revisar el historial una vez para confirmar que nunca se publicaron secretos.
 
 ## Documentos legales y dominio
 

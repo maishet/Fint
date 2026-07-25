@@ -231,7 +231,7 @@ function QuickActions() {
 function WeeklyFlowSection({ currency, data }: { currency: string; data: WeeklyFlowPoint[] }) {
   const { t } = useTranslation()
   const [selectedIndex, setSelectedIndex] = useState(Math.max(0, data.length - 1))
-  const chartHeight = 105
+  const chartHeight = 94
   const totalIncome = data.reduce((sum, point) => sum + point.income, 0)
   const totalExpenses = data.reduce((sum, point) => sum + point.expenses, 0)
   const isPositive = totalIncome >= totalExpenses
@@ -265,7 +265,7 @@ function WeeklyFlowSection({ currency, data }: { currency: string; data: WeeklyF
             </YStack>
           </XStack>
         ) : null}
-        <XStack height={132} items="flex-end" gap="$2">
+        <XStack height={136} items="flex-end" gap="$2">
           {data.map((point, index) => {
             const isSelected = index === selectedIndex
             return (
@@ -277,6 +277,7 @@ function WeeklyFlowSection({ currency, data }: { currency: string; data: WeeklyF
               justify="flex-end"
               gap="$2"
               px="$1"
+              py="$2"
               rounded="$4"
               bg={isSelected ? '$secondary' : 'transparent'}
               pressStyle={{ bg: '$secondary' }}
