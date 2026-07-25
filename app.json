@@ -47,7 +47,14 @@
       ],
       "expo-web-browser",
       "expo-localization",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "finanzas-app-1x",
+          "project": "fint-mobile"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

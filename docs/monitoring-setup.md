@@ -38,4 +38,6 @@ The expected result is `status_code = 200` and `failed = 0` in the response cont
 4. Initialize Sentry in the root layout with release and environment metadata.
 5. Build a preview APK and trigger a controlled test exception to confirm capture.
 
-Sentry is intentionally not installed until a project and DSN exist, so no placeholder secret or telemetry is shipped to users.
+Sentry is configured without a placeholder DSN. It remains disabled in local environments that do not define `EXPO_PUBLIC_SENTRY_DSN`.
+
+Mobile EAS environments use `EXPO_PUBLIC_SENTRY_DSN` and `EXPO_PUBLIC_SENTRY_ENVIRONMENT`. Configure `EXPO_PUBLIC_SENTRY_ENVIRONMENT=preview` for preview and `EXPO_PUBLIC_SENTRY_ENVIRONMENT=production` for production. The DSN is public by design; `SENTRY_AUTH_TOKEN` must remain an EAS secret and is used only for source-map uploads.

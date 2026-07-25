@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar'
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native'
 import { useFonts } from 'expo-font'
 import { SplashScreen, Stack } from 'expo-router'
+import * as Sentry from '@sentry/react-native'
 import { AppProviders } from '../src/providers/AppProviders'
 import { useAuth } from '../src/auth/AuthProvider'
 import { useThemeMode } from '../src/theme/ThemeMode'
@@ -23,7 +24,15 @@ export const unstable_settings = {
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync()
 
-export default function RootLayout() {
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  enabled: Boolean(process.env.EXPO_PUBLIC_SENTRY_DSN),
+  environment: process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT ?? 'development',
+  sendDefaultPii: false,
+  tracesSampleRate: 0.1,
+})
+
+function RootLayout() {
   const [fontsLoaded, fontsError] = useFonts({
     InterRegular: require('../assets/fonts/Inter_18pt-Regular.ttf'),
     InterMedium: require('../assets/fonts/Inter_18pt-Medium.ttf'),
@@ -56,6 +65,8 @@ export default function RootLayout() {
 const Providers = ({ children }: { children: React.ReactNode }) => {
   return <AppProviders>{children}</AppProviders>
 }
+
+export default Sentry.wrap(RootLayout)
 
 function RootLayoutNav() {
   const { t } = useTranslation()

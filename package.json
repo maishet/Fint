@@ -16,6 +16,7 @@
     "test:web": "true"
   },
   "dependencies": {
+    "@sentry/react-native": "~7.11.0",
     "@supabase/supabase-js": "^2.87.0",
     "@tamagui/colors": "^2.4.0",
     "@tamagui/config": "^2.4.0",
