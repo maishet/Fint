@@ -122,6 +122,19 @@ export interface Summary {
   }
 }
 
+export interface FinancialReport {
+  from: string
+  to: string
+  currency: string
+  income: number
+  expenses: number
+  savings: number
+  savingsRate: number | null
+  previousPeriodChange: number | null
+  series: Array<{ period: string; income: number; expenses: number }>
+  categories: Array<{ category: string; amount: number; percentage: number }>
+}
+
 export interface DashboardSummary {
   currency: string
   netWorth: number
@@ -194,6 +207,9 @@ export interface UpdateTransactionInput extends CreateTransactionInput {
 export interface TransactionQuery {
   from?: string
   to?: string
+  accountId?: string
+  account?: string
+  type?: TransactionType | 'all'
   limit?: number
   offset?: number
 }

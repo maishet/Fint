@@ -102,6 +102,9 @@ function RootLayoutNav() {
           <Stack.Screen name="account-form" options={{ contentStyle: { backgroundColor: theme.background.val } }} />
           <Stack.Screen name="debt-form" options={{ contentStyle: { backgroundColor: theme.background.val } }} />
           <Stack.Screen name="settings" options={{ title: t('header.menuTitle'), contentStyle: { backgroundColor: theme.background.val } }} />
+          <Stack.Screen name="profile" options={{ title: t('profile.title', { defaultValue: 'Mi perfil' }), contentStyle: { backgroundColor: theme.background.val } }} />
+          <Stack.Screen name="gmail-settings" options={{ title: t('gmail.title'), contentStyle: { backgroundColor: theme.background.val } }} />
+          <Stack.Screen name="support" options={{ title: t('support.title', { defaultValue: 'Ayuda y soporte' }), contentStyle: { backgroundColor: theme.background.val } }} />
           <Stack.Screen name="gmail-connected" options={{ headerShown: false }} />
           <Stack.Screen name="categories" options={{ title: t('categories.routeTitle'), contentStyle: { backgroundColor: theme.background.val } }} />
         </Stack.Protected>

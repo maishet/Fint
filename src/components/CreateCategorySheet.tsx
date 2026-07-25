@@ -1,11 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Shapes, X } from '@tamagui/lucide-icons-2'
+import { ArrowDownLeft, ArrowUpRight, Shapes, X } from '@tamagui/lucide-icons-2'
 import { useToastController } from '@tamagui/toast'
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Text } from 'react-native'
 import { Button, Paragraph, Sheet, Spinner, XStack, YStack } from 'tamagui'
-import EmojiPicker, { es, en, type EmojiType } from 'rn-emoji-keyboard'
+import EmojiPicker, { es, en, pt, type EmojiType } from 'rn-emoji-keyboard'
 import { financeApi } from '../api/finance'
 import type { CreateCategoryResult, TransactionType } from '../api/types'
 import { suggestedCategoryIcons } from '../finance/categoryIcons'
@@ -69,12 +69,12 @@ export function CreateCategorySheet({ initialType, onCreated, onOpenChange, open
 
   return (
     <>
-    <Sheet modal open={open} onOpenChange={handleOpenChange} snapPoints={[76]} disableDrag moveOnKeyboardChange zIndex={120_000}>
+    <Sheet modal open={open} onOpenChange={handleOpenChange} snapPoints={[82]} disableDrag moveOnKeyboardChange zIndex={120_000}>
       <Sheet.Overlay bg="rgba(0,0,0,0.45)" />
       <Sheet.Handle bg="$color6" />
       <Sheet.Frame bg="$popover" px="$4" pt="$3" pb="$4" rounded={18}>
         <Sheet.ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <YStack gap="$5" pb="$3">
+          <YStack gap="$4" pb="$3">
             <XStack items="center" justify="space-between" gap="$3">
               <YStack flex={1} minW={0} gap="$1">
                 <Paragraph color="$color12" fontFamily="$heading" fontSize="$7" fontWeight="700">{t('categories.newTitle')}</Paragraph>
@@ -83,12 +83,28 @@ export function CreateCategorySheet({ initialType, onCreated, onOpenChange, open
               <Button circular chromeless size="$3" color="$primary" disabled={mutation.isPending} icon={<X size={20} color="$primary" />} onPress={() => handleOpenChange(false)} aria-label={t('actions.cancel')} />
             </XStack>
 
-            <YStack items="center" gap="$3" minH={name.trim() ? undefined : 176} justify="center">
-              <Paragraph color="$color10" fontWeight="700">{t('categoryUx.identity')}</Paragraph>
-              <YStack width={108} height={108} rounded="$12" bg="$secondary" borderColor="$primary" borderWidth={2} items="center" justify="center" role="button" onPress={() => setEmojiPickerOpen(true)} aria-label={t('categoryUx.changeEmoji')} overflow="visible">
-                <Text style={{ fontSize: 58, includeFontPadding: false, lineHeight: 70, textAlign: 'center', textAlignVertical: 'center' }}>{icon}</Text>
+            <XStack gap="$2">
+              {(['expense', 'income'] as const).map((option) => (
+                <FintButton key={option} flex={1} variant={type === option ? 'solid' : 'outlined'} icon={option === 'income' ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />} onPress={() => { setType(option); if (!iconChanged) setIcon(suggestedCategoryIcons(name, option)[0]) }}>
+                  {t(`forms.${option}`)}
+                </FintButton>
+              ))}
+            </XStack>
+
+            <XStack bg="$muted" borderColor="$borderColor" borderWidth={1} rounded="$7" p="$3" gap="$3" items="center">
+              <YStack width={66} height={66} rounded="$10" bg="$secondary" borderColor="$primary" borderWidth={1} items="center" justify="center" role="button" onPress={() => setEmojiPickerOpen(true)} aria-label={t('categoryUx.changeEmoji')}>
+                <Text style={{ fontSize: 36, includeFontPadding: false, lineHeight: 46, textAlign: 'center', textAlignVertical: 'center' }}>{icon}</Text>
               </YStack>
-              {name.trim() ? <XStack gap="$2" justify="center">
+              <YStack flex={1} minW={0} gap="$1">
+                <Paragraph color="$color10" fontSize="$1" fontWeight="700">{t('categoryUx.identity')}</Paragraph>
+                <Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="800" numberOfLines={1}>{name.trim() || t('categories.newTitle')}</Paragraph>
+                <Paragraph color="$primary" fontSize="$1" fontWeight="700" onPress={() => setEmojiPickerOpen(true)}>{t('categoryUx.changeEmoji')}</Paragraph>
+              </YStack>
+            </XStack>
+
+            {name.trim() ? <YStack gap="$2">
+              <Paragraph color="$color10" fontSize="$1" fontWeight="700">{t('categoryUx.selectedEmoji')}</Paragraph>
+              <XStack gap="$2">
                 {suggestedCategoryIcons(name, type).map((option) => (
                   <Button
                     key={option}
@@ -104,15 +120,13 @@ export function CreateCategorySheet({ initialType, onCreated, onOpenChange, open
                     <Text style={{ fontSize: 24, includeFontPadding: false, lineHeight: 30, textAlign: 'center', textAlignVertical: 'center' }}>{option}</Text>
                   </Button>
                 ))}
-              </XStack> : null}
-            </YStack>
+              </XStack>
+            </YStack> : null}
 
-            <FintInput minH={56} placeholder={t('categories.namePlaceholder')} value={name} onChangeText={(value) => { setName(value); if (!iconChanged) setIcon(suggestedCategoryIcons(value, type)[0] ?? icon) }} autoCapitalize="sentences" />
+            <YStack gap="$2"><Paragraph color="$color10" fontSize="$1" fontWeight="700">{t('forms.name')}</Paragraph><FintInput minH={56} placeholder={t('categories.namePlaceholder')} value={name} onChangeText={(value) => { setName(value); if (!iconChanged) setIcon(suggestedCategoryIcons(value, type)[0] ?? icon) }} autoCapitalize="sentences" /></YStack>
             {errorMessage ? <Paragraph color="$red10">{errorMessage}</Paragraph> : null}
 
-            <FintButton disabled={mutation.isPending} onPress={() => mutation.mutate()} icon={mutation.isPending ? <Spinner color="$background" /> : <Shapes size={18} />}>
-              {mutation.isPending ? t('categories.creating') : t('categories.create')}
-            </FintButton>
+            <XStack gap="$2"><FintButton flex={1} variant="outlined" disabled={mutation.isPending} onPress={() => handleOpenChange(false)}>{t('actions.cancel')}</FintButton><FintButton flex={1} disabled={mutation.isPending} onPress={() => mutation.mutate()} icon={mutation.isPending ? <Spinner color="$background" /> : <Shapes size={18} />}>{mutation.isPending ? t('categories.creating') : t('categories.create')}</FintButton></XStack>
           </YStack>
         </Sheet.ScrollView>
       </Sheet.Frame>
@@ -121,7 +135,7 @@ export function CreateCategorySheet({ initialType, onCreated, onOpenChange, open
       open={emojiPickerOpen}
       onClose={() => setEmojiPickerOpen(false)}
       onEmojiSelected={(emoji: EmojiType) => { setIcon(emoji.emoji); setIconChanged(true); setEmojiPickerOpen(false) }}
-      translation={i18n.language === 'en' ? en : es}
+      translation={i18n.resolvedLanguage === 'en' ? en : i18n.resolvedLanguage === 'pt' ? pt : es}
       enableSearchBar
       enableRecentlyUsed
       categoryPosition="top"

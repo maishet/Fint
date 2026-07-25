@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
-import { Plus, Shapes } from '@tamagui/lucide-icons-2'
+import { ArrowDownLeft, ArrowUpRight, Plus, Shapes } from '@tamagui/lucide-icons-2'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Paragraph, XStack, YStack } from 'tamagui'
+import { Paragraph, Separator, XStack, YStack } from 'tamagui'
 import { financeApi } from '../src/api/finance'
 import type { TransactionType } from '../src/api/types'
 import { CreateCategorySheet } from '../src/components/CreateCategorySheet'
@@ -55,17 +55,25 @@ export default function CategoriesScreen() {
             <FintButton onPress={() => setIsCreateOpen(true)}>{t('categories.newAction')}</FintButton>
           </FintCard>
         ) : null}
-        {!categoriesQuery.isLoading && !categoriesQuery.error ? categories.map((category) => (
-          <FintCard key={category.id} py="$3">
-            <XStack items="center" gap="$3">
-              <YStack width={46} height={46} rounded="$10" bg="$secondary" items="center" justify="center">
-                <Paragraph fontSize="$6">{category.icon || suggestedCategoryIcons(category.name, category.type)[0]}</Paragraph>
+        {!categoriesQuery.isLoading && !categoriesQuery.error && categories.length > 0 ? (
+          <FintCard p={0} overflow="hidden">
+            {categories.map((category, index) => (
+              <YStack key={category.id}>
+                {index > 0 ? <Separator ml={66} /> : null}
+                <XStack items="center" gap="$3" px="$4" py="$3">
+                  <YStack width={42} height={42} rounded="$9" bg="$secondary" items="center" justify="center">
+                    <Paragraph fontSize="$5">{category.icon || suggestedCategoryIcons(category.name, category.type)[0]}</Paragraph>
+                  </YStack>
+                  <Paragraph color="$color12" fontSize="$3" fontWeight="700" flex={1} numberOfLines={1}>{getCategoryLabel(category.name, t)}</Paragraph>
+                  <XStack items="center" gap="$1" bg={category.type === 'income' ? '$green2' : '$red2'} px="$2" py="$1" rounded="$10">
+                    {category.type === 'income' ? <ArrowDownLeft size={12} color="$green10" /> : <ArrowUpRight size={12} color="$red10" />}
+                    <Paragraph color={category.type === 'income' ? '$green11' : '$red11'} fontSize={10} fontWeight="800">{t(`forms.${category.type}`)}</Paragraph>
+                  </XStack>
+                </XStack>
               </YStack>
-              <Paragraph color="$color12" fontSize="$4" fontWeight="700" flex={1}>{getCategoryLabel(category.name, t)}</Paragraph>
-              <Paragraph color="$color10" fontSize="$2">{t(`forms.${category.type}`)}</Paragraph>
-            </XStack>
+            ))}
           </FintCard>
-        )) : null}
+        ) : null}
       </Screen>
       <CreateCategorySheet initialType={type} open={isCreateOpen} onOpenChange={setIsCreateOpen} />
     </>

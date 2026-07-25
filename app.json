@@ -54,7 +54,8 @@
           "organization": "finanzas-app-1x",
           "project": "fint-mobile"
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true

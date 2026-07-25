@@ -1,12 +1,20 @@
 import * as Localization from 'expo-localization'
+import * as SecureStore from 'expo-secure-store'
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
+import { Platform } from 'react-native'
+import { ptTranslation } from './pt'
+
+export type AppLanguage = 'es' | 'en' | 'pt'
+
+const languageStorageKey = 'fint-language'
 
 const resources = {
   es: {
     translation: {
       auth: { title: 'Fint', subtitle: 'Controla tus cuentas, movimientos y deudas desde un solo lugar.', email: 'Correo', password: 'Contrasena', confirmPassword: 'Confirmar contrasena', signIn: 'Entrar', signUp: 'Crear cuenta', google: 'Continuar con Google', headline: 'Dinero claro, mente tranquila.', intro: 'Registra gastos, ingresos y deudas. Fint te ayuda a ver tu mes sin enredos.', welcome: 'Bienvenido de vuelta', registerTitle: 'Crea tu cuenta', loginHint: 'Entra para revisar tus finanzas.', registerHint: 'Empieza a ordenar tu dinero desde Fint.', noAccount: 'No tienes cuenta?', hasAccount: 'Ya tienes cuenta?', registerLink: 'Registrate', loginLink: 'Inicia sesion', continueWith: 'O continua con', processing: 'Procesando...', invalidCredentials: 'Correo o contrasena incorrectos.', emailNotConfirmed: 'Confirma tu correo antes de iniciar sesion.', alreadyRegistered: 'Este correo ya tiene una cuenta.', invalidForm: 'Ingresa un correo valido y una contrasena de al menos 6 caracteres.', passwordMismatch: 'Las contrasenas no coinciden.' },
       header: { menuTitle: 'Preferencias', darkMode: 'Modo oscuro', lightMode: 'Modo claro', openMenu: 'Abrir menú' },
+      profile: { title: 'Mi perfil' },
       tabs: { dashboard: 'Inicio', accounts: 'Cuentas', movements: 'Movimientos', debts: 'Deudas' },
       actions: { newAccount: 'Nueva cuenta', newMovement: 'Nuevo movimiento', newIncome: 'Ingreso', newExpense: 'Gasto', viewAll: 'Ver todos', signOut: 'Cerrar sesion', save: 'Guardar', cancel: 'Cancelar', retry: 'Reintentar' },
       states: { loading: 'Cargando...', error: 'No pudimos cargar esta informacion.', invalidForm: 'Revisa los datos ingresados.', accountNotFound: 'No encontramos esta cuenta activa.', debtNotFound: 'No encontramos esta deuda activa.' },
@@ -81,6 +89,7 @@ const resources = {
     translation: {
       auth: { title: 'Fint', subtitle: 'Track accounts, transactions, and debts in one place.', email: 'Email', password: 'Password', confirmPassword: 'Confirm password', signIn: 'Sign in', signUp: 'Create account', google: 'Continue with Google', headline: 'Clear money, calm mind.', intro: 'Track expenses, income, and debts. Fint helps you understand your month without friction.', welcome: 'Welcome back', registerTitle: 'Create your account', loginHint: 'Sign in to review your finances.', registerHint: 'Start organizing your money with Fint.', noAccount: 'No account?', hasAccount: 'Already have an account?', registerLink: 'Register', loginLink: 'Sign in', continueWith: 'Or continue with', processing: 'Processing...', invalidCredentials: 'Email or password is incorrect.', emailNotConfirmed: 'Confirm your email before signing in.', alreadyRegistered: 'This email already has an account.', invalidForm: 'Enter a valid email and a password with at least 6 characters.', passwordMismatch: 'Passwords do not match.' },
       header: { menuTitle: 'Preferences', darkMode: 'Dark mode', lightMode: 'Light mode', openMenu: 'Open menu' },
+      profile: { title: 'My profile' },
       tabs: { dashboard: 'Home', accounts: 'Accounts', movements: 'Movements', debts: 'Debts' },
       actions: { newAccount: 'New account', newMovement: 'New movement', newIncome: 'Income', newExpense: 'Expense', viewAll: 'View all', signOut: 'Sign out', save: 'Save', cancel: 'Cancel', retry: 'Retry' },
       states: { loading: 'Loading...', error: 'Could not load this information.', invalidForm: 'Review the entered information.', accountNotFound: 'This active account could not be found.', debtNotFound: 'This active debt could not be found.' },
@@ -151,10 +160,27 @@ const resources = {
       forms: { newAccount: 'New account', newMovement: 'New movement', amount: 'Amount', currency: 'Currency', category: 'Category', account: 'Account', note: 'Note', expense: 'Expense', income: 'Income', name: 'Name', accountType: 'Type', cash: 'Cash', openingBalance: 'Opening balance', select: 'Select', accountCreated: 'Account created' },
     },
   },
+  pt: { translation: ptTranslation },
 }
 
-const deviceLanguage = Localization.getLocales()[0]?.languageCode === 'en' ? 'en' : 'es'
+const deviceCode = Localization.getLocales()[0]?.languageCode
+const deviceLanguage: AppLanguage = deviceCode === 'en' || deviceCode === 'pt' ? deviceCode : 'es'
 
 i18n.use(initReactI18next).init({ resources, lng: deviceLanguage, fallbackLng: 'es', interpolation: { escapeValue: false } })
+
+export async function loadStoredLanguage() {
+  const value = Platform.OS === 'web' ? window.localStorage.getItem(languageStorageKey) : await SecureStore.getItemAsync(languageStorageKey)
+  if (value === 'es' || value === 'en' || value === 'pt') await i18n.changeLanguage(value)
+}
+
+export async function changeAppLanguage(language: AppLanguage) {
+  await i18n.changeLanguage(language)
+  if (Platform.OS === 'web') window.localStorage.setItem(languageStorageKey, language)
+  else await SecureStore.setItemAsync(languageStorageKey, language)
+}
+
+export function getAppLocale(language = i18n.resolvedLanguage) {
+  return language === 'en' ? 'en-US' : language === 'pt' ? 'pt-BR' : 'es-PE'
+}
 
 export default i18n

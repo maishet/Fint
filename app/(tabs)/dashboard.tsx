@@ -16,6 +16,7 @@ import type { Transaction } from '../../src/api/types'
 import { Screen } from '../../src/components/Screen'
 import { getCategoryLabel } from '../../src/finance/categoryLabels'
 import { useThemeMode } from '../../src/theme/ThemeMode'
+import { getAppLocale } from '../../src/i18n'
 import { FintButton, FintCard } from '../../src/ui'
 
 const ALL_ACCOUNTS = '__all__'
@@ -48,7 +49,7 @@ export default function DashboardScreen() {
   const summary = normalizeSummary(summaryQuery.data)
   const transactions = (transactionsQuery.data ?? []).map(normalizeTransaction)
   const recentTransactions = transactions.slice(0, 4)
-  const locale = i18n.language === 'en' ? 'en-US' : 'es-PE'
+  const locale = getAppLocale(i18n.resolvedLanguage)
   const monthlyTransactions = transactions.filter((transaction) => isTransactionInMonth(transaction, summary.month, summary.year))
   const categoryColors = [
     theme.chart1.val,
@@ -229,11 +230,13 @@ function QuickActions() {
 
 function WeeklyFlowSection({ currency, data }: { currency: string; data: WeeklyFlowPoint[] }) {
   const { t } = useTranslation()
+  const [selectedIndex, setSelectedIndex] = useState(Math.max(0, data.length - 1))
   const chartHeight = 105
   const totalIncome = data.reduce((sum, point) => sum + point.income, 0)
   const totalExpenses = data.reduce((sum, point) => sum + point.expenses, 0)
   const isPositive = totalIncome >= totalExpenses
   const maximum = Math.max(1, ...data.flatMap((point) => [point.income, point.expenses]))
+  const selectedPoint = data[Math.min(selectedIndex, Math.max(0, data.length - 1))]
   return (
     <YStack gap="$3">
       <XStack items="center" justify="space-between" gap="$3">
@@ -250,8 +253,21 @@ function WeeklyFlowSection({ currency, data }: { currency: string; data: WeeklyF
           <LegendDot color="$green9" label={t('dashboard.income')} />
           <LegendDot color="$red9" label={t('dashboard.expenses')} />
         </XStack>
+        {selectedPoint ? (
+          <XStack bg="$secondary" rounded="$5" p="$3" items="center" justify="space-between" gap="$3">
+            <YStack flex={1} minW={0}>
+              <Paragraph color="$color12" fontWeight="800">{selectedPoint.label}</Paragraph>
+              <Paragraph color="$color9" fontSize="$1">{t('dashboard.tapWeek')}</Paragraph>
+            </YStack>
+            <YStack items="flex-end">
+              <Paragraph color="$green11" fontSize="$1" fontWeight="800">+{formatMoney(selectedPoint.income, currency)}</Paragraph>
+              <Paragraph color="$red11" fontSize="$1" fontWeight="800">-{formatMoney(selectedPoint.expenses, currency)}</Paragraph>
+            </YStack>
+          </XStack>
+        ) : null}
         <XStack height={132} items="flex-end" gap="$2">
-          {data.map((point) => {
+          {data.map((point, index) => {
+            const isSelected = index === selectedIndex
             return (
             <YStack
               key={point.label}
@@ -261,12 +277,18 @@ function WeeklyFlowSection({ currency, data }: { currency: string; data: WeeklyF
               justify="flex-end"
               gap="$2"
               px="$1"
+              rounded="$4"
+              bg={isSelected ? '$secondary' : 'transparent'}
+              pressStyle={{ bg: '$secondary' }}
+              onPress={() => setSelectedIndex(index)}
+              role="button"
+              aria-label={t('dashboard.weekAccessibility', { week: point.label, income: formatMoney(point.income, currency), expenses: formatMoney(point.expenses, currency) })}
             >
               <XStack height={chartHeight} items="flex-end" gap={4}>
-                <YStack transition="200ms" width={12} height={point.income > 0 ? Math.max(3, Math.round((point.income / maximum) * chartHeight)) : 0} bg="$green9" rounded="$2" />
-                <YStack transition="200ms" width={12} height={point.expenses > 0 ? Math.max(3, Math.round((point.expenses / maximum) * chartHeight)) : 0} bg="$red9" rounded="$2" />
+                <YStack transition="200ms" width={12} height={point.income > 0 ? Math.max(3, Math.round((point.income / maximum) * chartHeight)) : 0} bg="$green9" rounded="$2" opacity={isSelected ? 1 : 0.76} />
+                <YStack transition="200ms" width={12} height={point.expenses > 0 ? Math.max(3, Math.round((point.expenses / maximum) * chartHeight)) : 0} bg="$red9" rounded="$2" opacity={isSelected ? 1 : 0.76} />
               </XStack>
-              <Paragraph color="$color10" fontSize={9} numberOfLines={1}>{point.label}</Paragraph>
+              <Paragraph color={isSelected ? '$color12' : '$color10'} fontSize={9} fontWeight={isSelected ? '800' : '500'} numberOfLines={1}>{point.label}</Paragraph>
             </YStack>
           )})}
         </XStack>

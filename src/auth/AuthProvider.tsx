@@ -16,6 +16,7 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<AuthResult>
   signUp: (email: string, password: string) => Promise<AuthResult>
   signInWithGoogle: (redirectTo: string) => Promise<AuthResult>
+  updateDisplayName: (displayName: string) => Promise<AuthResult>
   signOut: () => Promise<void>
 }
 
@@ -97,6 +98,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
         return { error: exchangeError }
+      },
+      async updateDisplayName(displayName) {
+        const { error } = await supabase.auth.updateUser({ data: { display_name: displayName.trim() } })
+        return { error }
       },
       async signOut() {
         const { error } = await supabase.auth.signOut()

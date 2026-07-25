@@ -1,6 +1,7 @@
 import { supabase } from '../auth/supabase'
 import type { ApiEnvelope } from './types'
 import { getRequestErrorMessage } from './error-message'
+import { setLastRequestId } from '../support/diagnostics'
 
 const apiUrl = process.env.EXPO_PUBLIC_API_URL
 const requestTimeoutMs = 30_000
@@ -37,6 +38,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}) {
       },
       signal: controller.signal,
     })
+    setLastRequestId(response.headers.get('X-Request-Id'))
   } catch (error) {
     if (controller.signal.aborted) throw new ApiRequestError('La conexión tardó demasiado. Intenta nuevamente.', 0, 'request_timeout')
     throw new ApiRequestError('No se pudo conectar al servidor. Revisa tu conexión e intenta nuevamente.', 0, 'network_error')

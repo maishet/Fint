@@ -14,7 +14,7 @@ export default defineConfig({
     command: `npx expo export --platform web && npx serve dist -l ${port}`,
     url: `http://localhost:${port}`,
     reuseExistingServer: true,
-    timeout: 180_000,
+    timeout: 300_000,
   },
 
   fullyParallel: false,

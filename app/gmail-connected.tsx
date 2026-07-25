@@ -10,7 +10,7 @@ export default function GmailConnectedScreen() {
   const router = useRouter()
 
   useEffect(() => {
-    const timeout = setTimeout(() => router.replace('/settings'), 700)
+    const timeout = setTimeout(() => router.replace('/gmail-settings'), 700)
     return () => clearTimeout(timeout)
   }, [router])
 

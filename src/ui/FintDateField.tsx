@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Paragraph, Sheet, useTheme, XStack, YStack, type XStackProps } from 'tamagui'
 import { formatDateString } from '../finance/dates'
 import { useSheetBackHandler } from '../hooks/useSheetBackHandler'
+import { getAppLocale } from '../i18n'
 
 LocaleConfig.locales.es = {
   monthNames: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
@@ -13,6 +14,14 @@ LocaleConfig.locales.es = {
   dayNames: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
   dayNamesShort: ['Dom.', 'Lun.', 'Mar.', 'Mié.', 'Jue.', 'Vie.', 'Sáb.'],
   today: 'Hoy',
+}
+
+LocaleConfig.locales.pt = {
+  monthNames: ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'],
+  monthNamesShort: ['Jan.', 'Fev.', 'Mar.', 'Abr.', 'Mai.', 'Jun.', 'Jul.', 'Ago.', 'Set.', 'Out.', 'Nov.', 'Dez.'],
+  dayNames: ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'],
+  dayNamesShort: ['Dom.', 'Seg.', 'Ter.', 'Qua.', 'Qui.', 'Sex.', 'Sáb.'],
+  today: 'Hoje',
 }
 
 interface FintDateFieldProps extends Omit<XStackProps, 'onPress'> {
@@ -29,8 +38,8 @@ export function FintDateField({ label, minDate, onValueChange, placeholder, show
   const [isOpen, setIsOpen] = useState(false)
   const insets = useSafeAreaInsets()
   const theme = useTheme()
-  const locale = i18n.language === 'en' ? 'en-US' : 'es-PE'
-  LocaleConfig.defaultLocale = i18n.language === 'en' ? '' : 'es'
+  const locale = getAppLocale(i18n.resolvedLanguage)
+  LocaleConfig.defaultLocale = i18n.resolvedLanguage === 'en' ? '' : i18n.resolvedLanguage === 'pt' ? 'pt' : 'es'
   const closeSheet = useCallback(() => setIsOpen(false), [])
   useSheetBackHandler(isOpen, closeSheet)
 

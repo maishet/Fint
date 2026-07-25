@@ -5,9 +5,9 @@ import { useEffect, useState } from 'react'
 import { Platform, useColorScheme } from 'react-native'
 import { TamaguiProvider, Theme, type TamaguiProviderProps } from 'tamagui'
 import { config } from '../../tamagui.config'
-import '../i18n'
+import { loadStoredLanguage } from '../i18n'
 import { AuthProvider } from '../auth/AuthProvider'
-import { ThemeModeContext, type ThemeMode } from '../theme/ThemeMode'
+import { ThemeModeContext, type ThemePreference } from '../theme/ThemeMode'
 import { CurrentToast } from '../ui/CurrentToast'
 
 const themeModeStorageKey = 'fint-theme-mode'
@@ -15,18 +15,19 @@ const themeModeStorageKey = 'fint-theme-mode'
 export function AppProviders({ children, ...rest }: Omit<TamaguiProviderProps, 'config' | 'defaultTheme'>) {
   const colorScheme = useColorScheme()
   const [queryClient] = useState(() => new QueryClient())
-  const [themeMode, setThemeMode] = useState<ThemeMode>(() => (colorScheme === 'dark' ? 'dark' : 'light'))
+  const [themePreference, setThemePreference] = useState<ThemePreference>('system')
+  const themeMode = themePreference === 'system' ? (colorScheme === 'dark' ? 'dark' : 'light') : themePreference
 
-  const toggleThemeMode = () => {
-    setThemeMode((current) => (current === 'dark' ? 'light' : 'dark'))
-  }
+  useEffect(() => {
+    void loadStoredLanguage()
+  }, [])
 
   useEffect(() => {
     let isMounted = true
 
     async function loadThemeMode() {
       const storedThemeMode = await getStoredThemeMode()
-      if (isMounted && storedThemeMode) setThemeMode(storedThemeMode)
+      if (isMounted && storedThemeMode) setThemePreference(storedThemeMode)
     }
 
     loadThemeMode()
@@ -37,11 +38,11 @@ export function AppProviders({ children, ...rest }: Omit<TamaguiProviderProps, '
   }, [])
 
   useEffect(() => {
-    storeThemeMode(themeMode)
-  }, [themeMode])
+    storeThemeMode(themePreference)
+  }, [themePreference])
 
   return (
-    <ThemeModeContext.Provider value={{ themeMode, toggleThemeMode }}>
+    <ThemeModeContext.Provider value={{ themeMode, themePreference, setThemePreference }}>
       <TamaguiProvider config={config} defaultTheme={themeMode} {...rest}>
         <ToastProvider swipeDirection="horizontal" duration={5000}>
           <Theme name={themeMode} forceClassName>
@@ -59,10 +60,10 @@ export function AppProviders({ children, ...rest }: Omit<TamaguiProviderProps, '
 
 async function getStoredThemeMode() {
   const value = Platform.OS === 'web' ? window.localStorage.getItem(themeModeStorageKey) : await SecureStore.getItemAsync(themeModeStorageKey)
-  return value === 'light' || value === 'dark' ? value : null
+  return value === 'light' || value === 'dark' || value === 'system' ? value : null
 }
 
-async function storeThemeMode(themeMode: ThemeMode) {
+async function storeThemeMode(themeMode: ThemePreference) {
   if (Platform.OS === 'web') {
     window.localStorage.setItem(themeModeStorageKey, themeMode)
     return

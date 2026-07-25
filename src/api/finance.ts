@@ -26,6 +26,7 @@ import type {
   GmailOAuthStart,
   GmailSource,
   GmailSourceConfigInput,
+  FinancialReport,
 } from './types'
 
 function toQuery(params: { [key: string]: string | number | undefined }) {
@@ -45,6 +46,19 @@ export const financeApi = {
   deleteAccount: (id: string) => apiRequest<AccountMutationResult>(`/api/accounts/${id}`, { method: 'DELETE' }),
   getSummary: () => apiRequest<Summary>('/api/summary'),
   listTransactions: (query: TransactionQuery = {}) => apiRequest<Transaction[]>(`/api/transactions${toQuery({ ...query })}`),
+  async listAllTransactions(query: Omit<TransactionQuery, 'limit' | 'offset'> = {}) {
+    const pageSize = 200
+    const transactions: Transaction[] = []
+    let offset = 0
+
+    while (true) {
+      const page = await apiRequest<Transaction[]>(`/api/transactions${toQuery({ ...query, limit: pageSize, offset })}`)
+      transactions.push(...page)
+      if (page.length < pageSize) return transactions
+      offset += pageSize
+    }
+  },
+  getFinancialReport: (query: TransactionQuery = {}) => apiRequest<FinancialReport>(`/api/reports/financial${toQuery({ ...query })}`),
   createTransaction: (input: CreateTransactionInput) => apiRequest<CreateTransactionResult>('/api/transactions', { method: 'POST', body: JSON.stringify(input) }),
   updateTransaction: (id: string, input: UpdateTransactionInput) => apiRequest<{ id: string }>(`/api/transactions/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
   deleteTransaction: (id: string) => apiRequest<{ id: string }>(`/api/transactions/${id}`, { method: 'DELETE' }),

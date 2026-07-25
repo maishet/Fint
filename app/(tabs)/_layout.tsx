@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from 'tamagui'
-import { ArrowLeftRight, CreditCard, Home, Wallet } from '@tamagui/lucide-icons-2'
+import { ArrowLeftRight, BarChart3, CreditCard, Home, Wallet } from '@tamagui/lucide-icons-2'
 import { AppHeader } from '../../src/components/AppHeader'
 
 export default function TabLayout() {
@@ -59,6 +59,14 @@ export default function TabLayout() {
           title: t('tabs.movements'),
           header: () => <AppHeader title={t('tabs.movements')} />,
           tabBarIcon: ({ color }) => <ArrowLeftRight color={color as any} />,
+        }}
+      />
+      <Tabs.Screen
+        name="reports"
+        options={{
+          title: t('tabs.reports', { defaultValue: 'Reportes' }),
+          header: () => <AppHeader title={t('tabs.reports', { defaultValue: 'Reportes' })} />,
+          tabBarIcon: ({ color }) => <BarChart3 color={color as any} />,
         }}
       />
     </Tabs>

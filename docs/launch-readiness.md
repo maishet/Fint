@@ -12,13 +12,20 @@
 - Gmail sources whose Google refresh token is rejected are marked as requiring reconnection and expose a mobile recovery action.
 - Reusable actions now block duplicate presses; Gmail sync shows progress and completion feedback.
 - Sentry is integrated for mobile and API with PII and request-body collection disabled; alert rules are intentionally not configured yet.
+- EAS preview and production environments include the public Sentry environment value, and the new preview APK was generated and validated.
+- The API Sentry changes and environment variables were deployed to Render.
+- Gmail multi-account synchronization, confirmation, discard, deduplication, token revocation, and reconnection were validated end to end.
+- The final APK smoke test covering installation, authentication, onboarding, core mutations, navigation, persistence, and relaunch passed.
 
 ## Remaining Before Public Launch
 
-- Configure the Supabase Vault secrets and apply `20260723041844_gmail_watch_renewal.sql`, then verify the first Gmail watch renewal run. Render only needs `INTERNAL_CRON_SECRET`; `OPS_ALERT_WEBHOOK_URL` remains optional.
 - Verify the first scheduled Supabase Cron run using the queries in `docs/monitoring-setup.md`.
-- Add `EXPO_PUBLIC_SENTRY_ENVIRONMENT` to EAS preview and production, then validate the next Sentry-enabled APK and deployed API events.
+- Trigger controlled mobile and API errors, confirm both events in Sentry, verify readable source maps and confirm that no PII or financial data is attached.
 - Measure the first request after Render sleeps; the warm authenticated baseline is documented in the API operations runbook.
-- Verify managed backup retention and perform a restore drill in a separate Supabase project.
 - Host completed privacy policy and terms on HTTPS URLs, then complete a Play closed-test release.
 - Add mobile tests for account, movement, and debt mutation flows.
+- Implement the prioritized work in `docs/mvp-improvements-and-reports.md`.
+
+## Explicitly Out Of Scope
+
+- Managed backup verification and a restore drill are not part of the current MVP launch scope by product decision.

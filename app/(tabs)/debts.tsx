@@ -15,6 +15,7 @@ import { formatDateString, parseDateString } from '../../src/finance/dates'
 import { useThemeMode } from '../../src/theme/ThemeMode'
 import { usePressOnce } from '../../src/hooks/usePressOnce'
 import { FintButton, FintCard } from '../../src/ui'
+import { getAppLocale } from '../../src/i18n'
 
 export default function DebtsScreen() {
   const { t, i18n } = useTranslation()
@@ -31,7 +32,7 @@ export default function DebtsScreen() {
   const debts = (debtsQuery.data ?? []).map(normalizeDebt)
   const accounts = (accountsQuery.data ?? []).map(normalizeAccount)
   const summary = normalizeSummary(summaryQuery.data)
-  const locale = i18n.language === 'en' ? 'en-US' : 'es-PE'
+  const locale = getAppLocale(i18n.resolvedLanguage)
   const nextDueDebt = [...debts].filter((debt) => debt.dueDate).sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)))[0]
   const isLoading = debtsQuery.isLoading || accountsQuery.isLoading || summaryQuery.isLoading
   const isRefreshing = debtsQuery.isRefetching || accountsQuery.isRefetching || summaryQuery.isRefetching
@@ -102,7 +103,7 @@ export default function DebtsScreen() {
 
 function DebtHero({ count, currency, isDark, nextDueDate, total }: { count: number; currency: string; isDark: boolean; nextDueDate: string | null; total: number }) {
   const { t, i18n } = useTranslation()
-  const locale = i18n.language === 'en' ? 'en-US' : 'es-PE'
+  const locale = getAppLocale(i18n.resolvedLanguage)
   return (
     <FintCard bg={isDark ? '#0B3046' : '#0F5D73'} borderColor={isDark ? '#1B5067' : '#28788C'} gap="$4" p="$4">
       <XStack items="center" justify="space-between" gap="$3">
