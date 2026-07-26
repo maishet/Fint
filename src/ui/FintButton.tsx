@@ -7,16 +7,18 @@ interface FintButtonProps extends Omit<ButtonProps, "variant"> {
 
 export function FintButton({ disabled, onPress, variant = "solid", ...props }: FintButtonProps) {
   const [isPressLocked, setIsPressLocked] = useState(false);
+  const isMountedRef = useRef(true);
   const isPressLockedRef = useRef(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => {
+    isMountedRef.current = false;
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
   }, []);
 
   const unlock = () => {
     isPressLockedRef.current = false;
-    setIsPressLocked(false);
+    if (isMountedRef.current) setIsPressLocked(false);
   };
 
   const handlePress: ButtonProps["onPress"] = (event) => {

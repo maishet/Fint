@@ -4,6 +4,7 @@
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
+    "postinstall": "node scripts/patch-expo-router.mjs",
     "upgrade:tamagui": "bunx npm-check-updates -u '*tamagui*' '@tamagui/*' && bun install",
     "start": "bunx expo start -c",
     "android": "bunx expo run:android",

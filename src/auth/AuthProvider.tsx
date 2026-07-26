@@ -28,20 +28,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
 
   useEffect(() => {
+    let active = true
     supabase.auth.getSession().then(({ data }) => {
+      if (!active) return
       setSession(data.session)
       setIsLoading(false)
       logSessionExpiry(data.session)
     })
 
     const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (!active) return
       setSession(nextSession)
       setIsLoading(false)
       logSessionExpiry(nextSession)
       if (event === 'SIGNED_OUT') queryClient.clear()
     })
 
-    return () => data.subscription.unsubscribe()
+    return () => {
+      active = false
+      data.subscription.unsubscribe()
+    }
   }, [queryClient])
 
   useEffect(() => {

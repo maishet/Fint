@@ -1,7 +1,7 @@
 import * as ExpoLinking from 'expo-linking'
 import * as WebBrowser from 'expo-web-browser'
 import { Eye, EyeOff, LockKeyhole, Mail } from '@tamagui/lucide-icons-2'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Image, KeyboardAvoidingView, Platform } from 'react-native'
 import Svg, { Path } from 'react-native-svg'
 import { Redirect } from 'expo-router'
@@ -23,6 +23,11 @@ export default function LoginScreen() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
+  const isMountedRef = useRef(true)
+
+  useEffect(() => () => {
+    isMountedRef.current = false
+  }, [])
 
   if (session) return <Redirect href="/(tabs)/dashboard" />
 
@@ -47,6 +52,7 @@ export default function LoginScreen() {
         ? await signUp(email.trim(), password)
         : await signInWithGoogle(redirectTo)
 
+    if (!isMountedRef.current) return
     if (result.error) {
       setErrorMessage(getFriendlyAuthError(result.error.message, t))
     } else if (action === 'signup') {

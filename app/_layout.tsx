@@ -10,7 +10,7 @@ import * as Sentry from '@sentry/react-native'
 import { AppProviders } from '../src/providers/AppProviders'
 import { useAuth } from '../src/auth/AuthProvider'
 import { useThemeMode } from '../src/theme/ThemeMode'
-import { Spinner, useTheme, YStack } from 'tamagui'
+import { useTheme } from 'tamagui'
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -70,17 +70,9 @@ export default Sentry.wrap(RootLayout)
 
 function RootLayoutNav() {
   const { t } = useTranslation()
-  const { isLoading, session } = useAuth()
+  const { session } = useAuth()
   const { themeMode } = useThemeMode()
   const theme = useTheme()
-
-  if (isLoading) {
-    return (
-      <YStack flex={1} items="center" justify="center" bg="$background">
-        <Spinner size="large" color="$primary" />
-      </YStack>
-    )
-  }
 
   return (
     <ThemeProvider value={themeMode === 'dark' ? DarkTheme : DefaultTheme}>
