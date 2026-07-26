@@ -27,6 +27,7 @@ import type {
   GmailSource,
   GmailSourceConfigInput,
   FinancialReport,
+  FinancialReportQuery,
 } from './types'
 
 function toQuery(params: { [key: string]: string | number | undefined }) {
@@ -58,7 +59,7 @@ export const financeApi = {
       offset += pageSize
     }
   },
-  getFinancialReport: (query: TransactionQuery = {}) => apiRequest<FinancialReport>(`/api/reports/financial${toQuery({ ...query })}`),
+  getFinancialReport: (query: FinancialReportQuery) => apiRequest<FinancialReport>(`/api/reports/financial${toQuery({ ...query })}`),
   createTransaction: (input: CreateTransactionInput) => apiRequest<CreateTransactionResult>('/api/transactions', { method: 'POST', body: JSON.stringify(input) }),
   updateTransaction: (id: string, input: UpdateTransactionInput) => apiRequest<{ id: string }>(`/api/transactions/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
   deleteTransaction: (id: string) => apiRequest<{ id: string }>(`/api/transactions/${id}`, { method: 'DELETE' }),

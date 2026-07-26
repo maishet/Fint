@@ -6,8 +6,8 @@ import { Paragraph, Separator, XStack, YStack } from 'tamagui'
 import { financeApi } from '../src/api/finance'
 import type { TransactionType } from '../src/api/types'
 import { CreateCategorySheet } from '../src/components/CreateCategorySheet'
-import { DataStateCard } from '../src/components/DataStateCard'
 import { Screen } from '../src/components/Screen'
+import { SkeletonGroup, SkeletonList } from '../src/components/Skeleton'
 import { getCategoryLabel } from '../src/finance/categoryLabels'
 import { suggestedCategoryIcons } from '../src/finance/categoryIcons'
 import { FintButton, FintCard } from '../src/ui'
@@ -38,7 +38,7 @@ export default function CategoriesScreen() {
           ))}
         </XStack>
 
-        {categoriesQuery.isLoading ? <DataStateCard message={t('states.loading')} /> : null}
+        {categoriesQuery.isLoading ? <SkeletonGroup label={t('states.loading')}><SkeletonList grouped rows={6} /></SkeletonGroup> : null}
         {categoriesQuery.error ? (
           <FintCard gap="$3" items="center">
             <Paragraph color="$red10" text="center">{t('categories.loadError')}</Paragraph>

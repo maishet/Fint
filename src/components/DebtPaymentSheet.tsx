@@ -50,6 +50,7 @@ export function DebtPaymentSheet({ accounts, debt, onOpenChange, open }: DebtPay
         queryClient.invalidateQueries({ queryKey: ['summary'] }),
         queryClient.invalidateQueries({ queryKey: ['accounts'] }),
         queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+        queryClient.invalidateQueries({ queryKey: ['reports'] }),
       ])
       onOpenChange(false)
       toast.show(t('debts.paymentCreated'), { message: t('debts.paymentCreatedMessage'), preset: 'success', duration: 3500 })

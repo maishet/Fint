@@ -64,6 +64,7 @@ export default function AccountFormScreen() {
         queryClient.invalidateQueries({ queryKey: ['accounts'] }),
         queryClient.invalidateQueries({ queryKey: ['summary'] }),
         queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+        queryClient.invalidateQueries({ queryKey: ['reports'] }),
       ])
       toast.show(t(isEditing ? 'accounts.updatedToast' : 'accounts.createdToast'), {
         message: t(isEditing ? 'accounts.updatedMessage' : 'accounts.createdMessage'),

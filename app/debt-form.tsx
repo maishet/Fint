@@ -66,6 +66,7 @@ export default function DebtFormScreen() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['debts'] }),
         queryClient.invalidateQueries({ queryKey: ['summary'] }),
+        queryClient.invalidateQueries({ queryKey: ['reports'] }),
       ])
       toast.show(t(isEditing ? 'debts.updatedToast' : 'debts.createdToast'), {
         message: t(isEditing ? 'debts.updatedMessage' : 'debts.createdMessage'),

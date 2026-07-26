@@ -10,6 +10,7 @@ import { formatMoney, normalizeAccount, normalizeSummary } from '../../src/api/m
 import type { Account } from '../../src/api/types'
 import { DataStateCard } from '../../src/components/DataStateCard'
 import { Screen } from '../../src/components/Screen'
+import { SkeletonGroup, SkeletonHero, SkeletonList } from '../../src/components/Skeleton'
 import { useThemeMode } from '../../src/theme/ThemeMode'
 import { usePressOnce } from '../../src/hooks/usePressOnce'
 import { FintButton, FintCard } from '../../src/ui'
@@ -36,6 +37,7 @@ export default function AccountsScreen() {
         queryClient.invalidateQueries({ queryKey: ['accounts'] }),
         queryClient.invalidateQueries({ queryKey: ['summary'] }),
         queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+        queryClient.invalidateQueries({ queryKey: ['reports'] }),
       ])
       setDeleteTarget(null)
       toast.show(t('accounts.deletedToast'), { message: t('accounts.deletedMessage'), preset: 'success', duration: 3500 })
@@ -55,12 +57,13 @@ export default function AccountsScreen() {
           queryClient.invalidateQueries({ queryKey: ['summary'] })
         }}
       >
+        {isLoading ? <SkeletonGroup label={t('states.loading')}><SkeletonHero /></SkeletonGroup> : null}
         {!isLoading && !error ? <AccountsSummary isDark={themeMode === 'dark'} summary={summary} /> : null}
 
         <XStack items="center" justify="space-between" gap="$3">
           <YStack gap="$1" flex={1}>
             <Paragraph color="$color12" fontFamily="$heading" fontSize="$6" fontWeight="700">{t('accounts.myAccounts')}</Paragraph>
-            <Paragraph color="$color10" fontSize="$2">{t('accounts.accountCount', { count: accounts.length })}</Paragraph>
+            {!isLoading ? <Paragraph color="$color10" fontSize="$2">{t('accounts.accountCount', { count: accounts.length })}</Paragraph> : null}
           </YStack>
           <YStack
             width={42}
@@ -79,7 +82,7 @@ export default function AccountsScreen() {
           </YStack>
         </XStack>
 
-        {isLoading ? <DataStateCard message={t('states.loading')} /> : null}
+        {isLoading ? <SkeletonGroup label={t('states.loading')}><SkeletonList rows={3} /></SkeletonGroup> : null}
         {error ? <DataStateCard message={error instanceof Error ? error.message : t('states.error')} onRetry={() => { void accountsQuery.refetch(); void summaryQuery.refetch() }} /> : null}
         {!isLoading && !error && accounts.length === 0 ? (
           <FintCard bg="$accent1" borderColor="$accent4" items="center" gap="$3" py="$6">

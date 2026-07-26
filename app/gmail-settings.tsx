@@ -10,6 +10,7 @@ import { financeApi } from '../src/api/finance'
 import type { GmailSource } from '../src/api/types'
 import { DataStateCard } from '../src/components/DataStateCard'
 import { Screen } from '../src/components/Screen'
+import { SkeletonBlock, SkeletonGroup } from '../src/components/Skeleton'
 import { FintButton, FintCard, FintInput } from '../src/ui'
 
 export default function GmailSettingsScreen() {
@@ -34,11 +35,26 @@ export default function GmailSettingsScreen() {
         <XStack items="center" gap="$3"><YStack width={48} height={48} rounded="$10" bg="rgba(93,214,229,0.14)" items="center" justify="center"><Mail size={24} color="#5DD6E5" /></YStack><YStack flex={1}><Paragraph color="#F4FBFD" fontFamily="$heading" fontSize="$6" fontWeight="800">{t('gmail.title')}</Paragraph><Paragraph color="#B9D7E1">{t('gmail.description')}</Paragraph></YStack></XStack>
         <FintButton bg="#5DD6E5" color="#062536" disabled={connectMutation.isPending || visibleSources.filter((source) => source.status === 'active').length >= 3} icon={connectMutation.isPending ? <Spinner /> : <Plus size={18} />} onPress={connect}>{t('gmail.connect')}</FintButton>
       </FintCard>
-      {sourcesQuery.isLoading ? <DataStateCard message={t('states.loading')} /> : null}
+      {sourcesQuery.isLoading ? <GmailSourcesSkeleton label={t('states.loading')} /> : null}
       {sourcesQuery.error ? <DataStateCard message={sourcesQuery.error instanceof Error ? sourcesQuery.error.message : t('states.error')} onRetry={() => { void sourcesQuery.refetch() }} /> : null}
       {visibleSources.map((source) => <GmailSourceCard key={source.id} source={source} onReconnect={connect} />)}
       {!sourcesQuery.isLoading && visibleSources.length === 0 ? <DataStateCard message={t('gmail.empty')} /> : null}
     </Screen>
+  )
+}
+
+function GmailSourcesSkeleton({ label }: { label: string }) {
+  return (
+    <SkeletonGroup label={label}>
+      {[0, 1].map((item) => (
+        <FintCard key={item} gap="$4">
+          <XStack items="center" gap="$3"><SkeletonBlock height={40} rounded="$9" width={40} /><YStack flex={1} gap="$2"><SkeletonBlock height={14} width="62%" /><SkeletonBlock height={10} width="44%" /></YStack></XStack>
+          <YStack gap="$2"><SkeletonBlock height={11} width="34%" /><SkeletonBlock height={9} width="72%" /><SkeletonBlock height={88} rounded="$5" /></YStack>
+          <XStack gap="$2"><SkeletonBlock flex={1} height={44} rounded="$6" /><SkeletonBlock flex={1} height={44} rounded="$6" /></XStack>
+          <SkeletonBlock height={44} rounded="$6" />
+        </FintCard>
+      ))}
+    </SkeletonGroup>
   )
 }
 

@@ -11,6 +11,7 @@ import type { Debt } from '../../src/api/types'
 import { DebtPaymentSheet } from '../../src/components/DebtPaymentSheet'
 import { DataStateCard } from '../../src/components/DataStateCard'
 import { Screen } from '../../src/components/Screen'
+import { SkeletonGroup, SkeletonHero, SkeletonList } from '../../src/components/Skeleton'
 import { formatDateString, parseDateString } from '../../src/finance/dates'
 import { useThemeMode } from '../../src/theme/ThemeMode'
 import { usePressOnce } from '../../src/hooks/usePressOnce'
@@ -41,7 +42,7 @@ export default function DebtsScreen() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => financeApi.deleteDebt(id),
     onSuccess: async () => {
-      await Promise.all([queryClient.invalidateQueries({ queryKey: ['debts'] }), queryClient.invalidateQueries({ queryKey: ['summary'] })])
+      await Promise.all([queryClient.invalidateQueries({ queryKey: ['debts'] }), queryClient.invalidateQueries({ queryKey: ['summary'] }), queryClient.invalidateQueries({ queryKey: ['reports'] })])
       setDeleteTarget(null)
       toast.show(t('debts.deletedToast'), { message: t('debts.deletedMessage'), preset: 'success' })
     },
@@ -54,6 +55,7 @@ export default function DebtsScreen() {
   return (
     <>
       <Screen isRefreshing={isRefreshing} onRefresh={() => Promise.all([debtsQuery.refetch(), accountsQuery.refetch(), summaryQuery.refetch()])}>
+        {isLoading ? <SkeletonGroup label={t('states.loading')}><SkeletonHero /></SkeletonGroup> : null}
         {!isLoading && !error ? (
           <DebtHero
             count={debts.length}
@@ -67,12 +69,12 @@ export default function DebtsScreen() {
         <XStack items="center" justify="space-between" gap="$3">
           <YStack gap="$1" flex={1}>
             <Paragraph color="$color12" fontFamily="$heading" fontSize="$6" fontWeight="700">{t('debts.pending')}</Paragraph>
-            <Paragraph color="$color10" fontSize="$2">{t('debts.pendingCount', { count: debts.length })}</Paragraph>
+            {!isLoading ? <Paragraph color="$color10" fontSize="$2">{t('debts.pendingCount', { count: debts.length })}</Paragraph> : null}
           </YStack>
           <Button circular bg="$primary" icon={<Plus size={22} color="$primaryForeground" />} onPress={openCreate} aria-label={t('debts.newTitle')} />
         </XStack>
 
-        {isLoading ? <DataStateCard message={t('states.loading')} /> : null}
+        {isLoading ? <SkeletonGroup label={t('states.loading')}><SkeletonList rows={3} /></SkeletonGroup> : null}
         {error ? <DataStateCard message={error instanceof Error ? error.message : t('states.error')} onRetry={() => { void debtsQuery.refetch(); void summaryQuery.refetch() }} /> : null}
         {!isLoading && !error && debts.length === 0 ? (
           <FintCard items="center" gap="$3" py="$6">

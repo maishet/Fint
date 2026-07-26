@@ -12,6 +12,7 @@ import type { Category, PendingMovement, Transaction } from '../../src/api/types
 import { CategoryPickerSheet } from '../../src/components/CategoryPickerSheet'
 import { DataStateCard } from '../../src/components/DataStateCard'
 import { Screen } from '../../src/components/Screen'
+import { SkeletonGroup, SkeletonHero, SkeletonList } from '../../src/components/Skeleton'
 import { getCategoryLabel } from '../../src/finance/categoryLabels'
 import { FintButton, FintCard, FintSheetSelect } from '../../src/ui'
 
@@ -76,6 +77,7 @@ export default function MovementsScreen() {
         queryClient.invalidateQueries({ queryKey: ['transactions'] }),
         queryClient.invalidateQueries({ queryKey: ['summary'] }),
         queryClient.invalidateQueries({ queryKey: ['accounts'] }),
+        queryClient.invalidateQueries({ queryKey: ['reports'] }),
       ])
     },
   })
@@ -94,6 +96,7 @@ export default function MovementsScreen() {
         queryClient.invalidateQueries({ queryKey: ['transactions'] }),
         queryClient.invalidateQueries({ queryKey: ['summary'] }),
         queryClient.invalidateQueries({ queryKey: ['accounts'] }),
+        queryClient.invalidateQueries({ queryKey: ['reports'] }),
       ])
       toast.show(t('movementUx.deletedToast'), { message: t('movementUx.deletedMessage'), preset: 'success' })
     },
@@ -102,7 +105,7 @@ export default function MovementsScreen() {
 
   return (
     <Screen isRefreshing={movementsQuery.isRefetching || pendingQuery.isRefetching} onRefresh={() => Promise.all([movementsQuery.refetch(), pendingQuery.refetch(), categoriesQuery.refetch()])}>
-      <MovementHero currency={currency} expenses={expenses} income={income} />
+      {movementsQuery.isLoading ? <SkeletonGroup label={t('states.loading')}><SkeletonHero /></SkeletonGroup> : <MovementHero currency={currency} expenses={expenses} income={income} />}
 
       <FintSheetSelect
         label={t('movementUx.period')}
@@ -120,7 +123,7 @@ export default function MovementsScreen() {
         </XStack>
         {pendingOpen ? (
           <YStack gap="$2" p="$2">
-            {pendingQuery.isLoading ? <Spinner color="$primary" /> : null}
+            {pendingQuery.isLoading ? <SkeletonGroup label={t('states.loading')}><SkeletonList rows={2} /></SkeletonGroup> : null}
             {pendingQuery.error ? <Paragraph color="$red10">{t('movementUx.pendingError')}</Paragraph> : null}
             {!pendingQuery.isLoading && pending.length === 0 ? <Paragraph color="$color10" p="$2">{t('movementUx.noPending')}</Paragraph> : null}
             {pending.map((item) => (
@@ -149,7 +152,7 @@ export default function MovementsScreen() {
         <Link href="/transaction-form" asChild><FintButton circular bg="$primary" icon={<Plus size={21} color="$primaryForeground" />} aria-label={t('actions.newMovement')} /></Link>
       </XStack>
 
-      {movementsQuery.isLoading ? <DataStateCard message={t('states.loading')} /> : null}
+      {movementsQuery.isLoading ? <SkeletonGroup label={t('states.loading')}><SkeletonList rows={4} /></SkeletonGroup> : null}
       {movementsQuery.error ? <DataStateCard message={t('movements.loadError')} onRetry={() => { void movementsQuery.refetch() }} /> : null}
       {!movementsQuery.isLoading && !movementsQuery.error && movements.length === 0 ? <DataStateCard message={t('movements.emptyDescription')} /> : null}
       {!movementsQuery.isLoading && !movementsQuery.error ? movements.map((movement) => {

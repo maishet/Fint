@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useWindowDimensions } from 'react-native'
 import { PieChart } from 'react-native-gifted-charts'
-import { Button, H3, Paragraph, ScrollView, Spinner, useTheme, XStack, YStack } from 'tamagui'
+import { Button, H3, Paragraph, ScrollView, useTheme, XStack, YStack } from 'tamagui'
 import { financeApi } from '../../src/api/finance'
 import {
   formatMoney,
@@ -14,6 +14,7 @@ import {
 } from '../../src/api/mappers'
 import type { Transaction } from '../../src/api/types'
 import { Screen } from '../../src/components/Screen'
+import { SkeletonBlock, SkeletonContentCard, SkeletonGroup, SkeletonHero, SkeletonList, SkeletonSection } from '../../src/components/Skeleton'
 import { getCategoryLabel } from '../../src/finance/categoryLabels'
 import { useThemeMode } from '../../src/theme/ThemeMode'
 import { getAppLocale } from '../../src/i18n'
@@ -67,19 +68,20 @@ export default function DashboardScreen() {
     })),
   ]
   const weeklyFlow = getWeeklyFlow(transactions, locale)
-  const isLoading = summaryQuery.isLoading || transactionsQuery.isLoading
-  const isRefreshing = summaryQuery.isRefetching || transactionsQuery.isRefetching
-  const error = summaryQuery.error ?? transactionsQuery.error
+  const isLoading = summaryQuery.isLoading || accountsQuery.isLoading || transactionsQuery.isLoading
+  const isRefreshing = summaryQuery.isRefetching || accountsQuery.isRefetching || transactionsQuery.isRefetching
+  const error = summaryQuery.error ?? accountsQuery.error ?? transactionsQuery.error
 
   return (
     <Screen
       isRefreshing={isRefreshing}
       onRefresh={() => {
         queryClient.invalidateQueries({ queryKey: ['summary'] })
+        queryClient.invalidateQueries({ queryKey: ['accounts'] })
         queryClient.invalidateQueries({ queryKey: ['transactions'] })
       }}
     >
-      {isLoading ? <LoadingCard message={t('dashboard.loading')} /> : null}
+      {isLoading ? <DashboardSkeleton label={t('dashboard.loading')} /> : null}
       {error ? <ErrorCard title={t('dashboard.errorTitle')} message={error instanceof Error ? error.message : t('dashboard.errorTitle')} /> : null}
 
       {!isLoading && !error ? (
@@ -679,12 +681,16 @@ function startOfDay(date: Date) {
   return result
 }
 
-function LoadingCard({ message }: { message: string }) {
+function DashboardSkeleton({ label }: { label: string }) {
   return (
-    <FintCard items="center" justify="center" gap="$3" minH={160}>
-      <Spinner color="$accent10" size="large" />
-      <Paragraph color="$color10">{message}</Paragraph>
-    </FintCard>
+    <SkeletonGroup label={label}>
+      <SkeletonHero />
+      <XStack gap="$3"><SkeletonBlock flex={1} height={44} rounded="$6" /><SkeletonBlock flex={1} height={44} rounded="$6" /></XStack>
+      <SkeletonSection height={286} />
+      <SkeletonContentCard rows={3} />
+      <YStack gap="$3"><SkeletonBlock height={20} width="48%" /><XStack><FintCard width={248} height={148} gap="$3"><SkeletonBlock height={32} rounded="$7" width={32} /><SkeletonBlock height={13} width="72%" /><SkeletonBlock height={24} width="48%" /></FintCard></XStack></YStack>
+      <YStack gap="$3"><SkeletonBlock height={20} width="44%" /><SkeletonList grouped rows={4} /></YStack>
+    </SkeletonGroup>
   )
 }
 
