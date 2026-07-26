@@ -34,8 +34,9 @@ export async function exportFinancialReportPdf(report: FinancialReport, options:
   }
   if (!(await Sharing.isAvailableAsync())) throw new Error('Sharing is not available on this device')
   const { uri } = await Print.printToFileAsync({ html, base64: false })
+  const source = new File(uri)
   const target = new File(Paths.cache, reportFileName(report, 'pdf'))
-  target.create({ overwrite: true })
-  new File(uri).copy(target)
+  if (target.exists) target.delete()
+  source.copy(target)
   await Sharing.shareAsync(target.uri, { mimeType: 'application/pdf', dialogTitle: options.labels.title, UTI: 'com.adobe.pdf' })
 }

@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, ArrowDownLeft, ArrowUpRight, BarChart3, CalendarDays, ChevronRight, CreditCard, Download, FileText, Landmark, Percent, PiggyBank, Table2, Target, WalletCards } from '@tamagui/lucide-icons-2'
 import { useToastController } from '@tamagui/toast'
+import * as Sentry from '@sentry/react-native'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import type { TFunction } from 'i18next'
@@ -13,6 +14,7 @@ import { DataStateCard } from '../../src/components/DataStateCard'
 import { Screen } from '../../src/components/Screen'
 import { SkeletonBlock, SkeletonContentCard, SkeletonGroup, SkeletonMetricGrid, SkeletonSection } from '../../src/components/Skeleton'
 import { getCategoryLabel } from '../../src/finance/categoryLabels'
+import { suggestedCategoryIcons } from '../../src/finance/categoryIcons'
 import { exportFinancialReportCsv, exportFinancialReportPdf, type ReportExportLabels } from '../../src/finance/report-export'
 import { getPresetRange, type ReportPeriodPreset } from '../../src/finance/reports'
 import { getAppLocale } from '../../src/i18n'
@@ -66,7 +68,8 @@ export default function ReportsScreen() {
       if (format === 'pdf') await exportFinancialReportPdf(localizedReport, exportOptions)
       else await exportFinancialReportCsv(localizedReport, exportOptions)
       toast.show(text.exported, { preset: 'success' })
-    } catch {
+    } catch (error) {
+      Sentry.captureException(error, { tags: { operation: `report_export_${format}` } })
       toast.show(text.exportError, { preset: 'error' })
     } finally {
       setIsExporting(false)
@@ -118,14 +121,16 @@ function Metric({ detail, icon, label, value }: { detail?: string; icon: React.R
 }
 
 function SeriesCard({ locale, report, text }: { locale: string; report: FinancialReport; text: ReportText }) {
+  const [selectedPeriod, setSelectedPeriod] = useState(report.series.at(-1)?.period ?? '')
   const max = Math.max(1, ...report.series.flatMap((item) => [item.income, item.expenses]))
-  return <FintCard gap="$3"><Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="800">{text.flow}</Paragraph><XStack gap="$4"><Legend color="$green9" label={text.income} /><Legend color="$red9" label={text.expenses} /></XStack><ScrollView horizontal showsHorizontalScrollIndicator={false}><XStack minW="100%" height={190} items="flex-end" borderBottomColor="$borderColor" borderBottomWidth={1} gap="$3" px="$2" pb="$3">{report.series.map((item) => <YStack key={item.period} width={58} height={170} items="center" justify="flex-end" gap="$2"><XStack height={128} items="flex-end" gap={6}><YStack width={15} height={item.income ? Math.max(5, Math.round((item.income / max) * 120)) : 0} bg="$green9" rounded="$3" /><YStack width={15} height={item.expenses ? Math.max(5, Math.round((item.expenses / max) * 120)) : 0} bg="$red9" rounded="$3" /></XStack><Paragraph color="$color10" fontSize={9}>{formatSeriesPeriod(item.period, report.period.grouping, locale)}</Paragraph></YStack>)}</XStack></ScrollView></FintCard>
+  const selected = report.series.find((item) => item.period === selectedPeriod) ?? report.series.at(-1)
+  return <FintCard gap="$3"><Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="800">{text.flow}</Paragraph><XStack gap="$4"><Legend color="$green9" label={text.income} /><Legend color="$red9" label={text.expenses} /></XStack>{selected ? <XStack bg="$secondary" rounded="$5" p="$3" items="center" gap="$3"><CalendarDays size={18} color="$primary" /><YStack flex={1} minW={0}><Paragraph color="$color12" fontWeight="800">{formatSeriesPeriod(selected.period, report.period.grouping, locale)}</Paragraph><Paragraph color="$color10" fontSize="$1">{selected.transactionCount} {text.transactions.toLowerCase()} · {text.net}: {formatMoney(selected.net, report.filters.currency)}</Paragraph></YStack><YStack items="flex-end"><Paragraph color="$green11" fontSize="$1" fontWeight="800">+{formatMoney(selected.income, report.filters.currency)}</Paragraph><Paragraph color="$red11" fontSize="$1" fontWeight="800">-{formatMoney(selected.expenses, report.filters.currency)}</Paragraph></YStack></XStack> : null}<ScrollView horizontal showsHorizontalScrollIndicator={false}><XStack minW="100%" height={170} items="flex-end" gap="$2" px="$1" pb="$2">{report.series.map((item) => { const isSelected = item.period === selected?.period; return <YStack key={item.period} width={72} height={154} overflow="hidden" items="center" justify="flex-end" gap="$2" px="$1" py="$2" rounded="$4" bg={isSelected ? '$secondary' : 'transparent'} pressStyle={{ bg: '$secondary' }} role="button" accessibilityState={{ selected: isSelected }} aria-label={`${formatSeriesPeriod(item.period, report.period.grouping, locale)}. ${text.income}: ${formatMoney(item.income, report.filters.currency)}. ${text.expenses}: ${formatMoney(item.expenses, report.filters.currency)}. ${text.net}: ${formatMoney(item.net, report.filters.currency)}`} onPress={() => setSelectedPeriod(item.period)}><XStack height={108} items="flex-end" gap={6}><YStack transition="200ms" width={15} height={item.income ? Math.max(5, Math.round((item.income / max) * 100)) : 0} bg="$green9" rounded="$3" opacity={isSelected ? 1 : 0.72} /><YStack transition="200ms" width={15} height={item.expenses ? Math.max(5, Math.round((item.expenses / max) * 100)) : 0} bg="$red9" rounded="$3" opacity={isSelected ? 1 : 0.72} /></XStack><Paragraph color={isSelected ? '$color12' : '$color10'} fontSize={9} fontWeight={isSelected ? '800' : '500'} numberOfLines={1} adjustsFontSizeToFit>{formatSeriesPeriod(item.period, report.period.grouping, locale)}</Paragraph></YStack> })}</XStack></ScrollView></FintCard>
 }
 
 function Legend({ color, label }: { color: string; label: string }) { return <XStack items="center" gap="$1"><YStack width={8} height={8} rounded="$10" bg={color as never} /><Paragraph color="$color10" fontSize="$1">{label}</Paragraph></XStack> }
 
 function CategoryCard({ onOpenMovements, report, t, text }: { onOpenMovements: () => void; report: FinancialReport; t: TFunction; text: ReportText }) {
-  return <FintCard gap="$3"><XStack items="center" justify="space-between" gap="$3"><Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="800" flex={1}>{text.categories}</Paragraph><Button chromeless size="$2" px="$2" onPress={onOpenMovements}><XStack items="center" gap="$1"><Paragraph color="$primary" fontWeight="800" fontSize="$2">{text.viewMovements}</Paragraph><ChevronRight size={14} color="$primary" /></XStack></Button></XStack>{report.categories.map((item) => <XStack key={item.name} items="center" gap="$3"><YStack width={38} height={38} rounded="$8" bg="$secondary" items="center" justify="center"><Paragraph fontSize="$5">{item.icon || '•'}</Paragraph></YStack><YStack flex={1}><Paragraph color="$color12" fontWeight="800">{getCategoryLabel(item.name, t)}</Paragraph><Paragraph color="$color10" fontSize="$1">{item.percentage}% · {item.changePercentage === null ? text.noPrevious : `${item.changePercentage > 0 ? '+' : ''}${item.changePercentage}% ${text.comparison}`}</Paragraph></YStack><Paragraph color="$color12" fontWeight="900">{formatMoney(item.amount, report.filters.currency)}</Paragraph></XStack>)}</FintCard>
+  return <FintCard gap="$3"><XStack items="center" justify="space-between" gap="$3"><Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="800" flex={1}>{text.categories}</Paragraph><Button chromeless size="$2" px="$2" onPress={onOpenMovements}><XStack items="center" gap="$1"><Paragraph color="$primary" fontWeight="800" fontSize="$2">{text.viewMovements}</Paragraph><ChevronRight size={14} color="$primary" /></XStack></Button></XStack>{report.categories.map((item) => <XStack key={item.name} items="center" gap="$3"><YStack width={38} height={38} rounded="$8" bg="$secondary" items="center" justify="center"><Paragraph fontSize="$5">{getExpenseCategoryIcon(item.name, item.icon)}</Paragraph></YStack><YStack flex={1}><Paragraph color="$color12" fontWeight="800">{getCategoryLabel(item.name, t)}</Paragraph><Paragraph color="$color10" fontSize="$1">{item.percentage}% · {item.changePercentage === null ? text.noPrevious : `${item.changePercentage > 0 ? '+' : ''}${item.changePercentage}% ${text.comparison}`}</Paragraph></YStack><Paragraph color="$color12" fontWeight="900">{formatMoney(item.amount, report.filters.currency)}</Paragraph></XStack>)}</FintCard>
 }
 
 function AccountActivityCard({ report, text }: { report: FinancialReport; text: ReportText }) {
@@ -147,9 +152,23 @@ function ReportsSkeleton({ label }: { label: string }) { return <SkeletonGroup l
 function localizeReport(report: FinancialReport, t: TFunction): FinancialReport {
   const categoryName = (name: string) => getCategoryLabel(name, t)
   const transaction = (item: FinancialReport['topTransactions'][number]) => ({ ...item, category: categoryName(item.category) })
-  return { ...report, categories: report.categories.map((item) => ({ ...item, name: categoryName(item.name) })), highlights: { topExpenseCategory: report.highlights.topExpenseCategory ? { ...report.highlights.topExpenseCategory, name: categoryName(report.highlights.topExpenseCategory.name) } : null, largestTransaction: report.highlights.largestTransaction ? transaction(report.highlights.largestTransaction) : null }, topTransactions: report.topTransactions.map(transaction) }
+  return { ...report, categories: report.categories.map((item) => ({ ...item, icon: getExpenseCategoryIcon(item.name, item.icon), name: categoryName(item.name) })), highlights: { topExpenseCategory: report.highlights.topExpenseCategory ? { ...report.highlights.topExpenseCategory, icon: getExpenseCategoryIcon(report.highlights.topExpenseCategory.name, report.highlights.topExpenseCategory.icon), name: categoryName(report.highlights.topExpenseCategory.name) } : null, largestTransaction: report.highlights.largestTransaction ? transaction(report.highlights.largestTransaction) : null }, topTransactions: report.topTransactions.map(transaction) }
 }
+
+function getExpenseCategoryIcon(name: string, icon: string | null) { return icon || suggestedCategoryIcons(name, 'expense')[0] }
 
 function previousDay(value: string) { const date = new Date(`${value}T12:00:00Z`); date.setUTCDate(date.getUTCDate() - 1); return date.toISOString().slice(0, 10) }
 function formatDate(value: string, locale: string) { return new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T12:00:00Z`)) }
-function formatSeriesPeriod(value: string, grouping: 'week' | 'month', locale: string) { return new Intl.DateTimeFormat(locale, grouping === 'month' ? { month: 'short', timeZone: 'UTC' } : { day: '2-digit', month: 'short', timeZone: 'UTC' }).format(new Date(`${value}T12:00:00Z`)) }
+function formatSeriesPeriod(value: string, grouping: 'week' | 'month', locale: string) {
+  const start = new Date(`${value}T12:00:00Z`)
+  if (grouping === 'month') return new Intl.DateTimeFormat(locale, { month: 'short', timeZone: 'UTC' }).format(start)
+  const end = new Date(start)
+  end.setUTCDate(start.getUTCDate() + 6)
+  const dayFormatter = new Intl.DateTimeFormat(locale, { day: '2-digit', timeZone: 'UTC' })
+  const monthFormatter = new Intl.DateTimeFormat(locale, { month: 'short', timeZone: 'UTC' })
+  const startDay = dayFormatter.format(start)
+  const endDay = dayFormatter.format(end)
+  const endMonth = monthFormatter.format(end).replace('.', '')
+  if (start.getUTCMonth() === end.getUTCMonth()) return `${startDay}-${endDay} ${endMonth}`
+  return `${startDay} ${monthFormatter.format(start).replace('.', '')}-${endDay} ${endMonth}`
+}
