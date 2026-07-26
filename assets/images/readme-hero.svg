@@ -1,0 +1,59 @@
+<svg width="1200" height="420" viewBox="0 0 1200 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ocean" x1="90" y1="20" x2="1110" y2="420" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#071D2C"/>
+      <stop offset="0.55" stop-color="#0A4263"/>
+      <stop offset="1" stop-color="#087FAF"/>
+    </linearGradient>
+    <linearGradient id="flow" x1="760" y1="100" x2="1060" y2="330" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F7FCFF"/>
+      <stop offset="1" stop-color="#9DE3F8"/>
+    </linearGradient>
+    <filter id="glow" x="674" y="40" width="476" height="346" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="28"/>
+    </filter>
+    <clipPath id="card">
+      <rect width="1200" height="420" rx="34"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#card)">
+    <rect width="1200" height="420" fill="url(#ocean)"/>
+
+    <g opacity="0.16" stroke="#BFEFFF">
+      <path d="M-20 326C160 260 286 368 473 301C632 245 726 145 905 162C1036 174 1114 243 1231 214"/>
+      <path d="M-35 358C155 292 299 397 489 330C652 272 741 186 918 196C1047 204 1125 274 1239 246"/>
+      <path d="M-31 389C161 326 308 427 501 360C661 304 756 226 930 231C1059 235 1134 302 1244 279"/>
+    </g>
+
+    <g opacity="0.18">
+      <circle cx="91" cy="77" r="2" fill="#D9F6FF"/>
+      <circle cx="145" cy="77" r="2" fill="#D9F6FF"/>
+      <circle cx="199" cy="77" r="2" fill="#D9F6FF"/>
+      <circle cx="253" cy="77" r="2" fill="#D9F6FF"/>
+      <circle cx="91" cy="131" r="2" fill="#D9F6FF"/>
+      <circle cx="145" cy="131" r="2" fill="#D9F6FF"/>
+      <circle cx="199" cy="131" r="2" fill="#D9F6FF"/>
+      <circle cx="253" cy="131" r="2" fill="#D9F6FF"/>
+    </g>
+
+    <text x="88" y="188" fill="#F7FCFF" font-family="Arial, Helvetica, sans-serif" font-size="88" font-weight="700" letter-spacing="-4">Fint</text>
+    <text x="92" y="239" fill="#BFEFFF" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="400" letter-spacing="0.2">Tu panorama financiero, claro.</text>
+    <rect x="92" y="277" width="56" height="4" rx="2" fill="#53C5ED"/>
+    <text x="162" y="287" fill="#D9F6FF" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="600" letter-spacing="2.4">OPEN SOURCE PERSONAL FINANCE</text>
+
+    <ellipse cx="906" cy="211" rx="188" ry="122" fill="#44BDE9" opacity="0.22" filter="url(#glow)"/>
+    <g fill="url(#flow)">
+      <ellipse cx="906" cy="145" rx="82" ry="31"/>
+      <ellipse cx="906" cy="216" rx="122" ry="43" opacity="0.78"/>
+      <ellipse cx="906" cy="299" rx="166" ry="55" opacity="0.58"/>
+    </g>
+    <g stroke="#E5F9FF" opacity="0.45">
+      <path d="M824 145H988"/>
+      <path d="M784 216H1028"/>
+      <path d="M740 299H1072"/>
+    </g>
+
+    <rect x="1" y="1" width="1198" height="418" rx="33" stroke="#A4E8FA" stroke-opacity="0.18" stroke-width="2"/>
+  </g>
+</svg>

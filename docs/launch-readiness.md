@@ -20,7 +20,6 @@
 ## Remaining Before Public Launch
 
 - Verify the first scheduled Supabase Cron run using the queries in `docs/monitoring-setup.md`.
-- Trigger controlled mobile and API errors, confirm both events in Sentry, verify readable source maps and confirm that no PII or financial data is attached.
 - Measure the first request after Render sleeps; the warm authenticated baseline is documented in the API operations runbook.
 - Host completed privacy policy and terms on HTTPS URLs, then complete a Play closed-test release.
 - Add mobile tests for account, movement, and debt mutation flows.
@@ -29,3 +28,4 @@
 ## Explicitly Out Of Scope
 
 - Managed backup verification and a restore drill are not part of the current MVP launch scope by product decision.
+- Controlled Sentry event validation and alert-rule configuration are not public-launch gates by product decision.

@@ -2,15 +2,15 @@
 
 ## Decisiones confirmadas
 
-- Modelo: producto comercial cerrado.
+- Modelo: producto comercial con cliente mobile open source.
 - Titular del copyright: `Cristhofer Moises Ventura Villanueva`.
-- Ambos repositorios usan licencia propietaria y su visibilidad privada fue validada.
+- El repositorio mobile usa Apache License 2.0 y sera publico; la API permanece privada y propietaria hasta una decision separada.
 - La marca definitiva puede tomar una referencia sutil de Annie, la gata del creador, sin convertirla en una mascota literal.
 
 ## Estado actual
 
 - `Fint`, el icono y el splash son temporales hasta completar la revision de marca.
-- Los repositorios `finanzas-mobilev2` y `finanzas-api` incluyen licencia propietaria y son privados.
+- `finanzas-mobilev2` se prepara como repositorio publico bajo Apache License 2.0; `finanzas-api` permanece privado y propietario.
 - Antes de publicar documentos legales se necesita un nombre definitivo, identidad visual, dominio oficial y correo de soporte.
 
 ## Proceso recomendado
@@ -94,14 +94,16 @@ La evolucion recomendada es:
 
 Concepto recomendado: dos corrientes ocean-blue que forman un balance central y dejan una apertura sutil en la parte superior. La apertura puede recordar vagamente a orejas sin ser una mascota reconocible. Asi el vinculo con Annie permanece personal, mientras la identidad publica sigue siendo sobria y financiera.
 
-## Licencia propietaria
+## Licencia Del Proyecto Mobile
 
-Se agrego un archivo `LICENSE` propietario en mobile y API con `Cristhofer Moises Ventura Villanueva` como titular.
+El cliente mobile se distribuye bajo Apache License 2.0 con `Cristhofer Moises Ventura Villanueva` como titular original del copyright.
 
-- No aceptar contribuciones externas sin un acuerdo especifico.
-- Mantener publicos solo la pagina de producto, documentacion de usuario y politica de privacidad.
-- La licencia limita el uso por terceros.
-- La visibilidad privada de ambos repositorios fue validada; se recomienda revisar el historial una vez para confirmar que nunca se publicaron secretos.
+- Apache 2.0 permite uso, modificacion y redistribucion, incluso comercial, bajo sus condiciones.
+- Incluye una concesion expresa de patentes y reglas claras para contribuciones y avisos de redistribucion.
+- No concede derechos sobre nombres, logotipos o marcas de Fint.
+- Las contribuciones aceptadas se distribuyen bajo Apache 2.0 conforme a la seccion 5 de la licencia.
+- La API y sus secretos no forman parte de esta apertura y permanecen privados.
+- Antes de hacer publico el repositorio mobile se debe revisar todo el historial para confirmar que nunca se incluyeron secretos o datos personales.
 
 ## Documentos legales y dominio
 

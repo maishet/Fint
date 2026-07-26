@@ -1,7 +1,7 @@
 {
   "name": "finanzas-mobilev2",
   "version": "0.1.0",
-  "private": true,
+  "license": "Apache-2.0",
   "main": "expo-router/entry",
   "scripts": {
     "postinstall": "node scripts/patch-expo-router.mjs",
@@ -9,6 +9,7 @@
     "start": "bunx expo start -c",
     "android": "bunx expo run:android",
     "build:preview:android": "bunx eas-cli build --platform android --profile preview --non-interactive",
+    "build:production:android": "bunx eas-cli build --platform android --profile production --non-interactive",
     "ios": "bunx expo run:ios",
     "web": "expo start --web",
     "build:web": "expo export --platform web",
