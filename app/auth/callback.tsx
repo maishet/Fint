@@ -17,6 +17,8 @@ export default function AuthCallbackScreen() {
     let isMounted = true
 
     async function exchangeCode() {
+      if (!callbackUrl && !code && !error_description) return
+
       if (__DEV__) {
         setDebugMessage(getDebugMessage(callbackUrl))
         console.log('[Fint OAuth Callback]', getDebugMessage(callbackUrl))
@@ -29,16 +31,22 @@ export default function AuthCallbackScreen() {
 
       const params = getOAuthCallbackParams(callbackUrl)
       if (params.access_token && params.refresh_token) {
-        const { error } = await supabase.auth.setSession({
-          access_token: params.access_token,
-          refresh_token: params.refresh_token,
-        })
-        if (!isMounted) return
-        if (error) {
-          setErrorMessage(error.message)
-          return
+        try {
+          const { data, error } = await supabase.auth.setSession({
+            access_token: params.access_token,
+            refresh_token: params.refresh_token,
+          })
+          if (!isMounted) return
+          if (error || !data.session) {
+            setErrorMessage(error?.message ?? 'No pudimos guardar la sesion de Google. Intenta nuevamente.')
+            return
+          }
+          if (__DEV__) console.log('[Fint OAuth Callback] session established')
+          router.replace('/(tabs)/dashboard')
+        } catch (error) {
+          if (!isMounted) return
+          setErrorMessage(error instanceof Error ? error.message : 'No pudimos guardar la sesion de Google. Intenta nuevamente.')
         }
-        router.replace('/(tabs)/dashboard')
         return
       }
 
@@ -140,4 +148,6 @@ function redactUrl(url: string) {
     .replace(/([?#&]code=)[^&#]+/g, '$1<redacted>')
     .replace(/([?#&]access_token=)[^&#]+/g, '$1<redacted>')
     .replace(/([?#&]refresh_token=)[^&#]+/g, '$1<redacted>')
+    .replace(/([?#&]provider_token=)[^&#]+/g, '$1<redacted>')
+    .replace(/([?#&]provider_refresh_token=)[^&#]+/g, '$1<redacted>')
 }

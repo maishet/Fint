@@ -28,6 +28,12 @@ El objetivo no es replicar toda la app anterior, sino reconstruir el producto co
 - Los selectores criticos deben favorecer bottom sheets custom simples sobre selects complejos si hay riesgo en Android.
 - Gmail y pendientes son fase posterior al core financiero.
 
+## Evolucion De Pendientes Y Deudas
+
+El alcance historico de Deudas y Gmail documentado en este roadmap describe la implementacion actual. Su evolucion queda reemplazada por el plan transversal [Pendientes y Pagos Recurrentes](implementation-plan-pending-and-payments.md).
+
+La nueva direccion limita Deudas a pagos recurrentes fijos y tarjetas, la renombra visualmente como Pagos, agrega recordatorios push fijos a 7, 3 y 1 dia y convierte los pendientes Gmail en sugerencias revisables y aplicables a movimientos o pagos.
+
 ## Estado Actual Del Proyecto
 
 Ya existe base funcional en `E:\Personal proyects\finanzas-mobilev2`:

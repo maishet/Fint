@@ -26,7 +26,11 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}) {
   const url = `${apiUrl.replace(/\/$/, '')}${path.startsWith('/') ? path : `/${path}`}`
 
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), requestTimeoutMs)
+  let timedOut = false
+  const abortFromCaller = () => controller.abort()
+  if (options.signal?.aborted) controller.abort()
+  else options.signal?.addEventListener('abort', abortFromCaller, { once: true })
+  const timeout = setTimeout(() => { timedOut = true; controller.abort() }, requestTimeoutMs)
   let response: Response
   try {
     response = await fetch(url, {
@@ -40,10 +44,12 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}) {
     })
     setLastRequestId(response.headers.get('X-Request-Id'))
   } catch (error) {
-    if (controller.signal.aborted) throw new ApiRequestError('La conexión tardó demasiado. Intenta nuevamente.', 0, 'request_timeout')
+    if (options.signal?.aborted) throw error
+    if (timedOut) throw new ApiRequestError('La conexión tardó demasiado. Intenta nuevamente.', 0, 'request_timeout')
     throw new ApiRequestError('No se pudo conectar al servidor. Revisa tu conexión e intenta nuevamente.', 0, 'network_error')
   } finally {
     clearTimeout(timeout)
+    options.signal?.removeEventListener('abort', abortFromCaller)
   }
 
   const envelope = await parseEnvelope<T>(response)

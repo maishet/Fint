@@ -242,6 +242,8 @@ Pregunta: `Donde esta mi dinero y cual es mi posicion neta?`
 
 #### 4. Estado de deudas
 
+Este apartado debe interpretarse como estado de pagos bajo el plan [Pendientes y Pagos Recurrentes](implementation-plan-pending-and-payments.md). El producto deja fuera prestamos y amortizaciones y se enfoca en servicios recurrentes fijos y tarjetas de credito.
+
 Pregunta: `Cuanto debo y que pagos requieren atencion?`
 
 - Deuda original, saldo pendiente y porcentaje pagado.

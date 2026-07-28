@@ -9,22 +9,13 @@ import { z } from 'zod'
 import { financeApi } from '../src/api/finance'
 import { Screen } from '../src/components/Screen'
 import { CategoryPickerSheet } from '../src/components/CategoryPickerSheet'
-import { FintButton, FintDateField, FintInput, FintSheetSelect } from '../src/ui'
 import { todayDateString } from '../src/finance/dates'
-
-const transactionSchema = z.object({
-  type: z.union([z.literal('income'), z.literal('expense')]),
-  amount: z.number().positive(),
-  currency: z.string().length(3),
-  category: z.string().min(2),
-  account: z.string().min(2),
-  note: z.string().optional(),
-  transactionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-})
+import { getValidationMessage, parseDecimalInput, useSubmitValidation } from '../src/forms'
+import { FintButton, FintDateField, FintFormField, FintInput, FintSheetSelect } from '../src/ui'
 
 export default function TransactionFormScreen() {
   const router = useRouter()
-  const { t } = useTranslation()
+  const { i18n, t } = useTranslation()
   const params = useLocalSearchParams<{ id?: string; type?: 'income' | 'expense'; amount?: string; category?: string; account?: string; note?: string; date?: string }>()
   const toast = useToastController()
   const queryClient = useQueryClient()
@@ -36,11 +27,21 @@ export default function TransactionFormScreen() {
   const [note, setNote] = useState(params.note ?? '')
   const [transactionDate, setTransactionDate] = useState(params.date ?? todayDateString)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const accountsQuery = useQuery({ queryKey: ['accounts'], queryFn: financeApi.listAccounts, retry: false })
-  const categoriesQuery = useQuery({ queryKey: ['categories'], queryFn: () => financeApi.listCategories(), retry: false })
+  const validation = useSubmitValidation<'account' | 'amount' | 'category' | 'transactionDate'>()
+  const accountsQuery = useQuery({ queryKey: ['account-options'], queryFn: () => financeApi.listAccountOptions(), retry: false })
+  const categoriesQuery = useQuery({ queryKey: ['categories', type], queryFn: () => financeApi.listCategories(type), retry: false })
   const accounts = accountsQuery.data ?? []
-  const categories = (categoriesQuery.data ?? []).filter((item) => item.type === type)
-  const selectedAccount = accounts.find((item) => item.name === account)
+  const categories = categoriesQuery.data ?? []
+  const requiredMessage = getValidationMessage(t, i18n.resolvedLanguage, 'required')
+  const amountMessage = getValidationMessage(t, i18n.resolvedLanguage, 'amount')
+  const transactionSchema = z.object({
+    type: z.union([z.literal('income'), z.literal('expense')]),
+    amount: z.number({ error: amountMessage }).positive(getValidationMessage(t, i18n.resolvedLanguage, 'positiveAmount')),
+    category: z.string().min(1, requiredMessage).refine((value) => categories.some((item) => item.name === value), requiredMessage),
+    account: z.string().min(1, requiredMessage).refine((value) => accounts.some((item) => item.name === value), requiredMessage),
+    note: z.string().optional(),
+    transactionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, getValidationMessage(t, i18n.resolvedLanguage, 'date')),
+  })
 
   useEffect(() => {
     if (!account && accounts[0]) setAccount(accounts[0].name)
@@ -51,17 +52,10 @@ export default function TransactionFormScreen() {
   }, [categories, category])
 
   const mutation = useMutation({
-    mutationFn: async () => {
-      setErrorMessage(null)
-      const payload = transactionSchema.parse({
-        type,
-        amount: Number(amount),
-        currency: selectedAccount?.currency,
-        category,
-        account,
-        note: note.trim() || undefined,
-        transactionDate,
-      })
+    mutationFn: async (validated: z.infer<typeof transactionSchema>) => {
+      const accountCurrency = accounts.find((item) => item.name === validated.account)?.currency
+      if (!accountCurrency) throw new Error(t('movements.referencesError'))
+      const payload = { ...validated, currency: accountCurrency }
       if (params.id) return financeApi.updateTransaction(params.id, { ...payload, transactionDate })
       return financeApi.createTransaction(payload)
     },
@@ -75,8 +69,21 @@ export default function TransactionFormScreen() {
       toast.show(t(isEditing ? 'movementUx.updatedToast' : 'movements.createdToast'), { message: t(isEditing ? 'movementUx.updatedMessage' : 'movements.createdMessage'), preset: 'success' })
       router.back()
     },
-    onError: (error) => setErrorMessage(error instanceof z.ZodError ? t('movements.invalidForm') : error.message),
+    onError: (error) => setErrorMessage(error instanceof Error ? error.message : t('states.error')),
   })
+
+  const submit = () => {
+    setErrorMessage(null)
+    const payload = validation.validate(transactionSchema, {
+      type,
+      amount: parseDecimalInput(amount),
+      category,
+      account,
+      note: note.trim() || undefined,
+      transactionDate,
+    })
+    if (payload) mutation.mutate(payload)
+  }
 
   const isReferenceLoading = accountsQuery.isLoading || categoriesQuery.isLoading
 
@@ -99,6 +106,7 @@ export default function TransactionFormScreen() {
               onPress={() => {
                 setType(option)
                 setErrorMessage(null)
+                validation.clearError('category')
               }}
             >
               {t(`forms.${option}`)}
@@ -106,18 +114,16 @@ export default function TransactionFormScreen() {
           ))}
         </XStack>
 
-        <FormField label={t('forms.amount')}>
-          <FintInput minH={64} fontSize="$7" fontWeight="800" placeholder="0.00" value={amount} onChangeText={setAmount} keyboardType="decimal-pad" />
-        </FormField>
+        <FintFormField label={t('forms.amount')} required error={validation.errors.amount}>
+          <FintInput minH={64} borderColor={validation.errors.amount ? '$red8' : undefined} fontSize="$7" fontWeight="800" placeholder="0.00" value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} keyboardType="decimal-pad" />
+        </FintFormField>
 
-        {accounts.length > 0 ? (
-          <FormField label={t('forms.account')}><FintSheetSelect label={t('forms.account')} showLabel={false} placeholder={t('movements.selectAccount')} value={account} onValueChange={setAccount} options={accounts.map((item) => ({ value: item.name, label: `${item.name} · ${item.currency}` }))} /></FormField>
-        ) : null}
+        <FintFormField label={t('forms.account')} required error={validation.errors.account} invalidBorder><FintSheetSelect label={t('forms.account')} showLabel={false} placeholder={t('movements.selectAccount')} value={account} onValueChange={(value) => { setAccount(value); validation.clearError('account') }} options={accounts.map((item) => ({ value: item.name, label: `${item.name} · ${item.currency}` }))} /></FintFormField>
 
-        <FormField label={t('forms.category')}><CategoryPickerSheet categories={categories} showLabel={false} type={type} value={category} onValueChange={setCategory} /></FormField>
+        <FintFormField label={t('forms.category')} required error={validation.errors.category} invalidBorder><CategoryPickerSheet categories={categories} showLabel={false} type={type} value={category} onValueChange={(value) => { setCategory(value); validation.clearError('category') }} /></FintFormField>
 
-        <FormField label={t('movements.date')}><FintDateField label={t('movements.date')} showLabel={false} placeholder={t('movements.selectDate')} value={transactionDate} onValueChange={setTransactionDate} /></FormField>
-        <FormField label={t('movementUx.noteOptional')}><FintInput placeholder={t('movementUx.notePlaceholder')} value={note} onChangeText={setNote} multiline minH={88} textAlignVertical="top" /></FormField>
+        <FintFormField label={t('movements.date')} required error={validation.errors.transactionDate}><FintDateField borderColor={validation.errors.transactionDate ? '$red8' : undefined} label={t('movements.date')} showLabel={false} placeholder={t('movements.selectDate')} value={transactionDate} onValueChange={(value) => { setTransactionDate(value); validation.clearError('transactionDate') }} /></FintFormField>
+        <FintFormField label={t('movementUx.noteOptional')}><FintInput placeholder={t('movementUx.notePlaceholder')} value={note} onChangeText={setNote} multiline minH={88} textAlignVertical="top" /></FintFormField>
 
         {isReferenceLoading ? <Paragraph color="$color10">{t('movements.loadingReferences')}</Paragraph> : null}
         {!accountsQuery.isLoading && accounts.length === 0 ? (
@@ -136,9 +142,9 @@ export default function TransactionFormScreen() {
         {errorMessage ? <Paragraph color="$red10">{errorMessage}</Paragraph> : null}
 
         <FintButton
-          disabled={mutation.isPending || isReferenceLoading || !selectedAccount || !category}
+          disabled={mutation.isPending || isReferenceLoading}
           icon={mutation.isPending ? <Spinner color="$primaryForeground" /> : <Save size={18} />}
-          onPress={() => mutation.mutate()}
+          onPress={submit}
           bg={type === 'income' ? '$green9' : '$red9'}
         >
           {mutation.isPending ? t(isEditing ? 'movementUx.updating' : 'movements.creating') : isEditing ? t('actions.save') : t(type === 'income' ? 'movementUx.registerIncome' : 'movementUx.registerExpense')}
@@ -147,8 +153,4 @@ export default function TransactionFormScreen() {
     </Screen>
     </>
   )
-}
-
-function FormField({ children, label }: { children: React.ReactNode; label: string }) {
-  return <YStack gap="$2"><Paragraph color="$color10" fontSize="$2" fontWeight="600">{label}</Paragraph>{children}</YStack>
 }

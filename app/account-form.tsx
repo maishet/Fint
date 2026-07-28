@@ -8,34 +8,37 @@ import { Paragraph, Spinner, XStack, YStack } from 'tamagui'
 import { z } from 'zod'
 import { ApiRequestError } from '../src/api/client'
 import { financeApi } from '../src/api/finance'
-import { normalizeAccount } from '../src/api/mappers'
 import type { AccountType } from '../src/api/types'
 import { DataStateCard } from '../src/components/DataStateCard'
 import { Screen } from '../src/components/Screen'
 import { currencyOptions } from '../src/finance/currencies'
-import { FintButton, FintInput, FintSheetSelect } from '../src/ui'
-
-const accountDetailsSchema = z.object({
-  name: z.string().trim().min(2),
-  accountType: z.enum(['cash', 'credit_card', 'checking_account', 'savings_account']),
-  currency: z.string().length(3),
-})
+import { getValidationMessage, parseDecimalInput, useSubmitValidation } from '../src/forms'
+import { FintButton, FintFormField, FintInput, FintSheetSelect } from '../src/ui'
 
 export default function AccountFormScreen() {
   const { accountId } = useLocalSearchParams<{ accountId?: string }>()
   const isEditing = Boolean(accountId)
-  const { t } = useTranslation()
+  const { i18n, t } = useTranslation()
   const router = useRouter()
   const toast = useToastController()
   const queryClient = useQueryClient()
-  const accountsQuery = useQuery({ queryKey: ['accounts'], queryFn: financeApi.listAccounts, retry: false, enabled: isEditing })
-  const account = (accountsQuery.data ?? []).map(normalizeAccount).find((item) => item.id === accountId)
+  const accountsQuery = useQuery({ queryKey: ['accounts', 'detail', accountId], queryFn: ({ signal }) => financeApi.getAccount(accountId!, signal), retry: false, enabled: isEditing })
+  const account = accountsQuery.data
   const [name, setName] = useState('')
   const [accountType, setAccountType] = useState<AccountType>('cash')
   const [currency, setCurrency] = useState('PEN')
   const [openingBalance, setOpeningBalance] = useState('')
   const [initializedAccountId, setInitializedAccountId] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const validation = useSubmitValidation<'accountType' | 'currency' | 'name' | 'openingBalance'>()
+  const requiredMessage = getValidationMessage(t, i18n.resolvedLanguage, 'required')
+  const amountMessage = getValidationMessage(t, i18n.resolvedLanguage, 'amount')
+  const accountDetailsSchema = z.object({
+    name: z.string().trim().min(2, getValidationMessage(t, i18n.resolvedLanguage, 'minTwo')),
+    accountType: z.enum(['cash', 'credit_card', 'checking_account', 'savings_account'], { error: requiredMessage }),
+    currency: z.string().length(3, requiredMessage),
+    openingBalance: z.number({ error: amountMessage }).finite(amountMessage),
+  })
   const accountTypes = [
     { value: 'cash' as const, label: t('accountTypes.cash'), icon: Wallet },
     { value: 'checking_account' as const, label: t('accountTypes.checkingAccount'), icon: Building2 },
@@ -52,12 +55,10 @@ export default function AccountFormScreen() {
   }, [account, initializedAccountId])
 
   const mutation = useMutation({
-    mutationFn: async () => {
-      setErrorMessage(null)
-      const details = accountDetailsSchema.parse({ name, accountType, currency })
+    mutationFn: async (payload: z.infer<typeof accountDetailsSchema>) => {
+      const details = { name: payload.name, accountType: payload.accountType, currency: payload.currency }
       if (accountId) return financeApi.updateAccount(accountId, details)
-      const balance = z.number().finite().parse(Number(openingBalance || 0))
-      return financeApi.createAccount({ ...details, openingBalance: balance })
+      return financeApi.createAccount({ ...details, openingBalance: payload.openingBalance })
     },
     onSuccess: async () => {
       await Promise.all([
@@ -73,8 +74,19 @@ export default function AccountFormScreen() {
       })
       router.back()
     },
-    onError: (error) => setErrorMessage(error instanceof ApiRequestError && error.code === 'account_name_exists' ? t('accounts.duplicateName') : error instanceof z.ZodError ? t('states.invalidForm') : error instanceof Error ? error.message : t('states.error')),
+    onError: (error) => setErrorMessage(error instanceof ApiRequestError && error.code === 'account_name_exists' ? t('accounts.duplicateName') : error instanceof Error ? error.message : t('states.error')),
   })
+
+  const submit = () => {
+    setErrorMessage(null)
+    const payload = validation.validate(accountDetailsSchema, {
+      name,
+      accountType,
+      currency,
+      openingBalance: openingBalance.trim() ? parseDecimalInput(openingBalance) : 0,
+    })
+    if (payload) mutation.mutate(payload)
+  }
 
   const isLoading = isEditing && accountsQuery.isLoading
   const notFound = isEditing && !accountsQuery.isLoading && !accountsQuery.error && !account
@@ -89,11 +101,11 @@ export default function AccountFormScreen() {
 
         {!isLoading && !accountsQuery.error && !notFound ? (
           <YStack gap="$5" pb="$5">
-            <FormField label={t('forms.name')}>
-              <FintInput width="100%" placeholder={t('accounts.namePlaceholder')} value={name} onChangeText={setName} autoCapitalize="words" />
-            </FormField>
+            <FintFormField label={t('forms.name')} required error={validation.errors.name}>
+              <FintInput width="100%" borderColor={validation.errors.name ? '$red8' : undefined} placeholder={t('accounts.namePlaceholder')} value={name} onChangeText={(value) => { setName(value); validation.clearError('name') }} autoCapitalize="words" />
+            </FintFormField>
 
-            <FormField label={t('forms.accountType')}>
+            <FintFormField label={t('forms.accountType')} required error={validation.errors.accountType} invalidBorder>
               <XStack width="100%" gap="$2" flexWrap="wrap">
                 {accountTypes.map((option) => {
                   const isSelected = option.value === accountType
@@ -114,7 +126,7 @@ export default function AccountFormScreen() {
                       pressStyle={{ opacity: 0.8 }}
                       cursor="pointer"
                       role="button"
-                      onPress={() => setAccountType(option.value)}
+                      onPress={() => { setAccountType(option.value); validation.clearError('accountType') }}
                       aria-label={option.label}
                     >
                       <Icon size={17} color={isSelected ? '$primaryForeground' : '$color10'} />
@@ -123,15 +135,15 @@ export default function AccountFormScreen() {
                   )
                 })}
               </XStack>
-            </FormField>
+            </FintFormField>
 
             {!isEditing ? (
-              <FormField label={t('formLabels.openingBalanceOptional')}>
-                <FintInput width="100%" placeholder="0.00" value={openingBalance} onChangeText={setOpeningBalance} keyboardType="decimal-pad" />
-              </FormField>
+              <FintFormField label={t('formLabels.openingBalanceOptional')} error={validation.errors.openingBalance}>
+                <FintInput width="100%" borderColor={validation.errors.openingBalance ? '$red8' : undefined} placeholder="0.00" value={openingBalance} onChangeText={(value) => { setOpeningBalance(value); validation.clearError('openingBalance') }} keyboardType="decimal-pad" />
+              </FintFormField>
             ) : null}
 
-            <FormField label={t('forms.currency')}><FintSheetSelect width="100%" label={t('forms.currency')} showLabel={false} value={currency} options={currencyOptions} placeholder={t('forms.select')} searchable searchPlaceholder={t('accounts.searchCurrency')} onValueChange={setCurrency} /></FormField>
+            <FintFormField label={t('forms.currency')} required error={validation.errors.currency}><FintSheetSelect width="100%" borderColor={validation.errors.currency ? '$red8' : undefined} label={t('forms.currency')} showLabel={false} value={currency} options={currencyOptions} placeholder={t('forms.select')} searchable searchPlaceholder={t('accounts.searchCurrency')} onValueChange={(value) => { setCurrency(value); validation.clearError('currency') }} /></FintFormField>
 
             {errorMessage ? <XStack bg="$red2" borderColor="$red6" borderWidth={1} rounded="$5" p="$3"><Paragraph color="$red11" fontSize="$2">{errorMessage}</Paragraph></XStack> : null}
 
@@ -140,7 +152,7 @@ export default function AccountFormScreen() {
               height={50}
               disabled={mutation.isPending}
               icon={mutation.isPending ? <Spinner size="small" color="$primaryForeground" /> : isEditing ? <Save size={18} /> : <Landmark size={18} />}
-              onPress={() => mutation.mutate()}
+              onPress={submit}
             >
               {mutation.isPending ? t(isEditing ? 'accounts.updating' : 'accounts.creating') : t(isEditing ? 'accounts.update' : 'accounts.create')}
             </FintButton>
@@ -149,10 +161,6 @@ export default function AccountFormScreen() {
       </Screen>
     </>
   )
-}
-
-function FormField({ children, label }: { children: React.ReactNode; label: string }) {
-  return <YStack width="100%" gap="$2"><Paragraph color="$color10" fontSize="$2" fontWeight="600">{label}</Paragraph>{children}</YStack>
 }
 
 function isAccountType(value?: string): value is AccountType {

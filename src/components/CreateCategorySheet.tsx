@@ -6,11 +6,13 @@ import { useTranslation } from 'react-i18next'
 import { Text } from 'react-native'
 import { Button, Paragraph, Sheet, Spinner, XStack, YStack } from 'tamagui'
 import EmojiPicker, { es, en, pt, type EmojiType } from 'rn-emoji-keyboard'
+import { z } from 'zod'
 import { financeApi } from '../api/finance'
 import type { CreateCategoryResult, TransactionType } from '../api/types'
 import { suggestedCategoryIcons } from '../finance/categoryIcons'
+import { getValidationMessage, useSubmitValidation } from '../forms'
 import { useThemeMode } from '../theme/ThemeMode'
-import { FintButton, FintInput } from '../ui'
+import { FintButton, FintFormField, FintInput } from '../ui'
 import { useSheetBackHandler } from '../hooks/useSheetBackHandler'
 
 interface CreateCategorySheetProps {
@@ -31,6 +33,8 @@ export function CreateCategorySheet({ initialType, onCreated, onOpenChange, open
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
   const [iconChanged, setIconChanged] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const validation = useSubmitValidation<'name'>()
+  const categorySchema = z.object({ name: z.string().trim().min(2, getValidationMessage(t, i18n.resolvedLanguage, 'minTwo')) })
 
   const reset = () => {
     setName('')
@@ -38,14 +42,11 @@ export function CreateCategorySheet({ initialType, onCreated, onOpenChange, open
     setIcon('🛒')
     setIconChanged(false)
     setErrorMessage(null)
+    validation.resetErrors()
   }
 
   const mutation = useMutation({
-    mutationFn: () => {
-      const categoryName = name.trim()
-      if (categoryName.length < 2) throw new Error(t('categories.nameRequired'))
-      return financeApi.createCategory({ name: categoryName, type, icon })
-    },
+    mutationFn: (categoryName: string) => financeApi.createCategory({ name: categoryName, type, icon }),
     onSuccess: async (created) => {
       await queryClient.invalidateQueries({ queryKey: ['categories'] })
       toast.show(t('categories.createdToast'), { message: t('categories.createdMessage') })
@@ -55,6 +56,12 @@ export function CreateCategorySheet({ initialType, onCreated, onOpenChange, open
     },
     onError: (error) => setErrorMessage(error instanceof Error ? error.message : t('states.error')),
   })
+
+  const submit = () => {
+    setErrorMessage(null)
+    const payload = validation.validate(categorySchema, { name })
+    if (payload) mutation.mutate(payload.name)
+  }
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && mutation.isPending) return
@@ -123,10 +130,10 @@ export function CreateCategorySheet({ initialType, onCreated, onOpenChange, open
               </XStack>
             </YStack> : null}
 
-            <YStack gap="$2"><Paragraph color="$color10" fontSize="$1" fontWeight="700">{t('forms.name')}</Paragraph><FintInput minH={56} placeholder={t('categories.namePlaceholder')} value={name} onChangeText={(value) => { setName(value); if (!iconChanged) setIcon(suggestedCategoryIcons(value, type)[0] ?? icon) }} autoCapitalize="sentences" /></YStack>
+            <FintFormField label={t('forms.name')} required error={validation.errors.name}><FintInput minH={56} borderColor={validation.errors.name ? '$red8' : undefined} placeholder={t('categories.namePlaceholder')} value={name} onChangeText={(value) => { setName(value); validation.clearError('name'); if (!iconChanged) setIcon(suggestedCategoryIcons(value, type)[0] ?? icon) }} autoCapitalize="sentences" /></FintFormField>
             {errorMessage ? <Paragraph color="$red10">{errorMessage}</Paragraph> : null}
 
-            <XStack gap="$2"><FintButton flex={1} variant="outlined" disabled={mutation.isPending} onPress={() => handleOpenChange(false)}>{t('actions.cancel')}</FintButton><FintButton flex={1} disabled={mutation.isPending} onPress={() => mutation.mutate()} icon={mutation.isPending ? <Spinner color="$background" /> : <Shapes size={18} />}>{mutation.isPending ? t('categories.creating') : t('categories.create')}</FintButton></XStack>
+            <XStack gap="$2"><FintButton flex={1} variant="outlined" disabled={mutation.isPending} onPress={() => handleOpenChange(false)}>{t('actions.cancel')}</FintButton><FintButton flex={1} disabled={mutation.isPending} onPress={submit} icon={mutation.isPending ? <Spinner color="$background" /> : <Shapes size={18} />}>{mutation.isPending ? t('categories.creating') : t('categories.create')}</FintButton></XStack>
           </YStack>
         </Sheet.ScrollView>
       </Sheet.Frame>

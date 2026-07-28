@@ -4,12 +4,14 @@ import { Mail, Save, UserRound } from '@tamagui/lucide-icons-2'
 import { useToastController } from '@tamagui/toast'
 import { useTranslation } from 'react-i18next'
 import { Paragraph, XStack, YStack } from 'tamagui'
+import { z } from 'zod'
 import { useAuth } from '../src/auth/AuthProvider'
 import { Screen } from '../src/components/Screen'
-import { FintButton, FintCard, FintInput } from '../src/ui'
+import { useSubmitValidation } from '../src/forms'
+import { FintButton, FintCard, FintFormField, FintInput } from '../src/ui'
 
 export default function ProfileScreen() {
-  const { i18n } = useTranslation()
+  const { i18n, t } = useTranslation()
   const language = i18n.resolvedLanguage === 'en' || i18n.resolvedLanguage === 'pt' ? i18n.resolvedLanguage : 'es'
   const text = {
     es: { profile: 'Tu perfil', name: 'Nombre', namePlaceholder: 'Tu nombre', save: 'Guardar nombre', saving: 'Guardando...', email: 'Correo', auth: 'Los cambios de autenticación se gestionan con tu proveedor de acceso.', invalid: 'El nombre debe tener entre 2 y 80 caracteres.', error: 'No pudimos actualizar tu nombre.', success: 'Perfil actualizado.' },
@@ -23,17 +25,21 @@ export default function ProfileScreen() {
   const avatarUrl = typeof metadata.avatar_url === 'string' ? metadata.avatar_url : typeof metadata.picture === 'string' ? metadata.picture : null
   const [displayName, setDisplayName] = useState(currentName)
   const [isSaving, setIsSaving] = useState(false)
+  const [serverError, setServerError] = useState<string | null>(null)
+  const validation = useSubmitValidation<'displayName'>()
 
   const save = async () => {
-    const value = displayName.trim()
-    if (value.length < 2 || value.length > 80) {
-      toast.show(text.invalid, { preset: 'error' })
-      return
-    }
+    setServerError(null)
+    const schema = z.object({ displayName: z.string().trim().min(2, t('validation.profileName', { defaultValue: text.invalid })).max(80, t('validation.profileName', { defaultValue: text.invalid })) })
+    const payload = validation.validate(schema, { displayName })
+    if (!payload || payload.displayName === currentName.trim()) return
     setIsSaving(true)
-    const { error } = await updateDisplayName(value)
+    const { error } = await updateDisplayName(payload.displayName)
     setIsSaving(false)
-    if (error) toast.show(text.error, { preset: 'error' })
+    if (error) {
+      setServerError(text.error)
+      toast.show(text.error, { preset: 'error' })
+    }
     else toast.show(text.success, { preset: 'success' })
   }
 
@@ -45,8 +51,9 @@ export default function ProfileScreen() {
       </FintCard>
 
       <FintCard gap="$4">
-        <YStack gap="$2"><Paragraph color="$color10" fontWeight="700">{text.name}</Paragraph><FintInput value={displayName} onChangeText={setDisplayName} placeholder={text.namePlaceholder} autoCapitalize="words" maxLength={80} /></YStack>
-        <FintButton disabled={isSaving || displayName.trim() === currentName.trim()} icon={<Save size={17} />} onPress={() => { void save() }}>{isSaving ? text.saving : text.save}</FintButton>
+        <FintFormField label={text.name} required error={validation.errors.displayName}><FintInput borderColor={validation.errors.displayName ? '$red8' : undefined} value={displayName} onChangeText={(value) => { setDisplayName(value); validation.clearError('displayName') }} placeholder={text.namePlaceholder} autoCapitalize="words" maxLength={80} /></FintFormField>
+        {serverError ? <Paragraph color="$red10" fontSize="$2">{serverError}</Paragraph> : null}
+        <FintButton disabled={isSaving} icon={<Save size={17} />} onPress={() => { void save() }}>{isSaving ? text.saving : text.save}</FintButton>
       </FintCard>
 
       <FintCard gap="$3">

@@ -6,7 +6,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Dialog, Paragraph, Spinner, XStack, YStack } from 'tamagui'
 import { financeApi } from '../../src/api/finance'
-import { formatMoney, normalizeAccount, normalizeDebt, normalizeSummary } from '../../src/api/mappers'
+import { formatMoney, normalizeDebt } from '../../src/api/mappers'
 import type { Debt } from '../../src/api/types'
 import { DebtPaymentSheet } from '../../src/components/DebtPaymentSheet'
 import { DataStateCard } from '../../src/components/DataStateCard'
@@ -28,16 +28,16 @@ export default function DebtsScreen() {
   const [deleteTarget, setDeleteTarget] = useState<Debt | null>(null)
   const pressOnce = usePressOnce()
   const debtsQuery = useQuery({ queryKey: ['debts'], queryFn: financeApi.listDebts, retry: false })
-  const accountsQuery = useQuery({ queryKey: ['accounts'], queryFn: financeApi.listAccounts, retry: false })
-  const summaryQuery = useQuery({ queryKey: ['summary'], queryFn: financeApi.getSummary, retry: false })
+  const accountsQuery = useQuery({ queryKey: ['account-options', 'debt-payment', paymentDebt?.currency], queryFn: () => financeApi.listAccountOptions({ currency: paymentDebt?.currency, excludeAccountType: 'credit_card' }), retry: false, enabled: Boolean(paymentDebt) })
   const debts = (debtsQuery.data ?? []).map(normalizeDebt)
-  const accounts = (accountsQuery.data ?? []).map(normalizeAccount)
-  const summary = normalizeSummary(summaryQuery.data)
+  const accounts = accountsQuery.data ?? []
+  const displayCurrency = debts[0]?.currency ?? 'PEN'
+  const totalOutstanding = debts.filter((debt) => debt.currency === displayCurrency).reduce((sum, debt) => sum + debt.outstanding, 0)
   const locale = getAppLocale(i18n.resolvedLanguage)
   const nextDueDebt = [...debts].filter((debt) => debt.dueDate).sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)))[0]
-  const isLoading = debtsQuery.isLoading || accountsQuery.isLoading || summaryQuery.isLoading
-  const isRefreshing = debtsQuery.isRefetching || accountsQuery.isRefetching || summaryQuery.isRefetching
-  const error = debtsQuery.error ?? accountsQuery.error ?? summaryQuery.error
+  const isLoading = debtsQuery.isLoading
+  const isRefreshing = debtsQuery.isRefetching
+  const error = debtsQuery.error
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => financeApi.deleteDebt(id),
@@ -54,15 +54,15 @@ export default function DebtsScreen() {
 
   return (
     <>
-      <Screen isRefreshing={isRefreshing} onRefresh={() => Promise.all([debtsQuery.refetch(), accountsQuery.refetch(), summaryQuery.refetch()])}>
+      <Screen isRefreshing={isRefreshing} onRefresh={() => debtsQuery.refetch()}>
         {isLoading ? <SkeletonGroup label={t('states.loading')}><SkeletonHero /></SkeletonGroup> : null}
         {!isLoading && !error ? (
           <DebtHero
             count={debts.length}
-            currency={summary.currency}
+            currency={displayCurrency}
             isDark={themeMode === 'dark'}
             nextDueDate={nextDueDebt?.dueDate ?? null}
-            total={summary.pendingDebtTotal}
+            total={totalOutstanding}
           />
         ) : null}
 
@@ -75,7 +75,7 @@ export default function DebtsScreen() {
         </XStack>
 
         {isLoading ? <SkeletonGroup label={t('states.loading')}><SkeletonList rows={3} /></SkeletonGroup> : null}
-        {error ? <DataStateCard message={error instanceof Error ? error.message : t('states.error')} onRetry={() => { void debtsQuery.refetch(); void summaryQuery.refetch() }} /> : null}
+        {error ? <DataStateCard message={error instanceof Error ? error.message : t('states.error')} onRetry={() => { void debtsQuery.refetch() }} /> : null}
         {!isLoading && !error && debts.length === 0 ? (
           <FintCard items="center" gap="$3" py="$6">
             <YStack width={54} height={54} rounded="$10" bg="$secondary" items="center" justify="center"><HandCoins size={26} color="$primary" /></YStack>

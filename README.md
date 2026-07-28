@@ -134,6 +134,7 @@ Fint se encuentra en preparacion para su primer lanzamiento publico. El flujo pr
 
 - [Vision de producto](docs/fint-product-vision.md)
 - [Roadmap del MVP](docs/mvp-phases-roadmap.md)
+- [Plan de pendientes y pagos recurrentes](docs/implementation-plan-pending-and-payments.md)
 - [Preparacion para lanzamiento](docs/launch-readiness.md)
 - [Guia de Play Store](docs/play-store-launch.md)
 - [Monitoreo y operaciones](docs/monitoring-setup.md)

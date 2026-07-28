@@ -11,6 +11,7 @@ import { useSheetBackHandler } from '../hooks/useSheetBackHandler'
 import { CreateCategorySheet } from './CreateCategorySheet'
 
 interface CategoryPickerSheetProps {
+  allowCreate?: boolean
   categories: Category[]
   onValueChange: (value: string) => void
   type: TransactionType
@@ -18,7 +19,7 @@ interface CategoryPickerSheetProps {
   showLabel?: boolean
 }
 
-export function CategoryPickerSheet({ categories, onValueChange, showLabel = true, type, value }: CategoryPickerSheetProps) {
+export function CategoryPickerSheet({ allowCreate = true, categories, onValueChange, showLabel = true, type, value }: CategoryPickerSheetProps) {
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const [open, setOpen] = useState(false)
@@ -59,7 +60,7 @@ export function CategoryPickerSheet({ categories, onValueChange, showLabel = tru
           </XStack>
           <Sheet.ScrollView showsVerticalScrollIndicator={false}>
             <XStack flexWrap="wrap" justify="space-between" rowGap="$3" pb="$5">
-              <CategoryTile icon="+" label={t('categories.newAction')} selected={false} onPress={() => setCreateOpen(true)} />
+              {allowCreate ? <CategoryTile icon="+" label={t('categories.newAction')} selected={false} onPress={() => setCreateOpen(true)} /> : null}
               {categories.map((category) => (
                 <CategoryTile
                   key={category.id}
@@ -74,12 +75,12 @@ export function CategoryPickerSheet({ categories, onValueChange, showLabel = tru
         </Sheet.Frame>
       </Sheet>
 
-      <CreateCategorySheet
+      {allowCreate ? <CreateCategorySheet
         initialType={type}
         open={createOpen}
         onOpenChange={setCreateOpen}
         onCreated={(category) => { onValueChange(category.name); setOpen(false) }}
-      />
+      /> : null}
     </>
   )
 }

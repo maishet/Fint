@@ -79,9 +79,9 @@ function RootLayoutNav() {
       <StatusBar style={themeMode === 'dark' ? 'light' : 'dark'} />
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
         <Stack.Protected guard={!session}>
           <Stack.Screen name="login" options={{ headerShown: false }} />
-          <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
         </Stack.Protected>
         <Stack.Protected guard={!!session}>
           <Stack.Screen
@@ -90,7 +90,9 @@ function RootLayoutNav() {
               headerShown: false,
             }}
           />
-          <Stack.Screen name="transaction-form" options={{ title: t('forms.newMovement'), contentStyle: { backgroundColor: theme.background.val } }} />
+           <Stack.Screen name="transaction-form" options={{ title: t('forms.newMovement'), contentStyle: { backgroundColor: theme.background.val } }} />
+           <Stack.Screen name="pending-movements" options={{ title: t('movementUx.pendingTitle', { defaultValue: 'Pendientes detectados' }), contentStyle: { backgroundColor: theme.background.val } }} />
+           <Stack.Screen name="pending-review" options={{ title: t('movementUx.reviewPendingTitle', { defaultValue: 'Revisar pendiente' }), contentStyle: { backgroundColor: theme.background.val } }} />
           <Stack.Screen name="account-form" options={{ contentStyle: { backgroundColor: theme.background.val } }} />
           <Stack.Screen name="debt-form" options={{ contentStyle: { backgroundColor: theme.background.val } }} />
           <Stack.Screen name="settings" options={{ title: t('header.menuTitle'), contentStyle: { backgroundColor: theme.background.val } }} />

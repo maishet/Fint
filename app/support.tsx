@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { Linking } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { HelpCircle, Lightbulb, Send } from '@tamagui/lucide-icons-2'
-import { useToastController } from '@tamagui/toast'
 import { Paragraph, XStack, YStack } from 'tamagui'
+import { z } from 'zod'
 import { buildSupportMailto } from '../src/support/diagnostics'
 import { trackAnalyticsEvent } from '../src/analytics/privacy'
 import { Screen } from '../src/components/Screen'
-import { FintButton, FintCard, FintInput, FintSheetSelect } from '../src/ui'
+import { getValidationMessage, useSubmitValidation } from '../src/forms'
+import { FintButton, FintCard, FintFormField, FintInput, FintSheetSelect } from '../src/ui'
 
 const copy = {
   es: { title: 'Ayuda y soporte', subtitle: 'Reporta incidentes sin compartir datos financieros.', category: 'Categoría', description: '¿Qué ocurrió?', steps: 'Pasos para reproducirlo, si es posible', required: 'Agrega una descripción', submit: 'Reportar un problema', improvement: 'Solicitar una mejora', improvementHint: 'Elige “Sugerencia de mejora” como categoría y describe el valor esperado.', login: 'Inicio de sesión: verifica la confirmación del correo y tus credenciales.', gmail: 'Gmail: vuelve a conectar la cuenta si Google revocó el acceso.', duplicates: 'Movimientos duplicados: revisa los pendientes de Gmail antes de confirmarlos.', categories: ['Inicio de sesión o cuenta', 'Cuentas y saldos', 'Movimientos o categorías', 'Deudas y pagos', 'Conexión o sincronización Gmail', 'Rendimiento o cierre inesperado', 'Privacidad y eliminación de datos', 'Sugerencia de mejora'] },
@@ -16,29 +17,39 @@ const copy = {
 }
 
 export default function SupportScreen() {
-  const { i18n } = useTranslation()
+  const { i18n, t } = useTranslation()
   const language = i18n.resolvedLanguage === 'en' || i18n.resolvedLanguage === 'pt' ? i18n.resolvedLanguage : 'es'
   const text = copy[language]
-  const toast = useToastController()
   const [category, setCategory] = useState(text.categories[0])
   const [description, setDescription] = useState('')
   const [steps, setSteps] = useState('')
+  const [serverError, setServerError] = useState<string | null>(null)
+  const validation = useSubmitValidation<'category' | 'description'>()
 
   const submit = async () => {
-    if (!description.trim()) {
-      toast.show(text.required, { preset: 'error' })
-      return
+    setServerError(null)
+    const schema = z.object({
+      category: z.string().min(1, getValidationMessage(t, i18n.resolvedLanguage, 'required')),
+      description: z.string().trim().min(1, t('support.descriptionRequired', { defaultValue: text.required })),
+      steps: z.string(),
+    })
+    const payload = validation.validate(schema, { category, description, steps })
+    if (!payload) return
+    try {
+      await trackAnalyticsEvent('support_report_submitted', { category: payload.category })
+      await Linking.openURL(buildSupportMailto({ category: payload.category, description: payload.description, steps: payload.steps, includeDiagnostics: false }))
+    } catch {
+      setServerError(t('support.submitError', { defaultValue: t('states.error') }))
     }
-    await trackAnalyticsEvent('support_report_submitted', { category })
-    await Linking.openURL(buildSupportMailto({ category, description, steps, includeDiagnostics: false }))
   }
 
   return (
     <Screen>
       <FintCard bg="#0F5D73" borderColor="#28788C" gap="$3"><XStack gap="$3" items="center"><YStack width={48} height={48} rounded="$10" bg="rgba(93,214,229,0.14)" items="center" justify="center"><HelpCircle size={24} color="#5DD6E5" /></YStack><YStack flex={1}><Paragraph color="#F4FBFD" fontFamily="$heading" fontSize="$6" fontWeight="800">{text.title}</Paragraph><Paragraph color="#B9D7E1">{text.subtitle}</Paragraph></YStack></XStack></FintCard>
-      <FintSheetSelect label={text.category} placeholder={text.category} value={category} options={text.categories.map((item) => ({ value: item, label: item }))} onValueChange={(value) => { setCategory(value); void trackAnalyticsEvent('support_report_started', { category: value }) }} />
-      <FintInput multiline minH={110} textAlignVertical="top" placeholder={text.description} value={description} onChangeText={setDescription} />
-      <FintInput multiline minH={90} textAlignVertical="top" placeholder={text.steps} value={steps} onChangeText={setSteps} />
+      <FintFormField label={text.category} required error={validation.errors.category} invalidBorder><FintSheetSelect label={text.category} showLabel={false} placeholder={text.category} value={category} options={text.categories.map((item) => ({ value: item, label: item }))} onValueChange={(value) => { setCategory(value); validation.clearError('category'); void trackAnalyticsEvent('support_report_started', { category: value }) }} /></FintFormField>
+      <FintFormField label={text.description} required error={validation.errors.description}><FintInput borderColor={validation.errors.description ? '$red8' : undefined} multiline minH={110} textAlignVertical="top" placeholder={text.description} value={description} onChangeText={(value) => { setDescription(value); validation.clearError('description') }} /></FintFormField>
+      <FintFormField label={text.steps}><FintInput multiline minH={90} textAlignVertical="top" placeholder={text.steps} value={steps} onChangeText={setSteps} /></FintFormField>
+      {serverError ? <Paragraph color="$red10">{serverError}</Paragraph> : null}
       <FintButton icon={<Send size={16} />} onPress={submit}>{text.submit}</FintButton>
       <FintCard gap="$2"><XStack gap="$2" items="center"><Lightbulb size={18} color="$primary" /><Paragraph color="$color12" fontWeight="800">{text.improvement}</Paragraph></XStack><Paragraph color="$color10">{text.improvementHint}</Paragraph></FintCard>
       <FintCard gap="$2"><Paragraph color="$color12" fontWeight="800">FAQ</Paragraph><Paragraph color="$color10">{text.login}</Paragraph><Paragraph color="$color10">{text.gmail}</Paragraph><Paragraph color="$color10">{text.duplicates}</Paragraph></FintCard>

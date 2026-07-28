@@ -2,18 +2,18 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Building2, CreditCard, PiggyBank, Plus, Trash2, Wallet } from '@tamagui/lucide-icons-2'
 import { useToastController } from '@tamagui/toast'
 import { useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Dialog, Paragraph, Spinner, XStack, YStack } from 'tamagui'
 import { financeApi } from '../../src/api/finance'
-import { formatMoney, normalizeAccount, normalizeSummary } from '../../src/api/mappers'
-import type { Account } from '../../src/api/types'
+import { formatMoney, normalizeAccount } from '../../src/api/mappers'
+import type { Account, AccountsOverview } from '../../src/api/types'
 import { DataStateCard } from '../../src/components/DataStateCard'
 import { Screen } from '../../src/components/Screen'
 import { SkeletonGroup, SkeletonHero, SkeletonList } from '../../src/components/Skeleton'
 import { useThemeMode } from '../../src/theme/ThemeMode'
 import { usePressOnce } from '../../src/hooks/usePressOnce'
-import { FintButton, FintCard } from '../../src/ui'
+import { FintButton, FintCard, FintSheetSelect } from '../../src/ui'
 
 export default function AccountsScreen() {
   const { t } = useTranslation()
@@ -22,14 +22,15 @@ export default function AccountsScreen() {
   const toast = useToastController()
   const queryClient = useQueryClient()
   const [deleteTarget, setDeleteTarget] = useState<Account | null>(null)
+  const [currency, setCurrency] = useState('')
+  const [initialLoadSettled, setInitialLoadSettled] = useState(false)
   const pressOnce = usePressOnce()
-  const accountsQuery = useQuery({ queryKey: ['accounts'], queryFn: financeApi.listAccounts, retry: false })
-  const summaryQuery = useQuery({ queryKey: ['summary'], queryFn: financeApi.getSummary, retry: false })
-  const accounts = (accountsQuery.data ?? []).map(normalizeAccount)
-  const summary = normalizeSummary(summaryQuery.data)
-  const isLoading = accountsQuery.isLoading || summaryQuery.isLoading
-  const isRefreshing = accountsQuery.isRefetching || summaryQuery.isRefetching
-  const error = accountsQuery.error ?? summaryQuery.error
+  const accountsQuery = useQuery({ queryKey: ['accounts', 'overview', currency], queryFn: ({ signal }) => financeApi.getAccountsOverview(currency || undefined, signal), retry: false })
+  const accounts = (accountsQuery.data?.items ?? []).map(normalizeAccount)
+  const isInitialFetch = !initialLoadSettled && accountsQuery.isFetching
+  const isLoading = accountsQuery.isLoading || isInitialFetch
+  const isRefreshing = accountsQuery.isRefetching
+  const error = accountsQuery.error
   const deleteMutation = useMutation({
     mutationFn: (accountId: string) => financeApi.deleteAccount(accountId),
     onSuccess: async () => {
@@ -45,6 +46,10 @@ export default function AccountsScreen() {
     onError: (mutationError) => toast.show(t('accounts.deleteError'), { message: mutationError instanceof Error ? mutationError.message : t('states.error'), preset: 'error', duration: 4500 }),
   })
 
+  useEffect(() => {
+    if (!accountsQuery.isFetching) setInitialLoadSettled(true)
+  }, [accountsQuery.isFetching])
+
   const openCreate = () => pressOnce(() => router.push('/account-form'))
   const openEdit = (account: Account) => pressOnce(() => router.push({ pathname: '/account-form', params: { accountId: account.id } }))
 
@@ -53,12 +58,12 @@ export default function AccountsScreen() {
       <Screen
         isRefreshing={isRefreshing}
         onRefresh={() => {
-          queryClient.invalidateQueries({ queryKey: ['accounts'] })
-          queryClient.invalidateQueries({ queryKey: ['summary'] })
+           void accountsQuery.refetch()
         }}
       >
         {isLoading ? <SkeletonGroup label={t('states.loading')}><SkeletonHero /></SkeletonGroup> : null}
-        {!isLoading && !error ? <AccountsSummary isDark={themeMode === 'dark'} summary={summary} /> : null}
+        {!isLoading && !error && accountsQuery.data ? <AccountsSummary isDark={themeMode === 'dark'} overview={accountsQuery.data} /> : null}
+        {!isLoading && (accountsQuery.data?.currencies.length ?? 0) > 1 ? <FintSheetSelect label={t('forms.currency')} placeholder={t('forms.currency')} value={accountsQuery.data?.currency} options={(accountsQuery.data?.currencies ?? []).map((value) => ({ value, label: value }))} onValueChange={setCurrency} /> : null}
 
         <XStack items="center" justify="space-between" gap="$3">
           <YStack gap="$1" flex={1}>
@@ -83,7 +88,7 @@ export default function AccountsScreen() {
         </XStack>
 
         {isLoading ? <SkeletonGroup label={t('states.loading')}><SkeletonList rows={3} /></SkeletonGroup> : null}
-        {error ? <DataStateCard message={error instanceof Error ? error.message : t('states.error')} onRetry={() => { void accountsQuery.refetch(); void summaryQuery.refetch() }} /> : null}
+        {error ? <DataStateCard message={t('states.error')} onRetry={() => { void accountsQuery.refetch() }} /> : null}
         {!isLoading && !error && accounts.length === 0 ? (
           <FintCard bg="$accent1" borderColor="$accent4" items="center" gap="$3" py="$6">
             <YStack width={48} height={48} rounded="$10" bg="$accent3" items="center" justify="center">
@@ -117,7 +122,7 @@ export default function AccountsScreen() {
   )
 }
 
-function AccountsSummary({ isDark, summary }: { isDark: boolean; summary: ReturnType<typeof normalizeSummary> }) {
+function AccountsSummary({ isDark, overview }: { isDark: boolean; overview: AccountsOverview }) {
   const { t } = useTranslation()
   const backgroundColor = isDark ? '#0B3046' : '#0F5D73'
   const borderColor = isDark ? '#1B5067' : '#28788C'
@@ -128,7 +133,7 @@ function AccountsSummary({ isDark, summary }: { isDark: boolean; summary: Return
         <YStack gap="$1" flex={1} minW={0}>
           <Paragraph color="#B9D7E1" fontFamily="$heading" fontSize="$2" fontWeight="700" textTransform="uppercase">{t('accounts.consolidatedBalance')}</Paragraph>
           <Paragraph color="#F4FBFD" fontFamily="$body" fontSize="$9" fontWeight="800" lineHeight="$9" numberOfLines={1} adjustsFontSizeToFit>
-            {formatMoney(summary.netWorth, summary.currency)}
+            {formatMoney(overview.totals.netWorth, overview.currency)}
           </Paragraph>
         </YStack>
         <YStack width={48} height={48} rounded="$10" bg="rgba(93,214,229,0.14)" borderColor="rgba(93,214,229,0.24)" borderWidth={1} items="center" justify="center">
@@ -136,8 +141,8 @@ function AccountsSummary({ isDark, summary }: { isDark: boolean; summary: Return
         </YStack>
       </XStack>
       <XStack gap="$4">
-        <SummaryMetric accent="#5DD6E5" label={t('accounts.assets')} value={formatMoney(summary.totalAssets, summary.currency)} />
-        <SummaryMetric accent="#F28B82" label={t('accounts.liabilities')} value={formatMoney(summary.totalLiabilities, summary.currency)} />
+        <SummaryMetric accent="#5DD6E5" label={t('accounts.assets')} value={formatMoney(overview.totals.assets, overview.currency)} />
+        <SummaryMetric accent="#F28B82" label={t('accounts.liabilities')} value={formatMoney(overview.totals.liabilities, overview.currency)} />
       </XStack>
     </FintCard>
   )

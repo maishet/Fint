@@ -162,4 +162,6 @@ function redactUrl(url: string) {
     .replace(/([?#&]code=)[^&#]+/g, '$1<redacted>')
     .replace(/([?#&]access_token=)[^&#]+/g, '$1<redacted>')
     .replace(/([?#&]refresh_token=)[^&#]+/g, '$1<redacted>')
+    .replace(/([?#&]provider_token=)[^&#]+/g, '$1<redacted>')
+    .replace(/([?#&]provider_refresh_token=)[^&#]+/g, '$1<redacted>')
 }

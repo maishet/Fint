@@ -7,34 +7,24 @@ import { useTranslation } from 'react-i18next'
 import { Paragraph, ScrollView, Spinner, XStack, YStack } from 'tamagui'
 import { z } from 'zod'
 import { financeApi } from '../src/api/finance'
-import { formatMoney, normalizeAccount, normalizeDebt, normalizeSummary } from '../src/api/mappers'
 import { DataStateCard } from '../src/components/DataStateCard'
 import { Screen } from '../src/components/Screen'
 import { todayDateString } from '../src/finance/dates'
-import { FintButton, FintDateField, FintInput } from '../src/ui'
-
-const debtSchema = z.object({
-  description: z.string().trim().min(2),
-  amount: z.number().positive(),
-  dueDate: z.string().date(),
-  accountId: z.string().nullable(),
-  note: z.string().trim().optional(),
-})
+import { getValidationMessage, parseDecimalInput, useSubmitValidation } from '../src/forms'
+import { FintButton, FintDateField, FintFormField, FintInput } from '../src/ui'
 
 export default function DebtFormScreen() {
   const { debtId } = useLocalSearchParams<{ debtId?: string }>()
   const isEditing = Boolean(debtId)
-  const { t } = useTranslation()
+  const { i18n, t } = useTranslation()
   const router = useRouter()
   const toast = useToastController()
   const queryClient = useQueryClient()
-  const accountsQuery = useQuery({ queryKey: ['accounts'], queryFn: financeApi.listAccounts, retry: false })
-  const summaryQuery = useQuery({ queryKey: ['summary'], queryFn: financeApi.getSummary, retry: false })
-  const debtsQuery = useQuery({ queryKey: ['debts'], queryFn: financeApi.listDebts, retry: false, enabled: isEditing })
-  const accounts = (accountsQuery.data ?? []).map(normalizeAccount)
-  const creditCards = accounts.filter((account) => account.accountType === 'credit_card')
-  const summary = normalizeSummary(summaryQuery.data)
-  const debt = (debtsQuery.data ?? []).map(normalizeDebt).find((item) => item.id === debtId)
+  const accountsQuery = useQuery({ queryKey: ['account-options', 'credit-card'], queryFn: () => financeApi.listAccountOptions({ accountType: 'credit_card' }), retry: false })
+  const optionsQuery = useQuery({ queryKey: ['finance-options'], queryFn: financeApi.getFinanceOptions, retry: false })
+  const debtQuery = useQuery({ queryKey: ['debts', 'detail', debtId], queryFn: ({ signal }) => financeApi.getDebt(debtId!, signal), retry: false, enabled: isEditing })
+  const creditCards = accountsQuery.data ?? []
+  const debt = debtQuery.data
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
   const [dueDate, setDueDate] = useState(todayDateString)
@@ -42,8 +32,17 @@ export default function DebtFormScreen() {
   const [note, setNote] = useState('')
   const [initializedDebtId, setInitializedDebtId] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const validation = useSubmitValidation<'amount' | 'description' | 'dueDate'>()
+  const amountMessage = getValidationMessage(t, i18n.resolvedLanguage, 'amount')
+  const debtSchema = z.object({
+    description: z.string().trim().min(2, getValidationMessage(t, i18n.resolvedLanguage, 'minTwo')),
+    amount: z.number({ error: amountMessage }).positive(getValidationMessage(t, i18n.resolvedLanguage, 'positiveAmount')),
+    dueDate: z.string().date(getValidationMessage(t, i18n.resolvedLanguage, 'date')),
+    accountId: z.string().nullable(),
+    note: z.string().trim().optional(),
+  })
   const selectedCard = creditCards.find((account) => account.id === accountId)
-  const currency = selectedCard?.currency ?? debt?.currency ?? summary.currency
+  const currency = selectedCard?.currency ?? debt?.currency ?? optionsQuery.data?.baseCurrency ?? 'PEN'
 
   useEffect(() => {
     if (!debt || initializedDebtId === debt.id) return
@@ -56,9 +55,7 @@ export default function DebtFormScreen() {
   }, [creditCards, debt, initializedDebtId])
 
   const mutation = useMutation({
-    mutationFn: async () => {
-      setErrorMessage(null)
-      const payload = debtSchema.parse({ description, amount: Number(amount), dueDate, accountId, note: note || undefined })
+    mutationFn: async (payload: z.infer<typeof debtSchema>) => {
       if (debtId) return financeApi.updateDebt(debtId, { description: payload.description, amount: payload.amount, dueDate: payload.dueDate, accountId: payload.accountId, note: payload.note ?? null })
       return financeApi.createDebt({ ...payload, currency })
     },
@@ -78,9 +75,15 @@ export default function DebtFormScreen() {
     onError: () => setErrorMessage(t('debts.saveError')),
   })
 
-  const isLoading = accountsQuery.isLoading || summaryQuery.isLoading || (isEditing && debtsQuery.isLoading)
-  const error = accountsQuery.error ?? summaryQuery.error ?? debtsQuery.error
-  const notFound = isEditing && !debtsQuery.isLoading && !debtsQuery.error && !debt
+  const submit = () => {
+    setErrorMessage(null)
+    const payload = validation.validate(debtSchema, { description, amount: parseDecimalInput(amount), dueDate, accountId, note: note || undefined })
+    if (payload) mutation.mutate(payload)
+  }
+
+  const isLoading = accountsQuery.isLoading || optionsQuery.isLoading || (isEditing && debtQuery.isLoading)
+  const error = accountsQuery.error ?? optionsQuery.error ?? debtQuery.error
+  const notFound = isEditing && !debtQuery.isLoading && !debtQuery.error && !debt
 
   return (
     <>
@@ -92,35 +95,35 @@ export default function DebtFormScreen() {
 
         {!isLoading && !error && !notFound ? (
           <YStack gap="$5" pb="$5">
-            <FormField label={t('forms.name')}>
-              <FintInput width="100%" placeholder={t('debts.namePlaceholder')} value={description} onChangeText={setDescription} autoCapitalize="sentences" />
-            </FormField>
+            <FintFormField label={t('forms.name')} required error={validation.errors.description}>
+              <FintInput width="100%" borderColor={validation.errors.description ? '$red8' : undefined} placeholder={t('debts.namePlaceholder')} value={description} onChangeText={(value) => { setDescription(value); validation.clearError('description') }} autoCapitalize="sentences" />
+            </FintFormField>
 
-            <FormField label={t('forms.amount')}>
-              <FintInput width="100%" placeholder="0.00" value={amount} onChangeText={setAmount} keyboardType="decimal-pad" />
-            </FormField>
+            <FintFormField label={t('forms.amount')} required error={validation.errors.amount}>
+              <FintInput width="100%" borderColor={validation.errors.amount ? '$red8' : undefined} placeholder="0.00" value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} keyboardType="decimal-pad" />
+            </FintFormField>
 
-            <FormField label={t('debts.dueDate')}><FintDateField label={t('debts.dueDate')} showLabel={false} placeholder={t('debts.selectDueDate')} value={dueDate} onValueChange={setDueDate} /></FormField>
+            <FintFormField label={t('debts.dueDate')} required error={validation.errors.dueDate}><FintDateField borderColor={validation.errors.dueDate ? '$red8' : undefined} label={t('debts.dueDate')} showLabel={false} placeholder={t('debts.selectDueDate')} value={dueDate} onValueChange={(value) => { setDueDate(value); validation.clearError('dueDate') }} /></FintFormField>
 
-            <FormField label={t('debts.creditCardOptional')}>
+            <FintFormField label={t('debts.creditCardOptional')}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
-                <CreditCardOption selected={accountId === null} title={t('debts.noCard')} subtitle={summary.currency} onPress={() => setAccountId(null)} />
+                <CreditCardOption selected={accountId === null} title={t('debts.noCard')} subtitle={optionsQuery.data?.baseCurrency ?? 'PEN'} onPress={() => setAccountId(null)} />
                 {creditCards.map((card) => (
                   <CreditCardOption
                     key={card.id}
                     selected={accountId === card.id}
                     title={card.name}
-                    subtitle={`${card.currency} · ${formatMoney(card.balance, card.currency)}`}
+                    subtitle={card.currency}
                     onPress={() => setAccountId(card.id)}
                   />
                 ))}
               </ScrollView>
               {creditCards.length === 0 ? <Paragraph color="$color10" fontSize="$1">{t('debts.noCreditCards')}</Paragraph> : null}
-            </FormField>
+            </FintFormField>
 
-            <FormField label={t('debts.noteOptional')}>
+            <FintFormField label={t('debts.noteOptional')}>
               <FintInput width="100%" placeholder={t('debts.notePlaceholder')} value={note} onChangeText={setNote} multiline minH={88} textAlignVertical="top" />
-            </FormField>
+            </FintFormField>
 
             {errorMessage ? <XStack bg="$red2" borderColor="$red6" borderWidth={1} rounded="$5" p="$3"><Paragraph color="$red11" fontSize="$2">{errorMessage}</Paragraph></XStack> : null}
             <FintButton
@@ -128,7 +131,7 @@ export default function DebtFormScreen() {
               height={50}
               disabled={mutation.isPending}
               icon={mutation.isPending ? <Spinner color="$primaryForeground" /> : isEditing ? <Save size={18} /> : <Landmark size={18} />}
-              onPress={() => mutation.mutate()}
+              onPress={submit}
             >
               {mutation.isPending ? t(isEditing ? 'debts.updating' : 'debts.creating') : t(isEditing ? 'debts.update' : 'debts.create')}
             </FintButton>
@@ -137,10 +140,6 @@ export default function DebtFormScreen() {
       </Screen>
     </>
   )
-}
-
-function FormField({ children, label }: { children: React.ReactNode; label: string }) {
-  return <YStack width="100%" gap="$2"><Paragraph color="$color10" fontSize="$2" fontWeight="600">{label}</Paragraph>{children}</YStack>
 }
 
 function CreditCardOption({ onPress, selected, subtitle, title }: { onPress: () => void; selected: boolean; subtitle: string; title: string }) {

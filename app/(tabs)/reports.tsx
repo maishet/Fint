@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next'
 import { Button, Paragraph, ScrollView, Spinner, XStack, YStack } from 'tamagui'
 import { financeApi } from '../../src/api/finance'
 import { formatMoney } from '../../src/api/mappers'
-import type { FinancialReport } from '../../src/api/types'
+import type { FinancialReport, FinancialReportPeriod, FinancialReportPosition, FinancialTopTransaction } from '../../src/api/types'
 import { DataStateCard } from '../../src/components/DataStateCard'
 import { Screen } from '../../src/components/Screen'
 import { SkeletonBlock, SkeletonContentCard, SkeletonGroup, SkeletonMetricGrid, SkeletonSection } from '../../src/components/Skeleton'
@@ -49,22 +49,37 @@ export default function ReportsScreen() {
   const [currency, setCurrency] = useState('')
   const [isExporting, setIsExporting] = useState(false)
   const range = getPresetRange(preset)
-  const reportQuery = useQuery({
-    queryKey: ['reports', 'financial', range.from, range.to, accountId, currency],
-    queryFn: () => financeApi.getFinancialReport({ ...range, grouping: preset === 'currentMonth' || preset === 'previousMonth' ? 'week' : 'month', ...(accountId !== ALL_ACCOUNTS ? { accountId } : {}), ...(currency ? { currency } : {}) }),
+  const reportFilters = { ...range, grouping: preset === 'currentMonth' || preset === 'previousMonth' ? 'week' as const : 'month' as const, ...(accountId !== ALL_ACCOUNTS ? { accountId } : {}), ...(currency ? { currency } : {}) }
+  const optionsQuery = useQuery({ queryKey: ['reports', 'financial', 'options'], queryFn: ({ signal }) => financeApi.getFinancialReportOptions(signal), retry: false, staleTime: 5 * 60_000 })
+  const periodQuery = useQuery({
+    queryKey: ['reports', 'financial', 'period', reportFilters],
+    queryFn: ({ signal }) => financeApi.getFinancialReportPeriod(reportFilters, signal),
     retry: false,
   })
-  const report = reportQuery.data
+  const selectedCurrency = currency || periodQuery.data?.filters.currency || optionsQuery.data?.baseCurrency || ''
+  const positionQuery = useQuery({
+    queryKey: ['reports', 'financial', 'position', accountId, selectedCurrency],
+    queryFn: ({ signal }) => financeApi.getFinancialReportPosition({ ...(accountId !== ALL_ACCOUNTS ? { accountId } : {}), currency: selectedCurrency }, signal),
+    enabled: Boolean(selectedCurrency),
+    retry: false,
+  })
+  const topTransactionsQuery = useQuery({
+    queryKey: ['reports', 'financial', 'top-transactions', range.from, range.to, accountId, selectedCurrency],
+    queryFn: ({ signal }) => financeApi.getFinancialTopTransactions({ ...range, ...(accountId !== ALL_ACCOUNTS ? { accountId } : {}), currency: selectedCurrency, limit: 10 }, signal),
+    enabled: Boolean(selectedCurrency),
+    retry: false,
+  })
+  const reportError = optionsQuery.error ?? periodQuery.error
+  const report = periodQuery.data
   const hasMovements = Boolean(report?.summary.transactionCount)
-  const selectedCurrency = currency || report?.filters.currency || ''
   const accountTypes = { cash: t('accountTypes.cash'), credit_card: t('accountTypes.creditCard'), checking_account: t('accountTypes.checkingAccount'), savings_account: t('accountTypes.savingsAccount') }
   const exportOptions = { locale, labels: { ...text, generated: text.updated, accountTypes } as unknown as ReportExportLabels }
 
   const exportReport = async (format: 'pdf' | 'csv') => {
-    if (!report) return
     setIsExporting(true)
     try {
-      const localizedReport = localizeReport(report, t)
+      const exportReport = await financeApi.getFinancialReportExportData(reportFilters)
+      const localizedReport = localizeReport(exportReport, t)
       if (format === 'pdf') await exportFinancialReportPdf(localizedReport, exportOptions)
       else await exportFinancialReportCsv(localizedReport, exportOptions)
       toast.show(text.exported, { preset: 'success' })
@@ -77,32 +92,32 @@ export default function ReportsScreen() {
   }
 
   return (
-    <Screen isRefreshing={reportQuery.isRefetching} onRefresh={() => reportQuery.refetch()}>
+    <Screen isRefreshing={periodQuery.isRefetching || positionQuery.isRefetching || topTransactionsQuery.isRefetching} onRefresh={() => { void periodQuery.refetch(); void positionQuery.refetch(); void topTransactionsQuery.refetch() }}>
       <FintCard bg="#0F5D73" borderColor="#28788C" gap="$3">
         <XStack items="center" gap="$3"><YStack width={48} height={48} rounded="$10" bg="rgba(93,214,229,0.14)" items="center" justify="center"><BarChart3 size={24} color="#5DD6E5" /></YStack><YStack flex={1} minW={0}><Paragraph color="#5DD6E5" fontSize={10} fontWeight="900" letterSpacing={1.2} textTransform="uppercase">{text.closing}</Paragraph><Paragraph color="#F4FBFD" fontFamily="$heading" fontSize="$6" fontWeight="800">{text.title}</Paragraph><Paragraph color="#B9D7E1">{text.subtitle}</Paragraph></YStack><FintSheetSelect label={text.exportTitle} placeholder={text.exportTitle} options={[{ value: 'pdf', label: text.exportPdf, icon: <FileText size={19} color="$primary" /> }, { value: 'csv', label: text.exportCsv, icon: <Table2 size={19} color="$primary" /> }]} onValueChange={(value) => { void exportReport(value as 'pdf' | 'csv') }} renderTrigger={({ onPress }) => <YStack width={44} height={44} rounded="$9" bg="rgba(93,214,229,0.14)" borderColor="rgba(93,214,229,0.35)" borderWidth={1} items="center" justify="center" opacity={!hasMovements ? 0.45 : 1} onPress={!hasMovements || isExporting ? undefined : onPress} aria-label={text.exportTitle}>{isExporting ? <Spinner size="small" color="#5DD6E5" /> : <Download size={21} color="#5DD6E5" />}</YStack>} /></XStack>
       </FintCard>
 
-      <FintCard gap="$3"><Paragraph color="$color12" fontFamily="$heading" fontSize="$4" fontWeight="800">{text.filters}</Paragraph><FintSheetSelect label={text.period} placeholder={text.period} value={preset} options={[{ value: 'currentMonth', label: text.currentMonth }, { value: 'previousMonth', label: text.previousMonth }, { value: 'last3Months', label: text.last3Months }, { value: 'last6Months', label: text.last6Months }]} onValueChange={(value) => setPreset(value as ReportPeriodPreset)} /><XStack gap="$3"><YStack flex={1}><FintSheetSelect label={text.account} placeholder={text.account} value={accountId} options={[{ value: ALL_ACCOUNTS, label: text.allAccounts }, ...(report?.filters.availableAccounts ?? []).map((item) => ({ value: item.id, label: item.name }))]} onValueChange={(value) => { setAccountId(value); const selected = report?.filters.availableAccounts.find((item) => item.id === value); if (selected) setCurrency(selected.currency) }} /></YStack><YStack flex={1}><FintSheetSelect label={text.currency} placeholder={text.currency} value={selectedCurrency} options={(report?.filters.availableCurrencies ?? [selectedCurrency]).filter(Boolean).map((value) => ({ value, label: value }))} onValueChange={setCurrency} /></YStack></XStack></FintCard>
+      <FintCard gap="$3"><Paragraph color="$color12" fontFamily="$heading" fontSize="$4" fontWeight="800">{text.filters}</Paragraph><FintSheetSelect label={text.period} placeholder={text.period} value={preset} options={[{ value: 'currentMonth', label: text.currentMonth }, { value: 'previousMonth', label: text.previousMonth }, { value: 'last3Months', label: text.last3Months }, { value: 'last6Months', label: text.last6Months }]} onValueChange={(value) => setPreset(value as ReportPeriodPreset)} /><XStack gap="$3"><YStack flex={1}><FintSheetSelect label={text.account} placeholder={text.account} value={accountId} options={[{ value: ALL_ACCOUNTS, label: text.allAccounts }, ...(optionsQuery.data?.accounts ?? []).map((item) => ({ value: item.id, label: item.name }))]} onValueChange={(value) => { setAccountId(value); const selected = optionsQuery.data?.accounts.find((item) => item.id === value); if (selected) setCurrency(selected.currency) }} /></YStack><YStack flex={1}><FintSheetSelect label={text.currency} placeholder={text.currency} value={selectedCurrency} options={(optionsQuery.data?.currencies ?? [selectedCurrency]).filter(Boolean).map((value) => ({ value, label: value }))} onValueChange={setCurrency} /></YStack></XStack></FintCard>
 
-      {reportQuery.isLoading ? <ReportsSkeleton label={text.loading} /> : null}
-      {reportQuery.error ? <DataStateCard message={reportQuery.error instanceof Error ? reportQuery.error.message : text.error} onRetry={() => { void reportQuery.refetch() }} /> : null}
-      {report && report.hasMixedCurrencies ? <FintCard bg="$yellow2" borderColor="$yellow6"><XStack gap="$2" items="center"><AlertTriangle size={18} color="$yellow10" /><Paragraph color="$yellow11" flex={1}>{text.mixed}</Paragraph></XStack></FintCard> : null}
+      {periodQuery.isLoading ? <ReportsSkeleton label={text.loading} /> : null}
+      {reportError ? <DataStateCard message={t('states.error')} onRetry={() => { void optionsQuery.refetch(); void periodQuery.refetch() }} /> : null}
+      {(optionsQuery.data?.currencies.length ?? 0) > 1 ? <FintCard bg="$yellow2" borderColor="$yellow6"><XStack gap="$2" items="center"><AlertTriangle size={18} color="$yellow10" /><Paragraph color="$yellow11" flex={1}>{text.mixed}</Paragraph></XStack></FintCard> : null}
       {report && !hasMovements ? <DataStateCard message={text.empty} /> : null}
-      {report && hasMovements ? <ReportContent report={report} text={text} locale={locale} onOpenMovements={() => router.push('/(tabs)/movements')} /> : null}
+      {report && hasMovements ? <ReportContent report={report} position={positionQuery.data} positionError={Boolean(positionQuery.error)} positionLoading={positionQuery.isLoading} topTransactions={topTransactionsQuery.data} topTransactionsError={Boolean(topTransactionsQuery.error)} topTransactionsLoading={topTransactionsQuery.isLoading} text={text} locale={locale} onOpenMovements={() => router.push('/(tabs)/movements')} onRetryPosition={() => { void positionQuery.refetch() }} onRetryTopTransactions={() => { void topTransactionsQuery.refetch() }} /> : null}
     </Screen>
   )
 }
 
-function ReportContent({ locale, onOpenMovements, report, text }: { locale: string; onOpenMovements: () => void; report: FinancialReport; text: ReportText }) {
+function ReportContent({ locale, onOpenMovements, onRetryPosition, onRetryTopTransactions, position, positionError, positionLoading, report, text, topTransactions, topTransactionsError, topTransactionsLoading }: { locale: string; onOpenMovements: () => void; onRetryPosition: () => void; onRetryTopTransactions: () => void; position?: FinancialReportPosition; positionError: boolean; positionLoading: boolean; report: FinancialReportPeriod; text: ReportText; topTransactions?: FinancialTopTransaction[]; topTransactionsError: boolean; topTransactionsLoading: boolean }) {
   const { t } = useTranslation()
-  return <><ReportMeta report={report} text={text} locale={locale} /><StatusCard report={report} text={text} /><MetricGrid report={report} text={text} /><SeriesCard report={report} text={text} locale={locale} /><CategoryCard report={report} text={text} t={t} onOpenMovements={onOpenMovements} /><AccountActivityCard report={report} text={text} /><CurrentPositionCard report={report} text={text} /><TopTransactionsCard report={report} text={text} locale={locale} /></>
+  return <><ReportMeta report={report} text={text} locale={locale} /><StatusCard report={report} text={text} /><MetricGrid report={report} text={text} /><SeriesCard report={report} text={text} locale={locale} /><CategoryCard report={report} text={text} t={t} onOpenMovements={onOpenMovements} /><AccountActivityCard report={report} text={text} /><YStack minH={position ? undefined : 220}>{positionLoading ? <SkeletonGroup label={text.loading}><SkeletonContentCard rows={3} /></SkeletonGroup> : null}{positionError ? <DataStateCard message={text.error} onRetry={onRetryPosition} /> : null}{position ? <CurrentPositionCard position={position} currency={report.filters.currency} text={text} /> : null}</YStack><YStack minH={topTransactions ? undefined : 220}>{topTransactionsLoading ? <SkeletonGroup label={text.loading}><SkeletonContentCard rows={4} /></SkeletonGroup> : null}{topTransactionsError ? <DataStateCard message={text.error} onRetry={onRetryTopTransactions} /> : null}{topTransactions ? <TopTransactionsCard transactions={topTransactions} currency={report.filters.currency} text={text} locale={locale} /> : null}</YStack></>
 }
 
-function ReportMeta({ locale, report, text }: { locale: string; report: FinancialReport; text: ReportText }) {
+function ReportMeta({ locale, report, text }: { locale: string; report: FinancialReportPeriod; text: ReportText }) {
   return <XStack gap="$2" items="center"><CalendarDays size={16} color="$color10" /><Paragraph color="$color10" fontSize="$1">{formatDate(report.period.from, locale)} - {formatDate(previousDay(report.period.to), locale)} · {text.updated}: {new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(report.generatedAt))}</Paragraph></XStack>
 }
 
-function StatusCard({ report, text }: { report: FinancialReport; text: ReportText }) {
+function StatusCard({ report, text }: { report: FinancialReportPeriod; text: ReportText }) {
   const { t } = useTranslation()
   const positive = report.summary.status === 'healthy'
   const attention = report.summary.status === 'attention'
@@ -111,7 +126,7 @@ function StatusCard({ report, text }: { report: FinancialReport; text: ReportTex
 
 function Highlight({ amount, label, value }: { amount?: string; label: string; value: string }) { return <YStack flex={1} bg="$card" borderColor="$borderColor" borderWidth={1} rounded="$5" p="$2" gap="$1"><Paragraph color="$color9" fontSize={9}>{label}</Paragraph><Paragraph color="$color12" fontSize="$1" fontWeight="800" numberOfLines={1}>{value}</Paragraph>{amount ? <Paragraph color="$primary" fontSize="$1" fontWeight="900">{amount}</Paragraph> : null}</YStack> }
 
-function MetricGrid({ report, text }: { report: FinancialReport; text: ReportText }) {
+function MetricGrid({ report, text }: { report: FinancialReportPeriod; text: ReportText }) {
   const comparison = report.summary.netChangePercentage === null ? text.noPrevious : `${report.summary.netChangePercentage > 0 ? '+' : ''}${report.summary.netChangePercentage}% ${text.comparison}`
   return <YStack gap="$2"><XStack gap="$2"><Metric icon={<ArrowDownLeft size={17} color="$green10" />} label={text.income} value={formatMoney(report.summary.income, report.filters.currency)} /><Metric icon={<ArrowUpRight size={17} color="$red10" />} label={text.expenses} value={formatMoney(report.summary.expenses, report.filters.currency)} /></XStack><XStack gap="$2"><Metric icon={<PiggyBank size={17} color="$primary" />} label={text.net} value={formatMoney(report.summary.net, report.filters.currency)} detail={comparison} /><Metric icon={<Percent size={17} color="$primary" />} label={text.savingsRate} value={report.summary.savingsRate === null ? '-' : `${report.summary.savingsRate}%`} detail={`${report.summary.transactionCount} ${text.transactions.toLowerCase()}`} /></XStack></YStack>
 }
@@ -120,7 +135,7 @@ function Metric({ detail, icon, label, value }: { detail?: string; icon: React.R
   return <FintCard flex={1} p="$3" gap="$2"><XStack items="center" gap="$2"><YStack width={30} height={30} rounded="$8" bg="$secondary" items="center" justify="center">{icon}</YStack><Paragraph color="$color10" fontSize="$1" flex={1}>{label}</Paragraph></XStack><Paragraph color="$color12" fontSize="$4" fontWeight="900" numberOfLines={1} adjustsFontSizeToFit>{value}</Paragraph>{detail ? <Paragraph color="$color9" fontSize={10} numberOfLines={1}>{detail}</Paragraph> : null}</FintCard>
 }
 
-function SeriesCard({ locale, report, text }: { locale: string; report: FinancialReport; text: ReportText }) {
+function SeriesCard({ locale, report, text }: { locale: string; report: FinancialReportPeriod; text: ReportText }) {
   const [selectedPeriod, setSelectedPeriod] = useState(report.series.at(-1)?.period ?? '')
   const max = Math.max(1, ...report.series.flatMap((item) => [item.income, item.expenses]))
   const selected = report.series.find((item) => item.period === selectedPeriod) ?? report.series.at(-1)
@@ -129,22 +144,22 @@ function SeriesCard({ locale, report, text }: { locale: string; report: Financia
 
 function Legend({ color, label }: { color: string; label: string }) { return <XStack items="center" gap="$1"><YStack width={8} height={8} rounded="$10" bg={color as never} /><Paragraph color="$color10" fontSize="$1">{label}</Paragraph></XStack> }
 
-function CategoryCard({ onOpenMovements, report, t, text }: { onOpenMovements: () => void; report: FinancialReport; t: TFunction; text: ReportText }) {
+function CategoryCard({ onOpenMovements, report, t, text }: { onOpenMovements: () => void; report: FinancialReportPeriod; t: TFunction; text: ReportText }) {
   return <FintCard gap="$3"><XStack items="center" justify="space-between" gap="$3"><Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="800" flex={1}>{text.categories}</Paragraph><Button chromeless size="$2" px="$2" onPress={onOpenMovements}><XStack items="center" gap="$1"><Paragraph color="$primary" fontWeight="800" fontSize="$2">{text.viewMovements}</Paragraph><ChevronRight size={14} color="$primary" /></XStack></Button></XStack>{report.categories.map((item) => <XStack key={item.name} items="center" gap="$3"><YStack width={38} height={38} rounded="$8" bg="$secondary" items="center" justify="center"><Paragraph fontSize="$5">{getExpenseCategoryIcon(item.name, item.icon)}</Paragraph></YStack><YStack flex={1}><Paragraph color="$color12" fontWeight="800">{getCategoryLabel(item.name, t)}</Paragraph><Paragraph color="$color10" fontSize="$1">{item.percentage}% · {item.changePercentage === null ? text.noPrevious : `${item.changePercentage > 0 ? '+' : ''}${item.changePercentage}% ${text.comparison}`}</Paragraph></YStack><Paragraph color="$color12" fontWeight="900">{formatMoney(item.amount, report.filters.currency)}</Paragraph></XStack>)}</FintCard>
 }
 
-function AccountActivityCard({ report, text }: { report: FinancialReport; text: ReportText }) {
+function AccountActivityCard({ report, text }: { report: FinancialReportPeriod; text: ReportText }) {
   return <FintCard gap="$3"><Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="800">{text.accountActivity}</Paragraph>{report.accountActivity.map((item) => <XStack key={item.id} items="center" gap="$3"><YStack width={38} height={38} rounded="$8" bg="$secondary" items="center" justify="center"><Landmark size={18} color="$primary" /></YStack><YStack flex={1}><Paragraph color="$color12" fontWeight="800">{item.name}</Paragraph><Paragraph color="$color10" fontSize="$1">{item.transactionCount} {text.transactions.toLowerCase()} · {text.income}: {formatMoney(item.income, report.filters.currency)} · {text.expenses}: {formatMoney(item.expenses, report.filters.currency)}</Paragraph></YStack><Paragraph color={item.net >= 0 ? '$green10' : '$red10'} fontWeight="900">{formatMoney(item.net, report.filters.currency)}</Paragraph></XStack>)}</FintCard>
 }
 
-function CurrentPositionCard({ report, text }: { report: FinancialReport; text: ReportText }) {
-  return <FintCard gap="$3"><XStack items="center" gap="$2"><WalletCards size={20} color="$primary" /><Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="800">{text.currentPosition}</Paragraph></XStack><Paragraph color="$color10" fontSize="$1">{text.currentSnapshotNote}</Paragraph><XStack gap="$2"><PositionMetric label={text.balance} value={formatMoney(report.currentPosition.totalAccountBalance, report.filters.currency)} /><PositionMetric label={text.outstanding} value={formatMoney(report.currentPosition.totalDebtOutstanding, report.filters.currency)} /><PositionMetric label={text.net} value={formatMoney(report.currentPosition.netPosition, report.filters.currency)} /></XStack>{report.currentPosition.accounts.map((item) => <XStack key={item.id} items="center" gap="$3"><Landmark size={17} color="$primary" /><Paragraph color="$color12" fontWeight="700" flex={1}>{item.name}</Paragraph><Paragraph color="$color12" fontWeight="900">{formatMoney(item.balance, item.currency)}</Paragraph></XStack>)}{report.currentPosition.debts.length ? <><Paragraph color="$color12" fontWeight="800" mt="$2">{text.debts}</Paragraph>{report.currentPosition.debts.map((item) => <XStack key={item.id} items="center" gap="$3"><CreditCard size={17} color={item.status === 'overdue' ? '$red10' : '$primary'} /><YStack flex={1}><Paragraph color="$color12" fontWeight="700">{item.description}</Paragraph><Paragraph color="$color10" fontSize="$1">{item.paidPercentage}% {text.progress.toLowerCase()}</Paragraph></YStack><Paragraph color="$color12" fontWeight="900">{formatMoney(item.outstanding, item.currency)}</Paragraph></XStack>)}</> : null}</FintCard>
+function CurrentPositionCard({ currency, position, text }: { currency: string; position: FinancialReportPosition; text: ReportText }) {
+  return <FintCard gap="$3"><XStack items="center" gap="$2"><WalletCards size={20} color="$primary" /><Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="800">{text.currentPosition}</Paragraph></XStack><Paragraph color="$color10" fontSize="$1">{text.currentSnapshotNote}</Paragraph><XStack gap="$2"><PositionMetric label={text.balance} value={formatMoney(position.totalAccountBalance, currency)} /><PositionMetric label={text.outstanding} value={formatMoney(position.totalDebtOutstanding, currency)} /><PositionMetric label={text.net} value={formatMoney(position.netPosition, currency)} /></XStack>{position.accounts.map((item) => <XStack key={item.id} items="center" gap="$3"><Landmark size={17} color="$primary" /><Paragraph color="$color12" fontWeight="700" flex={1}>{item.name}</Paragraph><Paragraph color="$color12" fontWeight="900">{formatMoney(item.balance, item.currency)}</Paragraph></XStack>)}{position.debts.length ? <><Paragraph color="$color12" fontWeight="800" mt="$2">{text.debts}</Paragraph>{position.debts.map((item) => <XStack key={item.id} items="center" gap="$3"><CreditCard size={17} color={item.status === 'overdue' ? '$red10' : '$primary'} /><YStack flex={1}><Paragraph color="$color12" fontWeight="700">{item.description}</Paragraph><Paragraph color="$color10" fontSize="$1">{item.paidPercentage}% {text.progress.toLowerCase()}</Paragraph></YStack><Paragraph color="$color12" fontWeight="900">{formatMoney(item.outstanding, item.currency)}</Paragraph></XStack>)}</> : null}</FintCard>
 }
 
 function PositionMetric({ label, value }: { label: string; value: string }) { return <YStack flex={1} bg="$secondary" rounded="$5" p="$2" gap="$1"><Paragraph color="$color10" fontSize={9} numberOfLines={2}>{label}</Paragraph><Paragraph color="$color12" fontSize="$2" fontWeight="900" numberOfLines={1} adjustsFontSizeToFit>{value}</Paragraph></YStack> }
 
-function TopTransactionsCard({ locale, report, text }: { locale: string; report: FinancialReport; text: ReportText }) {
-  return <FintCard gap="$3"><Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="800">{text.topTransactions}</Paragraph>{report.topTransactions.map((item, index) => <XStack key={item.id} items="center" gap="$3"><YStack width={30} height={30} rounded="$8" bg="$secondary" items="center" justify="center"><Paragraph color="$primary" fontWeight="900">{index + 1}</Paragraph></YStack><YStack flex={1}><Paragraph color="$color12" fontWeight="800">{item.category}</Paragraph><Paragraph color="$color10" fontSize="$1">{formatDate(item.date, locale)} · {item.account}</Paragraph></YStack><Paragraph color={item.type === 'income' ? '$green10' : '$red10'} fontWeight="900">{formatMoney(item.amount, report.filters.currency)}</Paragraph></XStack>)}</FintCard>
+function TopTransactionsCard({ currency, locale, text, transactions }: { currency: string; locale: string; text: ReportText; transactions: FinancialTopTransaction[] }) {
+  return <FintCard gap="$3"><Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="800">{text.topTransactions}</Paragraph>{transactions.map((item, index) => <XStack key={item.id} items="center" gap="$3"><YStack width={30} height={30} rounded="$8" bg="$secondary" items="center" justify="center"><Paragraph color="$primary" fontWeight="900">{index + 1}</Paragraph></YStack><YStack flex={1}><Paragraph color="$color12" fontWeight="800">{item.category}</Paragraph><Paragraph color="$color10" fontSize="$1">{formatDate(item.date, locale)} · {item.account}</Paragraph></YStack><Paragraph color={item.type === 'income' ? '$green10' : '$red10'} fontWeight="900">{formatMoney(item.amount, currency)}</Paragraph></XStack>)}</FintCard>
 }
 
 function ReportsSkeleton({ label }: { label: string }) { return <SkeletonGroup label={label}><SkeletonBlock height={12} width="64%" /><SkeletonContentCard rows={1} /><SkeletonMetricGrid /><SkeletonSection height={286} /><SkeletonContentCard rows={4} /><SkeletonContentCard rows={3} /></SkeletonGroup> }

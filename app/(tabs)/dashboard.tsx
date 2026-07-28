@@ -1,24 +1,20 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { ArrowDownLeft, ArrowUpRight, ChartNoAxesCombined, CheckCircle2, ChevronRight, Landmark, Sparkles } from '@tamagui/lucide-icons-2'
 import { Link } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useWindowDimensions } from 'react-native'
 import { PieChart } from 'react-native-gifted-charts'
 import { Button, H3, Paragraph, ScrollView, useTheme, XStack, YStack } from 'tamagui'
 import { financeApi } from '../../src/api/finance'
-import {
-  formatMoney,
-  normalizeTransaction,
-  normalizeSummary,
-} from '../../src/api/mappers'
+import { formatMoney } from '../../src/api/mappers'
 import type { Transaction } from '../../src/api/types'
+import { DataStateCard } from '../../src/components/DataStateCard'
 import { Screen } from '../../src/components/Screen'
 import { SkeletonBlock, SkeletonContentCard, SkeletonGroup, SkeletonHero, SkeletonList, SkeletonSection } from '../../src/components/Skeleton'
 import { getCategoryLabel } from '../../src/finance/categoryLabels'
 import { useThemeMode } from '../../src/theme/ThemeMode'
 import { getAppLocale } from '../../src/i18n'
-import { FintButton, FintCard } from '../../src/ui'
+import { FintButton, FintCard, FintSheetSelect } from '../../src/ui'
 
 const ALL_ACCOUNTS = '__all__'
 
@@ -37,21 +33,16 @@ interface WeeklyFlowPoint {
 export default function DashboardScreen() {
   const { t, i18n } = useTranslation()
   const theme = useTheme()
-  const queryClient = useQueryClient()
-  const dashboardRange = getDashboardTransactionRange()
-  const summaryQuery = useQuery({ queryKey: ['summary'], queryFn: financeApi.getSummary, retry: false })
-  const accountsQuery = useQuery({ queryKey: ['accounts'], queryFn: financeApi.listAccounts, retry: false })
-  const transactionsQuery = useQuery({
-    queryKey: ['transactions', 'dashboard', dashboardRange.from, dashboardRange.to],
-    queryFn: () => financeApi.listTransactions({ ...dashboardRange, limit: 200 }),
+  const [expenseAccountId, setExpenseAccountId] = useState(ALL_ACCOUNTS)
+  const overviewQuery = useQuery({ queryKey: ['dashboard', 'overview'], queryFn: ({ signal }) => financeApi.getDashboardOverview(undefined, signal), retry: false })
+  const expenseQuery = useQuery({
+    queryKey: ['dashboard', 'expense-categories', overviewQuery.data?.currency, expenseAccountId],
+    queryFn: ({ signal }) => financeApi.getDashboardExpenseCategories({ currency: overviewQuery.data!.currency, ...(expenseAccountId !== ALL_ACCOUNTS ? { accountId: expenseAccountId } : {}) }, signal),
+    enabled: Boolean(overviewQuery.data?.currency),
     retry: false,
   })
-
-  const summary = normalizeSummary(summaryQuery.data)
-  const transactions = (transactionsQuery.data ?? []).map(normalizeTransaction)
-  const recentTransactions = transactions.slice(0, 4)
+  const overview = overviewQuery.data
   const locale = getAppLocale(i18n.resolvedLanguage)
-  const monthlyTransactions = transactions.filter((transaction) => isTransactionInMonth(transaction, summary.month, summary.year))
   const categoryColors = [
     theme.chart1.val,
     theme.chart2.val,
@@ -59,64 +50,59 @@ export default function DashboardScreen() {
     theme.chart4.val,
     theme.chart5.val,
   ]
-  const expenseAccountViews = [
-    { key: ALL_ACCOUNTS, label: t('dashboard.allAccounts'), slices: getExpenseCategorySlices(monthlyTransactions, categoryColors, t) },
-    ...(accountsQuery.data ?? []).map((account) => ({
-      key: account.id,
-      label: account.name,
-      slices: getExpenseCategorySlices(monthlyTransactions.filter((transaction) => transaction.account === account.name), categoryColors, t),
-    })),
-  ]
-  const weeklyFlow = getWeeklyFlow(transactions, locale)
-  const isLoading = summaryQuery.isLoading || accountsQuery.isLoading || transactionsQuery.isLoading
-  const isRefreshing = summaryQuery.isRefetching || accountsQuery.isRefetching || transactionsQuery.isRefetching
-  const error = summaryQuery.error ?? accountsQuery.error ?? transactionsQuery.error
+  const categorySlices = (expenseQuery.data?.categories ?? []).map((item, index) => ({ name: getCategoryLabel(item.name, t), amount: item.amount, color: categoryColors[index % categoryColors.length] }))
+  const weeklyFlow = (overview?.weeklyFlow ?? []).map((item) => ({ label: formatWeekLabel(item.start, item.end, locale), income: item.income, expenses: item.expenses }))
+  const isLoading = overviewQuery.isLoading
+  const isRefreshing = overviewQuery.isRefetching || expenseQuery.isRefetching
+  const error = overviewQuery.error
 
   return (
     <Screen
       isRefreshing={isRefreshing}
       onRefresh={() => {
-        queryClient.invalidateQueries({ queryKey: ['summary'] })
-        queryClient.invalidateQueries({ queryKey: ['accounts'] })
-        queryClient.invalidateQueries({ queryKey: ['transactions'] })
+        void overviewQuery.refetch()
+        void expenseQuery.refetch()
       }}
     >
       {isLoading ? <DashboardSkeleton label={t('dashboard.loading')} /> : null}
-      {error ? <ErrorCard title={t('dashboard.errorTitle')} message={error instanceof Error ? error.message : t('dashboard.errorTitle')} /> : null}
+      {error ? <DataStateCard message={t('states.error')} onRetry={() => { void overviewQuery.refetch() }} /> : null}
 
-      {!isLoading && !error ? (
+      {!isLoading && !error && overview ? (
         <>
           <HeroSummary
-            currency={summary.currency}
-            expenses={summary.expenses}
-            income={summary.income}
-            netWorth={summary.netWorth}
+            currency={overview.currency}
+            expenses={overview.currentMonth.expenses}
+            income={overview.currentMonth.income}
+            netWorth={overview.netWorth}
           />
 
-          {summary.accountCount === 0 || transactions.length === 0 ? (
-            <GettingStartedCard accountCount={summary.accountCount} currency={summary.currency} hasMovements={transactions.length > 0} />
+          {overview.accountCount === 0 || overview.recentTransactions.length === 0 ? (
+            <GettingStartedCard accountCount={overview.accountCount} currency={overview.currency} hasMovements={overview.recentTransactions.length > 0} />
           ) : null}
 
           <QuickActions />
 
-          <WeeklyFlowSection currency={summary.currency} data={weeklyFlow} />
+          <WeeklyFlowSection currency={overview.currency} data={weeklyFlow} />
 
           <ExpenseCategoryCard
-            currency={summary.currency}
-            views={expenseAccountViews}
+            accounts={expenseQuery.data?.accounts ?? []}
+            currency={overview.currency}
+            isLoading={expenseQuery.isLoading}
+            selectedAccountId={expenseAccountId}
+            slices={categorySlices}
+            onAccountChange={setExpenseAccountId}
           />
 
           <AdviceCarousel
-            currency={summary.currency}
-            expenses={summary.expenses}
-            income={summary.income}
-            month={summary.month}
-            savings={summary.savings}
-            transactions={transactions}
-            year={summary.year}
+            currency={overview.currency}
+            expenses={overview.currentMonth.expenses}
+            income={overview.currentMonth.income}
+            previousExpenses={overview.previousMonth.expenses}
+            previousIncome={overview.previousMonth.income}
+            savings={overview.currentMonth.savings}
           />
 
-          <RecentMovements locale={locale} transactions={recentTransactions} />
+          <RecentMovements locale={locale} transactions={overview.recentTransactions} />
         </>
       ) : null}
     </Screen>
@@ -326,13 +312,10 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return <H3 color="$color12" fontFamily="$heading" size="$6">{children}</H3>
 }
 
-function AdviceCarousel({ currency, expenses, income, month, savings, transactions, year }: { currency: string; expenses: number; income: number; month: number; savings: number; transactions: Transaction[]; year: number }) {
+function AdviceCarousel({ currency, expenses, income, previousExpenses, previousIncome, savings }: { currency: string; expenses: number; income: number; previousExpenses: number; previousIncome: number; savings: number }) {
   const { t } = useTranslation()
-  const previousMonth = month === 1 ? 12 : month - 1
-  const previousYear = month === 1 ? year - 1 : year
-  const previous = getMonthTotals(transactions, previousMonth, previousYear)
-  const expenseChange = calculatePercentChange(expenses, previous.expenses)
-  const previousSavings = previous.income - previous.expenses
+  const expenseChange = calculatePercentChange(expenses, previousExpenses)
+  const previousSavings = previousIncome - previousExpenses
   const savingsChange = calculatePercentChange(savings, previousSavings)
   const savingsRate = income > 0 ? Math.round((savings / income) * 100) : 0
   const insights = [
@@ -398,14 +381,12 @@ function InsightCard({ icon, subtitle, title, tone, trend, value }: { icon: 'up'
   )
 }
 
-function ExpenseCategoryCard({ currency, views }: { currency: string; views: { key: string; label: string; slices: CategorySlice[] }[] }) {
+function ExpenseCategoryCard({ accounts, currency, isLoading, onAccountChange, selectedAccountId, slices }: { accounts: Array<{ id: string; name: string }>; currency: string; isLoading: boolean; onAccountChange: (value: string) => void; selectedAccountId: string; slices: CategorySlice[] }) {
   const { t } = useTranslation()
-  const { width } = useWindowDimensions()
-  const slideWidth = Math.min(width - 64, 520)
-  const [currentView, setCurrentView] = useState(0)
   const [selectedIndex, setSelectedIndex] = useState(0)
+  const total = slices.reduce((sum, slice) => sum + slice.amount, 0)
 
-  useEffect(() => setSelectedIndex(0), [currentView])
+  useEffect(() => setSelectedIndex(0), [selectedAccountId])
 
   return (
     <YStack gap="$3">
@@ -414,74 +395,10 @@ function ExpenseCategoryCard({ currency, views }: { currency: string; views: { k
         <Paragraph color="$color10" fontSize="$1">{t('dashboard.currentMonth')}</Paragraph>
       </XStack>
       <FintCard p="$3" gap="$3" overflow="hidden">
-        <ScrollView
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          snapToInterval={slideWidth}
-          decelerationRate="fast"
-          onMomentumScrollEnd={(event) => setCurrentView(Math.min(views.length - 1, Math.max(0, Math.round(event.nativeEvent.contentOffset.x / slideWidth))))}
-        >
-          {views.map((view, viewIndex) => {
-            const viewTotal = view.slices.reduce((sum, slice) => sum + slice.amount, 0)
-            const viewSelectedIndex = viewIndex === currentView ? Math.min(selectedIndex, Math.max(0, view.slices.length - 1)) : 0
-            return (
-              <YStack key={view.key} width={slideWidth} pr="$3" gap="$3">
-                <XStack items="center" justify="space-between" gap="$2">
-                  <YStack gap="$1" flex={1} minW={0}>
-                    <Paragraph color="$color10" fontSize="$1">{t('forms.account')}</Paragraph>
-                    <Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="700" numberOfLines={1}>{view.label}</Paragraph>
-                  </YStack>
-                  <Paragraph color="$color10" fontSize="$1">{viewIndex + 1}/{views.length}</Paragraph>
-                </XStack>
-                {view.slices.length === 0 ? (
-                  <YStack minH={150} items="center" justify="center" px="$4">
-                    <Paragraph color="$color10" text="center">{t('dashboard.emptyCategoriesForAccount')}</Paragraph>
-                  </YStack>
-                ) : (
-                  <XStack items="center" gap="$4">
-                    <DonutChart onSelect={setSelectedIndex} selectedIndex={viewSelectedIndex} slices={view.slices} total={viewTotal} />
-                    <YStack flex={1} gap="$2">
-                      {view.slices.map((slice, index) => {
-                        const isSelected = viewIndex === currentView && index === viewSelectedIndex
-                        return (
-                          <XStack
-                            key={slice.name}
-                            transition="quick"
-                            animateOnly={['backgroundColor', 'borderColor', 'opacity']}
-                            items="center"
-                            justify="space-between"
-                            gap="$2"
-                            px="$2"
-                            py="$1"
-                            rounded="$4"
-                            bg={isSelected ? '$secondary' : 'transparent'}
-                            borderColor={isSelected ? '$primary' : 'transparent'}
-                            borderWidth={1}
-                            pressStyle={{ opacity: 0.75 }}
-                            cursor="pointer"
-                            role="button"
-                            onPress={() => setSelectedIndex(index)}
-                            aria-label={t('dashboard.categoryAccessibility', { category: slice.name, amount: formatMoney(slice.amount, currency) })}
-                          >
-                            <XStack items="center" gap="$2" flex={1} minW={0}>
-                              <YStack width={9} height={9} rounded="$10" bg={slice.color as never} />
-                              <Paragraph color={isSelected ? '$color12' : '$color10'} fontSize="$2" fontWeight={isSelected ? '700' : '500'} numberOfLines={1}>{slice.name}</Paragraph>
-                            </XStack>
-                            <Paragraph color="$color12" fontSize="$2" fontWeight="800">{formatMoney(slice.amount, currency)}</Paragraph>
-                          </XStack>
-                        )
-                      })}
-                    </YStack>
-                  </XStack>
-                )}
-              </YStack>
-            )
-          })}
-        </ScrollView>
-        <XStack items="center" justify="center" gap="$1">
-          {views.map((view, index) => <YStack key={view.key} width={index === currentView ? 18 : 6} height={6} rounded="$10" bg={index === currentView ? '$primary' : '$borderColor'} />)}
-        </XStack>
+        <FintSheetSelect label={t('forms.account')} placeholder={t('dashboard.allAccounts')} value={selectedAccountId} options={[{ value: ALL_ACCOUNTS, label: t('dashboard.allAccounts') }, ...accounts.map((account) => ({ value: account.id, label: account.name }))]} onValueChange={onAccountChange} />
+        {isLoading ? <SkeletonGroup label={t('dashboard.loading')}><SkeletonSection height={180} /></SkeletonGroup> : null}
+        {!isLoading && slices.length === 0 ? <YStack minH={150} items="center" justify="center" px="$4"><Paragraph color="$color10" text="center">{t('dashboard.emptyCategoriesForAccount')}</Paragraph></YStack> : null}
+        {!isLoading && slices.length ? <XStack items="center" gap="$4"><DonutChart onSelect={setSelectedIndex} selectedIndex={Math.min(selectedIndex, slices.length - 1)} slices={slices} total={total} /><YStack flex={1} gap="$2">{slices.map((slice, index) => { const isSelected = index === selectedIndex; return <XStack key={slice.name} items="center" justify="space-between" gap="$2" px="$2" py="$1" rounded="$4" bg={isSelected ? '$secondary' : 'transparent'} borderColor={isSelected ? '$primary' : 'transparent'} borderWidth={1} pressStyle={{ opacity: 0.75 }} role="button" onPress={() => setSelectedIndex(index)}><XStack items="center" gap="$2" flex={1} minW={0}><YStack width={9} height={9} rounded="$10" bg={slice.color as never} /><Paragraph color={isSelected ? '$color12' : '$color10'} fontSize="$2" fontWeight={isSelected ? '700' : '500'} numberOfLines={1}>{slice.name}</Paragraph></XStack><Paragraph color="$color12" fontSize="$2" fontWeight="800">{formatMoney(slice.amount, currency)}</Paragraph></XStack> })}</YStack></XStack> : null}
       </FintCard>
     </YStack>
   )
@@ -584,83 +501,14 @@ function RecentMovements({ locale, transactions }: { locale: string; transaction
   )
 }
 
-function getExpenseCategorySlices(transactions: Transaction[], colors: string[], t: ReturnType<typeof useTranslation>['t']) {
-  const totals = new Map<string, number>()
-
-  for (const transaction of transactions) {
-    if (transaction.type !== 'expense') continue
-    totals.set(transaction.category, (totals.get(transaction.category) ?? 0) + transaction.amount)
-  }
-
-  return [...totals.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 6)
-    .map(([name, amount], index) => ({ name: getCategoryLabel(name, t), amount, color: colors[index % colors.length] }))
-}
-
-function getDashboardTransactionRange() {
-  const today = new Date()
-  const from = new Date(today.getFullYear(), today.getMonth() - 1, 1)
-  const to = new Date(today.getFullYear(), today.getMonth() + 1, 1)
-  return { from: toIsoDate(from), to: toIsoDate(to) }
-}
-
-function toIsoDate(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-}
-
-function isTransactionInMonth(transaction: Transaction, month: number, year: number) {
-  const date = parseTransactionDate(transaction.date)
-  return Boolean(date && date.getFullYear() === year && date.getMonth() + 1 === month)
-}
-
-function getMonthTotals(transactions: Transaction[], month: number, year: number) {
-  let income = 0
-  let expenses = 0
-
-  for (const transaction of transactions) {
-    const date = parseTransactionDate(transaction.date)
-    if (!date || date.getFullYear() !== year || date.getMonth() + 1 !== month) continue
-    if (transaction.type === 'income') income += transaction.amount
-    else expenses += transaction.amount
-  }
-
-  return { income, expenses }
-}
-
 function calculatePercentChange(current: number, previous: number) {
   if (previous === 0) return null
   return Math.round(((current - previous) / Math.abs(previous)) * 100)
 }
 
-function getWeeklyFlow(transactions: Transaction[], locale: string): WeeklyFlowPoint[] {
-  const today = startOfDay(new Date())
-  const firstDay = new Date(today)
-  firstDay.setDate(today.getDate() - 27)
+function formatWeekLabel(start: string, end: string, locale: string) {
   const labelFormatter = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' })
-  const points = Array.from({ length: 4 }, (_, index) => {
-    const start = new Date(firstDay)
-    start.setDate(firstDay.getDate() + index * 7)
-    const end = new Date(start)
-    end.setDate(start.getDate() + 6)
-    return {
-      start,
-      end,
-      label: `${labelFormatter.format(start)}-${labelFormatter.format(end)}`,
-      income: 0,
-      expenses: 0,
-    }
-  })
-
-  for (const transaction of transactions) {
-    const date = parseTransactionDate(transaction.date)
-    if (!date || date < firstDay || date > today) continue
-    const index = Math.min(3, Math.floor((date.getTime() - firstDay.getTime()) / 604_800_000))
-    if (transaction.type === 'income') points[index].income += transaction.amount
-    else points[index].expenses += transaction.amount
-  }
-
-  return points.map(({ label, income, expenses }) => ({ label, income, expenses }))
+  return `${labelFormatter.format(new Date(`${start}T12:00:00`))}-${labelFormatter.format(new Date(`${end}T12:00:00`))}`
 }
 
 function formatTransactionMeta(transaction: Transaction, locale: string) {
@@ -691,14 +539,5 @@ function DashboardSkeleton({ label }: { label: string }) {
       <YStack gap="$3"><SkeletonBlock height={20} width="48%" /><XStack><FintCard width={248} height={148} gap="$3"><SkeletonBlock height={32} rounded="$7" width={32} /><SkeletonBlock height={13} width="72%" /><SkeletonBlock height={24} width="48%" /></FintCard></XStack></YStack>
       <YStack gap="$3"><SkeletonBlock height={20} width="44%" /><SkeletonList grouped rows={4} /></YStack>
     </SkeletonGroup>
-  )
-}
-
-function ErrorCard({ message, title }: { message: string; title: string }) {
-  return (
-    <FintCard bg="$red2" borderColor="$red6" gap="$2">
-      <Paragraph color="$red11" fontWeight="800">{title}</Paragraph>
-      <Paragraph color="$red11">{message}</Paragraph>
-    </FintCard>
   )
 }

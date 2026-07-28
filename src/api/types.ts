@@ -64,20 +64,42 @@ export interface Debt {
   status: 'active' | 'paid' | 'overdue' | string
 }
 
-export interface PendingMovement {
+export interface AccountOption {
+  id: string
+  name: string
+  currency: string
+}
+
+export interface PendingMovementCard {
   id: string
   detectedAt: string
-  source: string
-  account: string | null
+  title: string
   type: TransactionType
   amount: number
   currency: string
-  description: string | null
-  reference: string | null
-  status: string
-  confidence: number | null
-  transactionId: string | null
-  observation: string | null
+  accountSuggestion: AccountOption | null
+}
+
+export interface PendingMovementPage {
+  items: PendingMovementCard[]
+  pageInfo: {
+    hasNextPage: boolean
+    nextCursor: string | null
+  }
+}
+
+export interface PendingMovementDetail {
+  id: string
+  title: string
+  type: TransactionType
+  amount: number
+  currency: string
+  transactionDate: string
+  accountSuggestion: AccountOption | null
+}
+
+export interface PendingMovementsSummary {
+  count: number
 }
 
 export interface GmailSource {
@@ -129,6 +151,29 @@ export interface FinancialReportQuery {
   currency?: string
   grouping?: 'week' | 'month'
 }
+
+export interface FinancialReportOptions {
+  baseCurrency: string
+  accounts: Array<{ id: string; name: string; currency: string }>
+  currencies: string[]
+}
+
+export interface FinancialReportPeriod {
+  generatedAt: string
+  period: { from: string; to: string; previousFrom: string; previousTo: string; grouping: 'week' | 'month' }
+  filters: { accountId: string | null; currency: string }
+  summary: FinancialReport['summary']
+  highlights: {
+    topExpenseCategory: { name: string; icon: string | null; amount: number; percentage: number } | null
+    largestTransaction: Omit<ReportTransaction, 'note'> | null
+  }
+  series: FinancialReport['series']
+  categories: FinancialReport['categories']
+  accountActivity: FinancialReport['accountActivity']
+}
+
+export type FinancialReportPosition = FinancialReport['currentPosition']
+export type FinancialTopTransaction = Omit<ReportTransaction, 'note'>
 
 export interface FinancialReport {
   reportType: 'financial_closing'
@@ -195,6 +240,39 @@ export interface DashboardSummary {
   savings: number
   activeDebtCount: number
   pendingDebtTotal: number
+}
+
+export interface DashboardOverview {
+  currency: string
+  netWorth: number
+  accountCount: number
+  currentMonth: { month: number; year: number; income: number; expenses: number; savings: number }
+  previousMonth: { income: number; expenses: number; savings: number }
+  weeklyFlow: Array<{ start: string; end: string; income: number; expenses: number }>
+  recentTransactions: Transaction[]
+}
+
+export interface ExpenseCategoriesOverview {
+  currency: string
+  selectedAccountId: string | null
+  accounts: Array<{ id: string; name: string }>
+  categories: Array<{ name: string; icon: string | null; amount: number; percentage: number; transactionCount: number }>
+}
+
+export interface AccountsOverview {
+  currency: string
+  currencies: string[]
+  totals: { assets: number; liabilities: number; netWorth: number; count: number }
+  items: Account[]
+}
+
+export interface TransactionPage {
+  summary: {
+    totalCount: number
+    byCurrency: Array<{ currency: string; income: number; expenses: number; net: number; count: number }>
+  }
+  items: Transaction[]
+  pageInfo: { hasNextPage: boolean; nextCursor: string | null }
 }
 
 export interface CreateAccountInput {
@@ -286,10 +364,28 @@ export interface UpdateDebtInput {
 }
 
 export interface ConfirmPendingInput {
-  category: string
-  note?: string
+  mode: 'transaction'
+  title: string
+  type: TransactionType
+  amount: number
+  currency?: string
+  transactionDate: string
+  accountId: string
+  categoryId: string
+  note?: string | null
+}
+
+export interface ConfirmPendingResult {
+  id: string
+  transactionId?: string
+  status: 'confirmed'
 }
 
 export interface DiscardPendingInput {
   reason?: string
+}
+
+export interface DiscardPendingResult {
+  id: string
+  status: 'discarded'
 }

@@ -7,13 +7,15 @@ import Svg, { Path } from 'react-native-svg'
 import { Redirect } from 'expo-router'
 import { Button, H1, H2, Input, Paragraph, Separator, XStack, YStack } from 'tamagui'
 import { useTranslation } from 'react-i18next'
+import { z } from 'zod'
 import { useAuth } from '../src/auth/AuthProvider'
+import { getValidationMessage, useSubmitValidation } from '../src/forms'
 import { FintButton, FintCard } from '../src/ui'
 
 WebBrowser.maybeCompleteAuthSession()
 
 export default function LoginScreen() {
-  const { t } = useTranslation()
+  const { i18n, t } = useTranslation()
   const { session, signIn, signInWithGoogle, signUp } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -23,6 +25,7 @@ export default function LoginScreen() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
+  const validation = useSubmitValidation<'confirmPassword' | 'email' | 'password'>()
   const isMountedRef = useRef(true)
 
   useEffect(() => () => {
@@ -34,22 +37,31 @@ export default function LoginScreen() {
   const redirectTo = ExpoLinking.createURL('auth/callback')
 
   const runAuthAction = async (action: 'signin' | 'signup' | 'google') => {
-    if (action !== 'google' && (!email.trim() || password.length < 6)) {
-      setErrorMessage(t('auth.invalidForm'))
-      return
-    }
-    if (action === 'signup' && password !== confirmPassword) {
-      setErrorMessage(t('auth.passwordMismatch'))
-      return
+    let submittedEmail = email.trim()
+    let submittedPassword = password
+    if (action !== 'google') {
+      const authSchema = z.object({
+        email: z.string().trim().email(getValidationMessage(t, i18n.resolvedLanguage, 'email')),
+        password: z.string().min(6, getValidationMessage(t, i18n.resolvedLanguage, 'passwordMin')),
+        confirmPassword: action === 'signup' ? z.string().min(1, getValidationMessage(t, i18n.resolvedLanguage, 'required')) : z.string(),
+      }).superRefine((values, context) => {
+        if (action === 'signup' && values.password !== values.confirmPassword) {
+          context.addIssue({ code: 'custom', message: t('auth.passwordMismatch'), path: ['confirmPassword'] })
+        }
+      })
+      const payload = validation.validate(authSchema, { email, password, confirmPassword })
+      if (!payload) return
+      submittedEmail = payload.email
+      submittedPassword = payload.password
     }
 
     setIsSubmitting(true)
     setErrorMessage(null)
     setSuccessMessage(null)
     const result = action === 'signin'
-      ? await signIn(email.trim(), password)
+      ? await signIn(submittedEmail, submittedPassword)
       : action === 'signup'
-        ? await signUp(email.trim(), password)
+        ? await signUp(submittedEmail, submittedPassword)
         : await signInWithGoogle(redirectTo)
 
     if (!isMountedRef.current) return
@@ -82,12 +94,18 @@ export default function LoginScreen() {
             </YStack>
 
             <YStack gap="$3">
-              <AuthField icon={<Mail size={18} color="$color9" />}><Input flex={1} unstyled autoCapitalize="none" autoComplete="email" keyboardType="email-address" placeholder={t('auth.email')} color="$color12" placeholderTextColor="$color9" value={email} onChangeText={setEmail} /></AuthField>
-              <AuthField icon={<LockKeyhole size={18} color="$color9" />}>
-                <Input flex={1} unstyled autoComplete="password" placeholder={t('auth.password')} color="$color12" placeholderTextColor="$color9" secureTextEntry={!isPasswordVisible} value={password} onChangeText={setPassword} />
-                <Button chromeless circular size="$2.5" aria-label={isPasswordVisible ? 'Ocultar contrasena' : 'Mostrar contrasena'} onPress={() => setIsPasswordVisible((current) => !current)}>{isPasswordVisible ? <EyeOff size={18} color="$color9" /> : <Eye size={18} color="$color9" />}</Button>
-              </AuthField>
-              {authMode === 'register' ? <AuthField icon={<LockKeyhole size={18} color="$color9" />}><Input flex={1} unstyled autoComplete="password-new" placeholder={t('auth.confirmPassword')} color="$color12" placeholderTextColor="$color9" secureTextEntry={!isPasswordVisible} value={confirmPassword} onChangeText={setConfirmPassword} /></AuthField> : null}
+              <YStack gap="$1.5">
+                <AuthField error={validation.errors.email} icon={<Mail size={18} color="$color9" />}><Input flex={1} unstyled autoCapitalize="none" autoComplete="email" keyboardType="email-address" placeholder={`${t('auth.email')} *`} color="$color12" placeholderTextColor="$color9" value={email} onChangeText={(value) => { setEmail(value); validation.clearError('email') }} /></AuthField>
+                <AuthValidationMessage message={validation.errors.email} />
+              </YStack>
+              <YStack gap="$1.5">
+                <AuthField error={validation.errors.password} icon={<LockKeyhole size={18} color="$color9" />}>
+                  <Input flex={1} unstyled autoComplete="password" placeholder={`${t('auth.password')} *`} color="$color12" placeholderTextColor="$color9" secureTextEntry={!isPasswordVisible} value={password} onChangeText={(value) => { setPassword(value); validation.clearError('password', 'confirmPassword') }} />
+                  <Button chromeless circular size="$2.5" aria-label={isPasswordVisible ? 'Ocultar contrasena' : 'Mostrar contrasena'} onPress={() => setIsPasswordVisible((current) => !current)}>{isPasswordVisible ? <EyeOff size={18} color="$color9" /> : <Eye size={18} color="$color9" />}</Button>
+                </AuthField>
+                <AuthValidationMessage message={validation.errors.password} />
+              </YStack>
+              {authMode === 'register' ? <YStack gap="$1.5"><AuthField error={validation.errors.confirmPassword} icon={<LockKeyhole size={18} color="$color9" />}><Input flex={1} unstyled autoComplete="password-new" placeholder={`${t('auth.confirmPassword')} *`} color="$color12" placeholderTextColor="$color9" secureTextEntry={!isPasswordVisible} value={confirmPassword} onChangeText={(value) => { setConfirmPassword(value); validation.clearError('confirmPassword') }} /></AuthField><AuthValidationMessage message={validation.errors.confirmPassword} /></YStack> : null}
             </YStack>
 
             {errorMessage ? <MessageCard tone="error" message={errorMessage} /> : null}
@@ -99,7 +117,7 @@ export default function LoginScreen() {
 
             <XStack items="center" justify="center" gap="$1.5">
               <Paragraph color="$color9">{authMode === 'login' ? t('auth.noAccount') : t('auth.hasAccount')}</Paragraph>
-              <Button chromeless p={0} height="auto" onPress={() => { setAuthMode((current) => (current === 'login' ? 'register' : 'login')); setErrorMessage(null); setSuccessMessage(null) }}><Paragraph color="$accent10" fontWeight="800">{authMode === 'login' ? t('auth.registerLink') : t('auth.loginLink')}</Paragraph></Button>
+              <Button chromeless p={0} height="auto" onPress={() => { setAuthMode((current) => (current === 'login' ? 'register' : 'login')); setErrorMessage(null); setSuccessMessage(null); validation.resetErrors() }}><Paragraph color="$accent10" fontWeight="800">{authMode === 'login' ? t('auth.registerLink') : t('auth.loginLink')}</Paragraph></Button>
             </XStack>
           </FintCard>
         </YStack>
@@ -108,8 +126,12 @@ export default function LoginScreen() {
   )
 }
 
-function AuthField({ children, icon }: { children: React.ReactNode; icon: React.ReactNode }) {
-  return <XStack items="center" gap="$3" bg="$muted" borderColor="$color5" borderWidth={1} minH={48} px="$3" rounded="$5" focusStyle={{ borderColor: '$accent8' }}>{icon}{children}</XStack>
+function AuthField({ children, error, icon }: { children: React.ReactNode; error?: string; icon: React.ReactNode }) {
+  return <XStack items="center" gap="$3" bg="$muted" borderColor={error ? '$red8' : '$color5'} borderWidth={1} minH={48} px="$3" rounded="$5" focusStyle={{ borderColor: error ? '$red8' : '$accent8' }}>{icon}{children}</XStack>
+}
+
+function AuthValidationMessage({ message }: { message?: string }) {
+  return message ? <Paragraph color="$red10" fontSize="$1" fontWeight="600" px="$1">{message}</Paragraph> : null
 }
 
 function MessageCard({ message, tone }: { message: string; tone: 'error' | 'success' }) {
