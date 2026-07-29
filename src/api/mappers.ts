@@ -1,4 +1,4 @@
-import type { Account, DashboardSummary, Debt, Summary, Transaction } from './types'
+import type { Account, DashboardSummary, Summary, Transaction } from './types'
 
 export function formatMoney(value = 0, currency = 'PEN') {
   return new Intl.NumberFormat('es-PE', { style: 'currency', currency }).format(value)
@@ -37,18 +37,5 @@ export function normalizeTransaction(transaction: Transaction): Transaction {
     category: transaction.category || 'General',
     account: transaction.account || 'Cuenta',
     note: transaction.note || undefined,
-  }
-}
-
-export function normalizeDebt(debt: Debt): Debt {
-  return {
-    ...debt,
-    originalAmount: Number(debt.originalAmount) || Number(debt.outstanding) || 0,
-    outstanding: Number(debt.outstanding) || 0,
-    currency: debt.currency || 'PEN',
-    account: debt.account ?? null,
-    dueDate: debt.dueDate ?? null,
-    accountId: debt.accountId ?? null,
-    note: debt.note || undefined,
   }
 }

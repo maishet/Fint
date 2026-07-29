@@ -51,24 +51,11 @@ export interface Category {
   icon: string | null
 }
 
-export interface Debt {
-  id: string
-  description: string
-  originalAmount: number
-  outstanding: number
-  currency: string
-  dueDate?: string | null
-  accountId: string | null
-  account: string | null
-  note?: string
-  status: 'active' | 'paid' | 'overdue' | string
-}
-
 export interface PaymentOccurrence {
   id: string
   ruleId: string | null
   title: string
-  kind: 'fixed_payment' | 'credit_card' | 'legacy'
+  kind: 'fixed_payment' | 'credit_card'
   dueDate: string | null
   currency: string
   totalAmount: number | null
@@ -79,6 +66,39 @@ export interface PaymentOccurrence {
   paymentStatus: 'unpaid' | 'partial' | 'minimum_met' | 'paid'
   temporalStatus: 'upcoming' | 'due_today' | 'overdue'
   cardAccount: string | null
+}
+
+export interface PaymentRule {
+  id: string
+  title: string
+  kind: 'fixed_payment' | 'credit_card'
+  frequency: 'weekly' | 'biweekly' | 'monthly' | 'yearly'
+  currency: string
+  fixedAmount: number | null
+  categoryId: string | null
+  category: string | null
+  cardAccountId: string | null
+  cardAccount: string | null
+  timezone: string
+  startDate: string
+  nextDueDate: string
+  status: 'active' | 'paused' | 'ended'
+}
+
+export type CreatePaymentRuleInput =
+  | { kind: 'fixed_payment'; title: string; frequency: PaymentRule['frequency']; currency: string; fixedAmount: number; categoryId: string; timezone: string; startDate: string }
+  | { kind: 'credit_card'; title: string; frequency: PaymentRule['frequency']; currency: string; cardAccountId: string; timezone: string; startDate: string }
+
+export interface PayPaymentOccurrenceInput {
+  amount: number
+  accountId: string
+  transactionDate: string
+  note?: string | null
+}
+
+export interface UpdateCardOccurrenceAmountsInput {
+  totalAmount: number
+  minimumAmount: number
 }
 
 export interface AccountOption {
@@ -360,41 +380,30 @@ export interface TransactionQuery {
   offset?: number
 }
 
-export interface PayDebtInput {
-  amount: number
-  currency: string
-  account: string
-  note?: string
-}
-
-export interface CreateDebtInput {
-  description: string
-  amount: number
-  currency: string
-  dueDate: string
-  accountId?: string | null
-  note?: string
-}
-
-export interface UpdateDebtInput {
-  description?: string
-  amount?: number
-  dueDate?: string
-  accountId?: string | null
-  note?: string | null
-}
-
-export interface ConfirmPendingInput {
-  mode: 'transaction'
-  title: string
-  type: TransactionType
-  amount: number
-  currency?: string
-  transactionDate: string
-  accountId: string
-  categoryId: string
-  note?: string | null
-}
+export type ConfirmPendingInput =
+  | {
+      mode: 'transaction'
+      title: string
+      type: TransactionType
+      amount: number
+      currency?: string
+      transactionDate: string
+      accountId: string
+      categoryId: string
+      note?: string | null
+    }
+  | {
+      mode: 'payment'
+      paymentOccurrenceId: string
+      title: string
+      type: TransactionType
+      amount: number
+      currency: string
+      transactionDate: string
+      accountId: string
+      categoryId?: string | null
+      note?: string | null
+    }
 
 export interface ConfirmPendingResult {
   id: string

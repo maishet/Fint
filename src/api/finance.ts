@@ -11,16 +11,16 @@ import type {
   CreateAccountResult,
   CreateCategoryInput,
   CreateCategoryResult,
-  CreateDebtInput,
+  CreatePaymentRuleInput,
   CreateTransactionInput,
   CreateTransactionResult,
   CurrentUser,
   DashboardOverview,
-  Debt,
   DiscardPendingInput,
   DiscardPendingResult,
-  PayDebtInput,
+  PayPaymentOccurrenceInput,
   PaymentOccurrence,
+  PaymentRule,
   PendingMovementDetail,
   PendingMovementPage,
   PendingMovementsSummary,
@@ -29,7 +29,7 @@ import type {
   TransactionQuery,
   TransactionType,
   UpdateAccountInput,
-  UpdateDebtInput,
+  UpdateCardOccurrenceAmountsInput,
   UpdateTransactionInput,
   GmailOAuthStart,
   GmailSource,
@@ -54,7 +54,11 @@ function toQuery(params: { [key: string]: string | number | undefined }) {
 }
 
 function idempotencyKey() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID()
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {
+    const value = Math.floor(Math.random() * 16)
+    return (char === 'x' ? value : (value & 0x3) | 0x8).toString(16)
+  })
 }
 
 export const financeApi = {
@@ -95,13 +99,11 @@ export const financeApi = {
   deleteTransaction: (id: string) => apiRequest<{ id: string }>(`/api/transactions/${id}`, { method: 'DELETE' }),
   listCategories: (type?: TransactionType) => apiRequest<Category[]>(`/api/categories${toQuery({ type })}`),
   createCategory: (input: CreateCategoryInput) => apiRequest<CreateCategoryResult>('/api/categories', { method: 'POST', body: JSON.stringify(input) }),
-  listDebts: () => apiRequest<Debt[]>('/api/debts'),
-  getDebt: (id: string, signal?: AbortSignal) => apiRequest<Debt>(`/api/debts/${id}`, { signal }),
-  createDebt: (input: CreateDebtInput) => apiRequest<{ id: string }>('/api/debts', { method: 'POST', body: JSON.stringify(input) }),
-  updateDebt: (id: string, input: UpdateDebtInput) => apiRequest<{ id: string }>(`/api/debts/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
-  deleteDebt: (id: string) => apiRequest<{ id: string }>(`/api/debts/${id}`, { method: 'DELETE' }),
-  payDebt: (id: string, input: PayDebtInput) => apiRequest<{ id: string }>(`/api/debts/${id}/pay`, { method: 'POST', body: JSON.stringify(input) }),
+  listPaymentRules: () => apiRequest<PaymentRule[]>('/api/payment-rules'),
+  createPaymentRule: (input: CreatePaymentRuleInput) => apiRequest<{ id: string }>('/api/payment-rules', { method: 'POST', body: JSON.stringify(input) }),
   listPaymentOccurrences: (query: { status?: 'open' | 'paid' | 'overdue' } = {}, signal?: AbortSignal) => apiRequest<PaymentOccurrence[]>(`/api/payment-occurrences${toQuery(query)}`, { signal }),
+  updateCardOccurrenceAmounts: (id: string, input: UpdateCardOccurrenceAmountsInput) => apiRequest<{ id: string }>(`/api/payment-occurrences/${id}/card-amounts`, { method: 'PATCH', body: JSON.stringify(input) }),
+  payPaymentOccurrence: (id: string, input: PayPaymentOccurrenceInput) => apiRequest<{ id: string; transactionId: string }>(`/api/payment-occurrences/${id}/pay`, { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey() }, body: JSON.stringify(input) }),
   getPendingMovementsSummary: () => apiRequest<PendingMovementsSummary>('/api/pending-movements/summary'),
   listPendingMovements: (query: { limit?: number; cursor?: string } = {}, signal?: AbortSignal) => apiRequest<PendingMovementPage>(`/api/pending-movements${toQuery(query)}`, { signal }),
   getPendingMovement: (id: string, signal?: AbortSignal) => apiRequest<PendingMovementDetail>(`/api/pending-movements/${id}`, { signal }),
