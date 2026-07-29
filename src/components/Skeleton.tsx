@@ -1,6 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { Animated, Platform } from 'react-native'
 import { Separator, XStack, YStack, type YStackProps } from 'tamagui'
+import { useThemeMode } from '../theme/ThemeMode'
 import { FintCard } from '../ui'
 
 interface SkeletonGroupProps {
@@ -46,14 +47,16 @@ export function SkeletonBlock({ bg = '$color4', height = 14, rounded = '$4', wid
 }
 
 export function SkeletonHero() {
+  const { themeMode } = useThemeMode()
+  const isDark = themeMode === 'dark'
   return (
-    <FintCard bg="#0F5D73" borderColor="#28788C" gap="$4" p="$4">
+    <FintCard bg={isDark ? '#0B3046' : '#0F5D73'} borderColor={isDark ? '#1B5067' : '#28788C'} gap="$4" p="$4">
       <XStack items="center" justify="space-between" gap="$3">
         <YStack flex={1} gap="$2">
           <SkeletonBlock bg="rgba(185,215,225,0.32)" height={11} width="42%" />
           <SkeletonBlock bg="rgba(244,251,253,0.42)" height={35} width="72%" />
         </YStack>
-        <SkeletonBlock bg="rgba(93,214,229,0.18)" height={48} rounded="$10" width={48} />
+        <SkeletonBlock bg="rgba(93,214,229,0.18)" borderColor="rgba(93,214,229,0.24)" borderWidth={1} height={48} rounded="$10" width={48} />
       </XStack>
       <XStack gap="$4">
         <HeroMetricSkeleton />

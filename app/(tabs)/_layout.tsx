@@ -48,8 +48,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="debts"
         options={{
-          title: t('tabs.debts'),
-          header: () => <AppHeader title={t('tabs.debts')} />,
+          title: t('tabs.payments', { defaultValue: 'Pagos' }),
+          header: () => <AppHeader title={t('tabs.payments', { defaultValue: 'Pagos' })} />,
           tabBarIcon: ({ color }) => <CreditCard color={color as any} />,
         }}
       />

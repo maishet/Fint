@@ -14,6 +14,7 @@ import { supabase } from '../../src/auth/supabase'
 import { DataStateCard } from '../../src/components/DataStateCard'
 import { SkeletonGroup, SkeletonHero, SkeletonList } from '../../src/components/Skeleton'
 import { getCategoryLabel } from '../../src/finance/categoryLabels'
+import { useThemeMode } from '../../src/theme/ThemeMode'
 import { FintButton, FintCard, FintSheetSelect } from '../../src/ui'
 
 const PAGE_SIZE = 30
@@ -147,7 +148,9 @@ function DeleteMovementDialog({ isPending, movement, onCancel, onConfirm }: { is
 
 function MovementHero({ currency, expenses, income }: { currency: string; expenses: number; income: number }) {
   const { t } = useTranslation()
-  return <FintCard bg="#0F5D73" borderColor="#28788C" gap="$4" p="$4"><XStack items="center" justify="space-between"><YStack gap="$1"><Paragraph color="#B9D7E1" fontFamily="$heading" fontSize="$2" fontWeight="700" textTransform="uppercase">{t('movementUx.monthFlow')}</Paragraph><Paragraph color="#F4FBFD" fontSize="$8" fontWeight="900">{formatMoney(income - expenses, currency)}</Paragraph></YStack><YStack width={48} height={48} rounded="$10" bg="rgba(93,214,229,0.14)" items="center" justify="center"><ArrowLeftRight size={24} color="#5DD6E5" /></YStack></XStack><XStack gap="$3"><HeroMetric label={t('dashboard.totalIncome')} value={formatMoney(income, currency)} color="#5DD6E5" /><HeroMetric label={t('dashboard.totalExpenses')} value={formatMoney(expenses, currency)} color="#F28B82" /></XStack></FintCard>
+  const { themeMode } = useThemeMode()
+  const isDark = themeMode === 'dark'
+  return <FintCard bg={isDark ? '#0B3046' : '#0F5D73'} borderColor={isDark ? '#1B5067' : '#28788C'} gap="$4" p="$4"><XStack items="center" justify="space-between"><YStack gap="$1"><Paragraph color="#B9D7E1" fontFamily="$heading" fontSize="$2" fontWeight="700" textTransform="uppercase">{t('movementUx.monthFlow')}</Paragraph><Paragraph color="#F4FBFD" fontSize="$8" fontWeight="900">{formatMoney(income - expenses, currency)}</Paragraph></YStack><YStack width={48} height={48} rounded="$10" bg="rgba(93,214,229,0.14)" borderColor="rgba(93,214,229,0.24)" borderWidth={1} items="center" justify="center"><ArrowLeftRight size={24} color="#5DD6E5" /></YStack></XStack><XStack gap="$3"><HeroMetric label={t('dashboard.totalIncome')} value={formatMoney(income, currency)} color="#5DD6E5" /><HeroMetric label={t('dashboard.totalExpenses')} value={formatMoney(expenses, currency)} color="#F28B82" /></XStack></FintCard>
 }
 
 function HeroMetric({ color, label, value }: { color: string; label: string; value: string }) {

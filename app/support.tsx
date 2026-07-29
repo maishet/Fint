@@ -10,6 +10,7 @@ import { trackAnalyticsEvent } from '../src/analytics/privacy'
 import { Screen } from '../src/components/Screen'
 import { FormTextArea, MovementPickerTrigger } from '../src/components/MovementFormControls'
 import { getValidationMessage, useSubmitValidation } from '../src/forms'
+import { useThemeMode } from '../src/theme/ThemeMode'
 import { FintButton, FintCard, FintFormField, FintSheetSelect } from '../src/ui'
 
 const copy = {
@@ -21,6 +22,8 @@ const copy = {
 export default function SupportScreen() {
   const { i18n, t } = useTranslation()
   const router = useRouter()
+  const { themeMode } = useThemeMode()
+  const isDark = themeMode === 'dark'
   const language = i18n.resolvedLanguage === 'en' || i18n.resolvedLanguage === 'pt' ? i18n.resolvedLanguage : 'es'
   const text = copy[language]
   const [category, setCategory] = useState(text.categories[0])
@@ -48,7 +51,7 @@ export default function SupportScreen() {
 
   return (
     <Screen>
-      <FintCard bg="#0F5D73" borderColor="#28788C" gap="$3"><XStack gap="$3" items="center"><YStack width={48} height={48} rounded="$10" bg="rgba(93,214,229,0.14)" items="center" justify="center"><HelpCircle size={24} color="#5DD6E5" /></YStack><YStack flex={1}><Paragraph color="#F4FBFD" fontFamily="$heading" fontSize="$6" fontWeight="800">{text.title}</Paragraph><Paragraph color="#B9D7E1">{text.subtitle}</Paragraph></YStack></XStack></FintCard>
+      <FintCard bg={isDark ? '#0B3046' : '#0F5D73'} borderColor={isDark ? '#1B5067' : '#28788C'} gap="$3"><XStack gap="$3" items="center"><YStack width={48} height={48} rounded="$10" bg="rgba(93,214,229,0.14)" borderColor="rgba(93,214,229,0.24)" borderWidth={1} items="center" justify="center"><HelpCircle size={24} color="#5DD6E5" /></YStack><YStack flex={1}><Paragraph color="#F4FBFD" fontFamily="$heading" fontSize="$6" fontWeight="800">{text.title}</Paragraph><Paragraph color="#B9D7E1">{text.subtitle}</Paragraph></YStack></XStack></FintCard>
       <FintFormField label={text.category} required error={validation.errors.category} showLabel={false}><FintSheetSelect label={text.category} showLabel={false} placeholder={text.category} value={category} options={text.categories.map((item) => ({ value: item, label: item }))} onValueChange={(value) => { setCategory(value); validation.clearError('category'); void trackAnalyticsEvent('support_report_started', { category: value }) }} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<Tags size={21} color="$primary" />} invalid={Boolean(validation.errors.category)} label={text.category} required onPress={onPress} value={selectedLabel} />} /></FintFormField>
       <FormTextArea label={text.description} required error={validation.errors.description} icon={<MessageSquareText size={21} color="$primary" />} minHeight={124} placeholder={text.description} value={description} onChangeText={(value) => { setDescription(value); validation.clearError('description') }} />
       <FormTextArea label={text.steps} icon={<ListChecks size={21} color="$primary" />} minHeight={112} placeholder={text.steps} value={steps} onChangeText={setSteps} />

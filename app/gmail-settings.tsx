@@ -13,10 +13,13 @@ import { DataStateCard } from '../src/components/DataStateCard'
 import { Screen } from '../src/components/Screen'
 import { SkeletonBlock, SkeletonGroup } from '../src/components/Skeleton'
 import { getValidationMessage, useSubmitValidation } from '../src/forms'
+import { useThemeMode } from '../src/theme/ThemeMode'
 import { FintButton, FintCard, FintFormField, FintInput } from '../src/ui'
 
 export default function GmailSettingsScreen() {
   const { t } = useTranslation()
+  const { themeMode } = useThemeMode()
+  const isDark = themeMode === 'dark'
   const queryClient = useQueryClient()
   const sourcesQuery = useQuery({ queryKey: ['gmail-sources'], queryFn: financeApi.listGmailSources, retry: false })
   const connectMutation = useMutation({
@@ -33,8 +36,8 @@ export default function GmailSettingsScreen() {
 
   return (
     <Screen isRefreshing={sourcesQuery.isRefetching} onRefresh={() => sourcesQuery.refetch()}>
-      <FintCard bg="#0F5D73" borderColor="#28788C" gap="$3">
-        <XStack items="center" gap="$3"><YStack width={48} height={48} rounded="$10" bg="rgba(93,214,229,0.14)" items="center" justify="center"><Mail size={24} color="#5DD6E5" /></YStack><YStack flex={1}><Paragraph color="#F4FBFD" fontFamily="$heading" fontSize="$6" fontWeight="800">{t('gmail.title')}</Paragraph><Paragraph color="#B9D7E1">{t('gmail.description')}</Paragraph></YStack></XStack>
+      <FintCard bg={isDark ? '#0B3046' : '#0F5D73'} borderColor={isDark ? '#1B5067' : '#28788C'} gap="$3">
+        <XStack items="center" gap="$3"><YStack width={48} height={48} rounded="$10" bg="rgba(93,214,229,0.14)" borderColor="rgba(93,214,229,0.24)" borderWidth={1} items="center" justify="center"><Mail size={24} color="#5DD6E5" /></YStack><YStack flex={1}><Paragraph color="#F4FBFD" fontFamily="$heading" fontSize="$6" fontWeight="800">{t('gmail.title')}</Paragraph><Paragraph color="#B9D7E1">{t('gmail.description')}</Paragraph></YStack></XStack>
         <FintButton bg="#5DD6E5" color="#062536" disabled={connectMutation.isPending || visibleSources.filter((source) => source.status === 'active').length >= 3} icon={connectMutation.isPending ? <Spinner /> : <Plus size={18} />} onPress={connect}>{t('gmail.connect')}</FintButton>
       </FintCard>
       {sourcesQuery.isLoading ? <GmailSourcesSkeleton label={t('states.loading')} /> : null}

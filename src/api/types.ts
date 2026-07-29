@@ -64,6 +64,23 @@ export interface Debt {
   status: 'active' | 'paid' | 'overdue' | string
 }
 
+export interface PaymentOccurrence {
+  id: string
+  ruleId: string | null
+  title: string
+  kind: 'fixed_payment' | 'credit_card' | 'legacy'
+  dueDate: string | null
+  currency: string
+  totalAmount: number | null
+  minimumAmount: number | null
+  paidAmount: number
+  remainingAmount: number | null
+  amountStatus: 'required' | 'confirmed'
+  paymentStatus: 'unpaid' | 'partial' | 'minimum_met' | 'paid'
+  temporalStatus: 'upcoming' | 'due_today' | 'overdue'
+  cardAccount: string | null
+}
+
 export interface AccountOption {
   id: string
   name: string

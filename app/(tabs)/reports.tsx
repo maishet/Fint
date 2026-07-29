@@ -34,6 +34,7 @@ import { suggestedCategoryIcons } from '../../src/finance/categoryIcons'
 import { exportFinancialReportCsv, exportFinancialReportPdf, type ReportExportLabels } from '../../src/finance/report-export'
 import { getPresetRange, type ReportPeriodPreset } from '../../src/finance/reports'
 import { getAppLocale } from '../../src/i18n'
+import { useThemeMode } from '../../src/theme/ThemeMode'
 import { FintCard, FintSheetSelect } from '../../src/ui'
 
 const ALL_ACCOUNTS = '__all__'
@@ -244,6 +245,8 @@ export default function ReportsScreen() {
   const queryClient = useQueryClient()
   const toast = useToastController()
   const router = useRouter()
+  const { themeMode } = useThemeMode()
+  const isDark = themeMode === 'dark'
   const [preset, setPreset] = useState<ReportPeriodPreset>('currentMonth')
   const [accountId, setAccountId] = useState(ALL_ACCOUNTS)
   const [currency, setCurrency] = useState('')
@@ -320,9 +323,9 @@ export default function ReportsScreen() {
         void topTransactionsQuery.refetch()
       }}
     >
-      <FintCard bg="#0F5D73" borderColor="#28788C" gap="$3">
+      <FintCard bg={isDark ? '#0B3046' : '#0F5D73'} borderColor={isDark ? '#1B5067' : '#28788C'} gap="$3">
         <XStack items="center" gap="$3">
-          <YStack width={48} height={48} rounded="$10" bg="rgba(93,214,229,0.14)" items="center" justify="center">
+          <YStack width={48} height={48} rounded="$10" bg="rgba(93,214,229,0.14)" borderColor="rgba(93,214,229,0.24)" borderWidth={1} items="center" justify="center">
             <BarChart3 size={24} color="#5DD6E5" />
           </YStack>
           <YStack flex={1} minW={0}>
