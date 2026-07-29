@@ -59,8 +59,8 @@ export default function PendingReviewScreen() {
     const detail = detailQuery.data
     if (!detail || hydratedId.current === detail.id) return
     hydratedId.current = detail.id
-    setType(detail.type)
-    setAmount(String(detail.amount))
+    setType(detail.type ?? 'expense')
+    setAmount(detail.amount === null ? '' : String(detail.amount))
     setTransactionDate(detail.transactionDate)
     setAccountId(detail.accountSuggestion?.id ?? '')
   }, [detailQuery.data])
@@ -133,7 +133,7 @@ export default function PendingReviewScreen() {
               <Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="800" lineHeight="$6">{detailQuery.data.title}</Paragraph>
             </YStack>
 
-            <MovementAmountField currency={selectedAccount?.currency ?? detailQuery.data.currency} error={validation.errors.amount} value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} />
+            <MovementAmountField currency={selectedAccount?.currency ?? detailQuery.data.currency ?? 'PEN'} error={validation.errors.amount} value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} />
 
             <YStack gap="$4">
                 <FintFormField label={t('forms.account')} required error={validation.errors.accountId} showLabel={false}>

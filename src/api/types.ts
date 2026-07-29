@@ -74,10 +74,11 @@ export interface PendingMovementCard {
   id: string
   detectedAt: string
   title: string
-  type: TransactionType
-  amount: number
-  currency: string
+  type: TransactionType | null
+  amount: number | null
+  currency: string | null
   accountSuggestion: AccountOption | null
+  requiresReview: boolean
 }
 
 export interface PendingMovementPage {
@@ -91,11 +92,12 @@ export interface PendingMovementPage {
 export interface PendingMovementDetail {
   id: string
   title: string
-  type: TransactionType
-  amount: number
-  currency: string
+  type: TransactionType | null
+  amount: number | null
+  currency: string | null
   transactionDate: string
   accountSuggestion: AccountOption | null
+  requiresReview: boolean
 }
 
 export interface PendingMovementsSummary {

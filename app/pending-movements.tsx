@@ -42,8 +42,8 @@ export default function PendingMovementsScreen() {
   const expandedItem = items.find((item) => item.id === expandedId) ?? null
   const categoriesQuery = useQuery({
     queryKey: ['categories', expandedItem?.type],
-    queryFn: () => financeApi.listCategories(expandedItem?.type),
-    enabled: Boolean(expandedItem?.accountSuggestion),
+    queryFn: () => financeApi.listCategories(expandedItem?.type ?? undefined),
+    enabled: Boolean(expandedItem?.accountSuggestion && expandedItem.type),
     retry: false,
   })
 
@@ -97,13 +97,13 @@ export default function PendingMovementsScreen() {
   }
 
   const confirm = (item: PendingMovementCard) => {
+    if (!item.accountSuggestion || !item.type || item.amount === null || !item.currency || item.requiresReview) {
+      router.push({ pathname: '/pending-review', params: { id: item.id } })
+      return
+    }
     const selectedCategory = categoriesQuery.data?.find((candidate) => candidate.name === category)
     if (!selectedCategory) {
       setCategoryError(getValidationMessage(t, i18n.resolvedLanguage, 'required'))
-      return
-    }
-    if (!item.accountSuggestion) {
-      router.push({ pathname: '/pending-review', params: { id: item.id } })
       return
     }
     confirmMutation.mutate({
@@ -113,7 +113,7 @@ export default function PendingMovementsScreen() {
         title: item.title,
         type: item.type,
         amount: item.amount,
-        currency: item.accountSuggestion.currency,
+        currency: item.currency,
         transactionDate: item.detectedAt.slice(0, 10),
         accountId: item.accountSuggestion.id,
         categoryId: selectedCategory.id,
@@ -177,32 +177,35 @@ async function invalidatePendingAndFinance(queryClient: ReturnType<typeof useQue
 function PendingCard({ categories, category, categoryError, expanded, isPending, item, onCategoryChange, onConfirm, onDiscard, onEdit, onToggle, referencesLoading }: { categories: Awaited<ReturnType<typeof financeApi.listCategories>>; category: string; categoryError?: string; expanded: boolean; isPending: boolean; item: PendingMovementCard; onCategoryChange: (value: string) => void; onConfirm: () => void; onDiscard: () => void; onEdit: () => void; onToggle: () => void; referencesLoading: boolean }) {
   const { t, i18n } = useTranslation()
   const detectedDate = new Intl.DateTimeFormat(i18n.language, { day: '2-digit', month: 'short' }).format(new Date(item.detectedAt))
+  const canQuickConfirm = Boolean(item.accountSuggestion && item.type && item.amount !== null && item.currency && !item.requiresReview)
+  const typeLabel = item.type ? t(`forms.${item.type}`) : t('movementUx.reviewRequired', { defaultValue: 'Revisar datos' })
+  const amountLabel = item.amount !== null && item.currency ? `${item.type === 'income' ? '+' : item.type === 'expense' ? '-' : ''}${formatMoney(item.amount, item.currency)}` : t('movementUx.reviewRequired', { defaultValue: 'Revisar datos' })
   return (
     <FintCard p="$3" gap="$3" opacity={isPending ? 0.65 : 1}>
       <XStack items="center" gap="$3" role="button" onPress={isPending ? undefined : onToggle}>
         <Mail size={18} color="$primary" />
         <YStack flex={1} minW={0} gap="$1">
           <Paragraph color="$color12" fontWeight="800" numberOfLines={2}>{item.title}</Paragraph>
-          <Paragraph color="$color10" fontSize="$1" numberOfLines={1}>{t(`forms.${item.type}`)} · {detectedDate}{item.accountSuggestion ? ` · ${item.accountSuggestion.name}` : ''}</Paragraph>
+          <Paragraph color="$color10" fontSize="$1" numberOfLines={1}>{typeLabel} · {detectedDate}{item.accountSuggestion ? ` · ${item.accountSuggestion.name}` : ''}</Paragraph>
         </YStack>
-        <Paragraph color={item.type === 'income' ? '$green10' : '$red10'} fontWeight="900">{item.type === 'income' ? '+' : '-'}{formatMoney(item.amount, item.currency)}</Paragraph>
+        <Paragraph color={item.type === 'income' ? '$green10' : item.type === 'expense' ? '$red10' : '$yellow10'} fontWeight="900">{amountLabel}</Paragraph>
       </XStack>
       {expanded ? (
         <YStack gap="$3">
-          {item.accountSuggestion ? (
+          {canQuickConfirm && item.type ? (
             <>
               {referencesLoading ? <SkeletonGroup label={t('states.loading')}><SkeletonList rows={1} /></SkeletonGroup> : null}
               {!referencesLoading ? <FintFormField label={t('forms.category')} required error={categoryError} showLabel={false}><CategoryPickerSheet categories={categories} type={item.type} value={category} showLabel={false} onValueChange={onCategoryChange} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<Shapes size={20} color="$primary" />} invalid={Boolean(categoryError)} label={t('forms.category')} required onPress={onPress} value={selectedLabel} />} /></FintFormField> : null}
             </>
           ) : (
             <YStack bg="$muted" rounded="$5" p="$3" gap="$2">
-              <Paragraph color="$color12" fontWeight="700">{t('movementUx.accountRequired', { defaultValue: 'Cuenta requerida' })}</Paragraph>
-              <Paragraph color="$color10" fontSize="$2">{t('movementUx.pendingNeedsEdit', { defaultValue: 'Revisa el pendiente para seleccionar la cuenta correcta.' })}</Paragraph>
+              <Paragraph color="$color12" fontWeight="700">{t('movementUx.reviewRequired', { defaultValue: 'Revisar datos' })}</Paragraph>
+              <Paragraph color="$color10" fontSize="$2">{t('movementUx.pendingNeedsEdit', { defaultValue: 'Revisa el pendiente para completar los datos faltantes.' })}</Paragraph>
             </YStack>
           )}
           <YStack gap="$2">
-            {item.accountSuggestion ? <FintButton width="100%" minH={48} disabled={isPending || referencesLoading} icon={<Check size={17} />} onPress={onConfirm}>{t('movementUx.confirmPending')}</FintButton> : null}
-            <FintButton width="100%" minH={46} variant={item.accountSuggestion ? 'outlined' : 'solid'} disabled={isPending} icon={<Pencil size={16} />} onPress={onEdit}>{t('actions.edit', { defaultValue: 'Editar' })}</FintButton>
+            {canQuickConfirm ? <FintButton width="100%" minH={48} disabled={isPending || referencesLoading} icon={<Check size={17} />} onPress={onConfirm}>{t('movementUx.confirmPending')}</FintButton> : null}
+            <FintButton width="100%" minH={46} variant={canQuickConfirm ? 'outlined' : 'solid'} disabled={isPending} icon={<Pencil size={16} />} onPress={onEdit}>{t('actions.edit', { defaultValue: 'Editar' })}</FintButton>
             <FintButton width="100%" minH={46} variant="outlined" color="$red10" borderColor="$red6" disabled={isPending} icon={<Trash2 size={16} />} onPress={onDiscard}>{t('movementUx.discardShort', { defaultValue: 'Descartar' })}</FintButton>
           </YStack>
         </YStack>
