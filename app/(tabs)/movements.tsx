@@ -137,7 +137,7 @@ export default function MovementsScreen() {
 function MovementCard({ locale, movement, onDelete, onEdit }: { locale: string; movement: Transaction; onDelete: () => void; onEdit: () => void }) {
   const { t } = useTranslation()
   const isIncome = movement.type === 'income'
-  const isDebtPayment = Boolean(movement.debtId)
+  const isDebtPayment = Boolean(movement.paymentOccurrenceId)
   return <FintCard py="$3"><XStack items="center" gap="$3"><XStack flex={1} minW={0} items="center" gap="$3" role={isDebtPayment ? undefined : 'button'} onPress={isDebtPayment ? undefined : onEdit}><YStack width={42} height={42} rounded="$8" bg={isIncome ? '$green2' : '$red2'} items="center" justify="center">{isIncome ? <ArrowDownLeft size={20} color="$green10" /> : <ArrowUpRight size={20} color="$red10" />}</YStack><YStack flex={1} minW={0} gap="$1"><Paragraph color="$color12" fontSize="$3" fontWeight="800" numberOfLines={1}>{getCategoryLabel(movement.category, t)}</Paragraph><Paragraph color="$color10" fontSize="$1" numberOfLines={1}>{new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short' }).format(new Date(`${movement.date}T00:00:00`))} · {movement.account}</Paragraph>{movement.note ? <Paragraph color="$color10" fontSize="$1" numberOfLines={1}>{movement.note}</Paragraph> : null}</YStack></XStack><YStack items="flex-end" gap="$1"><Paragraph color={isIncome ? '$green10' : '$red10'} fontSize="$3" fontWeight="900">{isIncome ? '+' : '-'}{formatMoney(movement.amount, movement.currency)}</Paragraph>{!isDebtPayment ? <Button chromeless circular size="$2" icon={<Trash2 size={15} color="$red10" />} onPress={onDelete} aria-label={t('movementUx.deleteTitle')} /> : null}</YStack></XStack></FintCard>
 }
 

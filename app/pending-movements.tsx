@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, Gauge, Mail, Pencil, Shapes, Trash2 } from '@tamagui/lucide-icons-2'
+import { CalendarClock, Check, Gauge, Mail, Pencil, Shapes, Trash2 } from '@tamagui/lucide-icons-2'
 import { useToastController } from '@tamagui/toast'
 import { Stack, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
@@ -16,9 +16,10 @@ import { DataStateCard } from '../src/components/DataStateCard'
 import { MovementPickerTrigger } from '../src/components/MovementFormControls'
 import { SkeletonGroup, SkeletonList } from '../src/components/Skeleton'
 import { getValidationMessage } from '../src/forms'
-import { FintButton, FintCard, FintFormField } from '../src/ui'
+import { FintButton, FintCard, FintFormField, FintSheetSelect } from '../src/ui'
 
 const PAGE_SIZE = 20
+const NORMAL_MOVEMENT = '__transaction__'
 
 export default function PendingMovementsScreen() {
   const { i18n, t } = useTranslation()
@@ -28,6 +29,7 @@ export default function PendingMovementsScreen() {
   const insets = useSafeAreaInsets()
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [category, setCategory] = useState('')
+  const [paymentOccurrenceId, setPaymentOccurrenceId] = useState(NORMAL_MOVEMENT)
   const [categoryError, setCategoryError] = useState<string | undefined>()
   const [discardTarget, setDiscardTarget] = useState<PendingMovementCard | null>(null)
 
@@ -46,6 +48,7 @@ export default function PendingMovementsScreen() {
     enabled: Boolean(expandedItem?.accountSuggestion && expandedItem.type),
     retry: false,
   })
+  const occurrencesQuery = useQuery({ queryKey: ['payment-occurrences', 'open'], queryFn: ({ signal }) => financeApi.listPaymentOccurrences({ status: 'open' }, signal), retry: false })
 
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | null = null
@@ -71,6 +74,7 @@ export default function PendingMovementsScreen() {
     onSuccess: async () => {
       setExpandedId(null)
       setCategory('')
+      setPaymentOccurrenceId(NORMAL_MOVEMENT)
       await invalidatePendingAndFinance(queryClient)
       toast.show(t('movements.createdToast'), { message: t('movements.createdMessage'), preset: 'success' })
     },
@@ -93,12 +97,32 @@ export default function PendingMovementsScreen() {
   const openItem = (item: PendingMovementCard) => {
     setExpandedId((current) => current === item.id ? null : item.id)
     setCategory('')
+    setPaymentOccurrenceId(NORMAL_MOVEMENT)
     setCategoryError(undefined)
   }
 
   const confirm = (item: PendingMovementCard) => {
     if (!item.accountSuggestion || !item.type || item.amount === null || !item.currency || item.requiresReview) {
       router.push({ pathname: '/pending-review', params: { id: item.id } })
+      return
+    }
+    const selectedOccurrence = occurrencesQuery.data?.find((occurrence) => occurrence.id === paymentOccurrenceId)
+    if (selectedOccurrence) {
+      confirmMutation.mutate({
+        id: item.id,
+        input: {
+          mode: 'payment',
+          paymentOccurrenceId: selectedOccurrence.id,
+          title: item.title,
+          type: 'expense',
+          amount: item.amount,
+          currency: item.currency,
+          transactionDate: item.detectedAt.slice(0, 10),
+          accountId: item.accountSuggestion.id,
+          categoryId: null,
+          note: item.title,
+        },
+      })
       return
     }
     const selectedCategory = categoriesQuery.data?.find((candidate) => candidate.name === category)
@@ -148,10 +172,13 @@ export default function PendingMovementsScreen() {
             category={expandedId === item.id ? category : ''}
             categoryError={expandedId === item.id ? categoryError : undefined}
             categories={expandedId === item.id ? categoriesQuery.data ?? [] : []}
+            paymentOccurrenceId={expandedId === item.id ? paymentOccurrenceId : NORMAL_MOVEMENT}
+            paymentOccurrences={expandedId === item.id ? compatibleOccurrences(occurrencesQuery.data ?? [], item) : []}
             referencesLoading={expandedId === item.id && categoriesQuery.isLoading}
             isPending={(confirmMutation.isPending && confirmMutation.variables?.id === item.id) || (discardMutation.isPending && discardMutation.variables === item.id)}
             onToggle={() => openItem(item)}
             onCategoryChange={(value) => { setCategory(value); setCategoryError(undefined) }}
+            onPaymentOccurrenceChange={(value) => { setPaymentOccurrenceId(value); setCategoryError(undefined) }}
             onConfirm={() => confirm(item)}
             onDiscard={() => setDiscardTarget(item)}
             onEdit={() => router.push({ pathname: '/pending-review', params: { id: item.id } })}
@@ -174,13 +201,14 @@ async function invalidatePendingAndFinance(queryClient: ReturnType<typeof useQue
   ])
 }
 
-function PendingCard({ categories, category, categoryError, expanded, isPending, item, onCategoryChange, onConfirm, onDiscard, onEdit, onToggle, referencesLoading }: { categories: Awaited<ReturnType<typeof financeApi.listCategories>>; category: string; categoryError?: string; expanded: boolean; isPending: boolean; item: PendingMovementCard; onCategoryChange: (value: string) => void; onConfirm: () => void; onDiscard: () => void; onEdit: () => void; onToggle: () => void; referencesLoading: boolean }) {
+function PendingCard({ categories, category, categoryError, expanded, isPending, item, onCategoryChange, onConfirm, onDiscard, onEdit, onPaymentOccurrenceChange, onToggle, paymentOccurrenceId, paymentOccurrences, referencesLoading }: { categories: Awaited<ReturnType<typeof financeApi.listCategories>>; category: string; categoryError?: string; expanded: boolean; isPending: boolean; item: PendingMovementCard; onCategoryChange: (value: string) => void; onConfirm: () => void; onDiscard: () => void; onEdit: () => void; onPaymentOccurrenceChange: (value: string) => void; onToggle: () => void; paymentOccurrenceId: string; paymentOccurrences: Awaited<ReturnType<typeof financeApi.listPaymentOccurrences>>; referencesLoading: boolean }) {
   const { t, i18n } = useTranslation()
   const detectedDate = new Intl.DateTimeFormat(i18n.language, { day: '2-digit', month: 'short' }).format(new Date(item.detectedAt))
   const canQuickConfirm = Boolean(item.accountSuggestion && item.type && item.amount !== null && item.currency && !item.requiresReview)
   const typeLabel = item.type ? t(`forms.${item.type}`) : t('movementUx.reviewRequired', { defaultValue: 'Revisar datos' })
   const amountLabel = item.amount !== null && item.currency ? `${item.type === 'income' ? '+' : item.type === 'expense' ? '-' : ''}${formatMoney(item.amount, item.currency)}` : t('movementUx.reviewRequired', { defaultValue: 'Revisar datos' })
   const confidence = confidenceView(item.recognitionConfidence)
+  const isPayment = paymentOccurrenceId !== NORMAL_MOVEMENT
   return (
     <FintCard p="$3" gap="$3" opacity={isPending ? 0.65 : 1}>
       <XStack items="center" gap="$3" role="button" onPress={isPending ? undefined : onToggle}>
@@ -197,7 +225,9 @@ function PendingCard({ categories, category, categoryError, expanded, isPending,
           {canQuickConfirm && item.type ? (
             <>
               {referencesLoading ? <SkeletonGroup label={t('states.loading')}><SkeletonList rows={1} /></SkeletonGroup> : null}
-              {!referencesLoading ? <FintFormField label={t('forms.category')} required error={categoryError} showLabel={false}><CategoryPickerSheet categories={categories} type={item.type} value={category} showLabel={false} onValueChange={onCategoryChange} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<Shapes size={20} color="$primary" />} invalid={Boolean(categoryError)} label={t('forms.category')} required onPress={onPress} value={selectedLabel} />} /></FintFormField> : null}
+              {item.type === 'expense' && paymentOccurrences.length ? <FintFormField label="Aplicar a pago" showLabel={false}><FintSheetSelect label="Aplicar a pago" showLabel={false} placeholder="Movimiento normal" value={paymentOccurrenceId} onValueChange={onPaymentOccurrenceChange} options={[{ value: NORMAL_MOVEMENT, label: 'Movimiento normal' }, ...paymentOccurrences.map((occurrence) => ({ value: occurrence.id, label: `${occurrence.title} · ${formatMoney(occurrence.remainingAmount ?? 0, occurrence.currency)}` }))]} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<CalendarClock size={20} color="$primary" />} label="Aplicar a pago" onPress={onPress} value={selectedLabel} />} /></FintFormField> : null}
+              {!referencesLoading && !isPayment ? <FintFormField label={t('forms.category')} required error={categoryError} showLabel={false}><CategoryPickerSheet categories={categories} type={item.type} value={category} showLabel={false} onValueChange={onCategoryChange} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<Shapes size={20} color="$primary" />} invalid={Boolean(categoryError)} label={t('forms.category')} required onPress={onPress} value={selectedLabel} />} /></FintFormField> : null}
+              {isPayment ? <Paragraph color="$color10" fontSize="$1">Se registrará como pago de la ocurrencia y usará la categoría configurada en ese pago recurrente.</Paragraph> : null}
             </>
           ) : (
             <YStack bg="$muted" rounded="$5" p="$3" gap="$2">
@@ -214,6 +244,11 @@ function PendingCard({ categories, category, categoryError, expanded, isPending,
       ) : null}
     </FintCard>
   )
+}
+
+function compatibleOccurrences(occurrences: Awaited<ReturnType<typeof financeApi.listPaymentOccurrences>>, item: PendingMovementCard) {
+  if (item.type !== 'expense' || item.amount === null || !item.currency) return []
+  return occurrences.filter((occurrence) => occurrence.currency === item.currency && occurrence.amountStatus === 'confirmed' && (occurrence.remainingAmount ?? 0) >= item.amount!)
 }
 
 type ConfidenceView = { score: number; label: string; color: '$green10' | '$yellow10' | '$red10'; bg: '$green3' | '$yellow3' | '$red3' }

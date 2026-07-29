@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CalendarDays, Save, Shapes, Trash2, WalletCards } from '@tamagui/lucide-icons-2'
+import { CalendarClock, CalendarDays, Save, Shapes, Trash2, WalletCards } from '@tamagui/lucide-icons-2'
 import { useToastController } from '@tamagui/toast'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
@@ -7,7 +7,8 @@ import { useTranslation } from 'react-i18next'
 import { Button, Dialog, Paragraph, Spinner, XStack, YStack } from 'tamagui'
 import { z } from 'zod'
 import { financeApi } from '../src/api/finance'
-import type { TransactionType } from '../src/api/types'
+import { formatMoney } from '../src/api/mappers'
+import type { PendingMovementDetail, PaymentOccurrence, TransactionType } from '../src/api/types'
 import { CategoryPickerSheet } from '../src/components/CategoryPickerSheet'
 import { DataStateCard } from '../src/components/DataStateCard'
 import { MovementAmountField, MovementNoteField, MovementPickerTrigger, MovementTypeSelector } from '../src/components/MovementFormControls'
@@ -18,6 +19,7 @@ import { getValidationMessage, parseDecimalInput, useSubmitValidation } from '..
 import { FintButton, FintDateField, FintFormField, FintSheetSelect } from '../src/ui'
 
 type PendingField = 'accountId' | 'amount' | 'categoryId' | 'transactionDate'
+const NORMAL_MOVEMENT = '__transaction__'
 
 export default function PendingReviewScreen() {
   const router = useRouter()
@@ -32,6 +34,7 @@ export default function PendingReviewScreen() {
   const [transactionDate, setTransactionDate] = useState(todayDateString)
   const [accountId, setAccountId] = useState('')
   const [category, setCategory] = useState('')
+  const [paymentOccurrenceId, setPaymentOccurrenceId] = useState(NORMAL_MOVEMENT)
   const [note, setNote] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [discardOpen, setDiscardOpen] = useState(false)
@@ -40,10 +43,13 @@ export default function PendingReviewScreen() {
   const detailQuery = useQuery({ queryKey: ['pending-movements', 'detail', pendingId], queryFn: ({ signal }) => financeApi.getPendingMovement(pendingId, signal), enabled: Boolean(pendingId), retry: false })
   const accountsQuery = useQuery({ queryKey: ['account-options'], queryFn: () => financeApi.listAccountOptions(), enabled: Boolean(detailQuery.data), retry: false })
   const categoriesQuery = useQuery({ queryKey: ['categories', type], queryFn: () => financeApi.listCategories(type), enabled: Boolean(detailQuery.data), retry: false })
+  const occurrencesQuery = useQuery({ queryKey: ['payment-occurrences', 'open'], queryFn: ({ signal }) => financeApi.listPaymentOccurrences({ status: 'open' }, signal), enabled: Boolean(detailQuery.data), retry: false })
   const accounts = accountsQuery.data ?? []
   const categories = categoriesQuery.data ?? []
   const selectedAccount = accounts.find((item) => item.id === accountId)
   const selectedCategory = categories.find((item) => item.name === category)
+  const selectedOccurrence = occurrencesQuery.data?.find((occurrence) => occurrence.id === paymentOccurrenceId)
+  const paymentOccurrences = compatibleOccurrences(occurrencesQuery.data ?? [], detailQuery.data)
   const isReferenceLoading = accountsQuery.isLoading || categoriesQuery.isLoading
   const isFormLoading = detailQuery.isLoading || (Boolean(detailQuery.data) && isReferenceLoading)
 
@@ -52,7 +58,7 @@ export default function PendingReviewScreen() {
     amount: z.number({ error: getValidationMessage(t, i18n.resolvedLanguage, 'amount') }).positive(getValidationMessage(t, i18n.resolvedLanguage, 'positiveAmount')),
     transactionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, getValidationMessage(t, i18n.resolvedLanguage, 'date')),
     accountId: z.string().uuid(requiredMessage),
-    categoryId: z.string().uuid(requiredMessage),
+    categoryId: paymentOccurrenceId === NORMAL_MOVEMENT ? z.string().uuid(requiredMessage) : z.string().optional(),
   })
 
   useEffect(() => {
@@ -74,14 +80,27 @@ export default function PendingReviewScreen() {
   }, [categories, category])
 
   const confirmMutation = useMutation({
-    mutationFn: (payload: z.infer<typeof schema> & { currency: string }) => {
+    mutationFn: (payload: z.infer<typeof schema> & { currency: string; categoryId?: string | null }) => {
       const detail = detailQuery.data
       if (!detail) throw new Error(t('states.error'))
+      if (selectedOccurrence) return financeApi.confirmPendingMovement(pendingId, {
+        mode: 'payment',
+        paymentOccurrenceId: selectedOccurrence.id,
+        title: detail.title,
+        type: 'expense',
+        amount: payload.amount,
+        currency: selectedOccurrence.currency,
+        transactionDate: payload.transactionDate,
+        accountId: payload.accountId,
+        categoryId: null,
+        note: note.trim() || null,
+      })
       return financeApi.confirmPendingMovement(pendingId, {
         mode: 'transaction',
         title: detail.title,
         type,
         ...payload,
+        categoryId: payload.categoryId!,
         note: note.trim() || null,
       })
     },
@@ -112,9 +131,9 @@ export default function PendingReviewScreen() {
       amount: parseDecimalInput(amount),
       transactionDate,
       accountId,
-      categoryId: selectedCategory?.id ?? '',
+      categoryId: paymentOccurrenceId === NORMAL_MOVEMENT ? selectedCategory?.id ?? '' : undefined,
     })
-    if (payload && selectedAccount) confirmMutation.mutate({ ...payload, currency: selectedAccount.currency })
+    if (payload && selectedAccount) confirmMutation.mutate({ ...payload, currency: selectedOccurrence?.currency ?? selectedAccount.currency })
   }
   const isPending = confirmMutation.isPending || discardMutation.isPending
 
@@ -126,7 +145,7 @@ export default function PendingReviewScreen() {
         {detailQuery.error ? <DataStateCard message={detailQuery.error instanceof Error ? detailQuery.error.message : t('states.error')} onRetry={() => { void detailQuery.refetch() }} /> : null}
         {detailQuery.data && !isReferenceLoading ? (
           <YStack gap="$5" pb="$5">
-            <MovementTypeSelector value={type} onValueChange={(value) => { setType(value); setCategory(''); validation.clearError('categoryId'); setErrorMessage(null) }} />
+            <MovementTypeSelector value={type} onValueChange={(value) => { setType(value); setCategory(''); setPaymentOccurrenceId(NORMAL_MOVEMENT); validation.clearError('categoryId'); setErrorMessage(null) }} />
 
             <YStack gap="$1" px="$1">
               <Paragraph color="$color10" fontSize="$1" fontWeight="600">{t('forms.title', { defaultValue: 'Título del correo' })}</Paragraph>
@@ -139,9 +158,10 @@ export default function PendingReviewScreen() {
                 <FintFormField label={t('forms.account')} required error={validation.errors.accountId} showLabel={false}>
                   <FintSheetSelect label={t('forms.account')} showLabel={false} placeholder={accounts.length ? t('movements.selectAccount') : t('debts.noPaymentAccounts')} value={accountId} onValueChange={(value) => { setAccountId(value); validation.clearError('accountId') }} options={accounts.map((item) => ({ value: item.id, label: `${item.name} · ${item.currency}` }))} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<WalletCards size={21} color="$primary" />} invalid={Boolean(validation.errors.accountId)} label={t('forms.account')} required onPress={onPress} value={selectedLabel} />} />
                 </FintFormField>
-                <FintFormField label={t('forms.category')} required error={validation.errors.categoryId} showLabel={false}>
+                {type === 'expense' && paymentOccurrences.length ? <FintFormField label="Aplicar a pago" showLabel={false}><FintSheetSelect label="Aplicar a pago" showLabel={false} placeholder="Movimiento normal" value={paymentOccurrenceId} onValueChange={(value) => { setPaymentOccurrenceId(value); validation.clearError('categoryId') }} options={[{ value: NORMAL_MOVEMENT, label: 'Movimiento normal' }, ...paymentOccurrences.map((occurrence) => ({ value: occurrence.id, label: `${occurrence.title} · ${formatMoney(occurrence.remainingAmount ?? 0, occurrence.currency)}` }))]} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<CalendarClock size={21} color="$primary" />} label="Aplicar a pago" onPress={onPress} value={selectedLabel} />} /></FintFormField> : null}
+                {paymentOccurrenceId === NORMAL_MOVEMENT ? <FintFormField label={t('forms.category')} required error={validation.errors.categoryId} showLabel={false}>
                   <CategoryPickerSheet categories={categories} showLabel={false} type={type} value={category} onValueChange={(value) => { setCategory(value); validation.clearError('categoryId') }} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<Shapes size={21} color="$primary" />} invalid={Boolean(validation.errors.categoryId)} label={t('forms.category')} required onPress={onPress} value={selectedLabel} />} />
-                </FintFormField>
+                </FintFormField> : <Paragraph color="$color10" fontSize="$1">Se registrará como pago de la ocurrencia y usará la categoría configurada en ese pago recurrente.</Paragraph>}
             </YStack>
 
             <FintFormField label={t('movements.date')} required error={validation.errors.transactionDate} showLabel={false}>
@@ -172,6 +192,11 @@ async function invalidatePendingAndFinance(queryClient: ReturnType<typeof useQue
     queryClient.invalidateQueries({ queryKey: ['accounts'] }),
     queryClient.invalidateQueries({ queryKey: ['reports'] }),
   ])
+}
+
+function compatibleOccurrences(occurrences: PaymentOccurrence[], detail: PendingMovementDetail | undefined) {
+  if (!detail || detail.type !== 'expense' || detail.amount === null || !detail.currency) return []
+  return occurrences.filter((occurrence) => occurrence.currency === detail.currency && occurrence.amountStatus === 'confirmed' && (occurrence.remainingAmount ?? 0) >= detail.amount!)
 }
 
 function DiscardPendingDialog({ isPending, onCancel, onConfirm, open }: { isPending: boolean; onCancel: () => void; onConfirm: () => void; open: boolean }) {

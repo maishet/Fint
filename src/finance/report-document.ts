@@ -137,7 +137,7 @@ function formatDateTime(value: string, locale: string) {
 }
 
 function formatMoney(value: number, currency: string, locale: string) {
-  return new Intl.NumberFormat(locale, { style: 'currency', currency, maximumFractionDigits: 2 }).format(value)
+  return new Intl.NumberFormat(locale, { style: 'currency', currency, currencyDisplay: 'code', maximumFractionDigits: 2 }).format(value)
 }
 
 function csvCell(value: string | number | null) {

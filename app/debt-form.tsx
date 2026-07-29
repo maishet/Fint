@@ -1,44 +1,56 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarDays, CreditCard, FileText, Repeat, Save, Shapes } from '@tamagui/lucide-icons-2'
 import { useToastController } from '@tamagui/toast'
-import { Stack, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Paragraph, ScrollView, Spinner, XStack, YStack } from 'tamagui'
+import { Paragraph, Spinner, XStack, YStack } from 'tamagui'
 import { z } from 'zod'
 import { financeApi } from '../src/api/finance'
 import type { PaymentRule } from '../src/api/types'
+import { CategoryPickerSheet } from '../src/components/CategoryPickerSheet'
 import { DataStateCard } from '../src/components/DataStateCard'
 import { FormTextField, MovementAmountField, MovementPickerTrigger } from '../src/components/MovementFormControls'
 import { Screen } from '../src/components/Screen'
 import { SkeletonForm } from '../src/components/Skeleton'
+import { currencyOptions } from '../src/finance/currencies'
 import { todayDateString } from '../src/finance/dates'
 import { getValidationMessage, parseDecimalInput, useSubmitValidation } from '../src/forms'
-import { FintButton, FintCard, FintDateField, FintFormField } from '../src/ui'
+import { FintButton, FintCard, FintDateField, FintFormField, FintSheetSelect } from '../src/ui'
 
 type RuleKind = 'fixed_payment' | 'credit_card'
 type Frequency = PaymentRule['frequency']
 
 export default function DebtFormScreen() {
+  const params = useLocalSearchParams<{ ruleId?: string | string[] }>()
+  const ruleId = Array.isArray(params.ruleId) ? params.ruleId[0] : params.ruleId
+  const isEditing = Boolean(ruleId)
   const { i18n, t } = useTranslation()
   const router = useRouter()
   const toast = useToastController()
   const queryClient = useQueryClient()
   const categoriesQuery = useQuery({ queryKey: ['categories', 'expense'], queryFn: () => financeApi.listCategories('expense'), retry: false })
   const cardsQuery = useQuery({ queryKey: ['account-options', 'credit-card'], queryFn: () => financeApi.listAccountOptions({ accountType: 'credit_card' }), retry: false })
+  const rulesQuery = useQuery({ queryKey: ['payment-rules'], queryFn: financeApi.listPaymentRules, retry: false })
   const optionsQuery = useQuery({ queryKey: ['finance-options'], queryFn: financeApi.getFinanceOptions, retry: false })
   const categories = categoriesQuery.data ?? []
-  const cards = cardsQuery.data ?? []
+  const rules = rulesQuery.data ?? []
+  const currentRule = rules.find((rule) => rule.id === ruleId)
+  const usedCardIds = new Set(rules.filter((rule) => rule.kind === 'credit_card' && rule.status !== 'ended' && rule.id !== ruleId && rule.cardAccountId).map((rule) => rule.cardAccountId!))
+  const cards = (cardsQuery.data ?? []).filter((card) => !usedCardIds.has(card.id))
   const [kind, setKind] = useState<RuleKind>('fixed_payment')
   const [title, setTitle] = useState('')
   const [amount, setAmount] = useState('')
+  const [selectedCurrency, setSelectedCurrency] = useState('PEN')
   const [frequency, setFrequency] = useState<Frequency>('monthly')
   const [startDate, setStartDate] = useState(todayDateString)
   const [categoryId, setCategoryId] = useState('')
   const [cardAccountId, setCardAccountId] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const validation = useSubmitValidation<'title' | 'amount' | 'categoryId' | 'cardAccountId' | 'startDate'>()
-  const currency = cards.find((card) => card.id === cardAccountId)?.currency ?? optionsQuery.data?.baseCurrency ?? 'PEN'
+  const selectedCategory = categories.find((category) => category.id === categoryId)
+  const selectedCard = cards.find((card) => card.id === cardAccountId) ?? (cardsQuery.data ?? []).find((card) => card.id === cardAccountId)
+  const currency = kind === 'credit_card' ? selectedCard?.currency ?? currentRule?.currency ?? optionsQuery.data?.baseCurrency ?? 'PEN' : selectedCurrency
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Lima'
   const amountMessage = getValidationMessage(t, i18n.resolvedLanguage, 'amount')
   const schema = z.object({
@@ -49,8 +61,31 @@ export default function DebtFormScreen() {
     startDate: z.string().date(getValidationMessage(t, i18n.resolvedLanguage, 'date')),
   })
 
+  useEffect(() => {
+    if (!currentRule) return
+    setKind(currentRule.kind)
+    setTitle(currentRule.title)
+    setFrequency(currentRule.frequency)
+    setStartDate(currentRule.startDate)
+    setAmount(currentRule.fixedAmount ? String(currentRule.fixedAmount) : '')
+    setSelectedCurrency(currentRule.currency)
+    setCategoryId(currentRule.categoryId ?? '')
+    setCardAccountId(currentRule.cardAccountId ?? '')
+  }, [currentRule])
+
+  useEffect(() => {
+    if (currentRule || !optionsQuery.data?.baseCurrency) return
+    setSelectedCurrency(optionsQuery.data.baseCurrency)
+  }, [currentRule, optionsQuery.data?.baseCurrency])
+
   const mutation = useMutation({
     mutationFn: async (payload: z.infer<typeof schema>) => {
+      if (ruleId) {
+        const input = kind === 'fixed_payment'
+          ? { title: payload.title, frequency, fixedAmount: payload.amount!, categoryId: payload.categoryId!, startDate: payload.startDate }
+          : { title: payload.title, frequency, startDate: payload.startDate }
+        return financeApi.updatePaymentRule(ruleId, input)
+      }
       if (kind === 'fixed_payment') return financeApi.createPaymentRule({ kind, title: payload.title, frequency, currency, fixedAmount: payload.amount!, categoryId: payload.categoryId!, timezone, startDate: payload.startDate })
       return financeApi.createPaymentRule({ kind, title: payload.title, frequency, currency, cardAccountId: payload.cardAccountId!, timezone, startDate: payload.startDate })
     },
@@ -61,10 +96,10 @@ export default function DebtFormScreen() {
         queryClient.invalidateQueries({ queryKey: ['summary'] }),
         queryClient.invalidateQueries({ queryKey: ['reports'] }),
       ])
-      toast.show('Pago recurrente creado', { message: 'La primera ocurrencia ya está lista.', preset: 'success', duration: 3500 })
+      toast.show(isEditing ? 'Pago actualizado' : 'Pago recurrente creado', { message: isEditing ? 'Los cambios se guardaron.' : 'La primera ocurrencia ya está lista.', preset: 'success', duration: 3500 })
       router.back()
     },
-    onError: () => setErrorMessage('No se pudo crear el pago recurrente.'),
+    onError: () => setErrorMessage(isEditing ? 'No se pudo actualizar el pago recurrente.' : 'No se pudo crear el pago recurrente.'),
   })
 
   const submit = () => {
@@ -73,46 +108,53 @@ export default function DebtFormScreen() {
     if (payload) mutation.mutate(payload)
   }
 
-  const isLoading = categoriesQuery.isLoading || cardsQuery.isLoading || optionsQuery.isLoading
-  const error = categoriesQuery.error ?? cardsQuery.error ?? optionsQuery.error
+  const isLoading = categoriesQuery.isLoading || cardsQuery.isLoading || rulesQuery.isLoading || optionsQuery.isLoading
+  const error = categoriesQuery.error ?? cardsQuery.error ?? rulesQuery.error ?? optionsQuery.error
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Nuevo pago recurrente' }} />
+      <Stack.Screen options={{ title: isEditing ? 'Editar pago recurrente' : 'Nuevo pago recurrente' }} />
       <Screen>
         {isLoading ? <SkeletonForm label={t('states.loading')} fieldCount={4} /> : null}
         {error ? <DataStateCard message={error instanceof Error ? error.message : t('states.error')} /> : null}
-        {!isLoading && !error ? (
+        {!isLoading && !error && isEditing && !currentRule ? <DataStateCard message="No encontramos este pago recurrente. Vuelve a la lista e inténtalo nuevamente." /> : null}
+        {!isLoading && !error && (!isEditing || currentRule) ? (
           <YStack gap="$5" pb="$5">
-            <FintCard gap="$3" p="$3">
-              <Paragraph color="$color10" fontSize="$1" fontWeight="600">Tipo de pago</Paragraph>
-              <XStack gap="$2">
-                <KindButton icon={<Repeat size={18} color={kind === 'fixed_payment' ? '$primaryForeground' : '$primary'} />} label="Pago fijo" selected={kind === 'fixed_payment'} onPress={() => setKind('fixed_payment')} />
-                <KindButton icon={<CreditCard size={18} color={kind === 'credit_card' ? '$primaryForeground' : '$primary'} />} label="Tarjeta" selected={kind === 'credit_card'} onPress={() => setKind('credit_card')} />
-              </XStack>
-            </FintCard>
+            <PaymentKindSelector disabled={isEditing} value={kind} onValueChange={(value) => { setKind(value); setErrorMessage(null); validation.clearError('categoryId'); validation.clearError('cardAccountId') }} />
 
             <FormTextField label={t('forms.name')} required error={validation.errors.title} icon={<FileText size={21} color="$primary" />} placeholder="Ej. Alquiler, Internet, BCP Visa" value={title} onChangeText={(value) => { setTitle(value); validation.clearError('title') }} />
 
-            {kind === 'fixed_payment' ? <MovementAmountField currency={currency} error={validation.errors.amount} value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} /> : null}
+            {kind === 'fixed_payment' ? (
+              isEditing ? (
+                <MovementAmountField currency={currency} error={validation.errors.amount} helperText="La moneda no se puede cambiar al editar un pago recurrente para mantener consistentes sus ocurrencias y pagos." value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} />
+              ) : (
+                <FintSheetSelect label={t('forms.currency')} showLabel={false} placeholder={t('forms.select')} searchable searchPlaceholder={t('accounts.searchCurrency')} value={selectedCurrency} onValueChange={setSelectedCurrency} options={currencyOptions} renderTrigger={({ onPress }) => <MovementAmountField currency={currency} error={validation.errors.amount} helperText="Toca la moneda del monto para cambiarla." value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} onCurrencyPress={onPress} />} />
+              )
+            ) : null}
 
             <FintFormField label="Frecuencia" showLabel={false}>
-              <FintCard gap="$3" p="$3">
-                <Paragraph color="$color10" fontSize="$1" fontWeight="600">Frecuencia</Paragraph>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
-                  {(['weekly', 'biweekly', 'monthly', 'yearly'] as const).map((item) => <OptionPill key={item} selected={frequency === item} title={frequencyLabel(item)} onPress={() => setFrequency(item)} />)}
-                </ScrollView>
-              </FintCard>
+              <FintSheetSelect label="Frecuencia" showLabel={false} placeholder="Selecciona frecuencia" value={frequency} onValueChange={(value) => setFrequency(value as Frequency)} options={(['weekly', 'biweekly', 'monthly', 'yearly'] as const).map((item) => ({ value: item, label: frequencyLabel(item) }))} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<Repeat size={21} color="$primary" />} label="Frecuencia" required onPress={onPress} value={selectedLabel} />} />
             </FintFormField>
 
             <FintFormField label="Primera fecha" required error={validation.errors.startDate} showLabel={false}><FintDateField label="Primera fecha" showLabel={false} placeholder="Selecciona fecha" value={startDate} onValueChange={(value) => { setStartDate(value); validation.clearError('startDate') }} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<CalendarDays size={21} color="$primary" />} invalid={Boolean(validation.errors.startDate)} label="Primera fecha" required onPress={onPress} value={selectedLabel} />} /></FintFormField>
 
-            {kind === 'fixed_payment' ? <OptionRail title="Categoría" empty="Crea primero una categoría de gasto." error={validation.errors.categoryId}>{categories.map((category) => <SelectCard key={category.id} icon={<Shapes size={18} color="$primary" />} selected={categoryId === category.id} title={`${category.icon ?? ''} ${category.name}`.trim()} subtitle="Gasto" onPress={() => { setCategoryId(category.id); validation.clearError('categoryId') }} />)}</OptionRail> : null}
-            {kind === 'credit_card' ? <OptionRail title="Tarjeta" empty="Crea primero una cuenta de tipo tarjeta." error={validation.errors.cardAccountId}>{cards.map((card) => <SelectCard key={card.id} icon={<CreditCard size={18} color="$primary" />} selected={cardAccountId === card.id} title={card.name} subtitle={card.currency} onPress={() => { setCardAccountId(card.id); validation.clearError('cardAccountId') }} />)}</OptionRail> : null}
+            {kind === 'fixed_payment' ? (
+              <FintFormField label="Categoría" required error={validation.errors.categoryId} showLabel={false}>
+                <CategoryPickerSheet categories={categories} showLabel={false} type="expense" value={selectedCategory?.name ?? ''} onValueChange={(name) => { setCategoryId(categories.find((category) => category.name === name)?.id ?? ''); validation.clearError('categoryId') }} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<Shapes size={21} color="$primary" />} invalid={Boolean(validation.errors.categoryId)} label="Categoría" required onPress={onPress} value={selectedLabel} />} />
+                {categories.length === 0 ? <ReferenceHint message="Crea primero una categoría de gasto." action="Crear categoría" onPress={() => router.push('/categories')} /> : null}
+              </FintFormField>
+            ) : null}
+
+            {kind === 'credit_card' ? (
+              <FintFormField label="Tarjeta" required error={validation.errors.cardAccountId} showLabel={false}>
+                {isEditing ? <MovementPickerTrigger icon={<CreditCard size={21} color="$primary" />} invalid={Boolean(validation.errors.cardAccountId)} label="Tarjeta" required onPress={() => undefined} value={selectedCard ? `${selectedCard.name} · ${selectedCard.currency}` : 'Tarjeta no disponible'} /> : <FintSheetSelect label="Tarjeta" showLabel={false} placeholder="Selecciona tarjeta" searchable value={cardAccountId} onValueChange={(value) => { setCardAccountId(value); validation.clearError('cardAccountId') }} options={cards.map((card) => ({ value: card.id, label: `${card.name} · ${card.currency}` }))} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<CreditCard size={21} color="$primary" />} invalid={Boolean(validation.errors.cardAccountId)} label="Tarjeta" required onPress={onPress} value={selectedLabel} />} />}
+                {cards.length === 0 && !isEditing ? <ReferenceHint message="Crea una tarjeta o elimina la regla existente de esa tarjeta." action="Crear cuenta" onPress={() => router.push('/account-form')} /> : null}
+              </FintFormField>
+            ) : null}
 
             {errorMessage ? <XStack bg="$red2" borderColor="$red6" borderWidth={1} rounded="$5" p="$3"><Paragraph color="$red11" fontSize="$2">{errorMessage}</Paragraph></XStack> : null}
             <YStack gap="$2">
-              <FintButton width="100%" minH={52} disabled={mutation.isPending} icon={mutation.isPending ? <Spinner color="$primaryForeground" /> : <Save size={18} />} onPress={submit}>{mutation.isPending ? 'Creando...' : 'Crear pago recurrente'}</FintButton>
+              <FintButton width="100%" minH={52} disabled={mutation.isPending} icon={mutation.isPending ? <Spinner color="$primaryForeground" /> : <Save size={18} />} onPress={submit}>{mutation.isPending ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Crear pago recurrente'}</FintButton>
               <FintButton width="100%" minH={48} variant="outlined" disabled={mutation.isPending} onPress={() => router.back()}>{t('actions.cancel')}</FintButton>
             </YStack>
           </YStack>
@@ -122,20 +164,40 @@ export default function DebtFormScreen() {
   )
 }
 
-function KindButton({ icon, label, onPress, selected }: { icon: React.ReactNode; label: string; onPress: () => void; selected: boolean }) {
-  return <XStack flex={1} items="center" justify="center" gap="$2" minH={50} rounded="$6" bg={selected ? '$primary' : '$muted'} borderColor={selected ? '$primary' : '$input'} borderWidth={1} onPress={onPress} role="button" cursor="pointer">{icon}<Paragraph color={selected ? '$primaryForeground' : '$color12'} fontWeight="800">{label}</Paragraph></XStack>
+function PaymentKindSelector({ disabled = false, onValueChange, value }: { disabled?: boolean; onValueChange: (value: RuleKind) => void; value: RuleKind }) {
+  return (
+    <FintCard p="$1" bg="$muted" rounded="$7">
+      <XStack gap="$1">
+        {(['fixed_payment', 'credit_card'] as const).map((option) => {
+          const selected = value === option
+          const card = option === 'credit_card'
+          const label = card ? 'Tarjeta' : 'Pago fijo'
+          const Icon = card ? CreditCard : Repeat
+          return (
+            <FintButton
+              key={option}
+              flex={1}
+              minH={56}
+              variant="solid"
+              disabled={disabled}
+              bg={selected ? '$secondary' : 'transparent'}
+              color={selected ? '$primary' : '$color10'}
+              borderColor={selected ? '$primary' : 'transparent'}
+              borderWidth={1}
+              icon={<YStack width={30} height={30} rounded="$10" bg={selected ? '$primary' : '$color4'} items="center" justify="center"><Icon size={16} color={selected ? '$primaryForeground' : '$color10'} /></YStack>}
+              onPress={() => onValueChange(option)}
+            >
+              {label}
+            </FintButton>
+          )
+        })}
+      </XStack>
+    </FintCard>
+  )
 }
 
-function OptionPill({ onPress, selected, title }: { onPress: () => void; selected: boolean; title: string }) {
-  return <XStack minH={44} px="$4" items="center" rounded="$10" bg={selected ? '$secondary' : '$muted'} borderColor={selected ? '$primary' : '$input'} borderWidth={1} onPress={onPress} role="button" cursor="pointer"><Paragraph color={selected ? '$primary' : '$color12'} fontWeight="800">{title}</Paragraph></XStack>
-}
-
-function OptionRail({ children, empty, error, title }: { children: React.ReactNode; empty: string; error?: string; title: string }) {
-  return <FintFormField label={title} required error={error}><FintCard gap="$3" p="$3"><Paragraph color="$color10" fontSize="$1" fontWeight="600">{title}</Paragraph><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>{children}</ScrollView>{!children ? <Paragraph color="$color10" fontSize="$1">{empty}</Paragraph> : null}</FintCard></FintFormField>
-}
-
-function SelectCard({ icon, onPress, selected, subtitle, title }: { icon: React.ReactNode; onPress: () => void; selected: boolean; subtitle: string; title: string }) {
-  return <XStack width={190} minH={68} items="center" gap="$3" p="$3" rounded="$6" bg={selected ? '$secondary' : '$muted'} borderColor={selected ? '$primary' : '$input'} borderWidth={1} onPress={onPress} role="button" cursor="pointer">{icon}<YStack flex={1} minW={0}><Paragraph color="$color12" fontWeight="700" numberOfLines={1}>{title}</Paragraph><Paragraph color="$color10" fontSize="$1" numberOfLines={1}>{subtitle}</Paragraph></YStack></XStack>
+function ReferenceHint({ action, message, onPress }: { action: string; message: string; onPress: () => void }) {
+  return <YStack bg="$secondary" gap="$2" mt="$2" p="$3" rounded="$5"><Paragraph color="$color12" fontWeight="700">{message}</Paragraph><FintButton size="$3" variant="outlined" onPress={onPress}>{action}</FintButton></YStack>
 }
 
 function frequencyLabel(value: Frequency) {

@@ -1,9 +1,10 @@
-import { useQuery } from '@tanstack/react-query'
-import { CalendarClock, CheckCircle2, CreditCard, HandCoins, Plus } from '@tamagui/lucide-icons-2'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { CalendarClock, CheckCircle2, CreditCard, HandCoins, Plus, Trash2 } from '@tamagui/lucide-icons-2'
+import { useToastController } from '@tamagui/toast'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Paragraph, Spinner, XStack, YStack } from 'tamagui'
+import { Button, Dialog, Paragraph, Spinner, XStack, YStack } from 'tamagui'
 import { financeApi } from '../../src/api/finance'
 import { formatMoney } from '../../src/api/mappers'
 import type { PaymentOccurrence } from '../../src/api/types'
@@ -22,8 +23,11 @@ export default function DebtsScreen() {
   const { t, i18n } = useTranslation()
   const router = useRouter()
   const { themeMode } = useThemeMode()
+  const queryClient = useQueryClient()
+  const toast = useToastController()
   const [paymentOccurrence, setPaymentOccurrence] = useState<PaymentOccurrence | null>(null)
   const [amountOccurrence, setAmountOccurrence] = useState<PaymentOccurrence | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<PaymentOccurrence | null>(null)
   const pressOnce = usePressOnce()
   const occurrencesQuery = useQuery({ queryKey: ['payment-occurrences', 'open'], queryFn: ({ signal }) => financeApi.listPaymentOccurrences({ status: 'open' }, signal), retry: false })
   const accountsQuery = useQuery({ queryKey: ['account-options', 'occurrence-payment', paymentOccurrence?.currency], queryFn: () => financeApi.listAccountOptions({ currency: paymentOccurrence?.currency, excludeAccountType: 'credit_card' }), retry: false, enabled: Boolean(paymentOccurrence) })
@@ -38,7 +42,20 @@ export default function DebtsScreen() {
   const error = occurrencesQuery.error
 
   const openCreate = () => pressOnce(() => router.push('/debt-form'))
-
+  const deleteMutation = useMutation({
+    mutationFn: financeApi.deletePaymentRule,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['payment-rules'] }),
+        queryClient.invalidateQueries({ queryKey: ['payment-occurrences'] }),
+        queryClient.invalidateQueries({ queryKey: ['summary'] }),
+        queryClient.invalidateQueries({ queryKey: ['reports'] }),
+      ])
+      setDeleteTarget(null)
+      toast.show('Pago eliminado', { message: 'La regla y sus ocurrencias abiertas fueron retiradas.', preset: 'success' })
+    },
+    onError: () => toast.show('No se pudo eliminar', { preset: 'error' }),
+  })
   return (
     <>
       <Screen isRefreshing={isRefreshing} onRefresh={() => { void occurrencesQuery.refetch() }}>
@@ -58,7 +75,7 @@ export default function DebtsScreen() {
             <Paragraph color="$color12" fontFamily="$heading" fontSize="$6" fontWeight="700">{t('payments.upcoming', { defaultValue: 'Próximos pagos' })}</Paragraph>
             {!isLoading ? <Paragraph color="$color10" fontSize="$2">{t('payments.count', { count: occurrences.length, defaultValue: '{{count}} pagos' })}</Paragraph> : null}
           </YStack>
-          <Button circular bg="$primary" icon={<Plus size={22} color="$primaryForeground" />} onPress={openCreate} aria-label={t('debts.newTitle')} />
+          <Button circular bg="$primary" icon={<Plus size={22} color="$primaryForeground" />} onPress={openCreate} aria-label="Nuevo pago recurrente" />
         </XStack>
 
         {isLoading ? <SkeletonGroup label={t('states.loading')}><SkeletonList rows={3} /></SkeletonGroup> : null}
@@ -66,22 +83,23 @@ export default function DebtsScreen() {
         {!isLoading && !error && occurrences.length === 0 ? (
           <FintCard items="center" gap="$3" py="$6">
             <YStack width={54} height={54} rounded="$10" bg="$secondary" items="center" justify="center"><HandCoins size={26} color="$primary" /></YStack>
-            <Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="700">{t('debts.emptyTitle')}</Paragraph>
-            <Paragraph color="$color10" text="center" maxW={280}>{t('debts.emptyDescription')}</Paragraph>
-            <FintButton icon={<Plus size={16} />} onPress={openCreate}>{t('debts.newTitle')}</FintButton>
+            <Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="700">Sin pagos pendientes</Paragraph>
+            <Paragraph color="$color10" text="center" maxW={280}>Crea un pago recurrente para controlar vencimientos y pagos.</Paragraph>
+            <FintButton icon={<Plus size={16} />} onPress={openCreate}>Nuevo pago recurrente</FintButton>
           </FintCard>
         ) : null}
 
-        {!isLoading && !error ? occurrences.map((occurrence) => <OccurrenceCard key={occurrence.id} occurrence={occurrence} locale={locale} onConfigureAmount={() => setAmountOccurrence(occurrence)} onPay={() => setPaymentOccurrence(occurrence)} />) : null}
+        {!isLoading && !error ? occurrences.map((occurrence) => <OccurrenceCard key={occurrence.id} occurrence={occurrence} isDeleting={deleteMutation.isPending && deleteTarget?.ruleId === occurrence.ruleId} locale={locale} onConfigureAmount={() => setAmountOccurrence(occurrence)} onDelete={() => setDeleteTarget(occurrence)} onEdit={() => occurrence.ruleId && router.push({ pathname: '/debt-form', params: { ruleId: occurrence.ruleId } })} onPay={() => setPaymentOccurrence(occurrence)} />) : null}
       </Screen>
 
       <OccurrencePaymentSheet accounts={accounts} occurrence={paymentOccurrence} open={Boolean(paymentOccurrence)} onOpenChange={(open) => !open && setPaymentOccurrence(null)} />
       <CardAmountsSheet occurrence={amountOccurrence} open={Boolean(amountOccurrence)} onOpenChange={(open) => !open && setAmountOccurrence(null)} />
+      <DeletePaymentRuleDialog occurrence={deleteTarget} isPending={deleteMutation.isPending} onCancel={() => setDeleteTarget(null)} onConfirm={() => deleteTarget?.ruleId && deleteMutation.mutate(deleteTarget.ruleId)} />
     </>
   )
 }
 
-function OccurrenceCard({ locale, occurrence, onConfigureAmount, onPay }: { locale: string; occurrence: PaymentOccurrence; onConfigureAmount: () => void; onPay: () => void }) {
+function OccurrenceCard({ isDeleting, locale, occurrence, onConfigureAmount, onDelete, onEdit, onPay }: { isDeleting: boolean; locale: string; occurrence: PaymentOccurrence; onConfigureAmount: () => void; onDelete: () => void; onEdit: () => void; onPay: () => void }) {
   const { t } = useTranslation()
   const due = getDueState(occurrence.dueDate, locale, t)
   const total = occurrence.totalAmount ?? 0
@@ -90,7 +108,7 @@ function OccurrenceCard({ locale, occurrence, onConfigureAmount, onPay }: { loca
   const needsAmount = occurrence.amountStatus === 'required'
   const kindLabel = occurrence.kind === 'credit_card' ? t('payments.creditCard', { defaultValue: 'Tarjeta' }) : t('payments.fixed', { defaultValue: 'Pago fijo' })
   return (
-    <FintCard p="$3" gap="$3">
+    <FintCard p="$3" gap="$3" onPress={onEdit} role="button" cursor="pointer" pressStyle={{ opacity: 0.78 }}>
       <XStack items="flex-start" gap="$3">
         <YStack width={42} height={42} rounded="$9" bg={due.overdue ? '$red2' : '$secondary'} items="center" justify="center"><CalendarClock size={21} color={due.overdue ? '$red10' : '$primary'} /></YStack>
         <YStack flex={1} minW={0} gap="$1">
@@ -101,7 +119,10 @@ function OccurrenceCard({ locale, occurrence, onConfigureAmount, onPay }: { loca
         <YStack items="flex-end" gap="$1">
           <Paragraph color={needsAmount ? '$yellow10' : '$color12'} fontSize="$4" fontWeight="800" shrink={0}>{needsAmount ? t('payments.configureAmount', { defaultValue: 'Configura monto' }) : formatMoney(remaining, occurrence.currency)}</Paragraph>
           <Paragraph color="$color10" fontSize="$1">{statusLabel(occurrence.paymentStatus)}</Paragraph>
-          <Button circular chromeless size="$3" icon={needsAmount ? <CreditCard size={19} color="$yellow10" /> : <CheckCircle2 size={19} color="$primary" />} onPress={needsAmount ? onConfigureAmount : onPay} aria-label={needsAmount ? 'Configurar monto' : 'Registrar pago'} />
+          <XStack gap="$1">
+            <Button circular chromeless size="$3" icon={needsAmount ? <CreditCard size={19} color="$yellow10" /> : <CheckCircle2 size={19} color="$primary" />} onPress={(event) => { event.stopPropagation(); needsAmount ? onConfigureAmount() : onPay() }} aria-label={needsAmount ? 'Configurar monto' : 'Registrar pago'} />
+            <Button circular chromeless size="$3" disabled={isDeleting} icon={isDeleting ? <Spinner size="small" color="$red10" /> : <Trash2 size={17} color="$red10" />} pressStyle={{ bg: '$red3' }} onPress={(event) => { event.stopPropagation(); onDelete() }} aria-label="Eliminar pago recurrente" />
+          </XStack>
         </YStack>
       </XStack>
       <YStack gap="$1">
@@ -109,6 +130,27 @@ function OccurrenceCard({ locale, occurrence, onConfigureAmount, onPay }: { loca
         <YStack height={5} rounded="$10" bg="$muted" overflow="hidden"><YStack width={`${progress}%`} height="100%" bg="$primary" rounded="$10" /></YStack>
       </YStack>
     </FintCard>
+  )
+}
+
+function DeletePaymentRuleDialog({ isPending, occurrence, onCancel, onConfirm }: { isPending: boolean; occurrence: PaymentOccurrence | null; onCancel: () => void; onConfirm: () => void }) {
+  const { t } = useTranslation()
+  return (
+    <Dialog modal open={Boolean(occurrence)} onOpenChange={(open) => !open && !isPending && onCancel()}>
+      <Dialog.Portal>
+        <Dialog.Overlay key="payment-delete-overlay" bg="rgba(4,18,28,0.68)" />
+        <Dialog.Content key="payment-delete-content" bordered elevate bg="$popover" borderColor="$borderColor" rounded="$7" width="88%" maxW={420} p="$5" gap="$4">
+          <YStack gap="$2">
+            <Dialog.Title color="$color12" fontFamily="$heading" fontSize="$6" fontWeight="700">Eliminar pago recurrente</Dialog.Title>
+            <Dialog.Description color="$color10" fontSize="$3">Se eliminará “{occurrence?.title ?? ''}” y sus ocurrencias abiertas.</Dialog.Description>
+          </YStack>
+          <XStack gap="$3" justify="flex-end">
+            <Button flex={1} chromeless color="$color11" disabled={isPending} onPress={onCancel}>{t('actions.cancel')}</Button>
+            <Button flex={1} bg="$destructive" color="white" fontWeight="700" disabled={isPending} icon={isPending ? <Spinner size="small" color="white" /> : <Trash2 size={17} color="white" />} onPress={onConfirm}>{isPending ? 'Eliminando...' : 'Eliminar'}</Button>
+          </XStack>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog>
   )
 }
 
@@ -126,14 +168,14 @@ function DebtHero({ count, currency, isDark, nextDueDate, total }: { count: numb
     <FintCard bg={isDark ? '#0B3046' : '#0F5D73'} borderColor={isDark ? '#1B5067' : '#28788C'} gap="$4" p="$4">
       <XStack items="center" justify="space-between" gap="$3">
         <YStack flex={1} minW={0} gap="$1">
-          <Paragraph color="#B9D7E1" fontFamily="$heading" fontSize="$2" fontWeight="700" textTransform="uppercase">{t('debts.totalPending')}</Paragraph>
+          <Paragraph color="#B9D7E1" fontFamily="$heading" fontSize="$2" fontWeight="700" textTransform="uppercase">Total pagos pendientes</Paragraph>
           <Paragraph color="#F4FBFD" fontFamily="$body" fontSize="$9" fontWeight="800" lineHeight="$9" numberOfLines={1} adjustsFontSizeToFit>{formatMoney(total, currency)}</Paragraph>
         </YStack>
         <YStack width={48} height={48} rounded="$10" bg="rgba(93,214,229,0.14)" borderColor="rgba(93,214,229,0.24)" borderWidth={1} items="center" justify="center"><HandCoins size={24} color="#5DD6E5" /></YStack>
       </XStack>
       <XStack gap="$4">
-        <HeroMetric accent="#5DD6E5" label={t('debts.activeDebts')} value={String(count)} />
-        <HeroMetric accent="#F28B82" label={t('debts.nextDue')} value={nextDueDate ? formatDateString(nextDueDate, locale) : t('debts.noDueDate')} />
+        <HeroMetric accent="#5DD6E5" label="Pagos activos" value={String(count)} />
+        <HeroMetric accent="#F28B82" label="Próximo vencimiento" value={nextDueDate ? formatDateString(nextDueDate, locale) : t('debts.noDueDate')} />
       </XStack>
     </FintCard>
   )

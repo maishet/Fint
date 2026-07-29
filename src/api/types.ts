@@ -41,7 +41,7 @@ export interface Transaction {
   category: string
   account: string
   note?: string
-  debtId?: string | null
+  paymentOccurrenceId?: string | null
 }
 
 export interface Category {
@@ -88,6 +88,14 @@ export interface PaymentRule {
 export type CreatePaymentRuleInput =
   | { kind: 'fixed_payment'; title: string; frequency: PaymentRule['frequency']; currency: string; fixedAmount: number; categoryId: string; timezone: string; startDate: string }
   | { kind: 'credit_card'; title: string; frequency: PaymentRule['frequency']; currency: string; cardAccountId: string; timezone: string; startDate: string }
+
+export interface UpdatePaymentRuleInput {
+  title?: string
+  frequency?: PaymentRule['frequency']
+  fixedAmount?: number
+  categoryId?: string
+  startDate?: string
+}
 
 export interface PayPaymentOccurrenceInput {
   amount: number
