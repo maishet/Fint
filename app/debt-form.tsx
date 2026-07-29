@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CreditCard, Landmark, Save } from '@tamagui/lucide-icons-2'
+import { CalendarDays, CreditCard, FileText, Landmark, Save } from '@tamagui/lucide-icons-2'
 import { useToastController } from '@tamagui/toast'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
@@ -8,10 +8,12 @@ import { Paragraph, ScrollView, Spinner, XStack, YStack } from 'tamagui'
 import { z } from 'zod'
 import { financeApi } from '../src/api/finance'
 import { DataStateCard } from '../src/components/DataStateCard'
+import { FormTextField, MovementAmountField, MovementNoteField, MovementPickerTrigger } from '../src/components/MovementFormControls'
 import { Screen } from '../src/components/Screen'
+import { SkeletonForm } from '../src/components/Skeleton'
 import { todayDateString } from '../src/finance/dates'
 import { getValidationMessage, parseDecimalInput, useSubmitValidation } from '../src/forms'
-import { FintButton, FintDateField, FintFormField, FintInput } from '../src/ui'
+import { FintButton, FintCard, FintDateField, FintFormField } from '../src/ui'
 
 export default function DebtFormScreen() {
   const { debtId } = useLocalSearchParams<{ debtId?: string }>()
@@ -89,52 +91,40 @@ export default function DebtFormScreen() {
     <>
       <Stack.Screen options={{ title: t(isEditing ? 'debts.editTitle' : 'debts.newTitle') }} />
       <Screen>
-        {isLoading ? <DataStateCard message={t('states.loading')} /> : null}
+        {isLoading ? <SkeletonForm label={t('states.loading')} fieldCount={2} /> : null}
         {error ? <DataStateCard message={error instanceof Error ? error.message : t('states.error')} /> : null}
         {notFound ? <DataStateCard message={t('states.debtNotFound')} /> : null}
 
         {!isLoading && !error && !notFound ? (
           <YStack gap="$5" pb="$5">
-            <FintFormField label={t('forms.name')} required error={validation.errors.description}>
-              <FintInput width="100%" borderColor={validation.errors.description ? '$red8' : undefined} placeholder={t('debts.namePlaceholder')} value={description} onChangeText={(value) => { setDescription(value); validation.clearError('description') }} autoCapitalize="sentences" />
+            <FormTextField label={t('forms.name')} required error={validation.errors.description} icon={<FileText size={21} color="$primary" />} placeholder={t('debts.namePlaceholder')} value={description} onChangeText={(value) => { setDescription(value); validation.clearError('description') }} />
+
+            <MovementAmountField currency={currency} error={validation.errors.amount} value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} />
+
+            <FintFormField label={t('debts.dueDate')} required error={validation.errors.dueDate} showLabel={false}><FintDateField label={t('debts.dueDate')} showLabel={false} placeholder={t('debts.selectDueDate')} value={dueDate} onValueChange={(value) => { setDueDate(value); validation.clearError('dueDate') }} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<CalendarDays size={21} color="$primary" />} invalid={Boolean(validation.errors.dueDate)} label={t('debts.dueDate')} required onPress={onPress} value={selectedLabel} />} /></FintFormField>
+
+            <FintFormField label={t('debts.creditCardOptional')} showLabel={false}>
+              <FintCard gap="$3" p="$3">
+                <Paragraph color="$color10" fontSize="$1" fontWeight="600">{t('debts.creditCardOptional')}</Paragraph>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+                  <CreditCardOption selected={accountId === null} title={t('debts.noCard')} subtitle={optionsQuery.data?.baseCurrency ?? 'PEN'} onPress={() => setAccountId(null)} />
+                  {creditCards.map((card) => (
+                    <CreditCardOption key={card.id} selected={accountId === card.id} title={card.name} subtitle={card.currency} onPress={() => setAccountId(card.id)} />
+                  ))}
+                </ScrollView>
+                {creditCards.length === 0 ? <Paragraph color="$color10" fontSize="$1">{t('debts.noCreditCards')}</Paragraph> : null}
+              </FintCard>
             </FintFormField>
 
-            <FintFormField label={t('forms.amount')} required error={validation.errors.amount}>
-              <FintInput width="100%" borderColor={validation.errors.amount ? '$red8' : undefined} placeholder="0.00" value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} keyboardType="decimal-pad" />
-            </FintFormField>
-
-            <FintFormField label={t('debts.dueDate')} required error={validation.errors.dueDate}><FintDateField borderColor={validation.errors.dueDate ? '$red8' : undefined} label={t('debts.dueDate')} showLabel={false} placeholder={t('debts.selectDueDate')} value={dueDate} onValueChange={(value) => { setDueDate(value); validation.clearError('dueDate') }} /></FintFormField>
-
-            <FintFormField label={t('debts.creditCardOptional')}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
-                <CreditCardOption selected={accountId === null} title={t('debts.noCard')} subtitle={optionsQuery.data?.baseCurrency ?? 'PEN'} onPress={() => setAccountId(null)} />
-                {creditCards.map((card) => (
-                  <CreditCardOption
-                    key={card.id}
-                    selected={accountId === card.id}
-                    title={card.name}
-                    subtitle={card.currency}
-                    onPress={() => setAccountId(card.id)}
-                  />
-                ))}
-              </ScrollView>
-              {creditCards.length === 0 ? <Paragraph color="$color10" fontSize="$1">{t('debts.noCreditCards')}</Paragraph> : null}
-            </FintFormField>
-
-            <FintFormField label={t('debts.noteOptional')}>
-              <FintInput width="100%" placeholder={t('debts.notePlaceholder')} value={note} onChangeText={setNote} multiline minH={88} textAlignVertical="top" />
-            </FintFormField>
+            <MovementNoteField label={t('debts.noteOptional')} placeholder={t('debts.notePlaceholder')} value={note} onChangeText={setNote} />
 
             {errorMessage ? <XStack bg="$red2" borderColor="$red6" borderWidth={1} rounded="$5" p="$3"><Paragraph color="$red11" fontSize="$2">{errorMessage}</Paragraph></XStack> : null}
-            <FintButton
-              width="100%"
-              height={50}
-              disabled={mutation.isPending}
-              icon={mutation.isPending ? <Spinner color="$primaryForeground" /> : isEditing ? <Save size={18} /> : <Landmark size={18} />}
-              onPress={submit}
-            >
-              {mutation.isPending ? t(isEditing ? 'debts.updating' : 'debts.creating') : t(isEditing ? 'debts.update' : 'debts.create')}
-            </FintButton>
+            <YStack gap="$2">
+              <FintButton width="100%" minH={52} disabled={mutation.isPending} icon={mutation.isPending ? <Spinner color="$primaryForeground" /> : isEditing ? <Save size={18} /> : <Landmark size={18} />} onPress={submit}>
+                {mutation.isPending ? t(isEditing ? 'debts.updating' : 'debts.creating') : t(isEditing ? 'debts.update' : 'debts.create')}
+              </FintButton>
+              <FintButton width="100%" minH={48} variant="outlined" disabled={mutation.isPending} onPress={() => router.back()}>{t('actions.cancel')}</FintButton>
+            </YStack>
           </YStack>
         ) : null}
       </Screen>

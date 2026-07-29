@@ -1,4 +1,5 @@
 import { CalendarDays, ChevronDown } from '@tamagui/lucide-icons-2'
+import type { ReactNode } from 'react'
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Calendar, LocaleConfig, type DateData } from 'react-native-calendars'
@@ -31,14 +32,16 @@ interface FintDateFieldProps extends Omit<XStackProps, 'onPress'> {
   placeholder: string
   showLabel?: boolean
   value: string
+  renderTrigger?: (props: { onPress: () => void; selectedLabel: string }) => ReactNode
 }
 
-export function FintDateField({ label, minDate, onValueChange, placeholder, showLabel = true, value, ...props }: FintDateFieldProps) {
+export function FintDateField({ label, minDate, onValueChange, placeholder, renderTrigger, showLabel = true, value, ...props }: FintDateFieldProps) {
   const { i18n } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
   const insets = useSafeAreaInsets()
   const theme = useTheme()
   const locale = getAppLocale(i18n.resolvedLanguage)
+  const selectedLabel = value ? formatDateString(value, locale) : placeholder
   LocaleConfig.defaultLocale = i18n.resolvedLanguage === 'en' ? '' : i18n.resolvedLanguage === 'pt' ? 'pt' : 'es'
   const closeSheet = useCallback(() => setIsOpen(false), [])
   useSheetBackHandler(isOpen, closeSheet)
@@ -50,7 +53,7 @@ export function FintDateField({ label, minDate, onValueChange, placeholder, show
 
   return (
     <>
-      <XStack
+      {renderTrigger ? renderTrigger({ onPress: () => setIsOpen(true), selectedLabel }) : <XStack
         width="100%"
         minH={64}
         items="center"
@@ -79,7 +82,7 @@ export function FintDateField({ label, minDate, onValueChange, placeholder, show
           </YStack>
         </XStack>
         <ChevronDown size={18} color="$color10" />
-      </XStack>
+      </XStack>}
 
       <Sheet modal open={isOpen} onOpenChange={setIsOpen} snapPointsMode="fit" dismissOnSnapToBottom zIndex={120_000}>
         <Sheet.Overlay bg="rgba(4,18,28,0.62)" />

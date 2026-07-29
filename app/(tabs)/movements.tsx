@@ -15,7 +15,6 @@ import { DataStateCard } from '../../src/components/DataStateCard'
 import { SkeletonGroup, SkeletonHero, SkeletonList } from '../../src/components/Skeleton'
 import { getCategoryLabel } from '../../src/finance/categoryLabels'
 import { FintButton, FintCard, FintSheetSelect } from '../../src/ui'
-import { PendingMovementsList } from '../pending-movements'
 
 const PAGE_SIZE = 30
 
@@ -36,7 +35,6 @@ export default function MovementsScreen() {
   const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
   const [summaryCurrency, setSummaryCurrency] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null)
-  const [showPending, setShowPending] = useState(false)
   const range = monthRange(month)
   const movementsQuery = useInfiniteQuery({
     queryKey: ['transactions', 'pages', range.from, range.to],
@@ -70,9 +68,11 @@ export default function MovementsScreen() {
       if (!active || !data.user) return
       channel = supabase.channel(`pending-movements-${data.user.id}`).on('postgres_changes', { event: '*', schema: 'public', table: 'pending_movements', filter: `user_id=eq.${data.user.id}` }, (payload) => {
         void queryClient.invalidateQueries({ queryKey: ['pending-movements', 'summary'] })
+        void queryClient.invalidateQueries({ queryKey: ['pending-movements'] })
         if ((payload.new as { status?: string } | null)?.status === 'confirmed') {
           void queryClient.invalidateQueries({ queryKey: ['transactions'] })
           void queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+          void queryClient.invalidateQueries({ queryKey: ['summary'] })
           void queryClient.invalidateQueries({ queryKey: ['accounts'] })
           void queryClient.invalidateQueries({ queryKey: ['reports'] })
         }
@@ -96,14 +96,18 @@ export default function MovementsScreen() {
     onError: () => toast.show(t('movementUx.deleteError'), { preset: 'error' }),
   })
 
-  if (showPending) return <PendingMovementsList onClose={() => setShowPending(false)} />
-
   const header = (
     <YStack gap="$4" mb="$4">
       {movementsQuery.isLoading ? <SkeletonGroup label={t('states.loading')}><SkeletonHero /></SkeletonGroup> : <MovementHero currency={currency} expenses={currencySummary?.expenses ?? 0} income={currencySummary?.income ?? 0} />}
       {(summary?.byCurrency.length ?? 0) > 1 ? <FintSheetSelect label={t('forms.currency')} placeholder={t('forms.currency')} value={currency} options={(summary?.byCurrency ?? []).map((item) => ({ value: item.currency, label: item.currency }))} onValueChange={setSummaryCurrency} /> : null}
       <FintSheetSelect label={t('movementUx.period')} value={monthValue} placeholder={t('movementUx.selectMonth')} options={monthOptions} onValueChange={(value) => { const [year, selectedMonth] = value.split('-').map(Number); setMonth(new Date(year, selectedMonth - 1, 1)) }} />
-      <FintCard p={0} overflow="hidden" borderColor={pendingCount ? '$yellow7' : '$borderColor'}><XStack items="center" gap="$3" p="$3" bg={pendingCount ? '$yellow2' : '$muted'} role="button" onPress={() => setShowPending(true)}><Mail size={19} color={pendingCount ? '$yellow10' : '$color10'} /><Paragraph flex={1} color={pendingCount ? '$yellow11' : '$color10'} fontWeight="800">{pendingSummaryQuery.isLoading ? t('movementUx.pendingTitle', { defaultValue: 'Pendientes detectados' }) : t('movementUx.pendingCount', { count: pendingCount })}</Paragraph><ChevronRight size={18} color="$color10" /></XStack></FintCard>
+      <FintCard p={0} overflow="hidden" borderColor={pendingCount ? '$yellow7' : '$borderColor'}>
+        <XStack items="center" gap="$3" minH={56} p="$3" bg={pendingCount ? '$yellow2' : '$muted'} role="button" pressStyle={{ opacity: 0.8 }} onPress={() => router.push('/pending-movements')} aria-label={t('movementUx.pendingCount', { count: pendingCount })}>
+          <YStack width={36} height={36} rounded="$10" bg={pendingCount ? '$yellow4' : '$color4'} items="center" justify="center"><Mail size={18} color={pendingCount ? '$yellow10' : '$color10'} /></YStack>
+          <YStack flex={1} minW={0} gap="$1"><Paragraph color={pendingCount ? '$yellow11' : '$color11'} fontWeight="800">{pendingSummaryQuery.isLoading ? t('movementUx.pendingTitle', { defaultValue: 'Pendientes detectados' }) : t('movementUx.pendingCount', { count: pendingCount })}</Paragraph><Paragraph color="$color10" fontSize="$1">{t('movementUx.pendingReviewHint', { defaultValue: 'Revisa, edita o descarta movimientos detectados.' })}</Paragraph></YStack>
+          <ChevronRight size={19} color="$color10" />
+        </XStack>
+      </FintCard>
       <XStack items="center" justify="space-between" gap="$3"><YStack gap="$1"><Paragraph color="$color12" fontFamily="$heading" fontSize="$6" fontWeight="700">{t('movementUx.movementCount', { count: summary?.totalCount ?? 0 })}</Paragraph><Paragraph color="$color10" fontSize="$2">{t('movements.historySubtitle')}</Paragraph></YStack><Link href="/transaction-form" asChild><FintButton circular bg="$primary" icon={<Plus size={21} color="$primaryForeground" />} aria-label={t('actions.newMovement')} /></Link></XStack>
       {movementsQuery.error ? <DataStateCard message={t('states.error')} onRetry={() => { void movementsQuery.refetch() }} /> : null}
     </YStack>
@@ -118,7 +122,7 @@ export default function MovementsScreen() {
         ListHeaderComponent={header}
         ListEmptyComponent={!movementsQuery.isLoading && !movementsQuery.error ? <DataStateCard message={t('movements.emptyDescription')} /> : null}
         ListFooterComponent={movementsQuery.isFetchingNextPage ? <YStack py="$4"><Spinner color="$primary" /></YStack> : null}
-        ItemSeparatorComponent={() => <YStack height="$3" />}
+        ItemSeparatorComponent={() => <YStack height={8} />}
         refreshControl={<RefreshControl refreshing={movementsQuery.isRefetching && !movementsQuery.isFetchingNextPage} onRefresh={() => { void movementsQuery.refetch() }} />}
         onEndReached={() => { if (movementsQuery.hasNextPage && !movementsQuery.isFetchingNextPage) void movementsQuery.fetchNextPage() }}
         onEndReachedThreshold={0.35}

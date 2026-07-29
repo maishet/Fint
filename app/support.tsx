@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import { Linking } from 'react-native'
+import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
-import { HelpCircle, Lightbulb, Send } from '@tamagui/lucide-icons-2'
+import { HelpCircle, Lightbulb, ListChecks, MessageSquareText, Send, Tags } from '@tamagui/lucide-icons-2'
 import { Paragraph, XStack, YStack } from 'tamagui'
 import { z } from 'zod'
 import { buildSupportMailto } from '../src/support/diagnostics'
 import { trackAnalyticsEvent } from '../src/analytics/privacy'
 import { Screen } from '../src/components/Screen'
+import { FormTextArea, MovementPickerTrigger } from '../src/components/MovementFormControls'
 import { getValidationMessage, useSubmitValidation } from '../src/forms'
-import { FintButton, FintCard, FintFormField, FintInput, FintSheetSelect } from '../src/ui'
+import { FintButton, FintCard, FintFormField, FintSheetSelect } from '../src/ui'
 
 const copy = {
   es: { title: 'Ayuda y soporte', subtitle: 'Reporta incidentes sin compartir datos financieros.', category: 'Categoría', description: '¿Qué ocurrió?', steps: 'Pasos para reproducirlo, si es posible', required: 'Agrega una descripción', submit: 'Reportar un problema', improvement: 'Solicitar una mejora', improvementHint: 'Elige “Sugerencia de mejora” como categoría y describe el valor esperado.', login: 'Inicio de sesión: verifica la confirmación del correo y tus credenciales.', gmail: 'Gmail: vuelve a conectar la cuenta si Google revocó el acceso.', duplicates: 'Movimientos duplicados: revisa los pendientes de Gmail antes de confirmarlos.', categories: ['Inicio de sesión o cuenta', 'Cuentas y saldos', 'Movimientos o categorías', 'Deudas y pagos', 'Conexión o sincronización Gmail', 'Rendimiento o cierre inesperado', 'Privacidad y eliminación de datos', 'Sugerencia de mejora'] },
@@ -18,6 +20,7 @@ const copy = {
 
 export default function SupportScreen() {
   const { i18n, t } = useTranslation()
+  const router = useRouter()
   const language = i18n.resolvedLanguage === 'en' || i18n.resolvedLanguage === 'pt' ? i18n.resolvedLanguage : 'es'
   const text = copy[language]
   const [category, setCategory] = useState(text.categories[0])
@@ -46,11 +49,11 @@ export default function SupportScreen() {
   return (
     <Screen>
       <FintCard bg="#0F5D73" borderColor="#28788C" gap="$3"><XStack gap="$3" items="center"><YStack width={48} height={48} rounded="$10" bg="rgba(93,214,229,0.14)" items="center" justify="center"><HelpCircle size={24} color="#5DD6E5" /></YStack><YStack flex={1}><Paragraph color="#F4FBFD" fontFamily="$heading" fontSize="$6" fontWeight="800">{text.title}</Paragraph><Paragraph color="#B9D7E1">{text.subtitle}</Paragraph></YStack></XStack></FintCard>
-      <FintFormField label={text.category} required error={validation.errors.category} invalidBorder><FintSheetSelect label={text.category} showLabel={false} placeholder={text.category} value={category} options={text.categories.map((item) => ({ value: item, label: item }))} onValueChange={(value) => { setCategory(value); validation.clearError('category'); void trackAnalyticsEvent('support_report_started', { category: value }) }} /></FintFormField>
-      <FintFormField label={text.description} required error={validation.errors.description}><FintInput borderColor={validation.errors.description ? '$red8' : undefined} multiline minH={110} textAlignVertical="top" placeholder={text.description} value={description} onChangeText={(value) => { setDescription(value); validation.clearError('description') }} /></FintFormField>
-      <FintFormField label={text.steps}><FintInput multiline minH={90} textAlignVertical="top" placeholder={text.steps} value={steps} onChangeText={setSteps} /></FintFormField>
+      <FintFormField label={text.category} required error={validation.errors.category} showLabel={false}><FintSheetSelect label={text.category} showLabel={false} placeholder={text.category} value={category} options={text.categories.map((item) => ({ value: item, label: item }))} onValueChange={(value) => { setCategory(value); validation.clearError('category'); void trackAnalyticsEvent('support_report_started', { category: value }) }} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<Tags size={21} color="$primary" />} invalid={Boolean(validation.errors.category)} label={text.category} required onPress={onPress} value={selectedLabel} />} /></FintFormField>
+      <FormTextArea label={text.description} required error={validation.errors.description} icon={<MessageSquareText size={21} color="$primary" />} minHeight={124} placeholder={text.description} value={description} onChangeText={(value) => { setDescription(value); validation.clearError('description') }} />
+      <FormTextArea label={text.steps} icon={<ListChecks size={21} color="$primary" />} minHeight={112} placeholder={text.steps} value={steps} onChangeText={setSteps} />
       {serverError ? <Paragraph color="$red10">{serverError}</Paragraph> : null}
-      <FintButton icon={<Send size={16} />} onPress={submit}>{text.submit}</FintButton>
+      <YStack gap="$2"><FintButton width="100%" minH={52} icon={<Send size={17} />} onPress={submit}>{text.submit}</FintButton><FintButton width="100%" minH={48} variant="outlined" onPress={() => router.back()}>{t('actions.cancel')}</FintButton></YStack>
       <FintCard gap="$2"><XStack gap="$2" items="center"><Lightbulb size={18} color="$primary" /><Paragraph color="$color12" fontWeight="800">{text.improvement}</Paragraph></XStack><Paragraph color="$color10">{text.improvementHint}</Paragraph></FintCard>
       <FintCard gap="$2"><Paragraph color="$color12" fontWeight="800">FAQ</Paragraph><Paragraph color="$color10">{text.login}</Paragraph><Paragraph color="$color10">{text.gmail}</Paragraph><Paragraph color="$color10">{text.duplicates}</Paragraph></FintCard>
     </Screen>

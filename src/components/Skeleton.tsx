@@ -89,7 +89,7 @@ export function SkeletonList({ grouped = false, rows = 3 }: SkeletonListProps) {
   ))
 
   if (grouped) return <FintCard p={0} overflow="hidden">{content}</FintCard>
-  return <YStack gap="$3">{content.map((row, index) => <FintCard key={index} p="$3">{row}</FintCard>)}</YStack>
+  return <YStack gap={8}>{content.map((row, index) => <FintCard key={index} p="$3">{row}</FintCard>)}</YStack>
 }
 
 export function SkeletonSection({ height = 220 }: { height?: number }) {
@@ -141,6 +141,38 @@ export function SkeletonContentCard({ rows = 3 }: { rows?: number }) {
           <SkeletonBlock height={14} width={64} />
         </XStack>
       ))}
+    </FintCard>
+  )
+}
+
+export function SkeletonForm({ fieldCount = 3, label, showAmount = true, showChoiceGrid = false, showNote = true, showSegment = false }: { fieldCount?: number; label: string; showAmount?: boolean; showChoiceGrid?: boolean; showNote?: boolean; showSegment?: boolean }) {
+  return (
+    <SkeletonGroup label={label}>
+      {showSegment ? <FintCard p="$1" bg="$muted"><XStack gap="$1"><SkeletonBlock flex={1} height={56} rounded="$6" /><SkeletonBlock flex={1} height={56} rounded="$6" /></XStack></FintCard> : null}
+      <FormFieldSkeleton />
+      {showChoiceGrid ? (
+        <FintCard gap="$3" p="$3">
+          <SkeletonBlock height={10} width="28%" />
+          <XStack gap="$2" flexWrap="wrap">{[0, 1, 2, 3].map((item) => <SkeletonBlock key={item} height={52} rounded="$5" width="48%" />)}</XStack>
+        </FintCard>
+      ) : null}
+      {showAmount ? (
+        <FintCard minH={148} gap="$3" bg="$accent1" borderColor="$accent4">
+          <SkeletonBlock height={11} width="22%" />
+          <XStack flex={1} items="center" gap="$3"><SkeletonBlock height={48} rounded="$10" width={52} /><SkeletonBlock flex={1} height={42} rounded="$5" /></XStack>
+        </FintCard>
+      ) : null}
+      {Array.from({ length: fieldCount }, (_, index) => <FormFieldSkeleton key={index} />)}
+      {showNote ? <FintCard minH={112} p="$3"><XStack items="flex-start" gap="$3"><SkeletonBlock height={42} rounded="$10" width={42} /><YStack flex={1} gap="$2"><SkeletonBlock height={10} width="34%" /><SkeletonBlock height={14} width="72%" /><SkeletonBlock height={14} width="48%" /></YStack></XStack></FintCard> : null}
+      <YStack gap={8}><SkeletonBlock height={52} rounded="$6" /><SkeletonBlock height={48} rounded="$6" /></YStack>
+    </SkeletonGroup>
+  )
+}
+
+function FormFieldSkeleton() {
+  return (
+    <FintCard minH={68} p="$3">
+      <XStack items="center" gap="$3"><SkeletonBlock height={42} rounded="$10" width={42} /><YStack flex={1} gap="$2"><SkeletonBlock height={9} width="28%" /><SkeletonBlock height={15} width="62%" /></YStack><SkeletonBlock height={18} rounded="$10" width={18} /></XStack>
     </FintCard>
   )
 }

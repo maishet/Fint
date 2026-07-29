@@ -1,17 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowDown, ArrowUp, Save } from '@tamagui/lucide-icons-2'
+import { CalendarDays, Save, Shapes, WalletCards } from '@tamagui/lucide-icons-2'
 import { useToastController } from '@tamagui/toast'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Paragraph, Spinner, XStack, YStack } from 'tamagui'
+import { Paragraph, Spinner, YStack } from 'tamagui'
 import { z } from 'zod'
 import { financeApi } from '../src/api/finance'
 import { Screen } from '../src/components/Screen'
+import { SkeletonForm } from '../src/components/Skeleton'
 import { CategoryPickerSheet } from '../src/components/CategoryPickerSheet'
+import { MovementAmountField, MovementNoteField, MovementPickerTrigger, MovementTypeSelector } from '../src/components/MovementFormControls'
 import { todayDateString } from '../src/finance/dates'
 import { getValidationMessage, parseDecimalInput, useSubmitValidation } from '../src/forms'
-import { FintButton, FintDateField, FintFormField, FintInput, FintSheetSelect } from '../src/ui'
+import { FintButton, FintDateField, FintFormField, FintSheetSelect } from '../src/ui'
 
 export default function TransactionFormScreen() {
   const router = useRouter()
@@ -32,6 +34,7 @@ export default function TransactionFormScreen() {
   const categoriesQuery = useQuery({ queryKey: ['categories', type], queryFn: () => financeApi.listCategories(type), retry: false })
   const accounts = accountsQuery.data ?? []
   const categories = categoriesQuery.data ?? []
+  const selectedAccount = accounts.find((item) => item.name === account)
   const requiredMessage = getValidationMessage(t, i18n.resolvedLanguage, 'required')
   const amountMessage = getValidationMessage(t, i18n.resolvedLanguage, 'amount')
   const transactionSchema = z.object({
@@ -91,41 +94,24 @@ export default function TransactionFormScreen() {
     <>
     <Stack.Screen options={{ title: t(isEditing ? 'movementUx.editTitle' : type === 'income' ? 'movementUx.newIncomeTitle' : 'movementUx.newExpenseTitle') }} />
     <Screen>
-      <YStack gap="$5" pb="$5">
-        <XStack gap="$2" bg="$muted" borderColor="$borderColor" borderWidth={1} rounded={14} p="$1">
-          {(['expense', 'income'] as const).map((option) => (
-            <FintButton
-              key={option}
-              flex={1}
-              variant="solid"
-              bg={type === option ? option === 'income' ? '$green9' : '$red9' : '$card'}
-              color={type === option ? 'white' : '$color11'}
-              borderColor={type === option ? option === 'income' ? '$green9' : '$red9' : '$borderColor'}
-              borderWidth={1}
-              icon={option === 'income' ? <ArrowUp size={16} color={type === option ? 'white' : '$color10'} /> : <ArrowDown size={16} color={type === option ? 'white' : '$color10'} />}
-              onPress={() => {
-                setType(option)
-                setErrorMessage(null)
-                validation.clearError('category')
-              }}
-            >
-              {t(`forms.${option}`)}
-            </FintButton>
-          ))}
-        </XStack>
+      {isReferenceLoading ? <SkeletonForm label={t('movements.loadingReferences')} showSegment fieldCount={3} /> : <YStack gap="$5" pb="$5">
+        <MovementTypeSelector value={type} onValueChange={(value) => { setType(value); setErrorMessage(null); validation.clearError('category') }} />
 
-        <FintFormField label={t('forms.amount')} required error={validation.errors.amount}>
-          <FintInput minH={64} borderColor={validation.errors.amount ? '$red8' : undefined} fontSize="$7" fontWeight="800" placeholder="0.00" value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} keyboardType="decimal-pad" />
+        <MovementAmountField currency={selectedAccount?.currency ?? 'PEN'} error={validation.errors.amount} value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} />
+
+        <FintFormField label={t('forms.account')} required error={validation.errors.account} showLabel={false}>
+          <FintSheetSelect label={t('forms.account')} showLabel={false} placeholder={t('movements.selectAccount')} value={account} onValueChange={(value) => { setAccount(value); validation.clearError('account') }} options={accounts.map((item) => ({ value: item.name, label: `${item.name} · ${item.currency}` }))} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<WalletCards size={21} color="$primary" />} invalid={Boolean(validation.errors.account)} label={t('forms.account')} required onPress={onPress} value={selectedLabel} />} />
         </FintFormField>
 
-        <FintFormField label={t('forms.account')} required error={validation.errors.account} invalidBorder><FintSheetSelect label={t('forms.account')} showLabel={false} placeholder={t('movements.selectAccount')} value={account} onValueChange={(value) => { setAccount(value); validation.clearError('account') }} options={accounts.map((item) => ({ value: item.name, label: `${item.name} · ${item.currency}` }))} /></FintFormField>
+        <FintFormField label={t('forms.category')} required error={validation.errors.category} showLabel={false}>
+          <CategoryPickerSheet categories={categories} showLabel={false} type={type} value={category} onValueChange={(value) => { setCategory(value); validation.clearError('category') }} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<Shapes size={21} color="$primary" />} invalid={Boolean(validation.errors.category)} label={t('forms.category')} required onPress={onPress} value={selectedLabel} />} />
+        </FintFormField>
 
-        <FintFormField label={t('forms.category')} required error={validation.errors.category} invalidBorder><CategoryPickerSheet categories={categories} showLabel={false} type={type} value={category} onValueChange={(value) => { setCategory(value); validation.clearError('category') }} /></FintFormField>
+        <FintFormField label={t('movements.date')} required error={validation.errors.transactionDate} showLabel={false}>
+          <FintDateField label={t('movements.date')} showLabel={false} placeholder={t('movements.selectDate')} value={transactionDate} onValueChange={(value) => { setTransactionDate(value); validation.clearError('transactionDate') }} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<CalendarDays size={21} color="$primary" />} invalid={Boolean(validation.errors.transactionDate)} label={t('movements.date')} required onPress={onPress} value={selectedLabel} />} />
+        </FintFormField>
+        <MovementNoteField label={t('movementUx.noteOptional')} placeholder={t('movementUx.notePlaceholder')} value={note} onChangeText={setNote} />
 
-        <FintFormField label={t('movements.date')} required error={validation.errors.transactionDate}><FintDateField borderColor={validation.errors.transactionDate ? '$red8' : undefined} label={t('movements.date')} showLabel={false} placeholder={t('movements.selectDate')} value={transactionDate} onValueChange={(value) => { setTransactionDate(value); validation.clearError('transactionDate') }} /></FintFormField>
-        <FintFormField label={t('movementUx.noteOptional')}><FintInput placeholder={t('movementUx.notePlaceholder')} value={note} onChangeText={setNote} multiline minH={88} textAlignVertical="top" /></FintFormField>
-
-        {isReferenceLoading ? <Paragraph color="$color10">{t('movements.loadingReferences')}</Paragraph> : null}
         {!accountsQuery.isLoading && accounts.length === 0 ? (
           <YStack bg="$secondary" gap="$2" p="$3" rounded="$5">
             <Paragraph color="$color12" fontWeight="700">{t('movements.noAccounts')}</Paragraph>
@@ -141,15 +127,13 @@ export default function TransactionFormScreen() {
         {accountsQuery.error || categoriesQuery.error ? <Paragraph color="$red10">{t('movements.referencesError')}</Paragraph> : null}
         {errorMessage ? <Paragraph color="$red10">{errorMessage}</Paragraph> : null}
 
-        <FintButton
-          disabled={mutation.isPending || isReferenceLoading}
-          icon={mutation.isPending ? <Spinner color="$primaryForeground" /> : <Save size={18} />}
-          onPress={submit}
-          bg={type === 'income' ? '$green9' : '$red9'}
-        >
-          {mutation.isPending ? t(isEditing ? 'movementUx.updating' : 'movements.creating') : isEditing ? t('actions.save') : t(type === 'income' ? 'movementUx.registerIncome' : 'movementUx.registerExpense')}
-        </FintButton>
-      </YStack>
+        <YStack gap="$2">
+          <FintButton width="100%" minH={52} disabled={mutation.isPending || isReferenceLoading} icon={mutation.isPending ? <Spinner color="$primaryForeground" /> : <Save size={18} />} onPress={submit}>
+            {mutation.isPending ? t(isEditing ? 'movementUx.updating' : 'movements.creating') : isEditing ? t('actions.save') : t(type === 'income' ? 'movementUx.registerIncome' : 'movementUx.registerExpense')}
+          </FintButton>
+          <FintButton width="100%" minH={48} variant="outlined" disabled={mutation.isPending} onPress={() => router.back()}>{t('actions.cancel')}</FintButton>
+        </YStack>
+      </YStack>}
     </Screen>
     </>
   )

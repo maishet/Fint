@@ -8,17 +8,18 @@ interface FintFormFieldProps extends YStackProps {
   invalidBorder?: boolean
   label: string
   required?: boolean
+  showLabel?: boolean
 }
 
-export function FintFormField({ children, error, hint, invalidBorder = false, label, required = false, ...props }: FintFormFieldProps) {
+export function FintFormField({ children, error, hint, invalidBorder = false, label, required = false, showLabel = true, ...props }: FintFormFieldProps) {
   return (
     <YStack width="100%" gap="$2" {...props}>
-      <YStack gap="$1">
+      {showLabel ? <YStack gap="$1">
         <Paragraph color="$color10" fontSize="$2" fontWeight="600">
           {label}{required ? ' *' : ''}
         </Paragraph>
         {hint}
-      </YStack>
+      </YStack> : null}
       {invalidBorder ? (
         <YStack width="100%" borderColor={error ? '$red8' : 'transparent'} borderWidth={1} rounded={15} p={1}>
           {children}

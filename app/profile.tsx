@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Image } from 'react-native'
+import { useRouter } from 'expo-router'
 import { Mail, Save, UserRound } from '@tamagui/lucide-icons-2'
 import { useToastController } from '@tamagui/toast'
 import { useTranslation } from 'react-i18next'
@@ -7,11 +8,13 @@ import { Paragraph, XStack, YStack } from 'tamagui'
 import { z } from 'zod'
 import { useAuth } from '../src/auth/AuthProvider'
 import { Screen } from '../src/components/Screen'
+import { FormTextField } from '../src/components/MovementFormControls'
 import { useSubmitValidation } from '../src/forms'
-import { FintButton, FintCard, FintFormField, FintInput } from '../src/ui'
+import { FintButton, FintCard } from '../src/ui'
 
 export default function ProfileScreen() {
   const { i18n, t } = useTranslation()
+  const router = useRouter()
   const language = i18n.resolvedLanguage === 'en' || i18n.resolvedLanguage === 'pt' ? i18n.resolvedLanguage : 'es'
   const text = {
     es: { profile: 'Tu perfil', name: 'Nombre', namePlaceholder: 'Tu nombre', save: 'Guardar nombre', saving: 'Guardando...', email: 'Correo', auth: 'Los cambios de autenticación se gestionan con tu proveedor de acceso.', invalid: 'El nombre debe tener entre 2 y 80 caracteres.', error: 'No pudimos actualizar tu nombre.', success: 'Perfil actualizado.' },
@@ -51,9 +54,9 @@ export default function ProfileScreen() {
       </FintCard>
 
       <FintCard gap="$4">
-        <FintFormField label={text.name} required error={validation.errors.displayName}><FintInput borderColor={validation.errors.displayName ? '$red8' : undefined} value={displayName} onChangeText={(value) => { setDisplayName(value); validation.clearError('displayName') }} placeholder={text.namePlaceholder} autoCapitalize="words" maxLength={80} /></FintFormField>
+        <FormTextField label={text.name} required error={validation.errors.displayName} icon={<UserRound size={21} color="$primary" />} value={displayName} onChangeText={(value) => { setDisplayName(value); validation.clearError('displayName') }} placeholder={text.namePlaceholder} autoCapitalize="words" maxLength={80} />
         {serverError ? <Paragraph color="$red10" fontSize="$2">{serverError}</Paragraph> : null}
-        <FintButton disabled={isSaving} icon={<Save size={17} />} onPress={() => { void save() }}>{isSaving ? text.saving : text.save}</FintButton>
+        <YStack gap="$2"><FintButton width="100%" minH={52} disabled={isSaving} icon={<Save size={17} />} onPress={() => { void save() }}>{isSaving ? text.saving : text.save}</FintButton><FintButton width="100%" minH={48} variant="outlined" disabled={isSaving} onPress={() => router.back()}>{t('actions.cancel')}</FintButton></YStack>
       </FintCard>
 
       <FintCard gap="$3">

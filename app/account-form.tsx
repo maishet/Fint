@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Building2, CreditCard, Landmark, PiggyBank, Save, Wallet } from '@tamagui/lucide-icons-2'
+import { Building2, Coins, CreditCard, Landmark, PiggyBank, Save, Wallet } from '@tamagui/lucide-icons-2'
 import { useToastController } from '@tamagui/toast'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
@@ -10,10 +10,12 @@ import { ApiRequestError } from '../src/api/client'
 import { financeApi } from '../src/api/finance'
 import type { AccountType } from '../src/api/types'
 import { DataStateCard } from '../src/components/DataStateCard'
+import { FormTextField, MovementAmountField, MovementPickerTrigger } from '../src/components/MovementFormControls'
 import { Screen } from '../src/components/Screen'
+import { SkeletonForm } from '../src/components/Skeleton'
 import { currencyOptions } from '../src/finance/currencies'
 import { getValidationMessage, parseDecimalInput, useSubmitValidation } from '../src/forms'
-import { FintButton, FintFormField, FintInput, FintSheetSelect } from '../src/ui'
+import { FintButton, FintCard, FintFormField, FintSheetSelect } from '../src/ui'
 
 export default function AccountFormScreen() {
   const { accountId } = useLocalSearchParams<{ accountId?: string }>()
@@ -95,18 +97,18 @@ export default function AccountFormScreen() {
     <>
       <Stack.Screen options={{ title: t(isEditing ? 'accounts.editTitle' : 'accounts.newTitle') }} />
       <Screen>
-        {isLoading ? <DataStateCard message={t('states.loading')} /> : null}
+        {isLoading ? <SkeletonForm label={t('states.loading')} fieldCount={1} showAmount={false} showChoiceGrid showNote={false} /> : null}
         {accountsQuery.error ? <DataStateCard message={accountsQuery.error instanceof Error ? accountsQuery.error.message : t('states.error')} /> : null}
         {notFound ? <DataStateCard message={t('states.accountNotFound')} /> : null}
 
         {!isLoading && !accountsQuery.error && !notFound ? (
           <YStack gap="$5" pb="$5">
-            <FintFormField label={t('forms.name')} required error={validation.errors.name}>
-              <FintInput width="100%" borderColor={validation.errors.name ? '$red8' : undefined} placeholder={t('accounts.namePlaceholder')} value={name} onChangeText={(value) => { setName(value); validation.clearError('name') }} autoCapitalize="words" />
-            </FintFormField>
+            <FormTextField label={t('forms.name')} required error={validation.errors.name} icon={<Landmark size={21} color="$primary" />} placeholder={t('accounts.namePlaceholder')} value={name} onChangeText={(value) => { setName(value); validation.clearError('name') }} autoCapitalize="words" />
 
-            <FintFormField label={t('forms.accountType')} required error={validation.errors.accountType} invalidBorder>
-              <XStack width="100%" gap="$2" flexWrap="wrap">
+            <FintFormField label={t('forms.accountType')} required error={validation.errors.accountType} showLabel={false}>
+              <FintCard width="100%" gap="$3" p="$3" borderColor={validation.errors.accountType ? '$red8' : '$borderColor'}>
+                <Paragraph color="$color10" fontSize="$1" fontWeight="600">{t('forms.accountType')} *</Paragraph>
+                <XStack width="100%" gap="$2" flexWrap="wrap">
                 {accountTypes.map((option) => {
                   const isSelected = option.value === accountType
                   const Icon = option.icon
@@ -120,7 +122,7 @@ export default function AccountFormScreen() {
                       px="$3"
                       py="$2"
                       rounded={14}
-                      bg={isSelected ? '$primary' : '$muted'}
+                      bg={isSelected ? '$accent2' : '$muted'}
                       borderColor={isSelected ? '$primary' : '$input'}
                       borderWidth={1}
                       pressStyle={{ opacity: 0.8 }}
@@ -129,33 +131,29 @@ export default function AccountFormScreen() {
                       onPress={() => { setAccountType(option.value); validation.clearError('accountType') }}
                       aria-label={option.label}
                     >
-                      <Icon size={17} color={isSelected ? '$primaryForeground' : '$color10'} />
-                      <Paragraph color={isSelected ? '$primaryForeground' : '$color12'} fontSize="$1" fontWeight="700" flex={1} numberOfLines={2}>{option.label}</Paragraph>
+                      <Icon size={17} color={isSelected ? '$primary' : '$color10'} />
+                      <Paragraph color={isSelected ? '$primary' : '$color12'} fontSize="$1" fontWeight="700" flex={1} numberOfLines={2}>{option.label}</Paragraph>
                     </XStack>
                   )
                 })}
-              </XStack>
+                </XStack>
+              </FintCard>
             </FintFormField>
 
             {!isEditing ? (
-              <FintFormField label={t('formLabels.openingBalanceOptional')} error={validation.errors.openingBalance}>
-                <FintInput width="100%" borderColor={validation.errors.openingBalance ? '$red8' : undefined} placeholder="0.00" value={openingBalance} onChangeText={(value) => { setOpeningBalance(value); validation.clearError('openingBalance') }} keyboardType="decimal-pad" />
-              </FintFormField>
+              <MovementAmountField label={t('formLabels.openingBalanceOptional')} required={false} currency={currency} error={validation.errors.openingBalance} value={openingBalance} onChangeText={(value) => { setOpeningBalance(value); validation.clearError('openingBalance') }} />
             ) : null}
 
-            <FintFormField label={t('forms.currency')} required error={validation.errors.currency}><FintSheetSelect width="100%" borderColor={validation.errors.currency ? '$red8' : undefined} label={t('forms.currency')} showLabel={false} value={currency} options={currencyOptions} placeholder={t('forms.select')} searchable searchPlaceholder={t('accounts.searchCurrency')} onValueChange={(value) => { setCurrency(value); validation.clearError('currency') }} /></FintFormField>
+            <FintFormField label={t('forms.currency')} required error={validation.errors.currency} showLabel={false}><FintSheetSelect label={t('forms.currency')} showLabel={false} value={currency} options={currencyOptions} placeholder={t('forms.select')} searchable searchPlaceholder={t('accounts.searchCurrency')} onValueChange={(value) => { setCurrency(value); validation.clearError('currency') }} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<Coins size={21} color="$primary" />} invalid={Boolean(validation.errors.currency)} label={t('forms.currency')} required onPress={onPress} value={selectedLabel} />} /></FintFormField>
 
             {errorMessage ? <XStack bg="$red2" borderColor="$red6" borderWidth={1} rounded="$5" p="$3"><Paragraph color="$red11" fontSize="$2">{errorMessage}</Paragraph></XStack> : null}
 
-            <FintButton
-              width="100%"
-              height={50}
-              disabled={mutation.isPending}
-              icon={mutation.isPending ? <Spinner size="small" color="$primaryForeground" /> : isEditing ? <Save size={18} /> : <Landmark size={18} />}
-              onPress={submit}
-            >
-              {mutation.isPending ? t(isEditing ? 'accounts.updating' : 'accounts.creating') : t(isEditing ? 'accounts.update' : 'accounts.create')}
-            </FintButton>
+            <YStack gap="$2">
+              <FintButton width="100%" minH={52} disabled={mutation.isPending} icon={mutation.isPending ? <Spinner size="small" color="$primaryForeground" /> : isEditing ? <Save size={18} /> : <Landmark size={18} />} onPress={submit}>
+                {mutation.isPending ? t(isEditing ? 'accounts.updating' : 'accounts.creating') : t(isEditing ? 'accounts.update' : 'accounts.create')}
+              </FintButton>
+              <FintButton width="100%" minH={48} variant="outlined" disabled={mutation.isPending} onPress={() => router.back()}>{t('actions.cancel')}</FintButton>
+            </YStack>
           </YStack>
         ) : null}
       </Screen>

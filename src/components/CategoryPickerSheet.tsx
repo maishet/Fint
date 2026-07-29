@@ -1,4 +1,5 @@
 import { Plus, X } from '@tamagui/lucide-icons-2'
+import type { ReactNode } from 'react'
 import { useCallback, useState } from 'react'
 import { Text } from 'react-native'
 import { useTranslation } from 'react-i18next'
@@ -17,20 +18,22 @@ interface CategoryPickerSheetProps {
   type: TransactionType
   value: string
   showLabel?: boolean
+  renderTrigger?: (props: { onPress: () => void; selectedLabel: string }) => ReactNode
 }
 
-export function CategoryPickerSheet({ allowCreate = true, categories, onValueChange, showLabel = true, type, value }: CategoryPickerSheetProps) {
+export function CategoryPickerSheet({ allowCreate = true, categories, onValueChange, renderTrigger, showLabel = true, type, value }: CategoryPickerSheetProps) {
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const [open, setOpen] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
   const selected = categories.find((category) => category.name === value)
+  const selectedLabel = selected ? getCategoryLabel(selected.name, t) : t('movements.selectCategory')
   const closePicker = useCallback(() => setOpen(false), [])
   useSheetBackHandler(open && !createOpen, closePicker)
 
   return (
     <>
-      <XStack
+      {renderTrigger ? renderTrigger({ onPress: () => setOpen(true), selectedLabel }) : <XStack
         items="center"
         justify="space-between"
         gap="$3"
@@ -45,10 +48,10 @@ export function CategoryPickerSheet({ allowCreate = true, categories, onValueCha
       >
         <YStack flex={1} minW={0} gap="$1">
           {showLabel ? <Paragraph color="$color10" fontSize="$1">{t('forms.category')}</Paragraph> : null}
-          <Paragraph color="$color12" fontWeight="700" numberOfLines={1}>{selected ? `${selected.icon || suggestedCategoryIcons(selected.name, type)[0]} ${getCategoryLabel(selected.name, t)}` : t('movements.selectCategory')}</Paragraph>
+           <Paragraph color="$color12" fontWeight="700" numberOfLines={1}>{selected ? `${selected.icon || suggestedCategoryIcons(selected.name, type)[0]} ${selectedLabel}` : selectedLabel}</Paragraph>
         </YStack>
         <Paragraph fontSize="$6">{selected?.icon || '⌄'}</Paragraph>
-      </XStack>
+      </XStack>}
 
       <Sheet modal open={open} onOpenChange={setOpen} snapPoints={[76]} dismissOnSnapToBottom zIndex={110_000}>
         <Sheet.Overlay bg="rgba(4,18,28,0.58)" />

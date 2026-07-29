@@ -1,17 +1,19 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Check, Mail, Pencil, Trash2 } from '@tamagui/lucide-icons-2'
+import { Check, Mail, Pencil, Shapes, Trash2 } from '@tamagui/lucide-icons-2'
 import { useToastController } from '@tamagui/toast'
 import { Stack, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FlatList, RefreshControl } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Button, Dialog, Paragraph, Spinner, XStack, YStack } from 'tamagui'
 import { financeApi } from '../src/api/finance'
+import { supabase } from '../src/auth/supabase'
 import { formatMoney } from '../src/api/mappers'
 import type { ConfirmPendingInput, PendingMovementCard } from '../src/api/types'
 import { CategoryPickerSheet } from '../src/components/CategoryPickerSheet'
 import { DataStateCard } from '../src/components/DataStateCard'
+import { MovementPickerTrigger } from '../src/components/MovementFormControls'
 import { SkeletonGroup, SkeletonList } from '../src/components/Skeleton'
 import { getValidationMessage } from '../src/forms'
 import { FintButton, FintCard, FintFormField } from '../src/ui'
@@ -19,10 +21,6 @@ import { FintButton, FintCard, FintFormField } from '../src/ui'
 const PAGE_SIZE = 20
 
 export default function PendingMovementsScreen() {
-  return <PendingMovementsList />
-}
-
-export function PendingMovementsList({ onClose }: { onClose?: () => void }) {
   const { i18n, t } = useTranslation()
   const router = useRouter()
   const toast = useToastController()
@@ -48,6 +46,25 @@ export function PendingMovementsList({ onClose }: { onClose?: () => void }) {
     enabled: Boolean(expandedItem?.accountSuggestion),
     retry: false,
   })
+
+  useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | null = null
+    let active = true
+    supabase.auth.getUser().then(({ data }) => {
+      if (!active || !data.user) return
+      channel = supabase.channel(`pending-movements-list-${data.user.id}`).on('postgres_changes', { event: '*', schema: 'public', table: 'pending_movements', filter: `user_id=eq.${data.user.id}` }, (payload) => {
+        void queryClient.invalidateQueries({ queryKey: ['pending-movements'] })
+        if ((payload.new as { status?: string } | null)?.status === 'confirmed') {
+          void queryClient.invalidateQueries({ queryKey: ['transactions'] })
+          void queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+          void queryClient.invalidateQueries({ queryKey: ['summary'] })
+          void queryClient.invalidateQueries({ queryKey: ['accounts'] })
+          void queryClient.invalidateQueries({ queryKey: ['reports'] })
+        }
+      }).subscribe()
+    })
+    return () => { active = false; if (channel) supabase.removeChannel(channel) }
+  }, [queryClient])
 
   const confirmMutation = useMutation({
     mutationFn: ({ id, input }: { id: string; input: ConfirmPendingInput }) => financeApi.confirmPendingMovement(id, input),
@@ -107,16 +124,17 @@ export function PendingMovementsList({ onClose }: { onClose?: () => void }) {
 
   return (
     <YStack flex={1} bg="$background">
-      {!onClose ? <Stack.Screen options={{ title: t('movementUx.pendingTitle', { defaultValue: 'Pendientes detectados' }) }} /> : null}
+      <Stack.Screen options={{ title: t('movementUx.pendingTitle', { defaultValue: 'Pendientes detectados' }) }} />
       <FlatList
         data={items}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: 16, paddingBottom: Math.max(insets.bottom, 16), flexGrow: items.length ? undefined : 1 }}
-        ItemSeparatorComponent={() => <YStack height="$3" />}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ padding: 16, paddingBottom: Math.max(insets.bottom, 24), flexGrow: items.length ? undefined : 1 }}
+        ItemSeparatorComponent={() => <YStack height={8} />}
+        ListHeaderComponent={<FintCard bg="$accent1" borderColor="$accent4" mb="$4"><XStack items="center" gap="$3"><YStack width={42} height={42} rounded="$10" bg="$accent3" items="center" justify="center"><Mail size={20} color="$primary" /></YStack><YStack flex={1} gap="$1"><Paragraph color="$color12" fontFamily="$heading" fontSize="$4" fontWeight="800">{t('movementUx.pendingTitle', { defaultValue: 'Pendientes detectados' })}</Paragraph><Paragraph color="$color10" fontSize="$2">{t('movementUx.pendingReviewHint', { defaultValue: 'Confirma solo los movimientos que reconozcas.' })}</Paragraph></YStack></XStack></FintCard>}
         refreshControl={<RefreshControl refreshing={pendingQuery.isRefetching && !pendingQuery.isFetchingNextPage} onRefresh={() => { void pendingQuery.refetch() }} />}
         onEndReached={() => { if (pendingQuery.hasNextPage && !pendingQuery.isFetchingNextPage) void pendingQuery.fetchNextPage() }}
         onEndReachedThreshold={0.35}
-        ListHeaderComponent={onClose ? <XStack items="center" gap="$3" mb="$4"><FintButton circular size="$3" variant="outlined" icon={<ArrowLeft size={18} />} onPress={onClose} aria-label={t('actions.back', { defaultValue: 'Volver' })} /><YStack flex={1} gap="$1"><Paragraph color="$color12" fontFamily="$heading" fontSize="$6" fontWeight="800">{t('movementUx.pendingTitle', { defaultValue: 'Pendientes detectados' })}</Paragraph><Paragraph color="$color10" fontSize="$2">{t('movementUx.pendingCount', { count: items.length })}</Paragraph></YStack></XStack> : null}
         ListEmptyComponent={pendingQuery.isLoading
           ? <SkeletonGroup label={t('states.loading')}><SkeletonList rows={4} /></SkeletonGroup>
           : pendingQuery.error
@@ -149,6 +167,7 @@ async function invalidatePendingAndFinance(queryClient: ReturnType<typeof useQue
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: ['pending-movements'] }),
     queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+    queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
     queryClient.invalidateQueries({ queryKey: ['summary'] }),
     queryClient.invalidateQueries({ queryKey: ['accounts'] }),
     queryClient.invalidateQueries({ queryKey: ['reports'] }),
@@ -173,8 +192,7 @@ function PendingCard({ categories, category, categoryError, expanded, isPending,
           {item.accountSuggestion ? (
             <>
               {referencesLoading ? <SkeletonGroup label={t('states.loading')}><SkeletonList rows={1} /></SkeletonGroup> : null}
-              {!referencesLoading ? <FintFormField label={t('forms.category')} required error={categoryError} invalidBorder><CategoryPickerSheet categories={categories} type={item.type} value={category} showLabel={false} onValueChange={onCategoryChange} /></FintFormField> : null}
-              <FintButton disabled={isPending || referencesLoading} icon={<Check size={17} />} onPress={onConfirm}>{t('movementUx.confirmPending')}</FintButton>
+              {!referencesLoading ? <FintFormField label={t('forms.category')} required error={categoryError} showLabel={false}><CategoryPickerSheet categories={categories} type={item.type} value={category} showLabel={false} onValueChange={onCategoryChange} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<Shapes size={20} color="$primary" />} invalid={Boolean(categoryError)} label={t('forms.category')} required onPress={onPress} value={selectedLabel} />} /></FintFormField> : null}
             </>
           ) : (
             <YStack bg="$muted" rounded="$5" p="$3" gap="$2">
@@ -182,10 +200,11 @@ function PendingCard({ categories, category, categoryError, expanded, isPending,
               <Paragraph color="$color10" fontSize="$2">{t('movementUx.pendingNeedsEdit', { defaultValue: 'Revisa el pendiente para seleccionar la cuenta correcta.' })}</Paragraph>
             </YStack>
           )}
-          <XStack gap="$2">
-            <FintButton flex={1} size="$3" variant="outlined" color="$red10" borderColor="$red6" disabled={isPending} icon={<Trash2 size={15} />} onPress={onDiscard}>{t('movementUx.discardShort', { defaultValue: 'Descartar' })}</FintButton>
-            <FintButton flex={1} size="$3" variant="outlined" disabled={isPending} icon={<Pencil size={15} />} onPress={onEdit}>{t('actions.edit', { defaultValue: 'Editar' })}</FintButton>
-          </XStack>
+          <YStack gap="$2">
+            {item.accountSuggestion ? <FintButton width="100%" minH={48} disabled={isPending || referencesLoading} icon={<Check size={17} />} onPress={onConfirm}>{t('movementUx.confirmPending')}</FintButton> : null}
+            <FintButton width="100%" minH={46} variant={item.accountSuggestion ? 'outlined' : 'solid'} disabled={isPending} icon={<Pencil size={16} />} onPress={onEdit}>{t('actions.edit', { defaultValue: 'Editar' })}</FintButton>
+            <FintButton width="100%" minH={46} variant="outlined" color="$red10" borderColor="$red6" disabled={isPending} icon={<Trash2 size={16} />} onPress={onDiscard}>{t('movementUx.discardShort', { defaultValue: 'Descartar' })}</FintButton>
+          </YStack>
         </YStack>
       ) : null}
     </FintCard>

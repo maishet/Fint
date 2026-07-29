@@ -6,6 +6,8 @@ import { Paragraph, Separator, XStack, YStack } from 'tamagui'
 import { financeApi } from '../src/api/finance'
 import type { TransactionType } from '../src/api/types'
 import { CreateCategorySheet } from '../src/components/CreateCategorySheet'
+import { DataStateCard } from '../src/components/DataStateCard'
+import { MovementTypeSelector } from '../src/components/MovementFormControls'
 import { Screen } from '../src/components/Screen'
 import { SkeletonGroup, SkeletonList } from '../src/components/Skeleton'
 import { getCategoryLabel } from '../src/finance/categoryLabels'
@@ -27,24 +29,13 @@ export default function CategoriesScreen() {
             <Paragraph color="$color12" fontFamily="$heading" fontSize="$7" fontWeight="700">{t('categories.title')}</Paragraph>
             <Paragraph color="$color10">{t('categories.subtitle')}</Paragraph>
           </YStack>
-          <FintButton size="$3" icon={<Plus size={18} />} onPress={() => setIsCreateOpen(true)}>{t('categories.newAction')}</FintButton>
+          <FintButton circular width={44} height={44} icon={<Plus size={20} />} onPress={() => setIsCreateOpen(true)} aria-label={t('categories.newTitle')} />
         </XStack>
 
-        <XStack gap="$2">
-          {(['expense', 'income'] as const).map((option) => (
-            <FintButton key={option} flex={1} variant={type === option ? 'solid' : 'outlined'} onPress={() => setType(option)}>
-              {t(`forms.${option}`)}
-            </FintButton>
-          ))}
-        </XStack>
+        <MovementTypeSelector value={type} onValueChange={setType} />
 
         {categoriesQuery.isLoading ? <SkeletonGroup label={t('states.loading')}><SkeletonList grouped rows={6} /></SkeletonGroup> : null}
-        {categoriesQuery.error ? (
-          <FintCard gap="$3" items="center">
-            <Paragraph color="$red10" text="center">{t('categories.loadError')}</Paragraph>
-            <FintButton size="$3" variant="outlined" onPress={() => categoriesQuery.refetch()}>{t('actions.retry')}</FintButton>
-          </FintCard>
-        ) : null}
+        {categoriesQuery.error ? <DataStateCard message={t('categories.loadError')} onRetry={() => { void categoriesQuery.refetch() }} /> : null}
         {!categoriesQuery.isLoading && !categoriesQuery.error && categories.length === 0 ? (
           <FintCard gap="$3" items="center" py="$6">
             <YStack width={58} height={58} rounded="$10" bg="$secondary" items="center" justify="center">
