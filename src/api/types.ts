@@ -79,6 +79,7 @@ export interface PendingMovementCard {
   currency: string | null
   accountSuggestion: AccountOption | null
   requiresReview: boolean
+  recognitionConfidence: number | null
 }
 
 export interface PendingMovementPage {
@@ -98,6 +99,7 @@ export interface PendingMovementDetail {
   transactionDate: string
   accountSuggestion: AccountOption | null
   requiresReview: boolean
+  recognitionConfidence: number | null
 }
 
 export interface PendingMovementsSummary {

@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, Mail, Pencil, Shapes, Trash2 } from '@tamagui/lucide-icons-2'
+import { Check, Gauge, Mail, Pencil, Shapes, Trash2 } from '@tamagui/lucide-icons-2'
 import { useToastController } from '@tamagui/toast'
 import { Stack, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
@@ -180,6 +180,7 @@ function PendingCard({ categories, category, categoryError, expanded, isPending,
   const canQuickConfirm = Boolean(item.accountSuggestion && item.type && item.amount !== null && item.currency && !item.requiresReview)
   const typeLabel = item.type ? t(`forms.${item.type}`) : t('movementUx.reviewRequired', { defaultValue: 'Revisar datos' })
   const amountLabel = item.amount !== null && item.currency ? `${item.type === 'income' ? '+' : item.type === 'expense' ? '-' : ''}${formatMoney(item.amount, item.currency)}` : t('movementUx.reviewRequired', { defaultValue: 'Revisar datos' })
+  const confidence = confidenceView(item.recognitionConfidence)
   return (
     <FintCard p="$3" gap="$3" opacity={isPending ? 0.65 : 1}>
       <XStack items="center" gap="$3" role="button" onPress={isPending ? undefined : onToggle}>
@@ -190,6 +191,7 @@ function PendingCard({ categories, category, categoryError, expanded, isPending,
         </YStack>
         <Paragraph color={item.type === 'income' ? '$green10' : item.type === 'expense' ? '$red10' : '$yellow10'} fontWeight="900">{amountLabel}</Paragraph>
       </XStack>
+      {confidence ? <RecognitionConfidence confidence={confidence} /> : null}
       {expanded ? (
         <YStack gap="$3">
           {canQuickConfirm && item.type ? (
@@ -211,6 +213,34 @@ function PendingCard({ categories, category, categoryError, expanded, isPending,
         </YStack>
       ) : null}
     </FintCard>
+  )
+}
+
+type ConfidenceView = { score: number; label: string; color: '$green10' | '$yellow10' | '$red10'; bg: '$green3' | '$yellow3' | '$red3' }
+
+function confidenceView(value: number | null): ConfidenceView | null {
+  if (value === null) return null
+  const score = Math.max(0, Math.min(100, Math.round(value)))
+  if (score >= 80) return { score, label: 'Reconocimiento alto', color: '$green10', bg: '$green3' }
+  if (score >= 55) return { score, label: 'Reconocimiento medio', color: '$yellow10', bg: '$yellow3' }
+  return { score, label: 'Revisar reconocimiento', color: '$red10', bg: '$red3' }
+}
+
+function RecognitionConfidence({ confidence }: { confidence: ConfidenceView }) {
+  return (
+    <YStack gap="$2" bg="$muted" rounded="$5" p="$3" accessibilityLabel={`${confidence.label}: ${confidence.score}%`}>
+      <XStack items="center" gap="$2">
+        <YStack width={28} height={28} rounded="$10" bg={confidence.bg} items="center" justify="center"><Gauge size={15} color={confidence.color} /></YStack>
+        <YStack flex={1} minW={0}>
+          <Paragraph color="$color12" fontSize="$2" fontWeight="800">{confidence.label}</Paragraph>
+          <Paragraph color="$color10" fontSize="$1">Qué tan seguros estamos de los datos detectados.</Paragraph>
+        </YStack>
+        <Paragraph color={confidence.color} fontFamily="$heading" fontSize="$3" fontWeight="900">{confidence.score}%</Paragraph>
+      </XStack>
+      <XStack height={5} rounded="$10" overflow="hidden" bg="$color4">
+        <YStack width={`${confidence.score}%`} bg={confidence.color} />
+      </XStack>
+    </YStack>
   )
 }
 
