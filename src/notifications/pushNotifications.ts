@@ -19,7 +19,7 @@ export async function getInstallationId() {
   if (Platform.OS === 'web') return null
   const existing = await SecureStore.getItemAsync(installationKey)
   if (existing) return existing
-  const id = crypto.randomUUID()
+  const id = randomUuid()
   await SecureStore.setItemAsync(installationKey, id)
   return id
 }
@@ -115,4 +115,11 @@ async function loadNotifications() {
     return Notifications
   }).catch(() => null)
   return notificationsModulePromise
+}
+
+function randomUuid() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {
+    const value = Math.floor(Math.random() * 16)
+    return (char === 'x' ? value : (value & 0x3) | 0x8).toString(16)
+  })
 }
