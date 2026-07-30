@@ -49,6 +49,13 @@
       "expo-localization",
       "expo-secure-store",
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/android-icon-monochrome.png",
+          "color": "#00C7D9"
+        }
+      ],
+      [
         "@sentry/react-native/expo",
         {
           "organization": "finanzas-app-1x",

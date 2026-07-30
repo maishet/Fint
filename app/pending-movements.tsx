@@ -17,6 +17,7 @@ import { MovementPickerTrigger } from '../src/components/MovementFormControls'
 import { SkeletonGroup, SkeletonList } from '../src/components/Skeleton'
 import { getValidationMessage } from '../src/forms'
 import { FintButton, FintCard, FintFormField, FintSheetSelect } from '../src/ui'
+import { getInstallationId } from '../src/notifications/pushNotifications'
 
 const PAGE_SIZE = 20
 const NORMAL_MOVEMENT = '__transaction__'
@@ -101,7 +102,7 @@ export default function PendingMovementsScreen() {
     setCategoryError(undefined)
   }
 
-  const confirm = (item: PendingMovementCard) => {
+  const confirm = async (item: PendingMovementCard) => {
     if (!item.accountSuggestion || !item.type || item.amount === null || !item.currency || item.requiresReview) {
       router.push({ pathname: '/pending-review', params: { id: item.id } })
       return
@@ -121,6 +122,7 @@ export default function PendingMovementsScreen() {
           accountId: item.accountSuggestion.id,
           categoryId: null,
           note: item.title,
+          originInstallationId: await getInstallationId(),
         },
       })
       return

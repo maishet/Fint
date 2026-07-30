@@ -5,12 +5,13 @@ import { useTranslation } from 'react-i18next'
 import { StatusBar } from 'expo-status-bar'
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native'
 import { useFonts } from 'expo-font'
-import { SplashScreen, Stack } from 'expo-router'
+import { SplashScreen, Stack, useRouter } from 'expo-router'
 import * as Sentry from '@sentry/react-native'
 import { AppProviders } from '../src/providers/AppProviders'
 import { useAuth } from '../src/auth/AuthProvider'
 import { useThemeMode } from '../src/theme/ThemeMode'
 import { useTheme } from 'tamagui'
+import { attachNotificationResponseListener } from '../src/notifications/pushNotifications'
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -73,6 +74,9 @@ function RootLayoutNav() {
   const { session } = useAuth()
   const { themeMode } = useThemeMode()
   const theme = useTheme()
+  const router = useRouter()
+
+  useEffect(() => attachNotificationResponseListener(router), [router])
 
   return (
     <ThemeProvider value={themeMode === 'dark' ? DarkTheme : DefaultTheme}>

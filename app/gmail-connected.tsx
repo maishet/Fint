@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Paragraph, Spinner, YStack } from 'tamagui'
+import { requestAndRegisterPushInstallation } from '../src/notifications/pushNotifications'
 
 export default function GmailConnectedScreen() {
   const { email } = useLocalSearchParams<{ email?: string }>()
@@ -10,6 +11,7 @@ export default function GmailConnectedScreen() {
   const router = useRouter()
 
   useEffect(() => {
+    requestAndRegisterPushInstallation().catch(() => undefined)
     const timeout = setTimeout(() => router.replace('/gmail-settings'), 700)
     return () => clearTimeout(timeout)
   }, [router])

@@ -5,6 +5,7 @@ import * as QueryParams from 'expo-auth-session/build/QueryParams'
 import * as WebBrowser from 'expo-web-browser'
 import { AppState, Platform } from 'react-native'
 import { supabase } from './supabase'
+import { registerPushInstallation, unregisterPushInstallation } from '../notifications/pushNotifications'
 
 interface AuthResult {
   error: AuthError | null
@@ -65,6 +66,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  useEffect(() => {
+    if (!session) return
+    registerPushInstallation().catch((error) => __DEV__ && console.log('[Fint Push] register failed', error))
+  }, [session])
+
   const value = useMemo<AuthContextValue>(
     () => ({
       isLoading,
@@ -110,6 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error }
       },
       async signOut() {
+        await unregisterPushInstallation().catch(() => undefined)
         const { error } = await supabase.auth.signOut()
         if (error) {
           const { error: localError } = await supabase.auth.signOut({ scope: 'local' })

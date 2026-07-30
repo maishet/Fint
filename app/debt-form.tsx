@@ -16,6 +16,7 @@ import { SkeletonForm } from '../src/components/Skeleton'
 import { currencyOptions } from '../src/finance/currencies'
 import { todayDateString } from '../src/finance/dates'
 import { getValidationMessage, parseDecimalInput, useSubmitValidation } from '../src/forms'
+import { requestAndRegisterPushInstallation } from '../src/notifications/pushNotifications'
 import { FintButton, FintCard, FintDateField, FintFormField, FintSheetSelect } from '../src/ui'
 
 type RuleKind = 'fixed_payment' | 'credit_card'
@@ -96,6 +97,7 @@ export default function DebtFormScreen() {
         queryClient.invalidateQueries({ queryKey: ['summary'] }),
         queryClient.invalidateQueries({ queryKey: ['reports'] }),
       ])
+      if (!isEditing) requestAndRegisterPushInstallation().catch(() => undefined)
       toast.show(isEditing ? 'Pago actualizado' : 'Pago recurrente creado', { message: isEditing ? 'Los cambios se guardaron.' : 'La primera ocurrencia ya está lista.', preset: 'success', duration: 3500 })
       router.back()
     },

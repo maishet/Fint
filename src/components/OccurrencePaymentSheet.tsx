@@ -12,6 +12,7 @@ import type { AccountOption, PaymentOccurrence } from '../api/types'
 import { todayDateString } from '../finance/dates'
 import { getValidationMessage, parseDecimalInput, useSubmitValidation } from '../forms'
 import { useSheetBackHandler } from '../hooks/useSheetBackHandler'
+import { getInstallationId } from '../notifications/pushNotifications'
 import { FintButton, FintDateField, FintFormField, FintInput } from '../ui'
 import { MovementPickerTrigger } from './MovementFormControls'
 
@@ -49,7 +50,7 @@ export function OccurrencePaymentSheet({ accounts, occurrence, onOpenChange, ope
   const mutation = useMutation({
     mutationFn: async (payload: z.infer<typeof paymentSchema>) => {
       if (!occurrence) throw new Error('Missing payment occurrence')
-      return financeApi.payPaymentOccurrence(occurrence.id, payload)
+      return financeApi.payPaymentOccurrence(occurrence.id, { ...payload, originInstallationId: await getInstallationId() })
     },
     onSuccess: async () => {
       await Promise.all([

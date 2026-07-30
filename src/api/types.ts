@@ -102,6 +102,7 @@ export interface PayPaymentOccurrenceInput {
   accountId: string
   transactionDate: string
   note?: string | null
+  originInstallationId?: string | null
 }
 
 export interface UpdateCardOccurrenceAmountsInput {
@@ -411,7 +412,15 @@ export type ConfirmPendingInput =
       accountId: string
       categoryId?: string | null
       note?: string | null
+      originInstallationId?: string | null
     }
+
+export interface PushInstallationInput {
+  expoPushToken: string
+  platform: 'android' | 'ios'
+  locale: string
+  timezone: string
+}
 
 export interface ConfirmPendingResult {
   id: string

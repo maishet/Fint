@@ -17,6 +17,7 @@ import { SkeletonForm } from '../src/components/Skeleton'
 import { todayDateString } from '../src/finance/dates'
 import { getValidationMessage, parseDecimalInput, useSubmitValidation } from '../src/forms'
 import { FintButton, FintDateField, FintFormField, FintSheetSelect } from '../src/ui'
+import { getInstallationId } from '../src/notifications/pushNotifications'
 
 type PendingField = 'accountId' | 'amount' | 'categoryId' | 'transactionDate'
 const NORMAL_MOVEMENT = '__transaction__'
@@ -80,9 +81,10 @@ export default function PendingReviewScreen() {
   }, [categories, category])
 
   const confirmMutation = useMutation({
-    mutationFn: (payload: z.infer<typeof schema> & { currency: string; categoryId?: string | null }) => {
+    mutationFn: async (payload: z.infer<typeof schema> & { currency: string; categoryId?: string | null }) => {
       const detail = detailQuery.data
       if (!detail) throw new Error(t('states.error'))
+      const originInstallationId = await getInstallationId()
       if (selectedOccurrence) return financeApi.confirmPendingMovement(pendingId, {
         mode: 'payment',
         paymentOccurrenceId: selectedOccurrence.id,
@@ -94,6 +96,7 @@ export default function PendingReviewScreen() {
         accountId: payload.accountId,
         categoryId: null,
         note: note.trim() || null,
+        originInstallationId,
       })
       return financeApi.confirmPendingMovement(pendingId, {
         mode: 'transaction',

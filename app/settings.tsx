@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 import { Alert, Image, Linking } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
@@ -13,6 +14,7 @@ import {
   Mail,
   MonitorSmartphone,
   Moon,
+  Bell,
   ShieldCheck,
   Sun,
   Tags,
@@ -25,16 +27,17 @@ import { changeAppLanguage, type AppLanguage } from '../src/i18n'
 import { getSupportDiagnostics } from '../src/support/diagnostics'
 import { useThemeMode } from '../src/theme/ThemeMode'
 import { FintButton, FintCard, FintSheetSelect } from '../src/ui'
+import { getPushPermissionState, registerPushInstallation, requestAndRegisterPushInstallation, type PushPermissionState } from '../src/notifications/pushNotifications'
 
 const copy = {
   es: {
-    profile: 'Mi perfil', editProfile: 'Editar nombre y consultar los datos de tu cuenta', configuration: 'Configuración', language: 'Idioma', appearance: 'Apariencia', light: 'Claro', dark: 'Oscuro', system: 'Según el dispositivo', financialAccounts: 'Mis cuentas financieras', categories: 'Mis categorías', gmail: 'Cuentas Gmail', gmailDetail: 'Conexión, remitentes y sincronización', contact: 'Ayuda', help: 'Reportar un problema', suggestion: 'Solicitar una mejora', legal: 'Legal', privacy: 'Política de privacidad', privacyDetail: 'Cómo protegemos y utilizamos tus datos', terms: 'Términos y condiciones', termsDetail: 'Reglas y condiciones de uso de Fint', legalUnavailable: 'Este documento aún no tiene una URL pública configurada.', session: 'Cuenta', signOut: 'Cerrar sesión', version: 'Versión', accountHint: 'Tu información y conexiones en un solo lugar',
+    profile: 'Mi perfil', editProfile: 'Editar nombre y consultar los datos de tu cuenta', configuration: 'Configuración', language: 'Idioma', appearance: 'Apariencia', notifications: 'Notificaciones', notificationsOn: 'Activas', notificationsOff: 'Desactivadas', notificationsUnsupported: 'No disponible', light: 'Claro', dark: 'Oscuro', system: 'Según el dispositivo', financialAccounts: 'Mis cuentas financieras', categories: 'Mis categorías', gmail: 'Cuentas Gmail', gmailDetail: 'Conexión, remitentes y sincronización', contact: 'Ayuda', help: 'Reportar un problema', suggestion: 'Solicitar una mejora', legal: 'Legal', privacy: 'Política de privacidad', privacyDetail: 'Cómo protegemos y utilizamos tus datos', terms: 'Términos y condiciones', termsDetail: 'Reglas y condiciones de uso de Fint', legalUnavailable: 'Este documento aún no tiene una URL pública configurada.', session: 'Cuenta', signOut: 'Cerrar sesión', version: 'Versión', accountHint: 'Tu información y conexiones en un solo lugar',
   },
   en: {
-    profile: 'My profile', editProfile: 'Edit your name and review account details', configuration: 'Settings', language: 'Language', appearance: 'Appearance', light: 'Light', dark: 'Dark', system: 'Use device setting', financialAccounts: 'My financial accounts', categories: 'My categories', gmail: 'Gmail accounts', gmailDetail: 'Connection, senders, and sync', contact: 'Help', help: 'Report a problem', suggestion: 'Request an improvement', legal: 'Legal', privacy: 'Privacy policy', privacyDetail: 'How we protect and use your data', terms: 'Terms and conditions', termsDetail: 'Rules and conditions for using Fint', legalUnavailable: 'This document does not have a public URL configured yet.', session: 'Account', signOut: 'Sign out', version: 'Version', accountHint: 'Your information and connections in one place',
+    profile: 'My profile', editProfile: 'Edit your name and review account details', configuration: 'Settings', language: 'Language', appearance: 'Appearance', notifications: 'Notifications', notificationsOn: 'Active', notificationsOff: 'Disabled', notificationsUnsupported: 'Unavailable', light: 'Light', dark: 'Dark', system: 'Use device setting', financialAccounts: 'My financial accounts', categories: 'My categories', gmail: 'Gmail accounts', gmailDetail: 'Connection, senders, and sync', contact: 'Help', help: 'Report a problem', suggestion: 'Request an improvement', legal: 'Legal', privacy: 'Privacy policy', privacyDetail: 'How we protect and use your data', terms: 'Terms and conditions', termsDetail: 'Rules and conditions for using Fint', legalUnavailable: 'This document does not have a public URL configured yet.', session: 'Account', signOut: 'Sign out', version: 'Version', accountHint: 'Your information and connections in one place',
   },
   pt: {
-    profile: 'Meu perfil', editProfile: 'Edite o nome e consulte os dados da sua conta', configuration: 'Configurações', language: 'Idioma', appearance: 'Aparência', light: 'Claro', dark: 'Escuro', system: 'Conforme o dispositivo', financialAccounts: 'Minhas contas financeiras', categories: 'Minhas categorias', gmail: 'Contas Gmail', gmailDetail: 'Conexão, remetentes e sincronização', contact: 'Ajuda', help: 'Relatar um problema', suggestion: 'Sugerir uma melhoria', legal: 'Legal', privacy: 'Política de privacidade', privacyDetail: 'Como protegemos e utilizamos seus dados', terms: 'Termos e condições', termsDetail: 'Regras e condições de uso da Fint', legalUnavailable: 'Este documento ainda não possui uma URL pública configurada.', session: 'Conta', signOut: 'Sair', version: 'Versão', accountHint: 'Suas informações e conexões em um só lugar',
+    profile: 'Meu perfil', editProfile: 'Edite o nome e consulte os dados da sua conta', configuration: 'Configurações', language: 'Idioma', appearance: 'Aparência', notifications: 'Notificações', notificationsOn: 'Ativas', notificationsOff: 'Desativadas', notificationsUnsupported: 'Indisponível', light: 'Claro', dark: 'Escuro', system: 'Conforme o dispositivo', financialAccounts: 'Minhas contas financeiras', categories: 'Minhas categorias', gmail: 'Contas Gmail', gmailDetail: 'Conexão, remetentes e sincronização', contact: 'Ajuda', help: 'Relatar um problema', suggestion: 'Sugerir uma melhoria', legal: 'Legal', privacy: 'Política de privacidade', privacyDetail: 'Como protegemos e utilizamos seus dados', terms: 'Termos e condições', termsDetail: 'Regras e condições de uso da Fint', legalUnavailable: 'Este documento ainda não possui uma URL pública configurada.', session: 'Conta', signOut: 'Sair', version: 'Versão', accountHint: 'Suas informações e conexões em um só lugar',
   },
 }
 
@@ -46,6 +49,7 @@ export default function SettingsScreen() {
   const { themeMode, themePreference, setThemePreference } = useThemeMode()
   const router = useRouter()
   const diagnostics = getSupportDiagnostics()
+  const [pushState, setPushState] = useState<PushPermissionState>('undetermined')
   const metadata = session?.user.user_metadata ?? {}
   const displayName = typeof metadata.display_name === 'string' ? metadata.display_name : typeof metadata.full_name === 'string' ? metadata.full_name : typeof metadata.name === 'string' ? metadata.name : session?.user.email ?? 'Fint'
   const avatarUrl = typeof metadata.avatar_url === 'string' ? metadata.avatar_url : typeof metadata.picture === 'string' ? metadata.picture : null
@@ -58,6 +62,15 @@ export default function SettingsScreen() {
     }
     void Linking.openURL(url)
   }
+  useEffect(() => { getPushPermissionState().then(setPushState).catch(() => setPushState('unsupported')) }, [])
+  const enableNotifications = async () => {
+    if (pushState === 'denied') {
+      await Linking.openSettings()
+      return
+    }
+    setPushState(await requestAndRegisterPushInstallation())
+  }
+  const notificationValue = pushState === 'granted' ? text.notificationsOn : pushState === 'unsupported' ? text.notificationsUnsupported : text.notificationsOff
 
   return (
     <Screen>
@@ -77,7 +90,7 @@ export default function SettingsScreen() {
           placeholder={text.language}
           value={language}
           options={[{ value: 'es', label: 'Español', icon: <Paragraph fontSize="$5">🇪🇸</Paragraph> }, { value: 'en', label: 'English', icon: <Paragraph fontSize="$5">🇺🇸</Paragraph> }, { value: 'pt', label: 'Português', icon: <Paragraph fontSize="$5">🇧🇷</Paragraph> }]}
-          onValueChange={(value) => { void changeAppLanguage(value as AppLanguage) }}
+          onValueChange={(value) => { void changeAppLanguage(value as AppLanguage).then(() => registerPushInstallation()).catch(() => undefined) }}
           renderTrigger={({ onPress, selectedLabel }) => <SettingsRow icon={<Languages size={19} color="$primary" />} label={text.language} value={selectedLabel} onPress={onPress} />}
         />
         <FintSheetSelect
@@ -91,6 +104,7 @@ export default function SettingsScreen() {
         <SettingsRow icon={<Landmark size={19} color="$primary" />} label={text.financialAccounts} onPress={() => router.push('/(tabs)/accounts')} />
         <SettingsRow icon={<Tags size={19} color="$primary" />} label={text.categories} onPress={() => router.push('/categories')} />
         <SettingsRow icon={<Mail size={19} color="$primary" />} label={text.gmail} detail={text.gmailDetail} onPress={() => router.push('/gmail-settings')} />
+        <SettingsRow icon={<Bell size={19} color="$primary" />} label={text.notifications} value={notificationValue} onPress={enableNotifications} />
       </SettingsGroup>
 
       <SettingsGroup title={text.contact}>
