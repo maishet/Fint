@@ -95,8 +95,9 @@ El estado de pago y el estado temporal se calculan por separado para evitar comb
 | `due_today` | Dia de vencimiento | El pago no esta pagado. |
 | `overdue` | Primer dia vencido | El pago no esta pagado. |
 | `payment_recorded` | Al registrar pago | Solo otros dispositivos del usuario. |
+| `pending_movement_detected` | Al crear pendiente Gmail | Solo instalaciones activas del usuario. |
 
-Cada evento se envia una sola vez por ocurrencia y dispositivo. No existe configuracion de dias de anticipacion en mobile ni en API.
+Cada evento de recordatorio se envia una sola vez por ocurrencia y dispositivo. `payment_recorded` se deduplica por pago concreto para soportar pagos parciales. `pending_movement_detected` se deduplica por pendiente concreto. No existe configuracion de dias de anticipacion en mobile ni en API.
 
 ## Fases
 
@@ -110,6 +111,8 @@ Cada evento se envia una sola vez por ocurrencia y dispositivo. No existe config
 
 La Fase 1 debe publicarse antes de aceptar nuevos formatos bancarios. La Fase 3 debe estar desplegada antes de habilitar `Aplicar a pago`. La Fase 4 depende de que la generacion de ocurrencias de la Fase 3 sea estable e idempotente.
 
+Antes de implementar Fase 4 se corrigen dos prerequisitos de Fase 3: preservar el dia ancla de recurrencias mensuales/anuales y usar la categoria configurada en la regla cuando un pago manual registra una ocurrencia fija.
+
 ## Fuera De Alcance
 
 - Prestamos y amortizaciones.
@@ -120,6 +123,7 @@ La Fase 1 debe publicarse antes de aceptar nuevos formatos bancarios. La Fase 3 
 - Acciones de pago desde la notificacion.
 - Machine learning para clasificar correos.
 - Mostrar contenido, remitente o cuenta Gmail en la revision del pendiente.
+- Mostrar contenido, remitente, asunto, banco, monto o moneda en notificaciones push de pendientes.
 - Conciliacion contable completa entre instituciones.
 
 ## Definicion Global De Hecho

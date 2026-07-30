@@ -2,7 +2,28 @@
 
 ## Objetivo
 
-Enviar recordatorios confiables de pagos proximos, vencidos y registrados en otros dispositivos usando Expo Push Service y el estado autoritativo de la API.
+Enviar notificaciones confiables usando Expo Push Service y el estado autoritativo de la API para:
+
+- Recordatorios de pagos recurrentes proximos y vencidos.
+- Pagos registrados desde otros dispositivos.
+- Nuevos movimientos pendientes detectados por Gmail.
+
+La fase se cierra para Android e iOS con validacion en dispositivos reales.
+
+## Prerrequisitos De Fase 3
+
+Antes de habilitar push se corrigen dos inconsistencias de pagos recurrentes:
+
+1. La recurrencia mensual/anual debe preservar el dia ancla original cuando sea posible.
+   - `31 ene -> 28 feb -> 31 mar`.
+   - No debe derivar permanentemente a `28 mar`.
+   - La misma regla aplica para anuales y anos bisiestos.
+2. Los pagos manuales de ocurrencias fijas deben usar la categoria configurada en la regla.
+   - Ejemplo: Spotify usa `Ocio`.
+   - No debe caer en `Pago recurrente` salvo que la regla no tenga categoria.
+   - Tarjetas mantienen el fallback `Pago de tarjeta`.
+
+Estos prerequisitos evitan recordatorios en fechas equivocadas y reportes con categorias inconsistentes.
 
 ## Calendario Fijo
 
@@ -16,8 +37,11 @@ Los dias de anticipacion no son configurables.
 | `due_today` | Dia de vencimiento a las 09:00. |
 | `overdue` | Primer dia vencido a las 09:00. |
 | `payment_recorded` | Inmediato, solo en otros dispositivos. |
+| `pending_movement_detected` | Inmediato, cuando Gmail crea un pendiente nuevo. |
 
 No se repite diariamente el aviso vencido. Una estrategia de repeticion puede evaluarse despues con datos de uso.
+
+Los recordatorios de pagos usan la zona horaria de la regla recurrente (`recurring_payment_rules.timezone`). No se usa la zona local de cada instalacion para decidir las 09:00 del pago.
 
 ## Contenido De Las Notificaciones
 
@@ -67,6 +91,15 @@ Cuerpo: Se registro un pago en Tarjeta BCP.
 
 Los textos deben localizarse en espanol, ingles y portugues antes del envio. API recibe el idioma preferido del perfil o instalacion.
 
+### Movimiento Pendiente Detectado
+
+```text
+Titulo: Nuevo movimiento por revisar
+Cuerpo: Revisa un movimiento detectado en Fint.
+```
+
+No se incluye remitente, asunto, fragmento de correo, cuenta Gmail, monto, moneda ni banco en la notificacion. El detalle solo se muestra al abrir la app.
+
 ## Arquitectura
 
 ```text
@@ -78,6 +111,11 @@ Supabase Cron
   -> Push ticket
   -> Receipt verification
   -> Disable invalid token
+
+Gmail processor
+  -> Pending movement created
+  -> Idempotent pending delivery claim
+  -> Expo Push Service
 ```
 
 Las notificaciones son remotas. No se programan alarmas locales por cada pago porque deben reflejar cambios realizados en otros dispositivos.
@@ -118,13 +156,18 @@ Crear `notification_deliveries`:
 ```text
 id uuid primary key
 user_id uuid not null
-payment_occurrence_id uuid not null
+payment_occurrence_id uuid null
+pending_movement_id uuid null
+payment_occurrence_payment_id uuid null
 installation_id uuid not null
 event_type text not null
 scheduled_local_date date not null
 expo_ticket_id text null
 status claimed | sent | delivered | failed
 error_code text null
+attempt_count int not null default 0
+next_attempt_at timestamptz null
+claimed_at timestamptz null
 created_at timestamptz
 updated_at timestamptz
 ```
@@ -132,18 +175,24 @@ updated_at timestamptz
 Restriccion idempotente:
 
 ```text
-unique(payment_occurrence_id, installation_id, event_type)
+unique(payment_occurrence_id, installation_id, event_type) where payment_occurrence_id is not null and event_type <> 'payment_recorded'
+unique(payment_occurrence_payment_id, installation_id, event_type) where payment_occurrence_payment_id is not null and event_type = 'payment_recorded'
+unique(pending_movement_id, installation_id, event_type) where pending_movement_id is not null and event_type = 'pending_movement_detected'
 ```
 
-El job reclama primero la entrega en base. Solo el proceso que obtiene la fila envia el push.
+Los recordatorios se deduplican por ocurrencia, instalacion y tipo. `payment_recorded` se deduplica por pago concreto para permitir varios pagos parciales sobre la misma ocurrencia. `pending_movement_detected` se deduplica por pendiente concreto.
+
+Para eventos inmediatos (`payment_recorded` y `pending_movement_detected`), `scheduled_local_date` guarda la fecha local del evento para auditoria y retencion, no para postergar el envio.
+
+El job reclama primero la entrega en base. Solo el proceso que obtiene la fila envia el push. Claims abandonados pueden recuperarse si `claimed_at` queda viejo y el estado no avanzo.
 
 ## Endpoints API
 
 ```text
 PUT    /api/push/installations/:installationId
 DELETE /api/push/installations/:installationId
-POST   /api/internal/payment-reminders/send
-POST   /api/internal/push-receipts/check
+POST   /api/jobs/payment-reminders/send
+POST   /api/jobs/push-receipts/check
 ```
 
 Registro de instalacion:
@@ -157,7 +206,7 @@ Registro de instalacion:
 }
 ```
 
-Los endpoints internos usan secreto server-side almacenado en Supabase Vault o variables protegidas de Render. No se exponen al cliente mobile.
+Los endpoints internos usan secreto server-side almacenado en Supabase Vault o variables protegidas de Render. No se exponen al cliente mobile. Deben usar el mismo header interno que el resto de jobs (`x-internal-cron-secret`).
 
 ## Job De Recordatorios
 
@@ -188,6 +237,18 @@ API:
 
 El dispositivo origen usa toast y actualizacion de queries, no push.
 
+## Movimiento Pendiente Detectado
+
+Cuando el procesador Gmail cree un pendiente nuevo:
+
+1. La operacion de Gmail confirma que el pendiente fue insertado por primera vez.
+2. API consulta instalaciones activas del usuario.
+3. Crea deliveries `pending_movement_detected` idempotentes por instalacion.
+4. Envia push best-effort despues de confirmar la transaccion.
+5. Si el envio inmediato falla, el job de receipts/reintentos puede continuar con deliveries pendientes.
+
+No se debe notificar cuando el parser detecta un duplicado o actualiza una fila existente sin crear un pendiente nuevo.
+
 ## Payload
 
 ```json
@@ -207,6 +268,25 @@ El dispositivo origen usa toast y actualizacion de queries, no push.
 
 El payload no incluye monto, moneda, account ID, Gmail ID ni contenido del correo.
 
+Para pendientes:
+
+```json
+{
+  "to": "ExponentPushToken[...]",
+  "title": "Nuevo movimiento por revisar",
+  "body": "Revisa un movimiento detectado en Fint.",
+  "sound": "default",
+  "channelId": "pending-movements",
+  "data": {
+    "type": "pending_movement_detected",
+    "pendingMovementId": "uuid",
+    "url": "/pending-movements"
+  }
+}
+```
+
+El payload de pendientes tampoco incluye contenido Gmail, monto, moneda, remitente, asunto, banco ni cuenta.
+
 ## Mobile Expo
 
 ### Dependencia Y Configuracion
@@ -215,7 +295,7 @@ El payload no incluye monto, moneda, account ID, Gmail ID ni contenido del corre
 - Agregar el config plugin en `app.json`.
 - Agregar un icono Android blanco con transparencia.
 - Configurar color ocean-blue.
-- Crear canal Android `payment-reminders` antes de solicitar permisos.
+- Crear canales Android `payment-reminders` y `pending-movements` antes de solicitar permisos.
 - Generar un nuevo build EAS; la configuracion nativa no funciona mediante update JS solamente.
 
 Push remoto no se prueba en Expo Go para Android. Debe validarse en development build, preview APK y release.
@@ -226,14 +306,14 @@ No solicitar permiso durante login ni primer arranque.
 
 Flujo:
 
-1. Usuario crea su primera regla recurrente.
+1. Usuario crea su primera regla recurrente o habilita Gmail para detectar pendientes.
 2. Mobile explica el beneficio de los recordatorios.
 3. Usuario acepta continuar.
 4. Mobile solicita permiso del sistema.
 5. Si acepta, registra token.
 6. Si rechaza, la regla se guarda y la app sigue funcionando sin push.
 
-Settings debe mostrar `Notificaciones activas` o `Notificaciones desactivadas`, sin permitir cambiar los dias 7, 3 y 1.
+Settings debe mostrar `Notificaciones activas` o `Notificaciones desactivadas`, sin permitir cambiar los dias 7, 3 y 1. Si el permiso esta bloqueado, Settings debe permitir abrir la configuracion del sistema.
 
 ### Instalacion
 
@@ -249,8 +329,8 @@ Settings debe mostrar `Notificaciones activas` o `Notificaciones desactivadas`, 
 Al tocar una notificacion:
 
 - Validar que `url` sea una ruta interna permitida.
-- Abrir la tab Pagos.
-- Resaltar o abrir la ocurrencia indicada.
+- Para pagos, abrir la tab Pagos y resaltar o abrir la ocurrencia indicada.
+- Para pendientes, abrir `Pendientes detectados`.
 - Si ya no existe o no pertenece al usuario, mostrar la lista sin error fatal.
 
 Debe manejar notificacion recibida con app abierta, en background y terminada.
@@ -286,7 +366,11 @@ Debe manejar notificacion recibida con app abierta, en background y terminada.
 - Token invalido queda desactivado.
 - Pago excluye el dispositivo origen.
 - Pago notifica otros dos dispositivos activos.
+- Segundo pago parcial sobre la misma ocurrencia genera otro `payment_recorded`.
+- Pendiente Gmail nuevo genera una sola notificacion por instalacion activa.
+- Duplicado Gmail no genera notificacion nueva.
 - Timezone cambia correctamente la fecha local.
+- Claim abandonado puede reintentarse sin duplicar entrega.
 
 ### Mobile
 
@@ -294,6 +378,7 @@ Debe manejar notificacion recibida con app abierta, en background y terminada.
 - Permiso rechazado no bloquea reglas.
 - Token rotado actualiza instalacion.
 - Tap abre la ocurrencia correcta.
+- Tap de pendiente abre `Pendientes detectados`.
 - Payload invalido no navega fuera de la app.
 - Foreground muestra comportamiento esperado.
 - Logout desregistra o desactiva instalacion.
@@ -302,6 +387,7 @@ Debe manejar notificacion recibida con app abierta, en background y terminada.
 
 - Android 13 o superior solicita permiso despues de crear la regla.
 - Preview APK recibe push con app abierta, cerrada y en background.
+- iOS recibe push con app abierta, cerrada y en background.
 - Release build abre deep link sin warning de linking.
 - Icono y canal Android se muestran correctamente.
 
@@ -312,8 +398,19 @@ Debe manejar notificacion recibida con app abierta, en background y terminada.
 - Vencimiento y vencido se notifican una sola vez.
 - Pago desde otro dispositivo produce confirmacion push.
 - El dispositivo origen no recibe push redundante.
-- Ninguna notificacion expone montos o datos Gmail.
+- Nuevo movimiento pendiente produce notificacion push sin exponer datos Gmail ni monto.
+- Ninguna notificacion expone montos, cuentas, bancos, remitentes, asuntos o datos Gmail.
 - Tokens invalidos se desactivan mediante receipts.
+
+## Fuera De Alcance
+
+- Dias u horarios configurables.
+- Avisos vencidos diarios.
+- Acciones para pagar desde la notificacion.
+- Alarmas locales.
+- Gasto inusual, resumen semanal o nuevo inicio de sesion.
+- Reversion contable de pagos.
+- Pagos automaticos.
 
 ## Dependencia De Salida
 
