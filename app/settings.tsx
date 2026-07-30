@@ -68,7 +68,14 @@ export default function SettingsScreen() {
       await Linking.openSettings()
       return
     }
-    setPushState(await requestAndRegisterPushInstallation())
+    try {
+      const nextState = await requestAndRegisterPushInstallation()
+      setPushState(nextState)
+      if (nextState !== 'granted') Alert.alert(text.notifications, 'No pudimos activar las notificaciones en este dispositivo.')
+    } catch (error) {
+      setPushState('undetermined')
+      Alert.alert(text.notifications, error instanceof Error ? error.message : 'No pudimos activar las notificaciones en este dispositivo.')
+    }
   }
   const notificationValue = pushState === 'granted' ? text.notificationsOn : pushState === 'unsupported' ? text.notificationsUnsupported : text.notificationsOff
 

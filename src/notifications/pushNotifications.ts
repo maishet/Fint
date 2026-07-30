@@ -57,14 +57,20 @@ export async function registerPushInstallation() {
   if (!installationId) return null
   const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId
   if (!projectId) return null
-  const token = await Notifications.getExpoPushTokenAsync({ projectId })
-  await financeApi.upsertPushInstallation(installationId, {
-    expoPushToken: token.data,
-    platform: Platform.OS === 'ios' ? 'ios' : 'android',
-    locale: getAppLocale(i18n.resolvedLanguage),
-    timezone: Localization.getCalendars()[0]?.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'America/Lima',
-  })
-  await SecureStore.setItemAsync(installationRegisteredKey, 'true')
+  try {
+    const token = await Notifications.getExpoPushTokenAsync({ projectId })
+    await financeApi.upsertPushInstallation(installationId, {
+      expoPushToken: token.data,
+      platform: Platform.OS === 'ios' ? 'ios' : 'android',
+      locale: getAppLocale(i18n.resolvedLanguage),
+      timezone: Localization.getCalendars()[0]?.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'America/Lima',
+    })
+    await SecureStore.setItemAsync(installationRegisteredKey, 'true')
+  } catch (error) {
+    await SecureStore.deleteItemAsync(installationRegisteredKey).catch(() => undefined)
+    console.warn('[Fint Push] registration failed', error instanceof Error ? error.message : String(error))
+    throw error
+  }
   return installationId
 }
 

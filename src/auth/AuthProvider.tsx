@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!session) return
-    registerPushInstallation().catch((error) => __DEV__ && console.log('[Fint Push] register failed', error))
+    registerPushInstallation().catch((error) => console.warn('[Fint Push] automatic register failed', error instanceof Error ? error.message : String(error)))
   }, [session])
 
   const value = useMemo<AuthContextValue>(
