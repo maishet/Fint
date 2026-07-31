@@ -13,20 +13,13 @@ import { getValidationMessage, useSubmitValidation } from '../src/forms'
 import { useThemeMode } from '../src/theme/ThemeMode'
 import { FintButton, FintCard, FintFormField, FintSheetSelect } from '../src/ui'
 
-const copy = {
-  es: { title: 'Ayuda y soporte', subtitle: 'Reporta incidentes sin compartir datos financieros.', category: 'Categoría', description: '¿Qué ocurrió?', steps: 'Pasos para reproducirlo, si es posible', required: 'Agrega una descripción', submit: 'Reportar un problema', improvement: 'Solicitar una mejora', improvementHint: 'Elige “Sugerencia de mejora” como categoría y describe el valor esperado.', login: 'Inicio de sesión: verifica la confirmación del correo y tus credenciales.', gmail: 'Gmail: vuelve a conectar la cuenta si Google revocó el acceso.', duplicates: 'Movimientos duplicados: revisa los pendientes de Gmail antes de confirmarlos.', categories: ['Inicio de sesión o cuenta', 'Cuentas y saldos', 'Movimientos o categorías', 'Deudas y pagos', 'Conexión o sincronización Gmail', 'Rendimiento o cierre inesperado', 'Privacidad y eliminación de datos', 'Sugerencia de mejora'] },
-  en: { title: 'Help and support', subtitle: 'Report incidents without sharing financial data.', category: 'Category', description: 'What happened?', steps: 'Steps to reproduce, if possible', required: 'Add a description', submit: 'Report a problem', improvement: 'Request an improvement', improvementHint: 'Choose “Suggestion” as the category and describe the expected value.', login: 'Sign in: verify email confirmation and credentials.', gmail: 'Gmail: reconnect the account if Google revoked access.', duplicates: 'Duplicate movements: review pending Gmail detections before confirming.', categories: ['Sign in or account', 'Accounts and balances', 'Movements or categories', 'Debts and payments', 'Gmail connection or sync', 'Performance or unexpected close', 'Privacy and data deletion', 'Improvement suggestion'] },
-  pt: { title: 'Ajuda e suporte', subtitle: 'Relate problemas sem compartilhar dados financeiros.', category: 'Categoria', description: 'O que aconteceu?', steps: 'Passos para reproduzir, se possível', required: 'Adicione uma descrição', submit: 'Relatar um problema', improvement: 'Sugerir uma melhoria', improvementHint: 'Escolha “Sugestão de melhoria” como categoria e descreva o resultado esperado.', login: 'Login: verifique a confirmação do e-mail e suas credenciais.', gmail: 'Gmail: reconecte a conta se o Google revogou o acesso.', duplicates: 'Movimentações duplicadas: revise as pendências do Gmail antes de confirmar.', categories: ['Login ou conta', 'Contas e saldos', 'Movimentações ou categorias', 'Dívidas e pagamentos', 'Conexão ou sincronização Gmail', 'Desempenho ou fechamento inesperado', 'Privacidade e exclusão de dados', 'Sugestão de melhoria'] },
-}
-
 export default function SupportScreen() {
   const { i18n, t } = useTranslation()
   const router = useRouter()
   const { themeMode } = useThemeMode()
   const isDark = themeMode === 'dark'
-  const language = i18n.resolvedLanguage === 'en' || i18n.resolvedLanguage === 'pt' ? i18n.resolvedLanguage : 'es'
-  const text = copy[language]
-  const [category, setCategory] = useState(text.categories[0])
+  const categories = t('support.categories', { returnObjects: true }) as string[]
+  const [category, setCategory] = useState(categories[0] ?? '')
   const [description, setDescription] = useState('')
   const [steps, setSteps] = useState('')
   const [serverError, setServerError] = useState<string | null>(null)
@@ -36,7 +29,7 @@ export default function SupportScreen() {
     setServerError(null)
     const schema = z.object({
       category: z.string().min(1, getValidationMessage(t, i18n.resolvedLanguage, 'required')),
-      description: z.string().trim().min(1, t('support.descriptionRequired', { defaultValue: text.required })),
+      description: z.string().trim().min(1, t('support.descriptionRequired')),
       steps: z.string(),
     })
     const payload = validation.validate(schema, { category, description, steps })
@@ -51,14 +44,14 @@ export default function SupportScreen() {
 
   return (
     <Screen>
-      <FintCard bg={isDark ? '#0B3046' : '#0F5D73'} borderColor={isDark ? '#1B5067' : '#28788C'} gap="$3"><XStack gap="$3" items="center"><YStack width={48} height={48} rounded="$10" bg="rgba(93,214,229,0.14)" borderColor="rgba(93,214,229,0.24)" borderWidth={1} items="center" justify="center"><HelpCircle size={24} color="#5DD6E5" /></YStack><YStack flex={1}><Paragraph color="#F4FBFD" fontFamily="$heading" fontSize="$6" fontWeight="800">{text.title}</Paragraph><Paragraph color="#B9D7E1">{text.subtitle}</Paragraph></YStack></XStack></FintCard>
-      <FintFormField label={text.category} required error={validation.errors.category} showLabel={false}><FintSheetSelect label={text.category} showLabel={false} placeholder={text.category} value={category} options={text.categories.map((item) => ({ value: item, label: item }))} onValueChange={(value) => { setCategory(value); validation.clearError('category'); void trackAnalyticsEvent('support_report_started', { category: value }) }} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<Tags size={21} color="$primary" />} invalid={Boolean(validation.errors.category)} label={text.category} required onPress={onPress} value={selectedLabel} />} /></FintFormField>
-      <FormTextArea label={text.description} required error={validation.errors.description} icon={<MessageSquareText size={21} color="$primary" />} minHeight={124} placeholder={text.description} value={description} onChangeText={(value) => { setDescription(value); validation.clearError('description') }} />
-      <FormTextArea label={text.steps} icon={<ListChecks size={21} color="$primary" />} minHeight={112} placeholder={text.steps} value={steps} onChangeText={setSteps} />
+      <FintCard bg={isDark ? '#0B3046' : '#0F5D73'} borderColor={isDark ? '#1B5067' : '#28788C'} gap="$3"><XStack gap="$3" items="center"><YStack width={48} height={48} rounded="$10" bg="rgba(93,214,229,0.14)" borderColor="rgba(93,214,229,0.24)" borderWidth={1} items="center" justify="center"><HelpCircle size={24} color="#5DD6E5" /></YStack><YStack flex={1}><Paragraph color="#F4FBFD" fontFamily="$heading" fontSize="$6" fontWeight="800">{t('support.title')}</Paragraph><Paragraph color="#B9D7E1">{t('support.subtitle')}</Paragraph></YStack></XStack></FintCard>
+      <FintFormField label={t('support.category')} required error={validation.errors.category} showLabel={false}><FintSheetSelect label={t('support.category')} showLabel={false} placeholder={t('support.category')} value={category} options={categories.map((item) => ({ value: item, label: item }))} onValueChange={(value) => { setCategory(value); validation.clearError('category'); void trackAnalyticsEvent('support_report_started', { category: value }) }} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<Tags size={21} color="$primary" />} invalid={Boolean(validation.errors.category)} label={t('support.category')} required onPress={onPress} value={selectedLabel} />} /></FintFormField>
+      <FormTextArea label={t('support.description')} required error={validation.errors.description} icon={<MessageSquareText size={21} color="$primary" />} minHeight={124} placeholder={t('support.description')} value={description} onChangeText={(value) => { setDescription(value); validation.clearError('description') }} />
+      <FormTextArea label={t('support.steps')} icon={<ListChecks size={21} color="$primary" />} minHeight={112} placeholder={t('support.steps')} value={steps} onChangeText={setSteps} />
       {serverError ? <Paragraph color="$red10">{serverError}</Paragraph> : null}
-      <YStack gap="$2"><FintButton width="100%" minH={52} icon={<Send size={17} />} onPress={submit}>{text.submit}</FintButton><FintButton width="100%" minH={48} variant="outlined" onPress={() => router.back()}>{t('actions.cancel')}</FintButton></YStack>
-      <FintCard gap="$2"><XStack gap="$2" items="center"><Lightbulb size={18} color="$primary" /><Paragraph color="$color12" fontWeight="800">{text.improvement}</Paragraph></XStack><Paragraph color="$color10">{text.improvementHint}</Paragraph></FintCard>
-      <FintCard gap="$2"><Paragraph color="$color12" fontWeight="800">FAQ</Paragraph><Paragraph color="$color10">{text.login}</Paragraph><Paragraph color="$color10">{text.gmail}</Paragraph><Paragraph color="$color10">{text.duplicates}</Paragraph></FintCard>
+      <YStack gap="$2"><FintButton width="100%" minH={52} icon={<Send size={17} />} onPress={submit}>{t('support.submit')}</FintButton><FintButton width="100%" minH={48} variant="outlined" onPress={() => router.back()}>{t('actions.cancel')}</FintButton></YStack>
+      <FintCard gap="$2"><XStack gap="$2" items="center"><Lightbulb size={18} color="$primary" /><Paragraph color="$color12" fontWeight="800">{t('support.improvement')}</Paragraph></XStack><Paragraph color="$color10">{t('support.improvementHint')}</Paragraph></FintCard>
+      <FintCard gap="$2"><Paragraph color="$color12" fontWeight="800">FAQ</Paragraph><Paragraph color="$color10">{t('support.login')}</Paragraph><Paragraph color="$color10">{t('support.gmail')}</Paragraph><Paragraph color="$color10">{t('support.duplicates')}</Paragraph></FintCard>
     </Screen>
   )
 }
