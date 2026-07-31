@@ -25,7 +25,7 @@ export function CardAmountsSheet({ occurrence, onOpenChange, open }: { occurrenc
   const schema = z.object({
     totalAmount: z.number({ error: amountMessage }).positive(getValidationMessage(t, i18n.resolvedLanguage, 'positiveAmount')),
     minimumAmount: z.number({ error: amountMessage }).positive(getValidationMessage(t, i18n.resolvedLanguage, 'positiveAmount')),
-  }).refine((value) => value.minimumAmount <= value.totalAmount, { path: ['minimumAmount'], message: 'El mínimo no puede superar el total.' })
+  }).refine((value) => value.minimumAmount <= value.totalAmount, { path: ['minimumAmount'], message: t('payments.minimumTooHigh') })
 
   useEffect(() => {
     if (!open || !occurrence) return
@@ -43,9 +43,9 @@ export function CardAmountsSheet({ occurrence, onOpenChange, open }: { occurrenc
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['payment-occurrences'] })
       onOpenChange(false)
-      toast.show('Monto configurado', { message: 'Ya puedes registrar el pago.', preset: 'success', duration: 3500 })
+      toast.show(t('payments.amountConfigured'), { message: t('payments.canRecordPayment'), preset: 'success', duration: 3500 })
     },
-    onError: () => setErrorMessage('No se pudo configurar el monto.'),
+    onError: () => setErrorMessage(t('payments.amountConfigError')),
   })
 
   const submit = () => {
@@ -62,11 +62,11 @@ export function CardAmountsSheet({ occurrence, onOpenChange, open }: { occurrenc
       <Sheet.Handle bg="$color5" />
       <Sheet.Frame bg="$popover" px="$4" pt="$4" pb={Math.max(insets.bottom, 16)} rounded={18}>
         <YStack gap="$5" pb="$4">
-          <YStack gap="$1"><Paragraph color="$color12" fontFamily="$heading" fontSize="$7" fontWeight="700">Configurar tarjeta</Paragraph><Paragraph color="$color10">{occurrence?.title ?? ''}</Paragraph></YStack>
-          <FintFormField label="Total del estado" required error={validation.errors.totalAmount}><FintInput width="100%" placeholder="0.00" value={totalAmount} onChangeText={(value) => { setTotalAmount(value); validation.clearError('totalAmount') }} keyboardType="decimal-pad" /></FintFormField>
-          <FintFormField label="Pago mínimo" required error={validation.errors.minimumAmount}><FintInput width="100%" placeholder="0.00" value={minimumAmount} onChangeText={(value) => { setMinimumAmount(value); validation.clearError('minimumAmount') }} keyboardType="decimal-pad" /></FintFormField>
+          <YStack gap="$1"><Paragraph color="$color12" fontFamily="$heading" fontSize="$7" fontWeight="700">{t('payments.configureCard')}</Paragraph><Paragraph color="$color10">{occurrence?.title ?? ''}</Paragraph></YStack>
+          <FintFormField label={t('payments.statementTotal')} required error={validation.errors.totalAmount}><FintInput width="100%" placeholder="0.00" value={totalAmount} onChangeText={(value) => { setTotalAmount(value); validation.clearError('totalAmount') }} keyboardType="decimal-pad" /></FintFormField>
+          <FintFormField label={t('payments.minimumPayment')} required error={validation.errors.minimumAmount}><FintInput width="100%" placeholder="0.00" value={minimumAmount} onChangeText={(value) => { setMinimumAmount(value); validation.clearError('minimumAmount') }} keyboardType="decimal-pad" /></FintFormField>
           {errorMessage ? <Paragraph color="$red10">{errorMessage}</Paragraph> : null}
-          <FintButton disabled={mutation.isPending} icon={mutation.isPending ? <Spinner color="$primaryForeground" /> : <Save size={18} />} onPress={submit}>{mutation.isPending ? 'Guardando...' : 'Guardar montos'}</FintButton>
+          <FintButton disabled={mutation.isPending} icon={mutation.isPending ? <Spinner color="$primaryForeground" /> : <Save size={18} />} onPress={submit}>{mutation.isPending ? t('payments.saving') : t('payments.saveAmounts')}</FintButton>
         </YStack>
       </Sheet.Frame>
     </Sheet>

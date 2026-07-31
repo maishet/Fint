@@ -61,9 +61,9 @@ export function OccurrencePaymentSheet({ accounts, occurrence, onOpenChange, ope
         queryClient.invalidateQueries({ queryKey: ['reports'] }),
       ])
       onOpenChange(false)
-      toast.show('Pago registrado', { message: 'La ocurrencia fue actualizada.', preset: 'success', duration: 3500 })
+      toast.show(t('payments.paymentRecorded'), { message: t('payments.occurrenceUpdated'), preset: 'success', duration: 3500 })
     },
-    onError: () => setErrorMessage('No se pudo registrar el pago.'),
+    onError: () => setErrorMessage(t('payments.paymentError')),
   })
 
   const submit = () => {
@@ -81,16 +81,16 @@ export function OccurrencePaymentSheet({ accounts, occurrence, onOpenChange, ope
       <Sheet.Frame bg="$popover" px="$4" pt="$4" pb={Math.max(insets.bottom, 16)} rounded={18}>
         <Sheet.ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <YStack gap="$5" pb="$4">
-            <YStack gap="$1"><Paragraph color="$color12" fontFamily="$heading" fontSize="$7" fontWeight="700">Registrar pago</Paragraph><Paragraph color="$color10">{occurrence ? `${occurrence.title} · ${formatMoney(occurrence.remainingAmount ?? 0, occurrence.currency)}` : ''}</Paragraph></YStack>
+            <YStack gap="$1"><Paragraph color="$color12" fontFamily="$heading" fontSize="$7" fontWeight="700">{t('payments.registerPayment')}</Paragraph><Paragraph color="$color10">{occurrence ? `${occurrence.title} · ${formatMoney(occurrence.remainingAmount ?? 0, occurrence.currency)}` : ''}</Paragraph></YStack>
             <FintFormField label={t('forms.amount')} required error={validation.errors.amount}><FintInput width="100%" borderColor={validation.errors.amount ? '$red8' : undefined} placeholder="0.00" value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} keyboardType="decimal-pad" /></FintFormField>
-            <FintFormField label="Fecha de pago" required error={validation.errors.transactionDate} showLabel={false}><FintDateField label="Fecha de pago" showLabel={false} placeholder="Selecciona fecha" value={transactionDate} onValueChange={(value) => { setTransactionDate(value); validation.clearError('transactionDate') }} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<CheckCircle2 size={21} color="$primary" />} invalid={Boolean(validation.errors.transactionDate)} label="Fecha de pago" required onPress={onPress} value={selectedLabel} />} /></FintFormField>
-            <FintFormField label="Cuenta de pago" required error={validation.errors.accountId} invalidBorder>
+            <FintFormField label={t('payments.paymentDate')} required error={validation.errors.transactionDate} showLabel={false}><FintDateField label={t('payments.paymentDate')} showLabel={false} placeholder={t('payments.selectDate')} value={transactionDate} onValueChange={(value) => { setTransactionDate(value); validation.clearError('transactionDate') }} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<CheckCircle2 size={21} color="$primary" />} invalid={Boolean(validation.errors.transactionDate)} label={t('payments.paymentDate')} required onPress={onPress} value={selectedLabel} />} /></FintFormField>
+            <FintFormField label={t('payments.paymentAccount')} required error={validation.errors.accountId} invalidBorder>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>{eligibleAccounts.map((account) => <XStack key={account.id} width={180} minH={68} items="center" gap="$3" p="$3" rounded="$6" bg={account.id === accountId ? '$secondary' : '$muted'} borderColor={account.id === accountId ? '$primary' : '$input'} borderWidth={1} onPress={() => { setAccountId(account.id); validation.clearError('accountId') }} role="button" cursor="pointer"><Wallet size={20} color="$primary" /><YStack flex={1} minW={0}><Paragraph color="$color12" fontWeight="700" numberOfLines={1}>{account.name}</Paragraph><Paragraph color="$color10" fontSize="$1" numberOfLines={1}>{account.currency}</Paragraph></YStack></XStack>)}</ScrollView>
-              {eligibleAccounts.length === 0 ? <Paragraph color="$red10">No hay cuentas disponibles para esta moneda.</Paragraph> : null}
+              {eligibleAccounts.length === 0 ? <Paragraph color="$red10">{t('payments.noAccountsForCurrency')}</Paragraph> : null}
             </FintFormField>
-            <FintFormField label="Nota"><FintInput width="100%" placeholder="Nota opcional" value={note} onChangeText={setNote} /></FintFormField>
+            <FintFormField label={t('payments.note')}><FintInput width="100%" placeholder={t('payments.noteOptionalPlaceholder')} value={note} onChangeText={setNote} /></FintFormField>
             {errorMessage ? <Paragraph color="$red10">{errorMessage}</Paragraph> : null}
-            <FintButton disabled={mutation.isPending || eligibleAccounts.length === 0} icon={mutation.isPending ? <Spinner color="$primaryForeground" /> : <CheckCircle2 size={18} />} onPress={submit}>{mutation.isPending ? 'Registrando...' : 'Confirmar pago'}</FintButton>
+            <FintButton disabled={mutation.isPending || eligibleAccounts.length === 0} icon={mutation.isPending ? <Spinner color="$primaryForeground" /> : <CheckCircle2 size={18} />} onPress={submit}>{mutation.isPending ? t('payments.registering') : t('payments.confirmPayment')}</FintButton>
           </YStack>
         </Sheet.ScrollView>
       </Sheet.Frame>

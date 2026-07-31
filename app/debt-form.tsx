@@ -100,16 +100,16 @@ export default function DebtFormScreen() {
         queryClient.invalidateQueries({ queryKey: ['reports'] }),
       ])
       if (!isEditing && capabilities.features.pushPaymentReminders) requestAndRegisterPushInstallation().catch(() => undefined)
-      toast.show(isEditing ? 'Pago actualizado' : 'Pago recurrente creado', { message: isEditing ? 'Los cambios se guardaron.' : 'La primera ocurrencia ya está lista.', preset: 'success', duration: 3500 })
+      toast.show(t(isEditing ? 'payments.recurringUpdated' : 'payments.recurringCreated'), { message: t(isEditing ? 'payments.changesSaved' : 'payments.firstOccurrenceReady'), preset: 'success', duration: 3500 })
       router.back()
     },
-    onError: () => setErrorMessage(isEditing ? 'No se pudo actualizar el pago recurrente.' : 'No se pudo crear el pago recurrente.'),
+    onError: () => setErrorMessage(t(isEditing ? 'payments.updateError' : 'payments.createError')),
   })
 
   const submit = () => {
     setErrorMessage(null)
     if (!capabilities.features.recurringPayments) {
-      setErrorMessage('Los pagos recurrentes están desactivados temporalmente.')
+      setErrorMessage(t('payments.disabledTemporary'))
       return
     }
     const payload = validation.validate(schema, { title, amount: parseDecimalInput(amount), categoryId, cardAccountId, startDate })
@@ -121,48 +121,48 @@ export default function DebtFormScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: isEditing ? 'Editar pago recurrente' : 'Nuevo pago recurrente' }} />
+      <Stack.Screen options={{ title: t(isEditing ? 'payments.editRecurring' : 'payments.newRecurring') }} />
       <Screen>
         {isLoading ? <SkeletonForm label={t('states.loading')} fieldCount={4} /> : null}
         {error ? <DataStateCard message={error instanceof Error ? error.message : t('states.error')} /> : null}
-        {!isLoading && !error && isEditing && !currentRule ? <DataStateCard message="No encontramos este pago recurrente. Vuelve a la lista e inténtalo nuevamente." /> : null}
+        {!isLoading && !error && isEditing && !currentRule ? <DataStateCard message={t('payments.notFound')} /> : null}
         {!isLoading && !error && (!isEditing || currentRule) ? (
           <YStack gap="$5" pb="$5">
             <PaymentKindSelector disabled={isEditing} value={kind} onValueChange={(value) => { setKind(value); setErrorMessage(null); validation.clearError('categoryId'); validation.clearError('cardAccountId') }} />
 
-            <FormTextField label={t('forms.name')} required error={validation.errors.title} icon={<FileText size={21} color="$primary" />} placeholder="Ej. Alquiler, Internet, BCP Visa" value={title} onChangeText={(value) => { setTitle(value); validation.clearError('title') }} />
+            <FormTextField label={t('forms.name')} required error={validation.errors.title} icon={<FileText size={21} color="$primary" />} placeholder={t('payments.titlePlaceholder')} value={title} onChangeText={(value) => { setTitle(value); validation.clearError('title') }} />
 
             {kind === 'fixed_payment' ? (
               isEditing ? (
-                <MovementAmountField currency={currency} error={validation.errors.amount} helperText="La moneda no se puede cambiar al editar un pago recurrente para mantener consistentes sus ocurrencias y pagos." value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} />
+                <MovementAmountField currency={currency} error={validation.errors.amount} helperText={t('payments.amountEditLocked')} value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} />
               ) : (
-                <FintSheetSelect label={t('forms.currency')} showLabel={false} placeholder={t('forms.select')} searchable searchPlaceholder={t('accounts.searchCurrency')} value={selectedCurrency} onValueChange={setSelectedCurrency} options={currencyOptions} renderTrigger={({ onPress }) => <MovementAmountField currency={currency} error={validation.errors.amount} helperText="Toca la moneda del monto para cambiarla." value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} onCurrencyPress={onPress} />} />
+                <FintSheetSelect label={t('forms.currency')} showLabel={false} placeholder={t('forms.select')} searchable searchPlaceholder={t('accounts.searchCurrency')} value={selectedCurrency} onValueChange={setSelectedCurrency} options={currencyOptions} renderTrigger={({ onPress }) => <MovementAmountField currency={currency} error={validation.errors.amount} helperText={t('payments.currencyChangeHint')} value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} onCurrencyPress={onPress} />} />
               )
             ) : null}
 
-            <FintFormField label="Frecuencia" showLabel={false}>
-              <FintSheetSelect label="Frecuencia" showLabel={false} placeholder="Selecciona frecuencia" value={frequency} onValueChange={(value) => setFrequency(value as Frequency)} options={(['weekly', 'biweekly', 'monthly', 'yearly'] as const).map((item) => ({ value: item, label: frequencyLabel(item) }))} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<Repeat size={21} color="$primary" />} label="Frecuencia" required onPress={onPress} value={selectedLabel} />} />
+            <FintFormField label={t('payments.frequency')} showLabel={false}>
+              <FintSheetSelect label={t('payments.frequency')} showLabel={false} placeholder={t('payments.selectFrequency')} value={frequency} onValueChange={(value) => setFrequency(value as Frequency)} options={(['weekly', 'biweekly', 'monthly', 'yearly'] as const).map((item) => ({ value: item, label: frequencyLabel(item, t) }))} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<Repeat size={21} color="$primary" />} label={t('payments.frequency')} required onPress={onPress} value={selectedLabel} />} />
             </FintFormField>
 
-            <FintFormField label="Primera fecha" required error={validation.errors.startDate} showLabel={false}><FintDateField label="Primera fecha" showLabel={false} placeholder="Selecciona fecha" value={startDate} onValueChange={(value) => { setStartDate(value); validation.clearError('startDate') }} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<CalendarDays size={21} color="$primary" />} invalid={Boolean(validation.errors.startDate)} label="Primera fecha" required onPress={onPress} value={selectedLabel} />} /></FintFormField>
+            <FintFormField label={t('payments.firstDate')} required error={validation.errors.startDate} showLabel={false}><FintDateField label={t('payments.firstDate')} showLabel={false} placeholder={t('payments.selectDate')} value={startDate} onValueChange={(value) => { setStartDate(value); validation.clearError('startDate') }} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<CalendarDays size={21} color="$primary" />} invalid={Boolean(validation.errors.startDate)} label={t('payments.firstDate')} required onPress={onPress} value={selectedLabel} />} /></FintFormField>
 
             {kind === 'fixed_payment' ? (
-              <FintFormField label="Categoría" required error={validation.errors.categoryId} showLabel={false}>
-                <CategoryPickerSheet categories={categories} showLabel={false} type="expense" value={selectedCategory?.name ?? ''} onValueChange={(name) => { setCategoryId(categories.find((category) => category.name === name)?.id ?? ''); validation.clearError('categoryId') }} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<Shapes size={21} color="$primary" />} invalid={Boolean(validation.errors.categoryId)} label="Categoría" required onPress={onPress} value={selectedLabel} />} />
-                {categories.length === 0 ? <ReferenceHint message="Crea primero una categoría de gasto." action="Crear categoría" onPress={() => router.push('/categories')} /> : null}
+              <FintFormField label={t('forms.category')} required error={validation.errors.categoryId} showLabel={false}>
+                <CategoryPickerSheet categories={categories} showLabel={false} type="expense" value={selectedCategory?.name ?? ''} onValueChange={(name) => { setCategoryId(categories.find((category) => category.name === name)?.id ?? ''); validation.clearError('categoryId') }} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<Shapes size={21} color="$primary" />} invalid={Boolean(validation.errors.categoryId)} label={t('forms.category')} required onPress={onPress} value={selectedLabel} />} />
+                {categories.length === 0 ? <ReferenceHint message={t('payments.categoryRequiredHint')} action={t('payments.createCategory')} onPress={() => router.push('/categories')} /> : null}
               </FintFormField>
             ) : null}
 
             {kind === 'credit_card' ? (
-              <FintFormField label="Tarjeta" required error={validation.errors.cardAccountId} showLabel={false}>
-                {isEditing ? <MovementPickerTrigger icon={<CreditCard size={21} color="$primary" />} invalid={Boolean(validation.errors.cardAccountId)} label="Tarjeta" required onPress={() => undefined} value={selectedCard ? `${selectedCard.name} · ${selectedCard.currency}` : 'Tarjeta no disponible'} /> : <FintSheetSelect label="Tarjeta" showLabel={false} placeholder="Selecciona tarjeta" searchable value={cardAccountId} onValueChange={(value) => { setCardAccountId(value); validation.clearError('cardAccountId') }} options={cards.map((card) => ({ value: card.id, label: `${card.name} · ${card.currency}` }))} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<CreditCard size={21} color="$primary" />} invalid={Boolean(validation.errors.cardAccountId)} label="Tarjeta" required onPress={onPress} value={selectedLabel} />} />}
-                {cards.length === 0 && !isEditing ? <ReferenceHint message="Crea una tarjeta o elimina la regla existente de esa tarjeta." action="Crear cuenta" onPress={() => router.push('/account-form')} /> : null}
+              <FintFormField label={t('payments.card')} required error={validation.errors.cardAccountId} showLabel={false}>
+                {isEditing ? <MovementPickerTrigger icon={<CreditCard size={21} color="$primary" />} invalid={Boolean(validation.errors.cardAccountId)} label={t('payments.card')} required onPress={() => undefined} value={selectedCard ? `${selectedCard.name} · ${selectedCard.currency}` : t('payments.cardUnavailable')} /> : <FintSheetSelect label={t('payments.card')} showLabel={false} placeholder={t('payments.selectCard')} searchable value={cardAccountId} onValueChange={(value) => { setCardAccountId(value); validation.clearError('cardAccountId') }} options={cards.map((card) => ({ value: card.id, label: `${card.name} · ${card.currency}` }))} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<CreditCard size={21} color="$primary" />} invalid={Boolean(validation.errors.cardAccountId)} label={t('payments.card')} required onPress={onPress} value={selectedLabel} />} />}
+                {cards.length === 0 && !isEditing ? <ReferenceHint message={t('payments.createCardHint')} action={t('payments.createAccount')} onPress={() => router.push('/account-form')} /> : null}
               </FintFormField>
             ) : null}
 
             {errorMessage ? <XStack bg="$red2" borderColor="$red6" borderWidth={1} rounded="$5" p="$3"><Paragraph color="$red11" fontSize="$2">{errorMessage}</Paragraph></XStack> : null}
             <YStack gap="$2">
-              <FintButton width="100%" minH={52} disabled={mutation.isPending} icon={mutation.isPending ? <Spinner color="$primaryForeground" /> : <Save size={18} />} onPress={submit}>{mutation.isPending ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Crear pago recurrente'}</FintButton>
+              <FintButton width="100%" minH={52} disabled={mutation.isPending} icon={mutation.isPending ? <Spinner color="$primaryForeground" /> : <Save size={18} />} onPress={submit}>{mutation.isPending ? t('payments.saving') : isEditing ? t('accounts.update') : t('payments.createRecurring')}</FintButton>
               <FintButton width="100%" minH={48} variant="outlined" disabled={mutation.isPending} onPress={() => router.back()}>{t('actions.cancel')}</FintButton>
             </YStack>
           </YStack>
@@ -173,13 +173,14 @@ export default function DebtFormScreen() {
 }
 
 function PaymentKindSelector({ disabled = false, onValueChange, value }: { disabled?: boolean; onValueChange: (value: RuleKind) => void; value: RuleKind }) {
+  const { t } = useTranslation()
   return (
     <FintCard p="$1" bg="$muted" rounded="$7">
       <XStack gap="$1">
         {(['fixed_payment', 'credit_card'] as const).map((option) => {
           const selected = value === option
           const card = option === 'credit_card'
-          const label = card ? 'Tarjeta' : 'Pago fijo'
+          const label = card ? t('payments.creditCard') : t('payments.fixed')
           const Icon = card ? CreditCard : Repeat
           return (
             <FintButton
@@ -208,9 +209,9 @@ function ReferenceHint({ action, message, onPress }: { action: string; message: 
   return <YStack bg="$secondary" gap="$2" mt="$2" p="$3" rounded="$5"><Paragraph color="$color12" fontWeight="700">{message}</Paragraph><FintButton size="$3" variant="outlined" onPress={onPress}>{action}</FintButton></YStack>
 }
 
-function frequencyLabel(value: Frequency) {
-  if (value === 'weekly') return 'Semanal'
-  if (value === 'biweekly') return 'Quincenal'
-  if (value === 'yearly') return 'Anual'
-  return 'Mensual'
+function frequencyLabel(value: Frequency, t: (key: string) => string) {
+  if (value === 'weekly') return t('payments.weekly')
+  if (value === 'biweekly') return t('payments.biweekly')
+  if (value === 'yearly') return t('payments.yearly')
+  return t('payments.monthly')
 }

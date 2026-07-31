@@ -95,14 +95,14 @@ function RootLayoutNav() {
             }}
           />
            <Stack.Screen name="transaction-form" options={{ title: t('forms.newMovement'), contentStyle: { backgroundColor: theme.background.val } }} />
-           <Stack.Screen name="pending-movements" options={{ title: t('movementUx.pendingTitle', { defaultValue: 'Pendientes detectados' }), contentStyle: { backgroundColor: theme.background.val } }} />
-           <Stack.Screen name="pending-review" options={{ title: t('movementUx.reviewPendingTitle', { defaultValue: 'Revisar pendiente' }), contentStyle: { backgroundColor: theme.background.val } }} />
+           <Stack.Screen name="pending-movements" options={{ title: t('movementUx.pendingTitle'), contentStyle: { backgroundColor: theme.background.val } }} />
+           <Stack.Screen name="pending-review" options={{ title: t('movementUx.reviewPendingTitle'), contentStyle: { backgroundColor: theme.background.val } }} />
           <Stack.Screen name="account-form" options={{ contentStyle: { backgroundColor: theme.background.val } }} />
           <Stack.Screen name="debt-form" options={{ contentStyle: { backgroundColor: theme.background.val } }} />
           <Stack.Screen name="settings" options={{ title: t('header.menuTitle'), contentStyle: { backgroundColor: theme.background.val } }} />
-          <Stack.Screen name="profile" options={{ title: t('profile.title', { defaultValue: 'Mi perfil' }), contentStyle: { backgroundColor: theme.background.val } }} />
+          <Stack.Screen name="profile" options={{ title: t('profile.title'), contentStyle: { backgroundColor: theme.background.val } }} />
           <Stack.Screen name="gmail-settings" options={{ title: t('gmail.title'), contentStyle: { backgroundColor: theme.background.val } }} />
-          <Stack.Screen name="support" options={{ title: t('support.title', { defaultValue: 'Ayuda y soporte' }), contentStyle: { backgroundColor: theme.background.val } }} />
+          <Stack.Screen name="support" options={{ title: t('support.title'), contentStyle: { backgroundColor: theme.background.val } }} />
           <Stack.Screen name="gmail-connected" options={{ headerShown: false }} />
           <Stack.Screen name="categories" options={{ title: t('categories.routeTitle'), contentStyle: { backgroundColor: theme.background.val } }} />
         </Stack.Protected>

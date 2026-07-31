@@ -68,7 +68,7 @@ export default function LoginScreen() {
     if (result.error) {
       setErrorMessage(getFriendlyAuthError(result.error.message, t))
     } else if (action === 'signup') {
-      setSuccessMessage('Cuenta creada. Si Supabase requiere confirmacion, revisa tu correo antes de entrar.')
+      setSuccessMessage(t('auth.signUpSuccess'))
     }
     setIsSubmitting(false)
   }

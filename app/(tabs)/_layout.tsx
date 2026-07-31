@@ -48,8 +48,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="debts"
         options={{
-          title: t('tabs.payments', { defaultValue: 'Pagos' }),
-          header: () => <AppHeader title={t('tabs.payments', { defaultValue: 'Pagos' })} />,
+          title: t('tabs.payments'),
+          header: () => <AppHeader title={t('tabs.payments')} />,
           tabBarIcon: ({ color }) => <CreditCard color={color as any} />,
         }}
       />
@@ -64,8 +64,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="reports"
         options={{
-          title: t('tabs.reports', { defaultValue: 'Reportes' }),
-          header: () => <AppHeader title={t('tabs.reports', { defaultValue: 'Reportes' })} />,
+          title: t('tabs.reports'),
+          header: () => <AppHeader title={t('tabs.reports')} />,
           tabBarIcon: ({ color }) => <BarChart3 color={color as any} />,
         }}
       />

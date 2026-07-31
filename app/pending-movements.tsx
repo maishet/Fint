@@ -81,7 +81,7 @@ export default function PendingMovementsScreen() {
       await invalidatePendingAndFinance(queryClient)
       toast.show(t('movements.createdToast'), { message: t('movements.createdMessage'), preset: 'success' })
     },
-    onError: (error) => toast.show(t('movementUx.pendingConfirmError', { defaultValue: 'No pudimos confirmar el pendiente.' }), { message: error instanceof Error ? error.message : undefined, preset: 'error' }),
+    onError: (error) => toast.show(t('movementUx.pendingConfirmError'), { message: error instanceof Error ? error.message : undefined, preset: 'error' }),
   })
   const discardMutation = useMutation({
     mutationFn: (id: string) => financeApi.discardPendingMovement(id),
@@ -92,9 +92,9 @@ export default function PendingMovementsScreen() {
         queryClient.invalidateQueries({ queryKey: ['pending-movements', 'pages'] }),
         queryClient.invalidateQueries({ queryKey: ['pending-movements', 'summary'] }),
       ])
-      toast.show(t('movementUx.pendingDiscarded', { defaultValue: 'Pendiente descartado' }), { preset: 'success' })
+      toast.show(t('movementUx.pendingDiscarded'), { preset: 'success' })
     },
-    onError: (error) => toast.show(t('movementUx.pendingDiscardError', { defaultValue: 'No pudimos descartar el pendiente.' }), { message: error instanceof Error ? error.message : undefined, preset: 'error' }),
+    onError: (error) => toast.show(t('movementUx.pendingDiscardError'), { message: error instanceof Error ? error.message : undefined, preset: 'error' }),
   })
 
   const openItem = (item: PendingMovementCard) => {
@@ -152,14 +152,14 @@ export default function PendingMovementsScreen() {
 
   return (
     <YStack flex={1} bg="$background">
-      <Stack.Screen options={{ title: t('movementUx.pendingTitle', { defaultValue: 'Pendientes detectados' }) }} />
+      <Stack.Screen options={{ title: t('movementUx.pendingTitle') }} />
       <FlatList
         data={items}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ padding: 16, paddingBottom: Math.max(insets.bottom, 24), flexGrow: items.length ? undefined : 1 }}
         ItemSeparatorComponent={() => <YStack height={8} />}
-        ListHeaderComponent={<FintCard bg="$accent1" borderColor="$accent4" mb="$4"><XStack items="center" gap="$3"><YStack width={42} height={42} rounded="$10" bg="$accent3" items="center" justify="center"><Mail size={20} color="$primary" /></YStack><YStack flex={1} gap="$1"><Paragraph color="$color12" fontFamily="$heading" fontSize="$4" fontWeight="800">{t('movementUx.pendingTitle', { defaultValue: 'Pendientes detectados' })}</Paragraph><Paragraph color="$color10" fontSize="$2">{t('movementUx.pendingReviewHint', { defaultValue: 'Confirma solo los movimientos que reconozcas.' })}</Paragraph></YStack></XStack></FintCard>}
+        ListHeaderComponent={<FintCard bg="$accent1" borderColor="$accent4" mb="$4"><XStack items="center" gap="$3"><YStack width={42} height={42} rounded="$10" bg="$accent3" items="center" justify="center"><Mail size={20} color="$primary" /></YStack><YStack flex={1} gap="$1"><Paragraph color="$color12" fontFamily="$heading" fontSize="$4" fontWeight="800">{t('movementUx.pendingTitle')}</Paragraph><Paragraph color="$color10" fontSize="$2">{t('movementUx.pendingReviewHint')}</Paragraph></YStack></XStack></FintCard>}
         refreshControl={<RefreshControl refreshing={pendingQuery.isRefetching && !pendingQuery.isFetchingNextPage} onRefresh={() => { void pendingQuery.refetch() }} />}
         onEndReached={() => { if (pendingQuery.hasNextPage && !pendingQuery.isFetchingNextPage) void pendingQuery.fetchNextPage() }}
         onEndReachedThreshold={0.35}
@@ -209,8 +209,8 @@ function PendingCard({ categories, category, categoryError, expanded, isPending,
   const { t, i18n } = useTranslation()
   const detectedDate = new Intl.DateTimeFormat(i18n.language, { day: '2-digit', month: 'short' }).format(new Date(item.detectedAt))
   const canQuickConfirm = Boolean(item.accountSuggestion && item.type && item.amount !== null && item.currency && !item.requiresReview)
-  const typeLabel = item.type ? t(`forms.${item.type}`) : t('movementUx.reviewRequired', { defaultValue: 'Revisar datos' })
-  const amountLabel = item.amount !== null && item.currency ? `${item.type === 'income' ? '+' : item.type === 'expense' ? '-' : ''}${formatMoney(item.amount, item.currency)}` : t('movementUx.reviewRequired', { defaultValue: 'Revisar datos' })
+  const typeLabel = item.type ? t(`forms.${item.type}`) : t('movementUx.reviewRequired')
+  const amountLabel = item.amount !== null && item.currency ? `${item.type === 'income' ? '+' : item.type === 'expense' ? '-' : ''}${formatMoney(item.amount, item.currency)}` : t('movementUx.reviewRequired')
   const isPayment = paymentOccurrenceId !== NORMAL_MOVEMENT
   return (
     <FintCard p="$3" gap="$3" opacity={isPending ? 0.65 : 1}>
@@ -227,20 +227,20 @@ function PendingCard({ categories, category, categoryError, expanded, isPending,
           {canQuickConfirm && item.type ? (
             <>
               {referencesLoading ? <SkeletonGroup label={t('states.loading')}><SkeletonList rows={1} /></SkeletonGroup> : null}
-              {item.type === 'expense' && paymentOccurrences.length ? <FintFormField label="Aplicar a pago" showLabel={false}><FintSheetSelect label="Aplicar a pago" showLabel={false} placeholder="Movimiento normal" value={paymentOccurrenceId} onValueChange={onPaymentOccurrenceChange} options={[{ value: NORMAL_MOVEMENT, label: 'Movimiento normal' }, ...paymentOccurrences.map((occurrence) => ({ value: occurrence.id, label: `${occurrence.title} · ${formatMoney(occurrence.remainingAmount ?? 0, occurrence.currency)}` }))]} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<CalendarClock size={20} color="$primary" />} label="Aplicar a pago" onPress={onPress} value={selectedLabel} />} /></FintFormField> : null}
+              {item.type === 'expense' && paymentOccurrences.length ? <FintFormField label={t('movementUx.applyToPayment')} showLabel={false}><FintSheetSelect label={t('movementUx.applyToPayment')} showLabel={false} placeholder={t('movementUx.normalMovement')} value={paymentOccurrenceId} onValueChange={onPaymentOccurrenceChange} options={[{ value: NORMAL_MOVEMENT, label: t('movementUx.normalMovement') }, ...paymentOccurrences.map((occurrence) => ({ value: occurrence.id, label: `${occurrence.title} · ${formatMoney(occurrence.remainingAmount ?? 0, occurrence.currency)}` }))]} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<CalendarClock size={20} color="$primary" />} label={t('movementUx.applyToPayment')} onPress={onPress} value={selectedLabel} />} /></FintFormField> : null}
               {!referencesLoading && !isPayment ? <FintFormField label={t('forms.category')} required error={categoryError} showLabel={false}><CategoryPickerSheet categories={categories} type={item.type} value={category} showLabel={false} onValueChange={onCategoryChange} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<Shapes size={20} color="$primary" />} invalid={Boolean(categoryError)} label={t('forms.category')} required onPress={onPress} value={selectedLabel} />} /></FintFormField> : null}
-              {isPayment ? <Paragraph color="$color10" fontSize="$1">Se registrará como pago de la ocurrencia y usará la categoría configurada en ese pago recurrente.</Paragraph> : null}
+              {isPayment ? <Paragraph color="$color10" fontSize="$1">{t('movementUx.paymentAppliedHint')}</Paragraph> : null}
             </>
           ) : (
             <YStack bg="$muted" rounded="$5" p="$3" gap="$2">
-              <Paragraph color="$color12" fontWeight="700">{t('movementUx.reviewRequired', { defaultValue: 'Revisar datos' })}</Paragraph>
-              <Paragraph color="$color10" fontSize="$2">{t('movementUx.pendingNeedsEdit', { defaultValue: 'Revisa el pendiente para completar los datos faltantes.' })}</Paragraph>
+              <Paragraph color="$color12" fontWeight="700">{t('movementUx.reviewRequired')}</Paragraph>
+              <Paragraph color="$color10" fontSize="$2">{t('movementUx.pendingNeedsEdit')}</Paragraph>
             </YStack>
           )}
           <YStack gap="$2">
             {canQuickConfirm ? <FintButton width="100%" minH={48} disabled={isPending || referencesLoading} icon={<Check size={17} />} onPress={onConfirm}>{t('movementUx.confirmPending')}</FintButton> : null}
-            <FintButton width="100%" minH={46} variant={canQuickConfirm ? 'outlined' : 'solid'} disabled={isPending} icon={<Pencil size={16} />} onPress={onEdit}>{t('actions.edit', { defaultValue: 'Editar' })}</FintButton>
-            <FintButton width="100%" minH={46} variant="outlined" color="$red10" borderColor="$red6" disabled={isPending} icon={<Trash2 size={16} />} onPress={onDiscard}>{t('movementUx.discardShort', { defaultValue: 'Descartar' })}</FintButton>
+            <FintButton width="100%" minH={46} variant={canQuickConfirm ? 'outlined' : 'solid'} disabled={isPending} icon={<Pencil size={16} />} onPress={onEdit}>{t('actions.edit')}</FintButton>
+            <FintButton width="100%" minH={46} variant="outlined" color="$red10" borderColor="$red6" disabled={isPending} icon={<Trash2 size={16} />} onPress={onDiscard}>{t('movementUx.discardShort')}</FintButton>
           </YStack>
         </YStack>
       ) : null}
@@ -255,5 +255,5 @@ function compatibleOccurrences(occurrences: Awaited<ReturnType<typeof financeApi
 
 function DiscardPendingDialog({ isPending, item, onCancel, onConfirm }: { isPending: boolean; item: PendingMovementCard | null; onCancel: () => void; onConfirm: () => void }) {
   const { t } = useTranslation()
-  return <Dialog modal open={Boolean(item)} onOpenChange={(open) => !open && !isPending && onCancel()}><Dialog.Portal><Dialog.Overlay bg="rgba(4,18,28,0.68)" /><Dialog.Content bordered elevate bg="$popover" borderColor="$borderColor" rounded="$7" width="88%" maxW={420} p="$5" gap="$4"><Dialog.Title color="$color12" fontFamily="$heading" fontSize="$6" fontWeight="700">{t('movementUx.discardPendingTitle', { defaultValue: '¿Descartar este pendiente?' })}</Dialog.Title><Dialog.Description color="$color10">{t('movementUx.discardPendingDescription', { defaultValue: 'El pendiente se ocultará y no creará ningún movimiento.' })}</Dialog.Description><XStack gap="$3"><Button flex={1} chromeless disabled={isPending} onPress={onCancel}>{t('actions.cancel')}</Button><Button flex={1} bg="$destructive" color="white" fontWeight="700" disabled={isPending} icon={isPending ? <Spinner color="white" /> : <Trash2 size={17} color="white" />} onPress={onConfirm}>{t('movementUx.discardPending')}</Button></XStack></Dialog.Content></Dialog.Portal></Dialog>
+  return <Dialog modal open={Boolean(item)} onOpenChange={(open) => !open && !isPending && onCancel()}><Dialog.Portal><Dialog.Overlay bg="rgba(4,18,28,0.68)" /><Dialog.Content bordered elevate bg="$popover" borderColor="$borderColor" rounded="$7" width="88%" maxW={420} p="$5" gap="$4"><Dialog.Title color="$color12" fontFamily="$heading" fontSize="$6" fontWeight="700">{t('movementUx.discardPendingTitle')}</Dialog.Title><Dialog.Description color="$color10">{t('movementUx.discardPendingDescription')}</Dialog.Description><XStack gap="$3"><Button flex={1} chromeless disabled={isPending} onPress={onCancel}>{t('actions.cancel')}</Button><Button flex={1} bg="$destructive" color="white" fontWeight="700" disabled={isPending} icon={isPending ? <Spinner color="white" /> : <Trash2 size={17} color="white" />} onPress={onConfirm}>{t('movementUx.discardPending')}</Button></XStack></Dialog.Content></Dialog.Portal></Dialog>
 }

@@ -80,7 +80,7 @@ function GmailSourceCard({ onReconnect, source }: { onReconnect: () => void; sou
   const saveMutation = useMutation({ mutationFn: (senderFilters: string[]) => financeApi.updateGmailSource(source.id, { labelIds: ['INBOX'], senderFilters }), onSuccess: () => { setSaveErrorMessage(null); queryClient.invalidateQueries({ queryKey: ['gmail-sources'] }) }, onError: (error) => setSaveErrorMessage(error instanceof Error ? error.message : t('states.error')) })
   const deleteMutation = useMutation({ mutationFn: () => financeApi.disconnectGmailSource(source.id), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['gmail-sources'] }); queryClient.invalidateQueries({ queryKey: ['me'] }) } })
   const pending = syncMutation.isPending || saveMutation.isPending || deleteMutation.isPending
-  const confirmDisconnect = () => Alert.alert(t('gmail.disconnect'), t('gmail.disconnectConfirm', { defaultValue: 'La cuenta Gmail se desconectara. Tus movimientos confirmados se conservaran.' }), [{ text: t('actions.cancel'), style: 'cancel' }, { text: t('gmail.disconnect'), style: 'destructive', onPress: () => deleteMutation.mutate() }])
+  const confirmDisconnect = () => Alert.alert(t('gmail.disconnect'), t('gmail.disconnectConfirm'), [{ text: t('actions.cancel'), style: 'cancel' }, { text: t('gmail.disconnect'), style: 'destructive', onPress: () => deleteMutation.mutate() }])
   const saveFilters = () => {
     setSaveErrorMessage(null)
     const payload = validation.validate(senderFilterSchema, { senders })

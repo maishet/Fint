@@ -3,6 +3,7 @@ import * as QueryParams from 'expo-auth-session/build/QueryParams'
 import * as Linking from 'expo-linking'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { H2, Paragraph, Spinner, YStack } from 'tamagui'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../src/auth/AuthProvider'
 import { completeAuthSession } from '../../src/auth/completeAuthSession'
 import { supabase } from '../../src/auth/supabase'
@@ -10,6 +11,7 @@ import { FintButton, FintCard } from '../../src/ui'
 
 export default function AuthCallbackScreen() {
   const router = useRouter()
+  const { t } = useTranslation()
   const { code, error_description } = useLocalSearchParams<{ code?: string; error_description?: string }>()
   const callbackUrl = Linking.useURL()
   const { session } = useAuth()
@@ -23,7 +25,7 @@ export default function AuthCallbackScreen() {
   useEffect(() => {
     let isMounted = true
     const timeout = setTimeout(() => {
-      if (isMounted && !session) setErrorMessage('El inicio de sesion tardo demasiado. Vuelve al login e intenta nuevamente.')
+      if (isMounted && !session) setErrorMessage(t('authCallback.timeout'))
     }, 15_000)
 
     async function exchangeCode() {
@@ -50,7 +52,7 @@ export default function AuthCallbackScreen() {
           return
         }
 
-        setErrorMessage('No pudimos completar el inicio con Google. Vuelve al login e intenta nuevamente.')
+        setErrorMessage(t('authCallback.incomplete'))
         return
       }
 
@@ -58,10 +60,10 @@ export default function AuthCallbackScreen() {
         const result = await completeAuthSession({ code: authCode, url: callbackUrl })
         if (!isMounted) return
         if (result.error || !result.session) {
-          const message = result.error?.message ?? 'No pudimos guardar la sesion. Intenta nuevamente.'
+          const message = result.error?.message ?? t('authCallback.saveError')
           setErrorMessage(
             message.includes('auth session missing')
-              ? 'El proveedor devolvio un codigo, pero la app no encontro la sesion temporal necesaria para validarlo. Vuelve al login e intenta nuevamente.'
+              ? t('authCallback.missingSession')
               : message
           )
           return
@@ -70,7 +72,7 @@ export default function AuthCallbackScreen() {
         router.replace('/(tabs)/dashboard')
       } catch (error) {
         if (!isMounted) return
-        setErrorMessage(error instanceof Error ? error.message : 'No pudimos guardar la sesion. Intenta nuevamente.')
+        setErrorMessage(error instanceof Error ? error.message : t('authCallback.saveError'))
       }
     }
 
@@ -80,14 +82,14 @@ export default function AuthCallbackScreen() {
       isMounted = false
       clearTimeout(timeout)
     }
-  }, [callbackUrl, code, error_description, router, session])
+  }, [callbackUrl, code, error_description, router, session, t])
 
   return (
     <YStack flex={1} items="center" justify="center" gap="$4" p="$5" bg="$background">
       {errorMessage ? (
         <FintCard width="100%" maxW={360} gap="$4" p="$5">
           <YStack gap="$2" items="center">
-            <H2 color="$color12" fontFamily="$heading" size="$7" text="center">No se pudo iniciar sesion</H2>
+            <H2 color="$color12" fontFamily="$heading" size="$7" text="center">{t('authCallback.title')}</H2>
             <Paragraph color="$color10" text="center" lineHeight="$5">
               {errorMessage}
             </Paragraph>
@@ -97,12 +99,12 @@ export default function AuthCallbackScreen() {
               </Paragraph>
             ) : null}
           </YStack>
-          <FintButton onPress={() => router.replace('/login')}>Volver al login</FintButton>
+          <FintButton onPress={() => router.replace('/login')}>{t('authCallback.backToLogin')}</FintButton>
         </FintCard>
       ) : (
         <YStack items="center" gap="$3">
           <Spinner size="large" color="$accent10" />
-          <Paragraph color="$color10">Completando inicio de sesion...</Paragraph>
+          <Paragraph color="$color10">{t('authCallback.loading')}</Paragraph>
         </YStack>
       )}
     </YStack>
