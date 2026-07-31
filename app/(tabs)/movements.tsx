@@ -36,6 +36,7 @@ export default function MovementsScreen() {
   const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
   const [summaryCurrency, setSummaryCurrency] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null)
+  const [reverseTarget, setReverseTarget] = useState<Transaction | null>(null)
   const range = monthRange(month)
   const movementsQuery = useInfiniteQuery({
     queryKey: ['transactions', 'pages', range.from, range.to],
@@ -97,6 +98,24 @@ export default function MovementsScreen() {
     onError: () => toast.show(t('movementUx.deleteError'), { preset: 'error' }),
   })
 
+  const reversePaymentMutation = useMutation({
+    mutationFn: (paymentId: string) => financeApi.reversePaymentOccurrencePayment(paymentId, { reason: 'Reverted from mobile history' }),
+    onSuccess: async () => {
+      setReverseTarget(null)
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+        queryClient.invalidateQueries({ queryKey: ['payment-occurrences'] }),
+        queryClient.invalidateQueries({ queryKey: ['summary'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+        queryClient.invalidateQueries({ queryKey: ['accounts'] }),
+        queryClient.invalidateQueries({ queryKey: ['reports'] }),
+        queryClient.invalidateQueries({ queryKey: ['pending-movements'] }),
+      ])
+      toast.show('Pago revertido', { message: 'El balance y la ocurrencia fueron actualizados.', preset: 'success' })
+    },
+    onError: () => toast.show('No se pudo revertir el pago', { preset: 'error' }),
+  })
+
   const header = (
     <YStack gap="$4" mb="$4">
       {movementsQuery.isLoading ? <SkeletonGroup label={t('states.loading')}><SkeletonHero /></SkeletonGroup> : <MovementHero currency={currency} expenses={currencySummary?.expenses ?? 0} income={currencySummary?.income ?? 0} />}
@@ -127,18 +146,23 @@ export default function MovementsScreen() {
         refreshControl={<RefreshControl refreshing={movementsQuery.isRefetching && !movementsQuery.isFetchingNextPage} onRefresh={() => { void movementsQuery.refetch() }} />}
         onEndReached={() => { if (movementsQuery.hasNextPage && !movementsQuery.isFetchingNextPage) void movementsQuery.fetchNextPage() }}
         onEndReachedThreshold={0.35}
-        renderItem={({ item }) => <MovementCard movement={item} locale={i18n.language} onDelete={() => setDeleteTarget(item)} onEdit={() => router.push({ pathname: '/transaction-form', params: { id: item.id, type: item.type, amount: String(item.amount), category: item.category, account: item.account, note: item.note ?? '', date: item.date } })} />}
+        renderItem={({ item }) => <MovementCard movement={item} locale={i18n.language} onDelete={() => setDeleteTarget(item)} onEdit={() => router.push({ pathname: '/transaction-form', params: { id: item.id, type: item.type, amount: String(item.amount), category: item.category, account: item.account, note: item.note ?? '', date: item.date } })} onReverse={() => setReverseTarget(item)} />}
       />
       <DeleteMovementDialog movement={deleteTarget} isPending={deleteMutation.isPending} onCancel={() => setDeleteTarget(null)} onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)} />
+      <ReversePaymentDialog movement={reverseTarget} isPending={reversePaymentMutation.isPending} onCancel={() => setReverseTarget(null)} onConfirm={() => reverseTarget?.paymentOccurrencePaymentId && reversePaymentMutation.mutate(reverseTarget.paymentOccurrencePaymentId)} />
     </YStack>
   )
 }
 
-function MovementCard({ locale, movement, onDelete, onEdit }: { locale: string; movement: Transaction; onDelete: () => void; onEdit: () => void }) {
+function MovementCard({ locale, movement, onDelete, onEdit, onReverse }: { locale: string; movement: Transaction; onDelete: () => void; onEdit: () => void; onReverse: () => void }) {
   const { t } = useTranslation()
   const isIncome = movement.type === 'income'
-  const isDebtPayment = Boolean(movement.paymentOccurrenceId)
-  return <FintCard py="$3"><XStack items="center" gap="$3"><XStack flex={1} minW={0} items="center" gap="$3" role={isDebtPayment ? undefined : 'button'} onPress={isDebtPayment ? undefined : onEdit}><YStack width={42} height={42} rounded="$8" bg={isIncome ? '$green2' : '$red2'} items="center" justify="center">{isIncome ? <ArrowDownLeft size={20} color="$green10" /> : <ArrowUpRight size={20} color="$red10" />}</YStack><YStack flex={1} minW={0} gap="$1"><Paragraph color="$color12" fontSize="$3" fontWeight="800" numberOfLines={1}>{getCategoryLabel(movement.category, t)}</Paragraph><Paragraph color="$color10" fontSize="$1" numberOfLines={1}>{new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short' }).format(new Date(`${movement.date}T00:00:00`))} · {movement.account}</Paragraph>{movement.note ? <Paragraph color="$color10" fontSize="$1" numberOfLines={1}>{movement.note}</Paragraph> : null}</YStack></XStack><YStack items="flex-end" gap="$1"><Paragraph color={isIncome ? '$green10' : '$red10'} fontSize="$3" fontWeight="900">{isIncome ? '+' : '-'}{formatMoney(movement.amount, movement.currency)}</Paragraph>{!isDebtPayment ? <Button chromeless circular size="$2" icon={<Trash2 size={15} color="$red10" />} onPress={onDelete} aria-label={t('movementUx.deleteTitle')} /> : null}</YStack></XStack></FintCard>
+  const isPayment = Boolean(movement.paymentOccurrenceId)
+  return <FintCard py="$3"><XStack items="center" gap="$3"><XStack flex={1} minW={0} items="center" gap="$3" role={isPayment ? undefined : 'button'} onPress={isPayment ? undefined : onEdit}><YStack width={42} height={42} rounded="$8" bg={isIncome ? '$green2' : '$red2'} items="center" justify="center">{isIncome ? <ArrowDownLeft size={20} color="$green10" /> : <ArrowUpRight size={20} color="$red10" />}</YStack><YStack flex={1} minW={0} gap="$1"><Paragraph color="$color12" fontSize="$3" fontWeight="800" numberOfLines={1}>{getCategoryLabel(movement.category, t)}</Paragraph><Paragraph color="$color10" fontSize="$1" numberOfLines={1}>{new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short' }).format(new Date(`${movement.date}T00:00:00`))} · {movement.account}</Paragraph>{movement.note ? <Paragraph color="$color10" fontSize="$1" numberOfLines={1}>{movement.note}</Paragraph> : null}</YStack></XStack><YStack items="flex-end" gap="$1"><Paragraph color={isIncome ? '$green10' : '$red10'} fontSize="$3" fontWeight="900">{isIncome ? '+' : '-'}{formatMoney(movement.amount, movement.currency)}</Paragraph>{isPayment && movement.paymentOccurrencePaymentId ? <Button chromeless size="$2" onPress={onReverse}>Revertir</Button> : <Button chromeless circular size="$2" icon={<Trash2 size={15} color="$red10" />} onPress={onDelete} aria-label={t('movementUx.deleteTitle')} />}</YStack></XStack></FintCard>
+}
+
+function ReversePaymentDialog({ isPending, movement, onCancel, onConfirm }: { isPending: boolean; movement: Transaction | null; onCancel: () => void; onConfirm: () => void }) {
+  return <Dialog modal open={Boolean(movement)} onOpenChange={(open) => !open && !isPending && onCancel()}><Dialog.Portal><Dialog.Overlay bg="rgba(4,18,28,0.68)" /><Dialog.Content bordered elevate bg="$popover" borderColor="$borderColor" rounded="$7" width="88%" maxW={420} p="$5" gap="$4"><Dialog.Title color="$color12" fontFamily="$heading" fontSize="$6" fontWeight="700">Revertir pago</Dialog.Title><Dialog.Description color="$color10">Se anulará el movimiento, se restaurará el balance de la cuenta y el pago volverá a quedar pendiente.</Dialog.Description><XStack gap="$3"><Button flex={1} chromeless disabled={isPending} onPress={onCancel}>Cancelar</Button><Button flex={1} bg="$destructive" color="white" fontWeight="700" disabled={isPending} icon={isPending ? <Spinner color="white" /> : undefined} onPress={onConfirm}>{isPending ? 'Revirtiendo...' : 'Revertir'}</Button></XStack></Dialog.Content></Dialog.Portal></Dialog>
 }
 
 function DeleteMovementDialog({ isPending, movement, onCancel, onConfirm }: { isPending: boolean; movement: Transaction | null; onCancel: () => void; onConfirm: () => void }) {

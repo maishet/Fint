@@ -107,6 +107,8 @@ Cada evento de recordatorio se envia una sola vez por ocurrencia y dispositivo. 
 4. [Fase 4: Notificaciones push](implementation-phase-4-push-notifications.md)
 5. [Fase 5: Migracion y QA](implementation-phase-5-migration-and-qa.md)
 
+Estado actual: Fase 5 esta cerrada operativamente. Migracion 021, capabilities, reversion de pagos, despliegue API y validacion pago/reversion/idempotencia contra Render quedaron completados. Quedan como QA secundario iOS real, concurrencia formal de cron push, pagos entre multiples dispositivos, matriz completa de recordatorios y resaltado opcional de ocurrencia desde push.
+
 ## Orden Obligatorio
 
 La Fase 1 debe publicarse antes de aceptar nuevos formatos bancarios. La Fase 3 debe estar desplegada antes de habilitar `Aplicar a pago`. La Fase 4 depende de que la generacion de ocurrencias de la Fase 3 sea estable e idempotente.

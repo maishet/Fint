@@ -20,6 +20,20 @@ export interface CurrentUser {
   voiceEnabled: boolean
 }
 
+export interface AppCapabilities {
+  features: {
+    editablePendingMovements: boolean
+    pendingToPayment: boolean
+    recurringPayments: boolean
+    pushPaymentReminders: boolean
+  }
+  jobs?: {
+    paymentOccurrencesGenerate: boolean
+    paymentReminders: boolean
+    pushReceipts: boolean
+  }
+}
+
 export type TransactionType = 'income' | 'expense'
 
 export type AccountType = 'cash' | 'credit_card' | 'checking_account' | 'savings_account'
@@ -42,6 +56,7 @@ export interface Transaction {
   account: string
   note?: string
   paymentOccurrenceId?: string | null
+  paymentOccurrencePaymentId?: string | null
 }
 
 export interface Category {
@@ -103,6 +118,10 @@ export interface PayPaymentOccurrenceInput {
   transactionDate: string
   note?: string | null
   originInstallationId?: string | null
+}
+
+export interface ReversePaymentOccurrencePaymentInput {
+  reason?: string | null
 }
 
 export interface UpdateCardOccurrenceAmountsInput {

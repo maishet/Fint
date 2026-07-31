@@ -17,6 +17,7 @@ import { currencyOptions } from '../src/finance/currencies'
 import { todayDateString } from '../src/finance/dates'
 import { getValidationMessage, parseDecimalInput, useSubmitValidation } from '../src/forms'
 import { requestAndRegisterPushInstallation } from '../src/notifications/pushNotifications'
+import { useCapabilities } from '../src/api/capabilities'
 import { FintButton, FintCard, FintDateField, FintFormField, FintSheetSelect } from '../src/ui'
 
 type RuleKind = 'fixed_payment' | 'credit_card'
@@ -30,6 +31,7 @@ export default function DebtFormScreen() {
   const router = useRouter()
   const toast = useToastController()
   const queryClient = useQueryClient()
+  const { capabilities } = useCapabilities()
   const categoriesQuery = useQuery({ queryKey: ['categories', 'expense'], queryFn: () => financeApi.listCategories('expense'), retry: false })
   const cardsQuery = useQuery({ queryKey: ['account-options', 'credit-card'], queryFn: () => financeApi.listAccountOptions({ accountType: 'credit_card' }), retry: false })
   const rulesQuery = useQuery({ queryKey: ['payment-rules'], queryFn: financeApi.listPaymentRules, retry: false })
@@ -97,7 +99,7 @@ export default function DebtFormScreen() {
         queryClient.invalidateQueries({ queryKey: ['summary'] }),
         queryClient.invalidateQueries({ queryKey: ['reports'] }),
       ])
-      if (!isEditing) requestAndRegisterPushInstallation().catch(() => undefined)
+      if (!isEditing && capabilities.features.pushPaymentReminders) requestAndRegisterPushInstallation().catch(() => undefined)
       toast.show(isEditing ? 'Pago actualizado' : 'Pago recurrente creado', { message: isEditing ? 'Los cambios se guardaron.' : 'La primera ocurrencia ya está lista.', preset: 'success', duration: 3500 })
       router.back()
     },
@@ -106,6 +108,10 @@ export default function DebtFormScreen() {
 
   const submit = () => {
     setErrorMessage(null)
+    if (!capabilities.features.recurringPayments) {
+      setErrorMessage('Los pagos recurrentes están desactivados temporalmente.')
+      return
+    }
     const payload = validation.validate(schema, { title, amount: parseDecimalInput(amount), categoryId, cardAccountId, startDate })
     if (payload) mutation.mutate(payload)
   }

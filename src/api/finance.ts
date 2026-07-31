@@ -15,6 +15,7 @@ import type {
   CreateTransactionInput,
   CreateTransactionResult,
   CurrentUser,
+  AppCapabilities,
   DashboardOverview,
   DiscardPendingInput,
   DiscardPendingResult,
@@ -28,6 +29,7 @@ import type {
   Transaction,
   TransactionQuery,
   TransactionType,
+  ReversePaymentOccurrencePaymentInput,
   UpdateAccountInput,
   UpdateCardOccurrenceAmountsInput,
   UpdatePaymentRuleInput,
@@ -64,6 +66,7 @@ function idempotencyKey() {
 }
 
 export const financeApi = {
+  getCapabilities: () => apiRequest<AppCapabilities>('/api/capabilities'),
   getMe: () => apiRequest<CurrentUser>('/api/me'),
   listAccounts: () => apiRequest<Account[]>('/api/accounts'),
   listAccountOptions: (query: { currency?: string; accountType?: string; excludeAccountType?: string } = {}) => apiRequest<AccountOption[]>(`/api/accounts/options${toQuery(query)}`),
@@ -108,6 +111,7 @@ export const financeApi = {
   listPaymentOccurrences: (query: { status?: 'open' | 'paid' | 'overdue' } = {}, signal?: AbortSignal) => apiRequest<PaymentOccurrence[]>(`/api/payment-occurrences${toQuery(query)}`, { signal }),
   updateCardOccurrenceAmounts: (id: string, input: UpdateCardOccurrenceAmountsInput) => apiRequest<{ id: string }>(`/api/payment-occurrences/${id}/card-amounts`, { method: 'PATCH', body: JSON.stringify(input) }),
   payPaymentOccurrence: (id: string, input: PayPaymentOccurrenceInput) => apiRequest<{ id: string; transactionId: string }>(`/api/payment-occurrences/${id}/pay`, { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey() }, body: JSON.stringify(input) }),
+  reversePaymentOccurrencePayment: (id: string, input: ReversePaymentOccurrencePaymentInput = {}) => apiRequest<{ id: string; transactionId: string; status: 'reversed' }>(`/api/payment-occurrence-payments/${id}/reverse`, { method: 'POST', body: JSON.stringify(input) }),
   getPendingMovementsSummary: () => apiRequest<PendingMovementsSummary>('/api/pending-movements/summary'),
   listPendingMovements: (query: { limit?: number; cursor?: string } = {}, signal?: AbortSignal) => apiRequest<PendingMovementPage>(`/api/pending-movements${toQuery(query)}`, { signal }),
   getPendingMovement: (id: string, signal?: AbortSignal) => apiRequest<PendingMovementDetail>(`/api/pending-movements/${id}`, { signal }),

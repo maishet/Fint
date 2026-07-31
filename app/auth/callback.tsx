@@ -3,6 +3,8 @@ import * as QueryParams from 'expo-auth-session/build/QueryParams'
 import * as Linking from 'expo-linking'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { H2, Paragraph, Spinner, YStack } from 'tamagui'
+import { useAuth } from '../../src/auth/AuthProvider'
+import { completeAuthSession } from '../../src/auth/completeAuthSession'
 import { supabase } from '../../src/auth/supabase'
 import { FintButton, FintCard } from '../../src/ui'
 
@@ -10,13 +12,22 @@ export default function AuthCallbackScreen() {
   const router = useRouter()
   const { code, error_description } = useLocalSearchParams<{ code?: string; error_description?: string }>()
   const callbackUrl = Linking.useURL()
+  const { session } = useAuth()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [debugMessage, setDebugMessage] = useState<string | null>(null)
 
   useEffect(() => {
+    if (session) router.replace('/(tabs)/dashboard')
+  }, [router, session])
+
+  useEffect(() => {
     let isMounted = true
+    const timeout = setTimeout(() => {
+      if (isMounted && !session) setErrorMessage('El inicio de sesion tardo demasiado. Vuelve al login e intenta nuevamente.')
+    }, 15_000)
 
     async function exchangeCode() {
+      if (session) return
       if (!callbackUrl && !code && !error_description) return
 
       if (__DEV__) {
@@ -30,28 +41,8 @@ export default function AuthCallbackScreen() {
       }
 
       const params = getOAuthCallbackParams(callbackUrl)
-      if (params.access_token && params.refresh_token) {
-        try {
-          const { data, error } = await supabase.auth.setSession({
-            access_token: params.access_token,
-            refresh_token: params.refresh_token,
-          })
-          if (!isMounted) return
-          if (error || !data.session) {
-            setErrorMessage(error?.message ?? 'No pudimos guardar la sesion de Google. Intenta nuevamente.')
-            return
-          }
-          if (__DEV__) console.log('[Fint OAuth Callback] session established')
-          router.replace('/(tabs)/dashboard')
-        } catch (error) {
-          if (!isMounted) return
-          setErrorMessage(error instanceof Error ? error.message : 'No pudimos guardar la sesion de Google. Intenta nuevamente.')
-        }
-        return
-      }
-
       const authCode = code ?? params.code
-      if (!authCode) {
+      if (!authCode && !(params.access_token && params.refresh_token)) {
         const session = await waitForSession()
         if (!isMounted) return
         if (session) {
@@ -63,25 +54,33 @@ export default function AuthCallbackScreen() {
         return
       }
 
-      const { error } = await supabase.auth.exchangeCodeForSession(authCode)
-      if (!isMounted) return
-      if (error) {
-        setErrorMessage(
-          error.message.includes('auth session missing')
-            ? 'Google devolvio un codigo, pero la app no encontro la sesion temporal necesaria para validarlo. Vuelve al login e intenta nuevamente.'
-            : error.message
-        )
-        return
+      try {
+        const result = await completeAuthSession({ code: authCode, url: callbackUrl })
+        if (!isMounted) return
+        if (result.error || !result.session) {
+          const message = result.error?.message ?? 'No pudimos guardar la sesion. Intenta nuevamente.'
+          setErrorMessage(
+            message.includes('auth session missing')
+              ? 'El proveedor devolvio un codigo, pero la app no encontro la sesion temporal necesaria para validarlo. Vuelve al login e intenta nuevamente.'
+              : message
+          )
+          return
+        }
+        if (__DEV__) console.log('[Fint OAuth Callback] session established')
+        router.replace('/(tabs)/dashboard')
+      } catch (error) {
+        if (!isMounted) return
+        setErrorMessage(error instanceof Error ? error.message : 'No pudimos guardar la sesion. Intenta nuevamente.')
       }
-      router.replace('/(tabs)/dashboard')
     }
 
     exchangeCode()
 
     return () => {
       isMounted = false
+      clearTimeout(timeout)
     }
-  }, [callbackUrl, code, error_description, router])
+  }, [callbackUrl, code, error_description, router, session])
 
   return (
     <YStack flex={1} items="center" justify="center" gap="$4" p="$5" bg="$background">

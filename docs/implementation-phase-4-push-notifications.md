@@ -402,6 +402,31 @@ Debe manejar notificacion recibida con app abierta, en background y terminada.
 - Ninguna notificacion expone montos, cuentas, bancos, remitentes, asuntos o datos Gmail.
 - Tokens invalidos se desactivan mediante receipts.
 
+## Estado De Cierre
+
+Fase 4 queda cerrada operativamente para Android y habilita el inicio de Fase 5.
+
+Validado en build EAS preview Android:
+
+- Registro de instalacion en `push_installations` con token Expo activo.
+- Firebase cliente Android configurado con `google-services.json` sin versionarlo en Git.
+- FCM v1 configurado en EAS con service account del proyecto Firebase correcto.
+- Push `pending_movement_detected` recibido en dispositivo real.
+- Receipts y rotacion de credencial FCM validados.
+- Push con app abierta, en background, cerrada y con pantalla bloqueada.
+- Idioma de push segun idioma seleccionado en la app: espanol, ingles y portugues.
+- Payloads sin monto, moneda, banco, cuenta, remitente, asunto ni contenido Gmail.
+- Logout/desregistro y reingreso validados.
+- Navegacion desde push validada para pendientes y pagos.
+
+Pendientes secundarios no bloqueantes para Fase 5:
+
+- Validacion iOS real con APNs/Expo.
+- Validacion formal de pagos entre multiples dispositivos: origen excluido y otros dispositivos notificados.
+- Prueba formal de concurrencia de cron para confirmar que dos ejecuciones simultaneas no duplican deliveries.
+- Recordatorios T-7, T-3, T-1, T0 y T+1 completos contra calendario real o fixture controlado.
+- Las notificaciones de pagos ya mencionan que pago se notifica; queda opcional resaltar/abrir la ocurrencia exacta al tocar el push.
+
 ## Fuera De Alcance
 
 - Dias u horarios configurables.
@@ -414,4 +439,4 @@ Debe manejar notificacion recibida con app abierta, en background y terminada.
 
 ## Dependencia De Salida
 
-La Fase 5 comienza cuando las notificaciones se hayan validado en un build EAS real y la deduplicacion de deliveries este cubierta por pruebas de concurrencia.
+La Fase 5 puede comenzar con la validacion Android operativa completa. Las validaciones iOS, concurrencia formal y multi-dispositivo de pagos pasan al backlog secundario de QA de Fase 5.

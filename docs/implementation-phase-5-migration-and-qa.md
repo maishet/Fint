@@ -4,6 +4,8 @@
 
 Migrar datos existentes, desplegar mobile y API sin estados incompatibles y validar el flujo completo antes de habilitarlo para todos los usuarios.
 
+Fase 5 inicia con Fase 4 cerrada operativamente para Android. Las validaciones secundarias heredadas de push se tratan como QA no bloqueante salvo que aparezcan duplicados, perdida de datos o exposicion de informacion sensible.
+
 ## Estrategia De Migracion
 
 Usar expandir, migrar y contraer. No modificar migraciones ya aplicadas.
@@ -158,6 +160,14 @@ Las anomalias se registran para correccion; no se eliminan automaticamente.
 | Pago otro dispositivo | Push de actualizacion. |
 | Token invalido | Instalacion desactivada. |
 
+Pendientes secundarios heredados de Fase 4:
+
+- Validar iOS real con APNs/Expo.
+- Validar pago desde dispositivo A y push recibido solo en dispositivo B.
+- Ejecutar prueba formal de dos cron jobs simultaneos.
+- Completar matriz T-7, T-3, T-1, T0 y T+1 con datos controlados.
+- Evaluar si el tap de push de pago debe resaltar la ocurrencia exacta; por ahora el copy del push identifica el pago y la navegacion abre Pagos.
+
 ## Pruebas Automatizadas
 
 ### API Unitarias
@@ -242,19 +252,42 @@ No registrar titles, montos, correos, cuerpos, tokens completos ni nombres de cu
 
 ## Checklist De Lanzamiento
 
-- [ ] Migraciones aplicadas en staging y produccion.
-- [ ] Backfill sin anomalias bloqueantes.
-- [ ] API compatible desplegada antes del mobile.
-- [ ] Preview APK validado en dispositivo real.
-- [ ] Push probado con app abierta, background y cerrada.
+- [x] Migraciones aplicadas en produccion hasta `021_phase5_integrity_and_reversals.sql`.
+- [x] Consultas de integridad de migracion 021 validadas sin anomalias bloqueantes.
+- [x] API compatible desplegada en Render.
+- [x] Preview APK validado en dispositivo real.
+- [x] Push probado con app abierta, background y cerrada.
+- [x] Push Android Gmail validado end-to-end con FCM v1 y receipts.
 - [ ] T-7, T-3 y T-1 verificados sin duplicados.
-- [ ] Parser BCP conserva comportamiento esperado.
+- [x] Parser BCP conserva comportamiento esperado.
 - [ ] Parsers nuevos tienen fixtures anonimizados.
-- [ ] Pago de tarjeta excluido de gastos.
-- [ ] Aplicar pendiente es atomico.
-- [ ] Reversion validada.
+- [x] Pago de tarjeta excluido de gastos por contrato `debt_payment`.
+- [x] Aplicar pendiente es atomico por implementacion transaccional.
+- [x] Reversion validada contra Render con pago QA aislado e idempotencia de doble reversion.
 - [ ] AAB de produccion generado.
 - [ ] Closed testing sin bloqueadores.
+
+Las validaciones restantes quedan aceptadas como no bloqueantes para este cierre por decision de producto.
+
+## Estado De Cierre
+
+Fase 5 queda cerrada operativamente el 2026-07-31.
+
+Validado:
+
+- `021_phase5_integrity_and_reversals.sql` aplicada.
+- API de Render responde Fase 5 y capacidades desplegadas.
+- Pago recurrente QA aislado contra Render: balance `1000 -> 960`, outstanding `100 -> 60`, pago `posted`, transaccion `posted`.
+- Reversion QA contra Render: balance `960 -> 1000`, outstanding `60 -> 100`, pago `reversed`, transaccion `voided`, `reversed_at` y razon registrados.
+- Segunda reversion del mismo pago: respuesta `reversed` sin cambios adicionales en balance, outstanding ni razon original.
+
+Pendientes no bloqueantes aceptados:
+
+- iOS real/APNs.
+- Matriz completa T-7/T-3/T-1/T0/T+1.
+- Concurrencia formal de cron push.
+- Closed testing/AAB final.
+- Vista dedicada para revertir pagos de tarjeta que no aparecen en Historial por usar `debt_payment`.
 
 ## Criterios De Aceptacion
 

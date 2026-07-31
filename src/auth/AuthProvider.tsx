@@ -1,14 +1,14 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import type { AuthError, Session } from '@supabase/supabase-js'
+import type { Session } from '@supabase/supabase-js'
 import { useQueryClient } from '@tanstack/react-query'
-import * as QueryParams from 'expo-auth-session/build/QueryParams'
 import * as WebBrowser from 'expo-web-browser'
 import { AppState, Platform } from 'react-native'
 import { supabase } from './supabase'
+import { completeAuthSession } from './completeAuthSession'
 import { registerPushInstallation, unregisterPushInstallation } from '../notifications/pushNotifications'
 
 interface AuthResult {
-  error: AuthError | null
+  error: Error | null
 }
 
 interface AuthContextValue {
@@ -96,20 +96,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (result.type !== 'success') return { error: null }
         logOAuthDebug('callbackUrl', redactUrl(result.url))
 
-        const params = getOAuthCallbackParams(result.url)
-        if (params.access_token && params.refresh_token) {
-          const { error: sessionError } = await supabase.auth.setSession({
-            access_token: params.access_token,
-            refresh_token: params.refresh_token,
-          })
-          return { error: sessionError }
-        }
-
-        const code = params.code
-        if (!code) return { error: null }
-
-        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
-        return { error: exchangeError }
+        const { error: sessionError } = await completeAuthSession({ url: result.url })
+        return { error: sessionError }
       },
       async updateDisplayName(displayName) {
         const { error } = await supabase.auth.updateUser({ data: { display_name: displayName.trim() } })
@@ -136,23 +124,6 @@ export function useAuth() {
   const value = useContext(AuthContext)
   if (!value) throw new Error('useAuth must be used inside AuthProvider')
   return value
-}
-
-function getOAuthCallbackParams(url: string) {
-  const { params, errorCode } = QueryParams.getQueryParams(url)
-  if (errorCode) {
-    logOAuthDebug('errorCode', errorCode)
-  }
-
-  return {
-    code: getStringParam(params.code),
-    access_token: getStringParam(params.access_token),
-    refresh_token: getStringParam(params.refresh_token),
-  }
-}
-
-function getStringParam(value: unknown) {
-  return typeof value === 'string' ? value : null
 }
 
 function logOAuthDebug(label: string, value: string) {

@@ -83,9 +83,9 @@ function RootLayoutNav() {
       <StatusBar style={themeMode === 'dark' ? 'light' : 'dark'} />
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
         <Stack.Protected guard={!session}>
           <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
         </Stack.Protected>
         <Stack.Protected guard={!!session}>
           <Stack.Screen

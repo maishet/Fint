@@ -18,6 +18,7 @@ import { usePressOnce } from '../../src/hooks/usePressOnce'
 import { useThemeMode } from '../../src/theme/ThemeMode'
 import { FintButton, FintCard } from '../../src/ui'
 import { getAppLocale } from '../../src/i18n'
+import { useCapabilities } from '../../src/api/capabilities'
 
 export default function DebtsScreen() {
   const { t, i18n } = useTranslation()
@@ -25,6 +26,7 @@ export default function DebtsScreen() {
   const { themeMode } = useThemeMode()
   const queryClient = useQueryClient()
   const toast = useToastController()
+  const { capabilities } = useCapabilities()
   const [paymentOccurrence, setPaymentOccurrence] = useState<PaymentOccurrence | null>(null)
   const [amountOccurrence, setAmountOccurrence] = useState<PaymentOccurrence | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<PaymentOccurrence | null>(null)
@@ -41,7 +43,7 @@ export default function DebtsScreen() {
   const isRefreshing = occurrencesQuery.isRefetching
   const error = occurrencesQuery.error
 
-  const openCreate = () => pressOnce(() => router.push('/debt-form'))
+  const openCreate = () => pressOnce(() => capabilities.features.recurringPayments ? router.push('/debt-form') : toast.show('Pagos recurrentes desactivados', { preset: 'error' }))
   const deleteMutation = useMutation({
     mutationFn: financeApi.deletePaymentRule,
     onSuccess: async () => {
@@ -75,7 +77,7 @@ export default function DebtsScreen() {
             <Paragraph color="$color12" fontFamily="$heading" fontSize="$6" fontWeight="700">{t('payments.upcoming', { defaultValue: 'Próximos pagos' })}</Paragraph>
             {!isLoading ? <Paragraph color="$color10" fontSize="$2">{t('payments.count', { count: occurrences.length, defaultValue: '{{count}} pagos' })}</Paragraph> : null}
           </YStack>
-          <Button circular bg="$primary" icon={<Plus size={22} color="$primaryForeground" />} onPress={openCreate} aria-label="Nuevo pago recurrente" />
+          {capabilities.features.recurringPayments ? <Button circular bg="$primary" icon={<Plus size={22} color="$primaryForeground" />} onPress={openCreate} aria-label="Nuevo pago recurrente" /> : null}
         </XStack>
 
         {isLoading ? <SkeletonGroup label={t('states.loading')}><SkeletonList rows={3} /></SkeletonGroup> : null}
@@ -85,7 +87,7 @@ export default function DebtsScreen() {
             <YStack width={54} height={54} rounded="$10" bg="$secondary" items="center" justify="center"><HandCoins size={26} color="$primary" /></YStack>
             <Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="700">Sin pagos pendientes</Paragraph>
             <Paragraph color="$color10" text="center" maxW={280}>Crea un pago recurrente para controlar vencimientos y pagos.</Paragraph>
-            <FintButton icon={<Plus size={16} />} onPress={openCreate}>Nuevo pago recurrente</FintButton>
+            {capabilities.features.recurringPayments ? <FintButton icon={<Plus size={16} />} onPress={openCreate}>Nuevo pago recurrente</FintButton> : null}
           </FintCard>
         ) : null}
 
