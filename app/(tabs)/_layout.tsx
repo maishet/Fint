@@ -33,7 +33,7 @@ export default function TabLayout() {
         name="dashboard"
         options={{
           title: t('tabs.dashboard'),
-          header: () => <AppHeader title={t('tabs.dashboard')} />,
+          header: () => <AppHeader title={t('tabs.dashboard')} showGreeting />,
           tabBarIcon: ({ color }) => <Home color={color as any} />,
         }}
       />

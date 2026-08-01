@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
-import { Alert, Image, Linking } from 'react-native'
+import { useMutation } from '@tanstack/react-query'
+import { Alert, AppState, Image, Linking } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import {
@@ -15,12 +16,16 @@ import {
   MonitorSmartphone,
   Moon,
   Bell,
+  Eye,
+  EyeOff,
   ShieldCheck,
   Sun,
   Tags,
+  Trash2,
   UserRound,
 } from '@tamagui/lucide-icons-2'
-import { Paragraph, Separator, XStack, YStack } from 'tamagui'
+import { Button, Dialog, Input, Paragraph, Separator, Spinner, XStack, YStack } from 'tamagui'
+import { financeApi } from '../src/api/finance'
 import { useAuth } from '../src/auth/AuthProvider'
 import { Screen } from '../src/components/Screen'
 import { changeAppLanguage, type AppLanguage } from '../src/i18n'
@@ -28,15 +33,19 @@ import { getSupportDiagnostics } from '../src/support/diagnostics'
 import { useThemeMode } from '../src/theme/ThemeMode'
 import { FintButton, FintCard, FintSheetSelect } from '../src/ui'
 import { getPushPermissionState, registerPushInstallation, requestAndRegisterPushInstallation, type PushPermissionState } from '../src/notifications/pushNotifications'
+import { useSensitiveAmounts } from '../src/privacy/SensitiveAmountsProvider'
 
 export default function SettingsScreen() {
   const { i18n, t } = useTranslation()
   const language = (i18n.resolvedLanguage === 'en' || i18n.resolvedLanguage === 'pt' ? i18n.resolvedLanguage : 'es') as AppLanguage
   const { session, signOut } = useAuth()
   const { themeMode, themePreference, setThemePreference } = useThemeMode()
+  const { amountsVisible, toggleAmountsVisibility } = useSensitiveAmounts()
   const router = useRouter()
   const diagnostics = getSupportDiagnostics()
   const [pushState, setPushState] = useState<PushPermissionState>('undetermined')
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleteConfirmation, setDeleteConfirmation] = useState('')
   const metadata = session?.user.user_metadata ?? {}
   const displayName = typeof metadata.display_name === 'string' ? metadata.display_name : typeof metadata.full_name === 'string' ? metadata.full_name : typeof metadata.name === 'string' ? metadata.name : session?.user.email ?? 'Fint'
   const avatarUrl = typeof metadata.avatar_url === 'string' ? metadata.avatar_url : typeof metadata.picture === 'string' ? metadata.picture : null
@@ -50,6 +59,12 @@ export default function SettingsScreen() {
     void Linking.openURL(url)
   }
   useEffect(() => { getPushPermissionState().then(setPushState).catch(() => setPushState('unsupported')) }, [])
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') getPushPermissionState().then(setPushState).catch(() => setPushState('unsupported'))
+    })
+    return () => subscription.remove()
+  }, [])
   const enableNotifications = async () => {
     if (pushState === 'denied') {
       await Linking.openSettings()
@@ -65,6 +80,20 @@ export default function SettingsScreen() {
     }
   }
   const notificationValue = pushState === 'granted' ? t('settings.notificationsOn') : pushState === 'unsupported' ? t('settings.notificationsUnsupported') : t('settings.notificationsOff')
+  const deleteConfirmationToken = t('settings.deleteAccountConfirmationToken')
+  const canDeleteAccount = normalizeConfirmation(deleteConfirmation) === normalizeConfirmation(deleteConfirmationToken)
+  const deleteAccountMutation = useMutation({
+    mutationFn: () => {
+      if (!canDeleteAccount) throw new Error(t('settings.deleteAccountConfirmationError'))
+      return financeApi.deleteCurrentUser(deleteConfirmationToken)
+    },
+    onSuccess: async () => {
+      setDeleteDialogOpen(false)
+      setDeleteConfirmation('')
+      await signOut().catch(() => undefined)
+    },
+    onError: (error) => Alert.alert(t('settings.deleteAccount'), error instanceof Error ? error.message : t('settings.deleteAccountError')),
+  })
 
   return (
     <Screen>
@@ -95,6 +124,7 @@ export default function SettingsScreen() {
           onValueChange={(value) => setThemePreference(value as 'system' | 'light' | 'dark')}
           renderTrigger={({ onPress, selectedLabel }) => <SettingsRow icon={themePreference === 'system' ? <MonitorSmartphone size={19} color="$primary" /> : themeMode === 'dark' ? <Moon size={19} color="$primary" /> : <Sun size={19} color="$primary" />} label={t('settings.appearance')} value={selectedLabel} onPress={onPress} />}
         />
+        <SettingsRow icon={amountsVisible ? <Eye size={19} color="$primary" /> : <EyeOff size={19} color="$primary" />} label={t('privacy.amounts.title')} detail={t('privacy.amounts.description')} value={amountsVisible ? t('privacy.amounts.visible') : t('privacy.amounts.hidden')} onPress={toggleAmountsVisibility} />
         <SettingsRow icon={<Landmark size={19} color="$primary" />} label={t('settings.financialAccounts')} onPress={() => router.push('/(tabs)/accounts')} />
         <SettingsRow icon={<Tags size={19} color="$primary" />} label={t('settings.categories')} onPress={() => router.push('/categories')} />
         <SettingsRow icon={<Mail size={19} color="$primary" />} label={t('settings.gmail')} detail={t('settings.gmailDetail')} onPress={() => router.push('/gmail-settings')} />
@@ -111,6 +141,20 @@ export default function SettingsScreen() {
         <SettingsRow icon={<FileText size={19} color="$primary" />} label={t('settings.terms')} detail={t('settings.termsDetail')} onPress={() => openLegal(termsUrl)} />
       </SettingsGroup>
 
+      <SettingsGroup title={t('settings.accountManagement')}>
+        <SettingsRow icon={<Trash2 size={19} color="$red10" />} label={t('settings.deleteAccount')} detail={t('settings.deleteAccountHint')} onPress={() => setDeleteDialogOpen(true)} />
+      </SettingsGroup>
+
+      <DeleteAccountDialog
+        confirmation={deleteConfirmation}
+        isPending={deleteAccountMutation.isPending}
+        open={deleteDialogOpen}
+        requiredConfirmation={deleteConfirmationToken}
+        onCancel={() => { setDeleteDialogOpen(false); setDeleteConfirmation('') }}
+        onChangeConfirmation={setDeleteConfirmation}
+        onConfirm={() => { if (canDeleteAccount) deleteAccountMutation.mutate() }}
+      />
+
       <YStack gap="$2">
         <Paragraph color="$color9" fontSize="$1" fontWeight="800" textTransform="uppercase">{t('settings.session')}</Paragraph>
         <FintButton variant="outlined" color="$red10" borderColor="$red6" icon={<LogOut size={18} color="$red10" />} onPress={() => { void signOut() }}>{t('settings.signOut')}</FintButton>
@@ -119,6 +163,34 @@ export default function SettingsScreen() {
       <XStack justify="center"><Paragraph color="$color9" fontSize="$1">{t('settings.version')} {diagnostics.appVersion} · Build {diagnostics.buildNumber}</Paragraph></XStack>
     </Screen>
   )
+}
+
+function DeleteAccountDialog({ confirmation, isPending, onCancel, onChangeConfirmation, onConfirm, open, requiredConfirmation }: { confirmation: string; isPending: boolean; onCancel: () => void; onChangeConfirmation: (value: string) => void; onConfirm: () => void; open: boolean; requiredConfirmation: string }) {
+  const { t } = useTranslation()
+  const canDelete = normalizeConfirmation(confirmation) === normalizeConfirmation(requiredConfirmation)
+  return (
+    <Dialog modal open={open} onOpenChange={(nextOpen) => !nextOpen && !isPending && onCancel()}>
+      <Dialog.Portal>
+        <Dialog.Overlay bg="rgba(4,18,28,0.68)" />
+        <Dialog.Content bordered elevate bg="$popover" borderColor="$borderColor" rounded="$7" width="88%" maxW={420} p="$5" gap="$4">
+          <Dialog.Title color="$color12" fontFamily="$heading" fontSize="$6" fontWeight="800">{t('settings.deleteAccountTitle')}</Dialog.Title>
+          <Dialog.Description color="$color10" fontSize="$3">{t('settings.deleteAccountDescription', { confirmation: requiredConfirmation })}</Dialog.Description>
+          <YStack gap="$2">
+            <Paragraph color="$color11" fontSize="$2" fontWeight="700">{t('settings.deleteAccountTypeConfirm', { confirmation: requiredConfirmation })}</Paragraph>
+            <Input autoCapitalize="none" autoCorrect={false} bg="$muted" borderColor={confirmation && !canDelete ? '$red8' : '$color5'} color="$color12" placeholder={requiredConfirmation} placeholderTextColor="$color8" value={confirmation} onChangeText={onChangeConfirmation} />
+          </YStack>
+          <XStack gap="$3">
+            <Button flex={1} chromeless disabled={isPending} onPress={onCancel}>{t('actions.cancel')}</Button>
+            <Button flex={1} bg={canDelete ? '$destructive' : '$muted'} color={canDelete ? 'white' : '$color8'} fontWeight="800" disabled={!canDelete || isPending} opacity={canDelete ? 1 : 0.58} icon={isPending ? <Spinner color="white" /> : <Trash2 size={17} color={canDelete ? 'white' : '$color8'} />} onPress={onConfirm}>{isPending ? t('settings.deletingAccount') : t('settings.deleteAccountButton')}</Button>
+          </XStack>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog>
+  )
+}
+
+function normalizeConfirmation(value: string) {
+  return value.trim().toLocaleLowerCase()
 }
 
 function SettingsGroup({ children, title }: { children: ReactNode; title: string }) {

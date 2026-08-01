@@ -106,8 +106,9 @@ Cada evento de recordatorio se envia una sola vez por ocurrencia y dispositivo. 
 3. [Fase 3: Pagos recurrentes](implementation-phase-3-recurring-payments.md)
 4. [Fase 4: Notificaciones push](implementation-phase-4-push-notifications.md)
 5. [Fase 5: Migracion y QA](implementation-phase-5-migration-and-qa.md)
+6. [Fase 6: Privacidad visual y onboarding](implementation-phase-6-privacy-and-onboarding.md)
 
-Estado actual: Fase 5 esta cerrada operativamente. Migracion 021, capabilities, reversion de pagos, despliegue API y validacion pago/reversion/idempotencia contra Render quedaron completados. Quedan como QA secundario iOS real, concurrencia formal de cron push, pagos entre multiples dispositivos, matriz completa de recordatorios y resaltado opcional de ocurrencia desde push.
+Estado actual: Fase 5 esta cerrada operativamente. Fase 6 queda planificada para privacidad visual de montos y onboarding guiado de usuarios nuevos. Quedan como QA secundario iOS real, concurrencia formal de cron push, pagos entre multiples dispositivos, matriz completa de recordatorios y resaltado opcional de ocurrencia desde push.
 
 ## Orden Obligatorio
 

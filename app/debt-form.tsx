@@ -16,7 +16,7 @@ import { SkeletonForm } from '../src/components/Skeleton'
 import { currencyOptions } from '../src/finance/currencies'
 import { todayDateString } from '../src/finance/dates'
 import { getValidationMessage, parseDecimalInput, useSubmitValidation } from '../src/forms'
-import { requestAndRegisterPushInstallation } from '../src/notifications/pushNotifications'
+import { registerPushInstallation } from '../src/notifications/pushNotifications'
 import { useCapabilities } from '../src/api/capabilities'
 import { FintButton, FintCard, FintDateField, FintFormField, FintSheetSelect } from '../src/ui'
 
@@ -99,7 +99,7 @@ export default function DebtFormScreen() {
         queryClient.invalidateQueries({ queryKey: ['summary'] }),
         queryClient.invalidateQueries({ queryKey: ['reports'] }),
       ])
-      if (!isEditing && capabilities.features.pushPaymentReminders) requestAndRegisterPushInstallation().catch(() => undefined)
+      if (!isEditing && capabilities.features.pushPaymentReminders) registerPushInstallation().catch(() => undefined)
       toast.show(t(isEditing ? 'payments.recurringUpdated' : 'payments.recurringCreated'), { message: t(isEditing ? 'payments.changesSaved' : 'payments.firstOccurrenceReady'), preset: 'success', duration: 3500 })
       router.back()
     },

@@ -1,6 +1,6 @@
 import * as ExpoLinking from 'expo-linking'
 import * as WebBrowser from 'expo-web-browser'
-import { Eye, EyeOff, LockKeyhole, Mail } from '@tamagui/lucide-icons-2'
+import { Eye, EyeOff, LockKeyhole, Mail, UserRound } from '@tamagui/lucide-icons-2'
 import { useEffect, useRef, useState } from 'react'
 import { Image, KeyboardAvoidingView, Platform } from 'react-native'
 import Svg, { Path } from 'react-native-svg'
@@ -18,6 +18,7 @@ export default function LoginScreen() {
   const { i18n, t } = useTranslation()
   const { session, signIn, signInWithGoogle, signUp } = useAuth()
   const [email, setEmail] = useState('')
+  const [displayName, setDisplayName] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
@@ -25,22 +26,24 @@ export default function LoginScreen() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
-  const validation = useSubmitValidation<'confirmPassword' | 'email' | 'password'>()
+  const validation = useSubmitValidation<'confirmPassword' | 'displayName' | 'email' | 'password'>()
   const isMountedRef = useRef(true)
 
   useEffect(() => () => {
     isMountedRef.current = false
   }, [])
 
-  if (session) return <Redirect href="/(tabs)/dashboard" />
+  if (session) return <Redirect href="/" />
 
   const redirectTo = ExpoLinking.createURL('auth/callback')
 
   const runAuthAction = async (action: 'signin' | 'signup' | 'google') => {
     let submittedEmail = email.trim()
+    let submittedDisplayName = displayName.trim()
     let submittedPassword = password
     if (action !== 'google') {
       const authSchema = z.object({
+        displayName: action === 'signup' ? z.string().trim().min(2, t('profile.invalid')).max(80, t('profile.invalid')) : z.string(),
         email: z.string().trim().email(getValidationMessage(t, i18n.resolvedLanguage, 'email')),
         password: z.string().min(6, getValidationMessage(t, i18n.resolvedLanguage, 'passwordMin')),
         confirmPassword: action === 'signup' ? z.string().min(1, getValidationMessage(t, i18n.resolvedLanguage, 'required')) : z.string(),
@@ -49,9 +52,10 @@ export default function LoginScreen() {
           context.addIssue({ code: 'custom', message: t('auth.passwordMismatch'), path: ['confirmPassword'] })
         }
       })
-      const payload = validation.validate(authSchema, { email, password, confirmPassword })
+      const payload = validation.validate(authSchema, { displayName, email, password, confirmPassword })
       if (!payload) return
       submittedEmail = payload.email
+      submittedDisplayName = payload.displayName
       submittedPassword = payload.password
     }
 
@@ -61,7 +65,7 @@ export default function LoginScreen() {
     const result = action === 'signin'
       ? await signIn(submittedEmail, submittedPassword)
       : action === 'signup'
-        ? await signUp(submittedEmail, submittedPassword)
+        ? await signUp(submittedEmail, submittedPassword, submittedDisplayName)
         : await signInWithGoogle(redirectTo)
 
     if (!isMountedRef.current) return
@@ -94,6 +98,7 @@ export default function LoginScreen() {
             </YStack>
 
             <YStack gap="$3">
+              {authMode === 'register' ? <YStack gap="$1.5"><AuthField error={validation.errors.displayName} icon={<UserRound size={18} color="$color9" />}><Input flex={1} unstyled autoCapitalize="words" autoComplete="name" placeholder={`${t('auth.name')} *`} color="$color12" placeholderTextColor="$color9" value={displayName} onChangeText={(value) => { setDisplayName(value); validation.clearError('displayName') }} /></AuthField><AuthValidationMessage message={validation.errors.displayName} /></YStack> : null}
               <YStack gap="$1.5">
                 <AuthField error={validation.errors.email} icon={<Mail size={18} color="$color9" />}><Input flex={1} unstyled autoCapitalize="none" autoComplete="email" keyboardType="email-address" placeholder={`${t('auth.email')} *`} color="$color12" placeholderTextColor="$color9" value={email} onChangeText={(value) => { setEmail(value); validation.clearError('email') }} /></AuthField>
                 <AuthValidationMessage message={validation.errors.email} />

@@ -16,6 +16,8 @@ import { SkeletonGroup, SkeletonHero, SkeletonList } from '../../src/components/
 import { getCategoryLabel } from '../../src/finance/categoryLabels'
 import { useThemeMode } from '../../src/theme/ThemeMode'
 import { FintButton, FintCard, FintSheetSelect } from '../../src/ui'
+import { useSensitiveMoney } from '../../src/privacy/useSensitiveMoney'
+import { SensitiveAmountToggle } from '../../src/privacy/SensitiveAmountToggle'
 
 const PAGE_SIZE = 30
 
@@ -156,9 +158,10 @@ export default function MovementsScreen() {
 
 function MovementCard({ locale, movement, onDelete, onEdit, onReverse }: { locale: string; movement: Transaction; onDelete: () => void; onEdit: () => void; onReverse: () => void }) {
   const { t } = useTranslation()
+  const { formatSensitiveAmount } = useSensitiveMoney()
   const isIncome = movement.type === 'income'
   const isPayment = Boolean(movement.paymentOccurrenceId)
-  return <FintCard py="$3"><XStack items="center" gap="$3"><XStack flex={1} minW={0} items="center" gap="$3" role={isPayment ? undefined : 'button'} onPress={isPayment ? undefined : onEdit}><YStack width={42} height={42} rounded="$8" bg={isIncome ? '$green2' : '$red2'} items="center" justify="center">{isIncome ? <ArrowDownLeft size={20} color="$green10" /> : <ArrowUpRight size={20} color="$red10" />}</YStack><YStack flex={1} minW={0} gap="$1"><Paragraph color="$color12" fontSize="$3" fontWeight="800" numberOfLines={1}>{getCategoryLabel(movement.category, t)}</Paragraph><Paragraph color="$color10" fontSize="$1" numberOfLines={1}>{new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short' }).format(new Date(`${movement.date}T00:00:00`))} · {movement.account}</Paragraph>{movement.note ? <Paragraph color="$color10" fontSize="$1" numberOfLines={1}>{movement.note}</Paragraph> : null}</YStack></XStack><YStack items="flex-end" gap="$1"><Paragraph color={isIncome ? '$green10' : '$red10'} fontSize="$3" fontWeight="900">{isIncome ? '+' : '-'}{formatMoney(movement.amount, movement.currency)}</Paragraph>{isPayment && movement.paymentOccurrencePaymentId ? <Button chromeless size="$2" onPress={onReverse}>{t('movementUx.reversePayment')}</Button> : <Button chromeless circular size="$2" icon={<Trash2 size={15} color="$red10" />} onPress={onDelete} aria-label={t('movementUx.deleteTitle')} />}</YStack></XStack></FintCard>
+  return <FintCard py="$3"><XStack items="center" gap="$3"><XStack flex={1} minW={0} items="center" gap="$3" role={isPayment ? undefined : 'button'} onPress={isPayment ? undefined : onEdit}><YStack width={42} height={42} rounded="$8" bg={isIncome ? '$green2' : '$red2'} items="center" justify="center">{isIncome ? <ArrowDownLeft size={20} color="$green10" /> : <ArrowUpRight size={20} color="$red10" />}</YStack><YStack flex={1} minW={0} gap="$1"><Paragraph color="$color12" fontSize="$3" fontWeight="800" numberOfLines={1}>{getCategoryLabel(movement.category, t)}</Paragraph><Paragraph color="$color10" fontSize="$1" numberOfLines={1}>{new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short' }).format(new Date(`${movement.date}T00:00:00`))} · {movement.account}</Paragraph>{movement.note ? <Paragraph color="$color10" fontSize="$1" numberOfLines={1}>{movement.note}</Paragraph> : null}</YStack></XStack><YStack items="flex-end" gap="$1"><Paragraph color={isIncome ? '$green10' : '$red10'} fontSize="$3" fontWeight="900">{formatSensitiveAmount(movement.amount, movement.currency)}</Paragraph>{isPayment && movement.paymentOccurrencePaymentId ? <Button chromeless size="$2" onPress={onReverse}>{t('movementUx.reversePayment')}</Button> : <Button chromeless circular size="$2" icon={<Trash2 size={15} color="$red10" />} onPress={onDelete} aria-label={t('movementUx.deleteTitle')} />}</YStack></XStack></FintCard>
 }
 
 function ReversePaymentDialog({ isPending, movement, onCancel, onConfirm }: { isPending: boolean; movement: Transaction | null; onCancel: () => void; onConfirm: () => void }) {
@@ -174,8 +177,9 @@ function DeleteMovementDialog({ isPending, movement, onCancel, onConfirm }: { is
 function MovementHero({ currency, expenses, income }: { currency: string; expenses: number; income: number }) {
   const { t } = useTranslation()
   const { themeMode } = useThemeMode()
+  const { formatSensitiveAmount } = useSensitiveMoney()
   const isDark = themeMode === 'dark'
-  return <FintCard bg={isDark ? '#0B3046' : '#0F5D73'} borderColor={isDark ? '#1B5067' : '#28788C'} gap="$4" p="$4"><XStack items="center" justify="space-between"><YStack gap="$1"><Paragraph color="#B9D7E1" fontFamily="$heading" fontSize="$2" fontWeight="700" textTransform="uppercase">{t('movementUx.monthFlow')}</Paragraph><Paragraph color="#F4FBFD" fontSize="$8" fontWeight="900">{formatMoney(income - expenses, currency)}</Paragraph></YStack><YStack width={48} height={48} rounded="$10" bg="rgba(93,214,229,0.14)" borderColor="rgba(93,214,229,0.24)" borderWidth={1} items="center" justify="center"><ArrowLeftRight size={24} color="#5DD6E5" /></YStack></XStack><XStack gap="$3"><HeroMetric label={t('dashboard.totalIncome')} value={formatMoney(income, currency)} color="#5DD6E5" /><HeroMetric label={t('dashboard.totalExpenses')} value={formatMoney(expenses, currency)} color="#F28B82" /></XStack></FintCard>
+  return <FintCard bg={isDark ? '#0B3046' : '#0F5D73'} borderColor={isDark ? '#1B5067' : '#28788C'} gap="$4" p="$4"><XStack items="center" justify="space-between"><YStack gap="$1"><Paragraph color="#B9D7E1" fontFamily="$heading" fontSize="$2" fontWeight="700" textTransform="uppercase">{t('movementUx.monthFlow')}</Paragraph><Paragraph color="#F4FBFD" fontSize="$8" fontWeight="900">{formatSensitiveAmount(income - expenses, currency)}</Paragraph></YStack><SensitiveAmountToggle color="#5DD6E5" inverse /></XStack><XStack gap="$3"><HeroMetric label={t('dashboard.totalIncome')} value={formatSensitiveAmount(income, currency)} color="#5DD6E5" /><HeroMetric label={t('dashboard.totalExpenses')} value={formatSensitiveAmount(expenses, currency)} color="#F28B82" /></XStack></FintCard>
 }
 
 function HeroMetric({ color, label, value }: { color: string; label: string; value: string }) {

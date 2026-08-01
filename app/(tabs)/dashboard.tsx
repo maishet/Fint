@@ -15,6 +15,8 @@ import { getCategoryLabel } from '../../src/finance/categoryLabels'
 import { useThemeMode } from '../../src/theme/ThemeMode'
 import { getAppLocale } from '../../src/i18n'
 import { FintButton, FintCard, FintSheetSelect } from '../../src/ui'
+import { SensitiveAmountToggle } from '../../src/privacy/SensitiveAmountToggle'
+import { useSensitiveMoney } from '../../src/privacy/useSensitiveMoney'
 
 const ALL_ACCOUNTS = '__all__'
 
@@ -138,7 +140,7 @@ function OnboardingStep({ complete, label, number }: { complete: boolean; label:
       <YStack width={26} height={26} rounded="$10" bg={complete ? '$green3' : '$muted'} items="center" justify="center">
         {complete ? <CheckCircle2 size={16} color="$green10" /> : <Paragraph color="$color10" fontSize="$1" fontWeight="800">{number}</Paragraph>}
       </YStack>
-      <Paragraph color={complete ? '$color10' : '$color12'} fontWeight={complete ? '500' : '700'}>{label}</Paragraph>
+      <Paragraph flex={1} minW={0} color={complete ? '$color10' : '$color12'} fontWeight={complete ? '500' : '700'} lineHeight="$4">{label}</Paragraph>
     </XStack>
   )
 }
@@ -146,6 +148,7 @@ function OnboardingStep({ complete, label, number }: { complete: boolean; label:
 function HeroSummary({ currency, expenses, income, netWorth }: { currency: string; expenses: number; income: number; netWorth: number }) {
   const { t } = useTranslation()
   const { themeMode } = useThemeMode()
+  const { formatSensitiveAmount } = useSensitiveMoney()
   const isDark = themeMode === 'dark'
   const backgroundColor = isDark ? '#0B3046' : '#0F5D73'
   const borderColor = isDark ? '#1B5067' : '#28788C'
@@ -157,17 +160,15 @@ function HeroSummary({ currency, expenses, income, netWorth }: { currency: strin
         <YStack gap="$1" flex={1}>
           <Paragraph color={secondaryText} fontFamily="$heading" fontSize="$2" fontWeight="700" textTransform="uppercase">{t('dashboard.netWorth')}</Paragraph>
           <Paragraph color={primaryText} fontFamily="$body" fontSize="$9" fontWeight="800" lineHeight="$9" numberOfLines={1} adjustsFontSizeToFit>
-            {formatMoney(netWorth, currency)}
+            {formatSensitiveAmount(netWorth, currency)}
           </Paragraph>
         </YStack>
-        <YStack width={48} height={48} rounded="$10" bg="rgba(93,214,229,0.14)" borderColor="rgba(93,214,229,0.24)" borderWidth={1} items="center" justify="center">
-          <Landmark size={24} color="#5DD6E5" />
-        </YStack>
+        <SensitiveAmountToggle color="#5DD6E5" inverse />
       </XStack>
 
       <XStack gap="$4">
-        <HeroMetric accent="#5DD6E5" label={t('dashboard.monthlyIncome')} labelColor={secondaryText} textColor={primaryText} value={formatMoney(income, currency)} />
-        <HeroMetric accent="#82B8D0" label={t('dashboard.monthlyExpenses')} labelColor={secondaryText} textColor={primaryText} value={formatMoney(expenses, currency)} />
+        <HeroMetric accent="#5DD6E5" label={t('dashboard.monthlyIncome')} labelColor={secondaryText} textColor={primaryText} value={formatSensitiveAmount(income, currency)} />
+        <HeroMetric accent="#82B8D0" label={t('dashboard.monthlyExpenses')} labelColor={secondaryText} textColor={primaryText} value={formatSensitiveAmount(expenses, currency)} />
       </XStack>
     </FintCard>
   )
@@ -218,6 +219,7 @@ function QuickActions() {
 
 function WeeklyFlowSection({ currency, data }: { currency: string; data: WeeklyFlowPoint[] }) {
   const { t } = useTranslation()
+  const { formatSensitiveAmount } = useSensitiveMoney()
   const [selectedIndex, setSelectedIndex] = useState(Math.max(0, data.length - 1))
   const chartHeight = 94
   const totalIncome = data.reduce((sum, point) => sum + point.income, 0)
@@ -248,8 +250,8 @@ function WeeklyFlowSection({ currency, data }: { currency: string; data: WeeklyF
               <Paragraph color="$color9" fontSize="$1">{t('dashboard.tapWeek')}</Paragraph>
             </YStack>
             <YStack items="flex-end">
-              <Paragraph color="$green11" fontSize="$1" fontWeight="800">+{formatMoney(selectedPoint.income, currency)}</Paragraph>
-              <Paragraph color="$red11" fontSize="$1" fontWeight="800">-{formatMoney(selectedPoint.expenses, currency)}</Paragraph>
+              <Paragraph color="$green11" fontSize="$1" fontWeight="800">{formatSensitiveAmount(selectedPoint.income, currency)}</Paragraph>
+              <Paragraph color="$red11" fontSize="$1" fontWeight="800">{formatSensitiveAmount(selectedPoint.expenses, currency)}</Paragraph>
             </YStack>
           </XStack>
         ) : null}
@@ -271,7 +273,7 @@ function WeeklyFlowSection({ currency, data }: { currency: string; data: WeeklyF
               pressStyle={{ bg: '$secondary' }}
               onPress={() => setSelectedIndex(index)}
               role="button"
-              aria-label={t('dashboard.weekAccessibility', { week: point.label, income: formatMoney(point.income, currency), expenses: formatMoney(point.expenses, currency) })}
+              aria-label={t('dashboard.weekAccessibility', { week: point.label, income: formatSensitiveAmount(point.income, currency), expenses: formatSensitiveAmount(point.expenses, currency) })}
             >
               <XStack height={chartHeight} items="flex-end" gap={4}>
                 <YStack transition="200ms" width={12} height={point.income > 0 ? Math.max(3, Math.round((point.income / maximum) * chartHeight)) : 0} bg="$green9" rounded="$2" opacity={isSelected ? 1 : 0.76} />
@@ -282,8 +284,8 @@ function WeeklyFlowSection({ currency, data }: { currency: string; data: WeeklyF
           )})}
         </XStack>
         <XStack borderTopColor="$borderColor" borderTopWidth={1} pt="$3" justify="space-between" gap="$3">
-          <FlowTotal color="$green11" label={t('dashboard.totalIncome')} value={formatMoney(totalIncome, currency)} />
-          <FlowTotal align="right" color="$red11" label={t('dashboard.totalExpenses')} value={formatMoney(totalExpenses, currency)} />
+          <FlowTotal color="$green11" label={t('dashboard.totalIncome')} value={formatSensitiveAmount(totalIncome, currency)} />
+          <FlowTotal align="right" color="$red11" label={t('dashboard.totalExpenses')} value={formatSensitiveAmount(totalExpenses, currency)} />
         </XStack>
       </FintCard>
     </YStack>
@@ -314,6 +316,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 function AdviceCarousel({ currency, expenses, income, previousExpenses, previousIncome, savings }: { currency: string; expenses: number; income: number; previousExpenses: number; previousIncome: number; savings: number }) {
   const { t } = useTranslation()
+  const { formatSensitiveAmount } = useSensitiveMoney()
   const expenseChange = calculatePercentChange(expenses, previousExpenses)
   const previousSavings = previousIncome - previousExpenses
   const savingsChange = calculatePercentChange(savings, previousSavings)
@@ -323,7 +326,7 @@ function AdviceCarousel({ currency, expenses, income, previousExpenses, previous
       icon: expenseChange !== null && expenseChange > 0 ? 'up' : 'down',
       title: expenseChange === null ? t('dashboard.expensesSnapshot') : expenseChange > 0 ? t('dashboard.expensesIncreasing') : t('dashboard.expensesControlled'),
       subtitle: t('dashboard.comparedPreviousMonth'),
-      value: expenseChange === null ? formatMoney(expenses, currency) : `${Math.abs(expenseChange)}%`,
+      value: expenseChange === null ? formatSensitiveAmount(expenses, currency) : `${Math.abs(expenseChange)}%`,
       trend: expenseChange === null ? t('dashboard.noPreviousData') : `${expenseChange > 0 ? '+' : ''}${expenseChange}% ${t('dashboard.vsPreviousMonth')}`,
       tone: expenseChange !== null && expenseChange > 0 ? 'negative' : 'positive',
     },
@@ -339,7 +342,7 @@ function AdviceCarousel({ currency, expenses, income, previousExpenses, previous
       icon: 'balance',
       title: t('dashboard.monthlyBalance'),
       subtitle: t('dashboard.incomeMinusExpenses'),
-      value: formatMoney(savings, currency),
+      value: formatSensitiveAmount(savings, currency),
       trend: savings >= 0 ? t('dashboard.positiveFlow') : t('dashboard.negativeFlow'),
       tone: savings >= 0 ? 'positive' : 'negative',
     },
@@ -383,6 +386,7 @@ function InsightCard({ icon, subtitle, title, tone, trend, value }: { icon: 'up'
 
 function ExpenseCategoryCard({ accounts, currency, isLoading, onAccountChange, selectedAccountId, slices }: { accounts: Array<{ id: string; name: string }>; currency: string; isLoading: boolean; onAccountChange: (value: string) => void; selectedAccountId: string; slices: CategorySlice[] }) {
   const { t } = useTranslation()
+  const { formatSensitiveAmount } = useSensitiveMoney()
   const [selectedIndex, setSelectedIndex] = useState(0)
   const total = slices.reduce((sum, slice) => sum + slice.amount, 0)
 
@@ -398,7 +402,7 @@ function ExpenseCategoryCard({ accounts, currency, isLoading, onAccountChange, s
         <FintSheetSelect label={t('forms.account')} placeholder={t('dashboard.allAccounts')} value={selectedAccountId} options={[{ value: ALL_ACCOUNTS, label: t('dashboard.allAccounts') }, ...accounts.map((account) => ({ value: account.id, label: account.name }))]} onValueChange={onAccountChange} />
         {isLoading ? <SkeletonGroup label={t('dashboard.loading')}><SkeletonSection height={180} /></SkeletonGroup> : null}
         {!isLoading && slices.length === 0 ? <YStack minH={150} items="center" justify="center" px="$4"><Paragraph color="$color10" text="center">{t('dashboard.emptyCategoriesForAccount')}</Paragraph></YStack> : null}
-        {!isLoading && slices.length ? <XStack items="center" gap="$4"><DonutChart onSelect={setSelectedIndex} selectedIndex={Math.min(selectedIndex, slices.length - 1)} slices={slices} total={total} /><YStack flex={1} gap="$2">{slices.map((slice, index) => { const isSelected = index === selectedIndex; return <XStack key={slice.name} items="center" justify="space-between" gap="$2" px="$2" py="$1" rounded="$4" bg={isSelected ? '$secondary' : 'transparent'} borderColor={isSelected ? '$primary' : 'transparent'} borderWidth={1} pressStyle={{ opacity: 0.75 }} role="button" onPress={() => setSelectedIndex(index)}><XStack items="center" gap="$2" flex={1} minW={0}><YStack width={9} height={9} rounded="$10" bg={slice.color as never} /><Paragraph color={isSelected ? '$color12' : '$color10'} fontSize="$2" fontWeight={isSelected ? '700' : '500'} numberOfLines={1}>{slice.name}</Paragraph></XStack><Paragraph color="$color12" fontSize="$2" fontWeight="800">{formatMoney(slice.amount, currency)}</Paragraph></XStack> })}</YStack></XStack> : null}
+        {!isLoading && slices.length ? <XStack items="center" gap="$4"><DonutChart onSelect={setSelectedIndex} selectedIndex={Math.min(selectedIndex, slices.length - 1)} slices={slices} total={total} /><YStack flex={1} gap="$2">{slices.map((slice, index) => { const isSelected = index === selectedIndex; return <XStack key={slice.name} items="center" justify="space-between" gap="$2" px="$2" py="$1" rounded="$4" bg={isSelected ? '$secondary' : 'transparent'} borderColor={isSelected ? '$primary' : 'transparent'} borderWidth={1} pressStyle={{ opacity: 0.75 }} role="button" onPress={() => setSelectedIndex(index)}><XStack items="center" gap="$2" flex={1} minW={0}><YStack width={9} height={9} rounded="$10" bg={slice.color as never} /><Paragraph color={isSelected ? '$color12' : '$color10'} fontSize="$2" fontWeight={isSelected ? '700' : '500'} numberOfLines={1}>{slice.name}</Paragraph></XStack><Paragraph color="$color12" fontSize="$2" fontWeight="800">{formatSensitiveAmount(slice.amount, currency)}</Paragraph></XStack> })}</YStack></XStack> : null}
       </FintCard>
     </YStack>
   )
@@ -445,6 +449,7 @@ function DonutChart({ onSelect, selectedIndex, slices, total }: { onSelect: (ind
 
 function RecentMovements({ locale, transactions }: { locale: string; transactions: Transaction[] }) {
   const { t } = useTranslation()
+  const { formatSensitiveAmount } = useSensitiveMoney()
 
   return (
     <YStack gap="$3">
@@ -490,7 +495,7 @@ function RecentMovements({ locale, transactions }: { locale: string; transaction
                   </YStack>
                 </XStack>
                 <Paragraph color={isIncome ? '$green11' : '$red11'} fontSize="$2" fontWeight="800" shrink={0}>
-                  {isIncome ? '+' : '-'}{formatMoney(transaction.amount, transaction.currency)}
+                  {formatSensitiveAmount(transaction.amount, transaction.currency)}
                 </Paragraph>
               </XStack>
             )

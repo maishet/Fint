@@ -19,7 +19,7 @@ export default function AuthCallbackScreen() {
   const [debugMessage, setDebugMessage] = useState<string | null>(null)
 
   useEffect(() => {
-    if (session) router.replace('/(tabs)/dashboard')
+    if (session) router.replace('/')
   }, [router, session])
 
   useEffect(() => {
@@ -48,7 +48,7 @@ export default function AuthCallbackScreen() {
         const session = await waitForSession()
         if (!isMounted) return
         if (session) {
-          router.replace('/(tabs)/dashboard')
+          router.replace('/')
           return
         }
 
@@ -69,7 +69,7 @@ export default function AuthCallbackScreen() {
           return
         }
         if (__DEV__) console.log('[Fint OAuth Callback] session established')
-        router.replace('/(tabs)/dashboard')
+        router.replace('/')
       } catch (error) {
         if (!isMounted) return
         setErrorMessage(error instanceof Error ? error.message : t('authCallback.saveError'))

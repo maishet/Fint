@@ -19,6 +19,8 @@ import { useThemeMode } from '../../src/theme/ThemeMode'
 import { FintButton, FintCard } from '../../src/ui'
 import { getAppLocale } from '../../src/i18n'
 import { useCapabilities } from '../../src/api/capabilities'
+import { useSensitiveMoney } from '../../src/privacy/useSensitiveMoney'
+import { SensitiveAmountToggle } from '../../src/privacy/SensitiveAmountToggle'
 
 export default function DebtsScreen() {
   const { t, i18n } = useTranslation()
@@ -103,6 +105,7 @@ export default function DebtsScreen() {
 
 function OccurrenceCard({ isDeleting, locale, occurrence, onConfigureAmount, onDelete, onEdit, onPay }: { isDeleting: boolean; locale: string; occurrence: PaymentOccurrence; onConfigureAmount: () => void; onDelete: () => void; onEdit: () => void; onPay: () => void }) {
   const { t } = useTranslation()
+  const { formatSensitiveAmount } = useSensitiveMoney()
   const due = getDueState(occurrence.dueDate, locale, t)
   const total = occurrence.totalAmount ?? 0
   const remaining = occurrence.remainingAmount ?? total
@@ -119,7 +122,7 @@ function OccurrenceCard({ isDeleting, locale, occurrence, onConfigureAmount, onD
           <Paragraph color={due.overdue ? '$red10' : '$color10'} fontSize="$1" fontWeight={due.overdue ? '700' : '500'}>{due.label}</Paragraph>
         </YStack>
         <YStack items="flex-end" gap="$1">
-          <Paragraph color={needsAmount ? '$yellow10' : '$color12'} fontSize="$4" fontWeight="800" shrink={0}>{needsAmount ? t('payments.configureAmount') : formatMoney(remaining, occurrence.currency)}</Paragraph>
+          <Paragraph color={needsAmount ? '$yellow10' : '$color12'} fontSize="$4" fontWeight="800" shrink={0}>{needsAmount ? t('payments.configureAmount') : formatSensitiveAmount(remaining, occurrence.currency)}</Paragraph>
           <Paragraph color="$color10" fontSize="$1">{statusLabel(occurrence.paymentStatus, t)}</Paragraph>
           <XStack gap="$1">
             <Button circular chromeless size="$3" icon={needsAmount ? <CreditCard size={19} color="$yellow10" /> : <CheckCircle2 size={19} color="$primary" />} onPress={(event) => { event.stopPropagation(); needsAmount ? onConfigureAmount() : onPay() }} aria-label={needsAmount ? t('payments.configureAmountAction') : t('payments.registerPayment')} />
@@ -128,7 +131,7 @@ function OccurrenceCard({ isDeleting, locale, occurrence, onConfigureAmount, onD
         </YStack>
       </XStack>
       <YStack gap="$1">
-        <XStack justify="space-between"><Paragraph color="$color10" fontSize="$1">{t('debts.paidProgress', { progress })}</Paragraph><Paragraph color="$color10" fontSize="$1">{formatMoney(occurrence.paidAmount, occurrence.currency)} / {needsAmount ? '-' : formatMoney(total, occurrence.currency)}</Paragraph></XStack>
+        <XStack justify="space-between"><Paragraph color="$color10" fontSize="$1">{t('debts.paidProgress', { progress })}</Paragraph><Paragraph color="$color10" fontSize="$1">{formatSensitiveAmount(occurrence.paidAmount, occurrence.currency)} / {needsAmount ? '-' : formatSensitiveAmount(total, occurrence.currency)}</Paragraph></XStack>
         <YStack height={5} rounded="$10" bg="$muted" overflow="hidden"><YStack width={`${progress}%`} height="100%" bg="$primary" rounded="$10" /></YStack>
       </YStack>
     </FintCard>
@@ -165,15 +168,16 @@ function statusLabel(status: PaymentOccurrence['paymentStatus'], t: (key: string
 
 function DebtHero({ count, currency, isDark, nextDueDate, total }: { count: number; currency: string; isDark: boolean; nextDueDate: string | null; total: number }) {
   const { t, i18n } = useTranslation()
+  const { formatSensitiveAmount } = useSensitiveMoney()
   const locale = getAppLocale(i18n.resolvedLanguage)
   return (
     <FintCard bg={isDark ? '#0B3046' : '#0F5D73'} borderColor={isDark ? '#1B5067' : '#28788C'} gap="$4" p="$4">
       <XStack items="center" justify="space-between" gap="$3">
         <YStack flex={1} minW={0} gap="$1">
           <Paragraph color="#B9D7E1" fontFamily="$heading" fontSize="$2" fontWeight="700" textTransform="uppercase">{t('payments.totalPending')}</Paragraph>
-          <Paragraph color="#F4FBFD" fontFamily="$body" fontSize="$9" fontWeight="800" lineHeight="$9" numberOfLines={1} adjustsFontSizeToFit>{formatMoney(total, currency)}</Paragraph>
+          <Paragraph color="#F4FBFD" fontFamily="$body" fontSize="$9" fontWeight="800" lineHeight="$9" numberOfLines={1} adjustsFontSizeToFit>{formatSensitiveAmount(total, currency)}</Paragraph>
         </YStack>
-        <YStack width={48} height={48} rounded="$10" bg="rgba(93,214,229,0.14)" borderColor="rgba(93,214,229,0.24)" borderWidth={1} items="center" justify="center"><HandCoins size={24} color="#5DD6E5" /></YStack>
+        <SensitiveAmountToggle color="#5DD6E5" inverse />
       </XStack>
       <XStack gap="$4">
         <HeroMetric accent="#5DD6E5" label={t('payments.activePayments')} value={String(count)} />

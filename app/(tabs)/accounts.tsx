@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Dialog, Paragraph, Spinner, XStack, YStack } from 'tamagui'
 import { financeApi } from '../../src/api/finance'
-import { formatMoney, normalizeAccount } from '../../src/api/mappers'
+import { normalizeAccount } from '../../src/api/mappers'
 import type { Account, AccountsOverview } from '../../src/api/types'
 import { DataStateCard } from '../../src/components/DataStateCard'
 import { Screen } from '../../src/components/Screen'
@@ -14,6 +14,8 @@ import { SkeletonGroup, SkeletonHero, SkeletonList } from '../../src/components/
 import { useThemeMode } from '../../src/theme/ThemeMode'
 import { usePressOnce } from '../../src/hooks/usePressOnce'
 import { FintButton, FintCard, FintSheetSelect } from '../../src/ui'
+import { SensitiveAmountToggle } from '../../src/privacy/SensitiveAmountToggle'
+import { useSensitiveMoney } from '../../src/privacy/useSensitiveMoney'
 
 export default function AccountsScreen() {
   const { t } = useTranslation()
@@ -124,6 +126,7 @@ export default function AccountsScreen() {
 
 function AccountsSummary({ isDark, overview }: { isDark: boolean; overview: AccountsOverview }) {
   const { t } = useTranslation()
+  const { formatSensitiveAmount } = useSensitiveMoney()
   const backgroundColor = isDark ? '#0B3046' : '#0F5D73'
   const borderColor = isDark ? '#1B5067' : '#28788C'
 
@@ -133,16 +136,14 @@ function AccountsSummary({ isDark, overview }: { isDark: boolean; overview: Acco
         <YStack gap="$1" flex={1} minW={0}>
           <Paragraph color="#B9D7E1" fontFamily="$heading" fontSize="$2" fontWeight="700" textTransform="uppercase">{t('accounts.consolidatedBalance')}</Paragraph>
           <Paragraph color="#F4FBFD" fontFamily="$body" fontSize="$9" fontWeight="800" lineHeight="$9" numberOfLines={1} adjustsFontSizeToFit>
-            {formatMoney(overview.totals.netWorth, overview.currency)}
+            {formatSensitiveAmount(overview.totals.netWorth, overview.currency)}
           </Paragraph>
         </YStack>
-        <YStack width={48} height={48} rounded="$10" bg="rgba(93,214,229,0.14)" borderColor="rgba(93,214,229,0.24)" borderWidth={1} items="center" justify="center">
-          <Wallet size={24} color="#5DD6E5" />
-        </YStack>
+        <SensitiveAmountToggle color="#5DD6E5" inverse />
       </XStack>
       <XStack gap="$4">
-        <SummaryMetric accent="#5DD6E5" label={t('accounts.assets')} value={formatMoney(overview.totals.assets, overview.currency)} />
-        <SummaryMetric accent="#F28B82" label={t('accounts.liabilities')} value={formatMoney(overview.totals.liabilities, overview.currency)} />
+        <SummaryMetric accent="#5DD6E5" label={t('accounts.assets')} value={formatSensitiveAmount(overview.totals.assets, overview.currency)} />
+        <SummaryMetric accent="#F28B82" label={t('accounts.liabilities')} value={formatSensitiveAmount(overview.totals.liabilities, overview.currency)} />
       </XStack>
     </FintCard>
   )
@@ -160,6 +161,7 @@ function SummaryMetric({ accent, label, value }: { accent: string; label: string
 
 function AccountCard({ account, isDeleting, onDelete, onPress }: { account: Account; isDeleting: boolean; onDelete: () => void; onPress: () => void }) {
   const { t } = useTranslation()
+  const { formatSensitiveAmount } = useSensitiveMoney()
   const isNegative = account.balance < 0
   const Icon = getAccountIcon(account.accountType)
 
@@ -184,7 +186,7 @@ function AccountCard({ account, isDeleting, onDelete, onPress }: { account: Acco
             <Paragraph color="$color10" fontSize="$1" numberOfLines={1}>{getAccountTypeLabel(account.accountType, t)} · {account.currency}</Paragraph>
           </YStack>
           <Paragraph color={isNegative ? '$red11' : '$color12'} fontSize="$4" fontWeight="800" shrink={0}>
-            {formatMoney(account.balance, account.currency)}
+            {formatSensitiveAmount(account.balance, account.currency)}
           </Paragraph>
         </XStack>
         <Button

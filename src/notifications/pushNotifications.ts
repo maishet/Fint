@@ -38,6 +38,7 @@ export async function requestAndRegisterPushInstallation() {
   if (state === 'unsupported') return state
   const Notifications = await loadNotifications()
   if (!Notifications) return 'unsupported'
+  await configureNotificationChannels(Notifications)
   const permissions = await Notifications.getPermissionsAsync()
   if (!permissions.granted) {
     const requested = await Notifications.requestPermissionsAsync()

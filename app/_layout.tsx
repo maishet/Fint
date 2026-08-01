@@ -2,6 +2,7 @@ import '../tamagui.generated.css'
 
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
 import { StatusBar } from 'expo-status-bar'
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native'
 import { useFonts } from 'expo-font'
@@ -12,6 +13,7 @@ import { useAuth } from '../src/auth/AuthProvider'
 import { useThemeMode } from '../src/theme/ThemeMode'
 import { useTheme } from 'tamagui'
 import { attachNotificationResponseListener } from '../src/notifications/pushNotifications'
+import { financeApi } from '../src/api/finance'
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -72,11 +74,16 @@ export default Sentry.wrap(RootLayout)
 function RootLayoutNav() {
   const { t } = useTranslation()
   const { session } = useAuth()
+  const meQuery = useQuery({ queryKey: ['me'], queryFn: financeApi.getMe, enabled: !!session, retry: false })
   const { themeMode } = useThemeMode()
   const theme = useTheme()
   const router = useRouter()
+  const setupComplete = meQuery.data?.setupComplete
 
-  useEffect(() => attachNotificationResponseListener(router), [router])
+  useEffect(() => {
+    if (setupComplete !== true) return
+    return attachNotificationResponseListener(router)
+  }, [router, setupComplete])
 
   return (
     <ThemeProvider value={themeMode === 'dark' ? DarkTheme : DefaultTheme}>
@@ -87,7 +94,10 @@ function RootLayoutNav() {
           <Stack.Screen name="login" options={{ headerShown: false }} />
           <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
         </Stack.Protected>
-        <Stack.Protected guard={!!session}>
+        <Stack.Protected guard={!!session && setupComplete === false}>
+          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+        </Stack.Protected>
+        <Stack.Protected guard={!!session && setupComplete === true}>
           <Stack.Screen
             name="(tabs)"
             options={{

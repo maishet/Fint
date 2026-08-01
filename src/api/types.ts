@@ -20,6 +20,15 @@ export interface CurrentUser {
   voiceEnabled: boolean
 }
 
+export interface CompleteOnboardingResult {
+  setupComplete: true
+  completedAt: string | null
+}
+
+export interface DeleteAccountResult {
+  deleted: true
+}
+
 export interface AppCapabilities {
   features: {
     editablePendingMovements: boolean

@@ -36,6 +36,8 @@ import { getPresetRange, type ReportPeriodPreset } from '../../src/finance/repor
 import { getAppLocale, type AppLanguage } from '../../src/i18n'
 import { useThemeMode } from '../../src/theme/ThemeMode'
 import { FintCard, FintSheetSelect } from '../../src/ui'
+import { useSensitiveMoney } from '../../src/privacy/useSensitiveMoney'
+import { SensitiveAmountToggle } from '../../src/privacy/SensitiveAmountToggle'
 
 const ALL_ACCOUNTS = '__all__'
 
@@ -151,9 +153,7 @@ export default function ReportsScreen() {
     >
       <FintCard bg={isDark ? '#0B3046' : '#0F5D73'} borderColor={isDark ? '#1B5067' : '#28788C'} gap="$3">
         <XStack items="center" gap="$3">
-          <YStack width={48} height={48} rounded="$10" bg="rgba(93,214,229,0.14)" borderColor="rgba(93,214,229,0.24)" borderWidth={1} items="center" justify="center">
-            <BarChart3 size={24} color="#5DD6E5" />
-          </YStack>
+          <SensitiveAmountToggle color="#5DD6E5" inverse />
           <YStack flex={1} minW={0}>
             <Paragraph color="#5DD6E5" fontSize={10} fontWeight="900" letterSpacing={1.2} textTransform="uppercase">
               {text.closing}
@@ -376,6 +376,7 @@ function WidgetEmpty({ message }: { message: string }) {
 
 function StatusCard({ report, text }: { report: FinancialReportPeriod; text: ReportText }) {
   const { t } = useTranslation()
+  const { formatSensitiveAmount } = useSensitiveMoney()
   const positive = report.summary.status === 'healthy'
   const attention = report.summary.status === 'attention'
   return (
@@ -412,7 +413,7 @@ function StatusCard({ report, text }: { report: FinancialReportPeriod; text: Rep
             value={report.highlights.topExpenseCategory ? getCategoryLabel(report.highlights.topExpenseCategory.name, t) : text.noData}
             amount={
               report.highlights.topExpenseCategory
-                ? formatMoney(report.highlights.topExpenseCategory.amount, report.filters.currency)
+                ? formatSensitiveAmount(report.highlights.topExpenseCategory.amount, report.filters.currency)
                 : undefined
             }
           />
@@ -421,7 +422,7 @@ function StatusCard({ report, text }: { report: FinancialReportPeriod; text: Rep
             value={report.highlights.largestTransaction ? getCategoryLabel(report.highlights.largestTransaction.category, t) : text.noData}
             amount={
               report.highlights.largestTransaction
-                ? formatMoney(report.highlights.largestTransaction.amount, report.filters.currency)
+                ? formatSensitiveAmount(report.highlights.largestTransaction.amount, report.filters.currency)
                 : undefined
             }
           />
@@ -450,6 +451,7 @@ function Highlight({ amount, label, value }: { amount?: string; label: string; v
 }
 
 function MetricGrid({ report, text }: { report: FinancialReportPeriod; text: ReportText }) {
+  const { formatSensitiveAmount } = useSensitiveMoney()
   const comparison =
     report.summary.netChangePercentage === null
       ? text.noPrevious
@@ -460,19 +462,19 @@ function MetricGrid({ report, text }: { report: FinancialReportPeriod; text: Rep
         <Metric
           icon={<ArrowDownLeft size={17} color="$green10" />}
           label={text.income}
-          value={formatMoney(report.summary.income, report.filters.currency)}
+          value={formatSensitiveAmount(report.summary.income, report.filters.currency)}
         />
         <Metric
           icon={<ArrowUpRight size={17} color="$red10" />}
           label={text.expenses}
-          value={formatMoney(report.summary.expenses, report.filters.currency)}
+          value={formatSensitiveAmount(report.summary.expenses, report.filters.currency)}
         />
       </XStack>
       <XStack gap="$2">
         <Metric
           icon={<PiggyBank size={17} color="$primary" />}
           label={text.net}
-          value={formatMoney(report.summary.net, report.filters.currency)}
+          value={formatSensitiveAmount(report.summary.net, report.filters.currency)}
           detail={comparison}
         />
         <Metric
@@ -510,6 +512,7 @@ function Metric({ detail, icon, label, value }: { detail?: string; icon: React.R
 }
 
 function SeriesCard({ locale, report, text }: { locale: string; report: FinancialReportPeriod; text: ReportText }) {
+  const { formatSensitiveAmount } = useSensitiveMoney()
   const [selectedPeriod, setSelectedPeriod] = useState(report.series.at(-1)?.period ?? '')
   const max = Math.max(1, ...report.series.flatMap((item) => [item.income, item.expenses]))
   const selected = report.series.find((item) => item.period === selectedPeriod) ?? report.series.at(-1)
@@ -529,15 +532,15 @@ function SeriesCard({ locale, report, text }: { locale: string; report: Financia
             </Paragraph>
             <Paragraph color="$color10" fontSize="$1">
               {selected.transactionCount} {text.transactions.toLowerCase()} · {text.net}:{' '}
-              {formatMoney(selected.net, report.filters.currency)}
+              {formatSensitiveAmount(selected.net, report.filters.currency)}
             </Paragraph>
           </YStack>
           <YStack items="flex-end">
             <Paragraph color="$green11" fontSize="$1" fontWeight="800">
-              +{formatMoney(selected.income, report.filters.currency)}
+              {formatSensitiveAmount(selected.income, report.filters.currency)}
             </Paragraph>
             <Paragraph color="$red11" fontSize="$1" fontWeight="800">
-              -{formatMoney(selected.expenses, report.filters.currency)}
+              {formatSensitiveAmount(selected.expenses, report.filters.currency)}
             </Paragraph>
           </YStack>
         </XStack>
@@ -562,7 +565,7 @@ function SeriesCard({ locale, report, text }: { locale: string; report: Financia
                 pressStyle={{ bg: '$secondary' }}
                 role="button"
                 accessibilityState={{ selected: isSelected }}
-                aria-label={`${formatSeriesPeriod(item.period, report.period.grouping, locale)}. ${text.income}: ${formatMoney(item.income, report.filters.currency)}. ${text.expenses}: ${formatMoney(item.expenses, report.filters.currency)}. ${text.net}: ${formatMoney(item.net, report.filters.currency)}`}
+                aria-label={`${formatSeriesPeriod(item.period, report.period.grouping, locale)}. ${text.income}: ${formatSensitiveAmount(item.income, report.filters.currency)}. ${text.expenses}: ${formatSensitiveAmount(item.expenses, report.filters.currency)}. ${text.net}: ${formatSensitiveAmount(item.net, report.filters.currency)}`}
                 onPress={() => setSelectedPeriod(item.period)}
               >
                 <XStack height={108} items="flex-end" gap={6}>
@@ -623,6 +626,7 @@ function CategoryCard({
   t: TFunction
   text: ReportText
 }) {
+  const { formatSensitiveAmount } = useSensitiveMoney()
   return (
     <FintCard gap="$3">
       <ReportCardHeader
@@ -659,7 +663,7 @@ function CategoryCard({
               </Paragraph>
             </YStack>
             <Paragraph color="$color12" fontWeight="900">
-              {formatMoney(item.amount, report.filters.currency)}
+              {formatSensitiveAmount(item.amount, report.filters.currency)}
             </Paragraph>
           </XStack>
         ))
@@ -669,6 +673,7 @@ function CategoryCard({
 }
 
 function AccountActivityCard({ report, text }: { report: FinancialReportPeriod; text: ReportText }) {
+  const { formatSensitiveAmount } = useSensitiveMoney()
   return (
     <FintCard gap="$3">
       <ReportCardHeader icon={<Landmark size={19} color="$primary" />} title={text.accountActivity} />
@@ -686,11 +691,11 @@ function AccountActivityCard({ report, text }: { report: FinancialReportPeriod; 
               </Paragraph>
               <Paragraph color="$color10" fontSize="$1" numberOfLines={2}>
                 {item.transactionCount} {text.transactions.toLowerCase()} · {text.income}:{' '}
-                {formatMoney(item.income, report.filters.currency)} · {text.expenses}: {formatMoney(item.expenses, report.filters.currency)}
+                {formatSensitiveAmount(item.income, report.filters.currency)} · {text.expenses}: {formatSensitiveAmount(item.expenses, report.filters.currency)}
               </Paragraph>
             </YStack>
             <Paragraph color={item.net >= 0 ? '$green10' : '$red10'} fontWeight="900">
-              {formatMoney(item.net, report.filters.currency)}
+              {formatSensitiveAmount(item.net, report.filters.currency)}
             </Paragraph>
           </XStack>
         ))
@@ -700,6 +705,7 @@ function AccountActivityCard({ report, text }: { report: FinancialReportPeriod; 
 }
 
 function CurrentPositionCard({ currency, position, text }: { currency: string; position: FinancialReportPosition; text: ReportText }) {
+  const { formatSensitiveAmount } = useSensitiveMoney()
   return (
     <FintCard gap="$3">
       <ReportCardHeader icon={<WalletCards size={19} color="$primary" />} title={text.currentPosition} />
@@ -707,10 +713,10 @@ function CurrentPositionCard({ currency, position, text }: { currency: string; p
         {text.currentSnapshotNote}
       </Paragraph>
       <XStack gap="$2">
-        <PositionMetric label={text.balance} value={formatMoney(position.totalAccountBalance, currency)} />
-        <PositionMetric label={text.outstanding} value={formatMoney(position.totalDebtOutstanding, currency)} />
+        <PositionMetric label={text.balance} value={formatSensitiveAmount(position.totalAccountBalance, currency)} />
+        <PositionMetric label={text.outstanding} value={formatSensitiveAmount(position.totalDebtOutstanding, currency)} />
       </XStack>
-      <PositionMetric label={text.net} value={formatMoney(position.netPosition, currency)} emphasis />
+      <PositionMetric label={text.net} value={formatSensitiveAmount(position.netPosition, currency)} emphasis />
       {position.accounts.length === 0 && position.debts.length === 0 ? <WidgetEmpty message={text.noData} /> : null}
       {position.accounts.map((item) => (
         <XStack key={item.id} items="center" gap="$3">
@@ -719,7 +725,7 @@ function CurrentPositionCard({ currency, position, text }: { currency: string; p
             {item.name}
           </Paragraph>
           <Paragraph color="$color12" fontWeight="900">
-            {formatMoney(item.balance, item.currency)}
+            {formatSensitiveAmount(item.balance, item.currency)}
           </Paragraph>
         </XStack>
       ))}
@@ -740,7 +746,7 @@ function CurrentPositionCard({ currency, position, text }: { currency: string; p
                 </Paragraph>
               </YStack>
               <Paragraph color="$color12" fontWeight="900">
-                {formatMoney(item.outstanding, item.currency)}
+                {formatSensitiveAmount(item.outstanding, item.currency)}
               </Paragraph>
             </XStack>
           ))}
@@ -789,6 +795,7 @@ function TopTransactionsCard({
   text: ReportText
   transactions: FinancialTopTransaction[]
 }) {
+  const { formatSensitiveAmount } = useSensitiveMoney()
   return (
     <FintCard gap="$3">
       <ReportCardHeader icon={<ArrowUpRight size={19} color="$primary" />} title={text.topTransactions} />
@@ -811,7 +818,7 @@ function TopTransactionsCard({
               </Paragraph>
             </YStack>
             <Paragraph color={item.type === 'income' ? '$green10' : '$red10'} fontWeight="900">
-              {formatMoney(item.amount, currency)}
+              {formatSensitiveAmount(item.amount, currency)}
             </Paragraph>
           </XStack>
         ))
