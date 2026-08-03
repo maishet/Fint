@@ -7,12 +7,12 @@
 - Core loading-error states offer an explicit retry action.
 - API responses include an `X-Request-Id`; request and unhandled-error events are logged as structured JSON.
 - API applies an in-memory per-client rate limit. Configure `API_RATE_LIMIT_PER_MINUTE` in Render for the production threshold.
-- Mobile unit tests cover auth routing and actionable API error mapping.
+- Mobile unit tests cover auth routing, actionable API error mapping, and financial mutation contracts for accounts, movements, and recurring payments.
 - API includes a reproducible authenticated performance script and a Supabase Cron migration for Gmail watch renewal.
 - Gmail sources whose Google refresh token is rejected are marked as requiring reconnection and expose a mobile recovery action.
 - Reusable actions now block duplicate presses; Gmail sync shows progress and completion feedback.
 - Sentry is integrated for mobile and API with PII and request-body collection disabled; production validation and alert rules are planned in `docs/mvp-sentry-legal-play-store-plan.md`.
-- EAS preview and production environments include the public Sentry environment value, and the new preview APK was generated and validated.
+- EAS preview and production environments include the public Sentry environment value. Preview APK `9b9a8847-9d82-45be-8581-ce9e83d826a6` was generated and opens the public privacy policy and terms from Settings.
 - The API Sentry changes and environment variables were deployed to Render.
 - Gmail multi-account synchronization, confirmation, discard, deduplication, token revocation, and reconnection were validated end to end.
 - The final APK smoke test covering installation, authentication, onboarding, core mutations, navigation, persistence, and relaunch passed.
@@ -21,9 +21,7 @@
 
 - Verify the first scheduled Supabase Cron run using the queries in `docs/monitoring-setup.md`.
 - Measure the first request after Render sleeps; the warm authenticated baseline is documented in the API operations runbook.
-- Host completed privacy policy and terms on HTTPS URLs, then complete a Play closed-test release.
-- Publish the required account-deletion web resource and configure Sentry alerts using `docs/mvp-sentry-legal-play-store-plan.md`.
-- Add mobile tests for account, movement, and debt mutation flows.
+- Complete a Play closed-test release after the remaining Google OAuth and Play Console requirements are configured.
 - Implement the prioritized work in `docs/mvp-improvements-and-reports.md`.
 
 ## Explicitly Out Of Scope

@@ -19,12 +19,13 @@ Use this checklist as the final gate before public launch.
 - [x] Host the final privacy policy and terms on public HTTPS URLs.
 - [x] Confirm the final legal operator data is present in public legal documents.
 - [ ] Confirm the final app name is legally and commercially available before public submission.
-- [ ] Ensure support email is active and monitored.
+- [ ] Send and receive a support test message at `soporte.fint@gmail.com` to confirm operational monitoring.
 
 ## P1 - Strongly Recommended Before Launch
 
 - [ ] Complete a closed-test release in Play Console and review feedback for blockers.
 - [ ] Prepare final Play Store assets:
+- [x] Listing copy and screenshot plan prepared. See `docs/play-store-listing.md`.
 - [ ] App name.
 - [ ] Short description.
 - [ ] Screenshots.
@@ -33,17 +34,17 @@ Use this checklist as the final gate before public launch.
 - [ ] Content rating and store metadata.
 - [ ] Run a focused visual QA pass for ocean-blue branding consistency across login, tabs, reports, and empty states.
 - [ ] Review loading, empty, offline, timeout, and error states across core screens.
-- [ ] Add or confirm mobile tests for account, movement, and debt mutation flows.
+- [x] Add or confirm mobile tests for account, movement, and debt mutation flows. See `tests/unit/finance-mutations.test.ts`.
 - [ ] Check API logs for slow queries, repeated failures, and timeout patterns under realistic usage.
 - [ ] Measure first request latency after Render cold start and document acceptable baseline.
 - [ ] Confirm release monitoring coverage for mobile errors, API errors, cron failures, and export failures.
-- [ ] Define a rollback and incident-response path for the first public release.
+- [x] Define a rollback and incident-response path for the first public release. See `docs/release-runbook.md`.
 
 ## P2 - Good Improvements If Time Allows
 
 - [ ] Finalize replacement of temporary brand elements: app name, icon, and splash.
-- [ ] Create a repeatable release runbook with exact commands, owners, and sign-off steps.
-- [ ] Add a small post-launch support checklist for issue triage and user response.
+- [x] Create a repeatable release runbook with exact commands, owners, and sign-off steps. See `docs/release-runbook.md`.
+- [x] Add a small post-launch support checklist for issue triage and user response. See `docs/post-launch-support-checklist.md`.
 - [ ] Expand regression coverage around reports, export edge cases, and Gmail reconnection flows.
 - [ ] Validate degraded-network behavior on lower-end Android devices.
 - [ ] Prepare App Store launch assets and requirements if iOS release is near.

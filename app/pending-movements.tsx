@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FlatList, RefreshControl } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Button, Dialog, Paragraph, Spinner, XStack, YStack } from 'tamagui'
+import { Button, Paragraph, Spinner, XStack, YStack } from 'tamagui'
 import { financeApi } from '../src/api/finance'
 import { supabase } from '../src/auth/supabase'
 import { formatMoney } from '../src/api/mappers'
@@ -16,7 +16,7 @@ import { DataStateCard } from '../src/components/DataStateCard'
 import { MovementPickerTrigger } from '../src/components/MovementFormControls'
 import { SkeletonGroup, SkeletonList } from '../src/components/Skeleton'
 import { getValidationMessage } from '../src/forms'
-import { FintButton, FintCard, FintFormField, FintSheetSelect } from '../src/ui'
+import { FintButton, FintCard, FintConfirmDialog, FintFormField, FintSheetSelect } from '../src/ui'
 import { getInstallationId } from '../src/notifications/pushNotifications'
 import { useCapabilities } from '../src/api/capabilities'
 
@@ -255,5 +255,5 @@ function compatibleOccurrences(occurrences: Awaited<ReturnType<typeof financeApi
 
 function DiscardPendingDialog({ isPending, item, onCancel, onConfirm }: { isPending: boolean; item: PendingMovementCard | null; onCancel: () => void; onConfirm: () => void }) {
   const { t } = useTranslation()
-  return <Dialog modal open={Boolean(item)} onOpenChange={(open) => !open && !isPending && onCancel()}><Dialog.Portal><Dialog.Overlay bg="rgba(4,18,28,0.68)" /><Dialog.Content bordered elevate bg="$popover" borderColor="$borderColor" rounded="$7" width="88%" maxW={420} p="$5" gap="$4"><Dialog.Title color="$color12" fontFamily="$heading" fontSize="$6" fontWeight="700">{t('movementUx.discardPendingTitle')}</Dialog.Title><Dialog.Description color="$color10">{t('movementUx.discardPendingDescription')}</Dialog.Description><XStack gap="$3"><Button flex={1} chromeless disabled={isPending} onPress={onCancel}>{t('actions.cancel')}</Button><Button flex={1} bg="$destructive" color="white" fontWeight="700" disabled={isPending} icon={isPending ? <Spinner color="white" /> : <Trash2 size={17} color="white" />} onPress={onConfirm}>{t('movementUx.discardPending')}</Button></XStack></Dialog.Content></Dialog.Portal></Dialog>
+  return <FintConfirmDialog open={Boolean(item)} isPending={isPending} title={t('movementUx.discardPendingTitle')} description={t('movementUx.discardPendingDescription')} cancelLabel={t('actions.cancel')} confirmLabel={t('movementUx.discardPending')} destructive icon={<Trash2 size={17} color="white" />} onCancel={onCancel} onConfirm={onConfirm} />
 }

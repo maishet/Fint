@@ -8,6 +8,8 @@
 - Use the production Android application ID `com.fint.finanzasmobilev2`.
 - Publish first through a closed testing track before production.
 
+Use `docs/play-console-submission.md` to complete App content, Data safety, reviewer access, listing, and the closed-test sequence.
+
 ## Privacy Policy Draft
 
 Fint stores financial records that users enter, including accounts, movements, categories, debts, and optional Gmail-derived pending movements. Gmail is read only after the user connects an account and only messages matching user-configured sender filters are considered. Fint never creates a financial movement from Gmail without user confirmation.

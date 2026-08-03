@@ -3,7 +3,6 @@ import { Mail, Plus, RefreshCw, Save, Trash2 } from '@tamagui/lucide-icons-2'
 import { useToastController } from '@tamagui/toast'
 import * as WebBrowser from 'expo-web-browser'
 import { useState } from 'react'
-import { Alert } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { Paragraph, Spinner, XStack, YStack } from 'tamagui'
 import { z } from 'zod'
@@ -14,7 +13,7 @@ import { Screen } from '../src/components/Screen'
 import { SkeletonBlock, SkeletonGroup } from '../src/components/Skeleton'
 import { getValidationMessage, useSubmitValidation } from '../src/forms'
 import { useThemeMode } from '../src/theme/ThemeMode'
-import { FintButton, FintCard, FintFormField, FintInput } from '../src/ui'
+import { FintButton, FintCard, FintConfirmDialog, FintFormField, FintInput } from '../src/ui'
 
 export default function GmailSettingsScreen() {
   const { t } = useTranslation()
@@ -69,6 +68,7 @@ function GmailSourceCard({ onReconnect, source }: { onReconnect: () => void; sou
   const toast = useToastController()
   const [senders, setSenders] = useState(source.senderFilters.join(', '))
   const [saveErrorMessage, setSaveErrorMessage] = useState<string | null>(null)
+  const [disconnectOpen, setDisconnectOpen] = useState(false)
   const validation = useSubmitValidation<'senders'>()
   const senderFilterSchema = z.object({
     senders: z.string().refine(
@@ -80,7 +80,6 @@ function GmailSourceCard({ onReconnect, source }: { onReconnect: () => void; sou
   const saveMutation = useMutation({ mutationFn: (senderFilters: string[]) => financeApi.updateGmailSource(source.id, { labelIds: ['INBOX'], senderFilters }), onSuccess: () => { setSaveErrorMessage(null); queryClient.invalidateQueries({ queryKey: ['gmail-sources'] }) }, onError: (error) => setSaveErrorMessage(error instanceof Error ? error.message : t('states.error')) })
   const deleteMutation = useMutation({ mutationFn: () => financeApi.disconnectGmailSource(source.id), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['gmail-sources'] }); queryClient.invalidateQueries({ queryKey: ['me'] }) } })
   const pending = syncMutation.isPending || saveMutation.isPending || deleteMutation.isPending
-  const confirmDisconnect = () => Alert.alert(t('gmail.disconnect'), t('gmail.disconnectConfirm'), [{ text: t('actions.cancel'), style: 'cancel' }, { text: t('gmail.disconnect'), style: 'destructive', onPress: () => deleteMutation.mutate() }])
   const saveFilters = () => {
     setSaveErrorMessage(null)
     const payload = validation.validate(senderFilterSchema, { senders })
@@ -88,14 +87,17 @@ function GmailSourceCard({ onReconnect, source }: { onReconnect: () => void; sou
   }
 
   return (
-    <FintCard gap="$4">
+    <>
+      <FintCard gap="$4">
       <XStack items="center" gap="$3"><YStack width={40} height={40} rounded="$9" bg="$secondary" items="center" justify="center"><Mail size={20} color="$primary" /></YStack><YStack flex={1}><Paragraph color="$color12" fontWeight="800">{source.emailAddress}</Paragraph><Paragraph color="$color10" fontSize="$1">{source.lastSyncAt ? t('gmail.lastSync', { date: new Date(source.lastSyncAt).toLocaleString() }) : t('gmail.notSynced')}</Paragraph></YStack></XStack>
       {source.status === 'error' ? <YStack bg="$red2" borderColor="$red6" borderWidth={1} rounded="$5" p="$3" gap="$2"><Paragraph color="$red11" fontWeight="700">{t('gmail.reconnectRequired')}</Paragraph><FintButton size="$3" variant="outlined" color="$red10" borderColor="$red6" onPress={onReconnect}>{t('gmail.reconnect')}</FintButton></YStack> : null}
       <FintFormField label={t('gmail.senders')} error={validation.errors.senders} hint={<Paragraph color="$color10" fontSize="$1">{t('gmail.sendersHelp')}</Paragraph>}><FintInput borderColor={validation.errors.senders ? '$red8' : undefined} multiline minH={88} textAlignVertical="top" placeholder="alertas@banco.com, pagos@tienda.com" value={senders} onChangeText={(value) => { setSenders(value); validation.clearError('senders') }} /></FintFormField>
       <XStack gap="$2"><FintButton flex={1} variant="outlined" disabled={pending || source.status === 'error'} icon={syncMutation.isPending ? <Spinner size="small" /> : <RefreshCw size={16} />} onPress={() => syncMutation.mutate()}>{syncMutation.isPending ? t('gmail.syncing') : t('gmail.sync')}</FintButton><FintButton flex={1} disabled={pending || source.status === 'error'} icon={<Save size={16} />} onPress={saveFilters}>{t('actions.save')}</FintButton></XStack>
       {saveErrorMessage ? <Paragraph color="$red10">{saveErrorMessage}</Paragraph> : null}
-      <FintButton variant="outlined" color="$red10" borderColor="$red6" disabled={pending} icon={<Trash2 size={16} />} onPress={confirmDisconnect}>{t('gmail.disconnect')}</FintButton>
-    </FintCard>
+       <FintButton variant="outlined" color="$red10" borderColor="$red6" disabled={pending} icon={<Trash2 size={16} />} onPress={() => setDisconnectOpen(true)}>{t('gmail.disconnect')}</FintButton>
+      </FintCard>
+      <FintConfirmDialog open={disconnectOpen} isPending={deleteMutation.isPending} title={t('gmail.disconnect')} description={t('gmail.disconnectConfirm')} cancelLabel={t('actions.cancel')} confirmLabel={t('gmail.disconnect')} destructive icon={<Trash2 size={17} color="white" />} onCancel={() => setDisconnectOpen(false)} onConfirm={() => deleteMutation.mutate()} />
+    </>
   )
 }
 

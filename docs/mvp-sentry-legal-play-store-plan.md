@@ -307,7 +307,7 @@ La politica debe describir de forma exacta:
 
 - Datos de perfil: nombre, correo, avatar e identificador de usuario.
 - Datos financieros ingresados: cuentas, saldos, movimientos, categorias, pagos, deudas y notas.
-- Gmail opcional: cuenta conectada, filtros configurados, acceso `gmail.readonly`, correos procesados y pendientes derivados.
+- Gmail opcional: cuenta conectada, filtros configurados, acceso `https://www.googleapis.com/auth/gmail.readonly`, correos procesados y pendientes derivados.
 - Notificaciones: installation ID, Expo push token, plataforma, idioma y zona horaria.
 - Diagnosticos: crash logs, errores y rendimiento procesados por Sentry.
 - Soporte: categoria, descripcion y datos que el usuario decide enviar.
@@ -385,12 +385,12 @@ Fint ofrece ES, EN y PT. Recomendacion:
 ### 2.9 Gate de aceptacion legal
 
 - [x] Datos legales del operador confirmados: Cristhofer Moises Ventura Villanueva, Peru, `soporte.fint@gmail.com`, mayores de 18 anos, respuesta de eliminacion hasta 30 dias y sin retenciones excepcionales.
-- [x] Politica publicada en `https://<sitio-legal>/privacy`.
-- [x] Terminos publicados en `https://<sitio-legal>/terms`.
-- [x] Pagina de eliminacion publicada en `https://<sitio-legal>/account-deletion`.
-- [x] Pagina de soporte publicada en `https://<sitio-legal>/support`.
+- [x] Politica publicada en `https://fint-web.vercel.app/privacy`.
+- [x] Terminos publicados en `https://fint-web.vercel.app/terms`.
+- [x] Pagina de eliminacion publicada en `https://fint-web.vercel.app/account-deletion`.
+- [x] Pagina de soporte publicada en `https://fint-web.vercel.app/support`.
 - [x] URLs publicas devuelven HTTP 200 sin login.
-- [ ] Enlaces probados desde un dispositivo movil.
+- [x] Enlaces probados desde un dispositivo Android en el APK preview `9b9a8847-9d82-45be-8581-ce9e83d826a6`.
 - [ ] Gmail/Limited Use descrito correctamente.
 - [ ] Correos de soporte y privacidad reciben mensajes.
 
@@ -401,19 +401,21 @@ Fint ofrece ES, EN y PT. Recomendacion:
 Una vez publicadas las URLs, configurar en preview y production:
 
 ```text
-EXPO_PUBLIC_PRIVACY_POLICY_URL=https://<sitio-legal>/privacy
-EXPO_PUBLIC_TERMS_URL=https://<sitio-legal>/terms
+EXPO_PUBLIC_PRIVACY_POLICY_URL=https://fint-web.vercel.app/privacy
+EXPO_PUBLIC_TERMS_URL=https://fint-web.vercel.app/terms
 ```
 
-Estado: configuradas como variables publicas de proyecto en los entornos EAS `preview` y `production`. La app ya consume estas variables desde Configuracion. Antes del build productivo se debe validar en preview que ambos enlaces abren correctamente.
+Estado: configuradas como variables publicas de proyecto en los entornos EAS `preview` y `production`. La app las abrio correctamente desde Configuracion en el APK preview `9b9a8847-9d82-45be-8581-ce9e83d826a6`.
 
 ### 3.2 Google OAuth
 
 - Configurar la URL de privacidad publica en OAuth consent screen.
 - Confirmar homepage y dominio autorizado si Google los solicita.
 - Verificar que el nombre, logo y operador coinciden entre OAuth, Play Store y sitio legal.
-- Revisar el estado de verificacion OAuth para `gmail.readonly` antes de abrir el acceso a usuarios externos.
-- Mantener solo scopes necesarios: `gmail.readonly` y `userinfo.email`.
+- Revisar el estado de verificacion OAuth para `https://www.googleapis.com/auth/gmail.readonly` antes de abrir el acceso a usuarios externos.
+- Mantener solo scopes necesarios: `https://www.googleapis.com/auth/gmail.readonly` y `https://www.googleapis.com/auth/userinfo.email`.
+
+Estado: la app externa esta publicada y declara `openid`, `https://www.googleapis.com/auth/userinfo.profile`, `https://www.googleapis.com/auth/userinfo.email` y `https://www.googleapis.com/auth/gmail.readonly`. El backend solicita los dos ultimos para Gmail. El consentimiento con la advertencia de app no verificada fue validado desde el preview Android. Falta la verificacion de marca y de scope restringido para eliminar esa advertencia y el limite de 100 usuarios. Google exige que la homepage y la politica esten en un dominio propio verificado; el subdominio `fint-web.vercel.app` permite las pruebas actuales, pero no sustituye ese dominio para la verificacion publica.
 
 ### 3.3 Play Console: App content
 

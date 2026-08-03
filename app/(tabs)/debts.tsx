@@ -4,7 +4,7 @@ import { useToastController } from '@tamagui/toast'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Dialog, Paragraph, Spinner, XStack, YStack } from 'tamagui'
+import { Button, Paragraph, Spinner, XStack, YStack } from 'tamagui'
 import { financeApi } from '../../src/api/finance'
 import { formatMoney } from '../../src/api/mappers'
 import type { PaymentOccurrence } from '../../src/api/types'
@@ -16,7 +16,7 @@ import { SkeletonGroup, SkeletonHero, SkeletonList } from '../../src/components/
 import { formatDateString, parseDateString } from '../../src/finance/dates'
 import { usePressOnce } from '../../src/hooks/usePressOnce'
 import { useThemeMode } from '../../src/theme/ThemeMode'
-import { FintButton, FintCard } from '../../src/ui'
+import { FintButton, FintCard, FintConfirmDialog } from '../../src/ui'
 import { getAppLocale } from '../../src/i18n'
 import { useCapabilities } from '../../src/api/capabilities'
 import { useSensitiveMoney } from '../../src/privacy/useSensitiveMoney'
@@ -140,23 +140,7 @@ function OccurrenceCard({ isDeleting, locale, occurrence, onConfigureAmount, onD
 
 function DeletePaymentRuleDialog({ isPending, occurrence, onCancel, onConfirm }: { isPending: boolean; occurrence: PaymentOccurrence | null; onCancel: () => void; onConfirm: () => void }) {
   const { t } = useTranslation()
-  return (
-    <Dialog modal open={Boolean(occurrence)} onOpenChange={(open) => !open && !isPending && onCancel()}>
-      <Dialog.Portal>
-        <Dialog.Overlay key="payment-delete-overlay" bg="rgba(4,18,28,0.68)" />
-        <Dialog.Content key="payment-delete-content" bordered elevate bg="$popover" borderColor="$borderColor" rounded="$7" width="88%" maxW={420} p="$5" gap="$4">
-          <YStack gap="$2">
-            <Dialog.Title color="$color12" fontFamily="$heading" fontSize="$6" fontWeight="700">{t('payments.deleteRecurring')}</Dialog.Title>
-            <Dialog.Description color="$color10" fontSize="$3">{t('payments.deleteDescription', { title: occurrence?.title ?? '' })}</Dialog.Description>
-          </YStack>
-          <XStack gap="$3" justify="flex-end">
-            <Button flex={1} chromeless color="$color11" disabled={isPending} onPress={onCancel}>{t('actions.cancel')}</Button>
-            <Button flex={1} bg="$destructive" color="white" fontWeight="700" disabled={isPending} icon={isPending ? <Spinner size="small" color="white" /> : <Trash2 size={17} color="white" />} onPress={onConfirm}>{isPending ? t('payments.deleting') : t('actions.delete')}</Button>
-          </XStack>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog>
-  )
+  return <FintConfirmDialog open={Boolean(occurrence)} isPending={isPending} title={t('payments.deleteRecurring')} description={t('payments.deleteDescription', { title: occurrence?.title ?? '' })} cancelLabel={t('actions.cancel')} confirmLabel={t('actions.delete')} pendingLabel={t('payments.deleting')} destructive icon={<Trash2 size={17} color="white" />} onCancel={onCancel} onConfirm={onConfirm} />
 }
 
 function statusLabel(status: PaymentOccurrence['paymentStatus'], t: (key: string) => string) {

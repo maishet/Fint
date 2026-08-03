@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FlatList, RefreshControl } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Button, Dialog, Paragraph, Spinner, XStack, YStack } from 'tamagui'
+import { Button, Paragraph, Spinner, XStack, YStack } from 'tamagui'
 import { financeApi } from '../../src/api/finance'
 import { formatMoney, normalizeTransaction } from '../../src/api/mappers'
 import type { Transaction } from '../../src/api/types'
@@ -15,7 +15,7 @@ import { DataStateCard } from '../../src/components/DataStateCard'
 import { SkeletonGroup, SkeletonHero, SkeletonList } from '../../src/components/Skeleton'
 import { getCategoryLabel } from '../../src/finance/categoryLabels'
 import { useThemeMode } from '../../src/theme/ThemeMode'
-import { FintButton, FintCard, FintSheetSelect } from '../../src/ui'
+import { FintButton, FintCard, FintConfirmDialog, FintSheetSelect } from '../../src/ui'
 import { useSensitiveMoney } from '../../src/privacy/useSensitiveMoney'
 import { SensitiveAmountToggle } from '../../src/privacy/SensitiveAmountToggle'
 
@@ -166,12 +166,12 @@ function MovementCard({ locale, movement, onDelete, onEdit, onReverse }: { local
 
 function ReversePaymentDialog({ isPending, movement, onCancel, onConfirm }: { isPending: boolean; movement: Transaction | null; onCancel: () => void; onConfirm: () => void }) {
   const { t } = useTranslation()
-  return <Dialog modal open={Boolean(movement)} onOpenChange={(open) => !open && !isPending && onCancel()}><Dialog.Portal><Dialog.Overlay bg="rgba(4,18,28,0.68)" /><Dialog.Content bordered elevate bg="$popover" borderColor="$borderColor" rounded="$7" width="88%" maxW={420} p="$5" gap="$4"><Dialog.Title color="$color12" fontFamily="$heading" fontSize="$6" fontWeight="700">{t('movementUx.reversePayment')}</Dialog.Title><Dialog.Description color="$color10">{t('movementUx.reversePaymentDescription')}</Dialog.Description><XStack gap="$3"><Button flex={1} chromeless disabled={isPending} onPress={onCancel}>{t('actions.cancel')}</Button><Button flex={1} bg="$destructive" color="white" fontWeight="700" disabled={isPending} icon={isPending ? <Spinner color="white" /> : undefined} onPress={onConfirm}>{isPending ? t('movementUx.reversing') : t('movementUx.reversePayment')}</Button></XStack></Dialog.Content></Dialog.Portal></Dialog>
+  return <FintConfirmDialog open={Boolean(movement)} isPending={isPending} title={t('movementUx.reversePayment')} description={t('movementUx.reversePaymentDescription')} cancelLabel={t('actions.cancel')} confirmLabel={t('movementUx.reversePayment')} pendingLabel={t('movementUx.reversing')} destructive onCancel={onCancel} onConfirm={onConfirm} />
 }
 
 function DeleteMovementDialog({ isPending, movement, onCancel, onConfirm }: { isPending: boolean; movement: Transaction | null; onCancel: () => void; onConfirm: () => void }) {
   const { t } = useTranslation()
-  return <Dialog modal open={Boolean(movement)} onOpenChange={(open) => !open && !isPending && onCancel()}><Dialog.Portal><Dialog.Overlay bg="rgba(4,18,28,0.68)" /><Dialog.Content bordered elevate bg="$popover" borderColor="$borderColor" rounded="$7" width="88%" maxW={420} p="$5" gap="$4"><Dialog.Title color="$color12" fontFamily="$heading" fontSize="$6" fontWeight="700">{t('movementUx.deleteTitle')}</Dialog.Title><Dialog.Description color="$color10">{t('movementUx.deleteDescription', { name: movement ? getCategoryLabel(movement.category, t) : '' })}</Dialog.Description><XStack gap="$3"><Button flex={1} chromeless disabled={isPending} onPress={onCancel}>{t('actions.cancel')}</Button><Button flex={1} bg="$destructive" color="white" fontWeight="700" disabled={isPending} icon={isPending ? <Spinner color="white" /> : <Trash2 size={17} color="white" />} onPress={onConfirm}>{isPending ? t('movementUx.deleting') : t('movementUx.deleteConfirm')}</Button></XStack></Dialog.Content></Dialog.Portal></Dialog>
+  return <FintConfirmDialog open={Boolean(movement)} isPending={isPending} title={t('movementUx.deleteTitle')} description={t('movementUx.deleteDescription', { name: movement ? getCategoryLabel(movement.category, t) : '' })} cancelLabel={t('actions.cancel')} confirmLabel={t('movementUx.deleteConfirm')} pendingLabel={t('movementUx.deleting')} destructive icon={<Trash2 size={17} color="white" />} onCancel={onCancel} onConfirm={onConfirm} />
 }
 
 function MovementHero({ currency, expenses, income }: { currency: string; expenses: number; income: number }) {

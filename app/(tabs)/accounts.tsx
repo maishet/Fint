@@ -4,7 +4,7 @@ import { useToastController } from '@tamagui/toast'
 import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Dialog, Paragraph, Spinner, XStack, YStack } from 'tamagui'
+import { Button, Paragraph, Spinner, XStack, YStack } from 'tamagui'
 import { financeApi } from '../../src/api/finance'
 import { normalizeAccount } from '../../src/api/mappers'
 import type { Account, AccountsOverview } from '../../src/api/types'
@@ -13,7 +13,7 @@ import { Screen } from '../../src/components/Screen'
 import { SkeletonGroup, SkeletonHero, SkeletonList } from '../../src/components/Skeleton'
 import { useThemeMode } from '../../src/theme/ThemeMode'
 import { usePressOnce } from '../../src/hooks/usePressOnce'
-import { FintButton, FintCard, FintSheetSelect } from '../../src/ui'
+import { FintButton, FintCard, FintConfirmDialog, FintSheetSelect } from '../../src/ui'
 import { SensitiveAmountToggle } from '../../src/privacy/SensitiveAmountToggle'
 import { useSensitiveMoney } from '../../src/privacy/useSensitiveMoney'
 
@@ -206,25 +206,7 @@ function AccountCard({ account, isDeleting, onDelete, onPress }: { account: Acco
 
 function DeleteAccountDialog({ account, isPending, onCancel, onConfirm }: { account: Account | null; isPending: boolean; onCancel: () => void; onConfirm: () => void }) {
   const { t } = useTranslation()
-  return (
-    <Dialog modal open={Boolean(account)} onOpenChange={(open) => !open && !isPending && onCancel()}>
-      <Dialog.Portal>
-        <Dialog.Overlay key="account-delete-overlay" bg="rgba(4,18,28,0.68)" />
-        <Dialog.Content key="account-delete-content" bordered elevate bg="$popover" borderColor="$borderColor" rounded="$7" width="88%" maxW={420} p="$5" gap="$4">
-          <YStack gap="$2">
-            <Dialog.Title color="$color12" fontFamily="$heading" fontSize="$6" fontWeight="700">{t('accounts.deleteTitle')}</Dialog.Title>
-            <Dialog.Description color="$color10" fontSize="$3">{t('accounts.deleteDescription', { name: account?.name ?? '' })}</Dialog.Description>
-          </YStack>
-          <XStack gap="$3" justify="flex-end">
-            <Button flex={1} chromeless color="$color11" disabled={isPending} onPress={onCancel}>{t('actions.cancel')}</Button>
-            <Button flex={1} bg="$destructive" color="white" fontWeight="700" disabled={isPending} icon={isPending ? <Spinner size="small" color="white" /> : <Trash2 size={17} color="white" />} onPress={onConfirm}>
-              {isPending ? t('accounts.deleting') : t('accounts.deleteConfirm')}
-            </Button>
-          </XStack>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog>
-  )
+  return <FintConfirmDialog open={Boolean(account)} isPending={isPending} title={t('accounts.deleteTitle')} description={t('accounts.deleteDescription', { name: account?.name ?? '' })} cancelLabel={t('actions.cancel')} confirmLabel={t('accounts.deleteConfirm')} pendingLabel={t('accounts.deleting')} destructive icon={<Trash2 size={17} color="white" />} onCancel={onCancel} onConfirm={onConfirm} />
 }
 
 function getAccountIcon(accountType: string) {
