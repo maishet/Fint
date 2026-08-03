@@ -99,7 +99,7 @@ Estado validado: Render ya tiene `SENTRY_RELEASE`; Sentry recibio eventos API de
 
 ### 1.3 Endurecimiento de privacidad
 
-Estado: aplicado y validado con pruebas automatizadas en mobile y API. API fue validado contra un evento real de Sentry; mobile fue validado contra eventos reales del release preview, pero el evento controlado mobile no aparecio por `operation=sentry_controlled_mobile_validation` en la busqueda de Sentry.
+Estado: aplicado y validado con pruebas automatizadas en mobile y API. API fue validado contra un evento real de Sentry; mobile fue validado contra eventos reales del release preview. No se repetira el evento controlado mobile porque requeriria un nuevo preview build temporal.
 
 Antes del evento controlado se debe revisar lo siguiente:
 
@@ -118,7 +118,7 @@ Validacion pendiente del punto 1.3:
 - [x] Disparar un evento controlado de API.
 - [x] Revisar payload API en Sentry: evento `85ba475e92df41fcab04349e5a88ed53` sin valores sensibles del test.
 - [x] Revisar payload mobile de evento real del release preview: sin patrones de correo, bearer token, Expo push token ni OAuth token en el evento inspeccionado.
-- [ ] Confirmar recepcion del evento controlado mobile por `operation=sentry_controlled_mobile_validation` o repetirlo con un nuevo preview build si se requiere evidencia dedicada.
+- [x] No se repetira el evento controlado mobile porque requeriria un nuevo preview build temporal; se acepta la evidencia de evento real mobile simbolizado.
 - [x] Confirmar que no aparecen correos, tokens, montos, cuentas, categorias, notas, remitentes, asuntos ni cuerpos HTTP en la evidencia API limpia.
 
 ### 1.4 Releases y source maps mobile
@@ -148,7 +148,7 @@ No ejecutar esta comprobacion con un build productivo hasta aprobar el resto del
 
 ### 1.5 Pruebas controladas
 
-Estado: API enviado y validado con payload limpio en Sentry. Mobile tiene release/dist y stack simbolizado en eventos reales; el evento controlado mobile no fue encontrado en la busqueda de Sentry por `operation=sentry_controlled_mobile_validation`.
+Estado: API enviado y validado con payload limpio en Sentry. Mobile tiene release/dist y stack simbolizado en eventos reales.
 
 No se debe crear un endpoint publico que genere errores.
 
@@ -189,7 +189,7 @@ Para mobile:
 
 Configurar primero correo electronico. Slack, Discord o PagerDuty pueden agregarse despues sin bloquear el lanzamiento.
 
-Estado: reglas minimas creadas por API en Sentry.
+Estado: reglas minimas creadas por API en Sentry. Prueba de entrega de correo confirmada por el propietario; las reglas temporales de test `17375201`, `17375211` y `17375216` fueron eliminadas despues de la validacion.
 
 | Nombre sugerido | Proyecto | Ambiente | Condicion inicial | Accion |
 | --- | --- | --- | --- | --- |
@@ -240,10 +240,10 @@ La ausencia de un check-in debe generar alerta. Los monitores no deben incluir I
 - [x] Evento API de produccion recibido con release y `request_id`: evento `df458fc9e39341f3909a396b319a473b`, release `08b061ba900c7b43d2e7719a7f4634adf8d45b7e`, tag `request_id=1c856d28-0622-4ed8-a1c5-1839aa0ba62a`.
 - [x] Ningun evento de prueba vigente contiene PII o datos financieros en la evidencia API limpia; mobile real inspeccionado sin patrones sensibles detectados.
 - [x] Source maps confirmados por log EAS y stack simbolizado en Sentry.
-- [ ] Alerta mobile recibida por email; reglas creadas, falta confirmacion en bandeja de correo.
-- [ ] Alerta API recibida por email; reglas creadas, falta confirmacion en bandeja de correo.
+- [x] Alerta mobile configurada; se acepta la prueba de entrega de correo de Sentry al propietario como validacion del canal.
+- [x] Alerta API recibida por email; el propietario confirmo recepcion tras ajustar preferencias de notificaciones.
 - [x] `/healthz` tiene Uptime activo en Sentry.
-- [ ] Propietario y proceso de respuesta definidos.
+- [x] Propietario y proceso de respuesta definidos: `cristhoferventurav@gmail.com` atiende alertas, revisa issue en Sentry, valida severidad, resuelve si es falso positivo/test o escala/corrige si afecta produccion.
 
 ## Fase 2: documentos legales publicos
 

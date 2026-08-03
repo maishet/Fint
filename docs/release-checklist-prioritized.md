@@ -14,7 +14,7 @@ Use this checklist as the final gate before public launch.
 - [x] Confirm `GET /api/reports/financial` returns consistent data for real filters and accounts.
 - [x] Confirm the canonical reports DTO still matches the mobile report view, PDF, and CSV outputs.
 - [x] Verify the first scheduled `fint-gmail-watch-renewal` run using `docs/monitoring-setup.md`.
-- [ ] Finish remaining Sentry acceptance checks: alert email receipt, owner/response process, and optional repeated mobile controlled event. Follow `docs/mvp-sentry-legal-play-store-plan.md`.
+- [x] Finish Sentry acceptance checks for privacy, releases, source maps, uptime, alert email delivery, and owner response process. Follow `docs/mvp-sentry-legal-play-store-plan.md`.
 - [x] Confirm all production secrets and environment variables are correct in EAS, Render, Supabase, and the mobile app.
 - [ ] Host the final privacy policy and terms on public HTTPS URLs.
 - [ ] Confirm the final legal operator data is present in public legal documents.
