@@ -39,8 +39,9 @@ Este documento es un plan tecnico y operativo. El contenido legal final debe ser
 - Cada request incorpora `request_id` como tag de Sentry.
 - Render contiene las variables `SENTRY_DSN`, `SENTRY_ENVIRONMENT` y `SENTRY_TRACES_SAMPLE_RATE`.
 - Los logs HTTP estructurados siguen disponibles en Render.
-- Todavia falta comprobar la recepcion real de un error controlado.
-- Todavia faltan release/commit identificables en Sentry y reglas de alertas.
+- El evento controlado de API ya fue enviado; falta revisar el payload real en Sentry.
+- La API soporta `SENTRY_RELEASE` y fallback `finanzas-api@<GIT_COMMIT_SHA>` para identificar release/commit en eventos.
+- Todavia faltan reglas de alertas en Sentry.
 
 ### Alertas operativas existentes
 
@@ -88,29 +89,37 @@ El DSN puede ser publico. `SENTRY_AUTH_TOKEN` no debe entrar al repositorio, log
 | --- | --- |
 | `SENTRY_DSN` | DSN del proyecto API |
 | `SENTRY_ENVIRONMENT` | `production` |
+| `SENTRY_RELEASE` | Opcional; usar `finanzas-api@<commit>` si se prefiere fijarlo explicitamente |
 | `SENTRY_TRACES_SAMPLE_RATE` | `0.1` inicialmente |
 | `GIT_COMMIT_SHA` | Commit desplegado, si se mantiene esta variable |
 
-Render expone metadatos del deploy. Se debe enlazar el release de Sentry con el commit desplegado, usando `GIT_COMMIT_SHA` o el identificador de commit nativo de Render. El resultado esperado es que cada evento permita identificar la version exacta.
+Render expone metadatos del deploy. La API fija el release con `SENTRY_RELEASE` o, si no existe, con `finanzas-api@<GIT_COMMIT_SHA>`. El resultado esperado es que cada evento permita identificar la version exacta.
+
+Estado validado: Render ya tiene `SENTRY_RELEASE`; Sentry recibio eventos API de produccion con release, incluyendo `08b061ba900c7b43d2e7719a7f4634adf8d45b7e`.
 
 ### 1.3 Endurecimiento de privacidad
 
-Estado: aplicado y validado con pruebas automatizadas en mobile y API. Falta revisar en Sentry el payload real de los eventos controlados.
+Estado: aplicado y validado con pruebas automatizadas en mobile y API. API fue validado contra un evento real de Sentry; mobile fue validado contra eventos reales del release preview, pero el evento controlado mobile no aparecio por `operation=sentry_controlled_mobile_validation` en la busqueda de Sentry.
 
 Antes del evento controlado se debe revisar lo siguiente:
 
 - [x] Mobile declara explicitamente `sendDefaultPii: false`.
 - [x] Mobile filtra usuario, cookies, headers, body y query strings antes de enviar eventos.
-- [x] Mobile filtra claves sensibles en `extra`, `contexts` y breadcrumbs, incluyendo nombre de cuenta, monto, moneda, nota, categoria, email, token, header y body.
+- [x] Mobile filtra claves sensibles en `extra`, `contexts`, breadcrumbs, exception stack context y threads, incluyendo nombre de cuenta, monto, moneda, nota, categoria, email, token, header y body.
 - [x] API conserva el `beforeSend` actual que elimina body, headers, cookies y usuario.
+- [x] API filtra claves sensibles en `extra`, `contexts`, breadcrumbs, exception stack context y threads.
+- [x] Sentry server-side data scrubber esta activo en `fint-mobile` y `fint-api` con defaults, IP scrubbing y campos sensibles custom: `amount`, `balance`, `currency`, `note`, `description`, `email`, `sender`, `subject`, `token`, `jwt`, `cookie`, `header`, `body`, `account`, `accountId`, `accountName`, `category`, `merchant`, `phone`, `address`, `password`, `authorization`, `access_token`, `refresh_token`, `id_token`.
 - [x] Los eventos manuales actuales usan tags tecnicos como `operation`.
 - [x] Sentry no se usa como analitica de negocio.
 
 Validacion pendiente del punto 1.3:
 
-- [ ] Disparar un evento controlado en mobile preview y revisar payload en Sentry.
-- [x] Disparar un evento controlado de API y revisar payload en Sentry.
-- [ ] Confirmar que no aparecen correos, tokens, montos, cuentas, categorias, notas, remitentes, asuntos ni cuerpos HTTP.
+- [x] Disparar un evento controlado en mobile preview.
+- [x] Disparar un evento controlado de API.
+- [x] Revisar payload API en Sentry: evento `85ba475e92df41fcab04349e5a88ed53` sin valores sensibles del test.
+- [x] Revisar payload mobile de evento real del release preview: sin patrones de correo, bearer token, Expo push token ni OAuth token en el evento inspeccionado.
+- [ ] Confirmar recepcion del evento controlado mobile por `operation=sentry_controlled_mobile_validation` o repetirlo con un nuevo preview build si se requiere evidencia dedicada.
+- [x] Confirmar que no aparecen correos, tokens, montos, cuentas, categorias, notas, remitentes, asuntos ni cuerpos HTTP en la evidencia API limpia.
 
 ### 1.4 Releases y source maps mobile
 
@@ -119,7 +128,7 @@ Estado: validado en build preview Android, sin generar build productivo.
 La configuracion base ya existe en `app.json` y `metro.config.js`. Durante el proximo build preview, no productivo, se debe comprobar:
 
 - [x] El log EAS confirma subida de source maps a Sentry.
-- [ ] El evento de prueba muestra stack trace simbolizado con archivo y linea legibles.
+- [x] Un evento real del release preview muestra stack trace simbolizado con archivo legible, incluyendo `src/notifications/pushNotifications.ts`.
 - [x] El release/dist del evento corresponde al build instalado.
 - [x] `SENTRY_AUTH_TOKEN` no aparece en logs.
 - [x] Un build que no pueda subir source maps se considera fallido para el gate de release.
@@ -139,7 +148,7 @@ No ejecutar esta comprobacion con un build productivo hasta aprobar el resto del
 
 ### 1.5 Pruebas controladas
 
-Estado: API enviada. Mobile preparado en build preview; falta dispararlo desde dispositivo real.
+Estado: API enviado y validado con payload limpio en Sentry. Mobile tiene release/dist y stack simbolizado en eventos reales; el evento controlado mobile no fue encontrado en la busqueda de Sentry por `operation=sentry_controlled_mobile_validation`.
 
 No se debe crear un endpoint publico que genere errores.
 
@@ -155,10 +164,13 @@ Despues de probar, retirar cualquier boton, script temporal o ruta usada exclusi
 Implementacion actual:
 
 - API usa `npm run sentry:controlled-test`; no expone endpoints publicos.
+- El evento API limpio validado en Sentry es `85ba475e92df41fcab04349e5a88ed53`, titulo `Fint controlled Sentry API privacy validation`, con `operation=sentry_controlled_api_validation` y sin los valores sensibles del test.
+- Existe un evento API anterior de QA antes del endurecimiento del stack context; contiene solo valores controlados/ficticios del test. El intento de borrarlo desde API devolvio `403`, por lo que se dejo un evento nuevo separado y limpio como evidencia vigente.
 - Mobile usa la ruta no enlazada `/sentry-test`, disponible solo si `EXPO_PUBLIC_ENABLE_SENTRY_TESTS=true` en el ambiente EAS preview.
 - El APK preview `6a8968b1-bd1f-48d6-bf6d-109da657c838` incluye esa variable y permite enviar `operation=sentry_controlled_mobile_validation`.
-- No se detecto un dispositivo Android conectado por ADB en esta maquina, por lo que el evento mobile queda pendiente de disparar manualmente desde el APK preview.
-- Luego de validar mobile, eliminar `EXPO_PUBLIC_ENABLE_SENTRY_TESTS` del ambiente EAS preview o dejarlo documentado como variable temporal de QA.
+- El evento mobile controlado fue disparado desde el dispositivo Android conectado por ADB `RFCW60LDLSP`.
+- El build instalado actualmente abre login al deep link de `/sentry-test`, porque ya no tiene habilitada la variable temporal de QA; para repetir evidencia dedicada mobile se requiere nuevo build preview con `EXPO_PUBLIC_ENABLE_SENTRY_TESTS=true` y luego eliminar la variable otra vez.
+- La variable temporal `EXPO_PUBLIC_ENABLE_SENTRY_TESTS` fue eliminada del ambiente EAS preview despues de la prueba controlada.
 
 Comandos de referencia:
 
@@ -177,6 +189,8 @@ Para mobile:
 
 Configurar primero correo electronico. Slack, Discord o PagerDuty pueden agregarse despues sin bloquear el lanzamiento.
 
+Estado: reglas minimas creadas por API en Sentry.
+
 | Nombre sugerido | Proyecto | Ambiente | Condicion inicial | Accion |
 | --- | --- | --- | --- | --- |
 | `MVP Mobile - New production issue` | Mobile | production | Issue nuevo o regresion | Email inmediato |
@@ -184,6 +198,19 @@ Configurar primero correo electronico. Slack, Discord o PagerDuty pueden agregar
 | `MVP API - New production issue` | API | production | Issue nuevo o regresion | Email inmediato |
 | `MVP API - Error spike` | API | production | 5 eventos en 5 minutos | Email inmediato |
 | `MVP API - Availability` | API/uptime | production | `/healthz` falla durante 2 comprobaciones | Email inmediato |
+
+Reglas creadas:
+
+- `MVP Mobile - New production issue or regression`, id `17375173`, environment `production`, email a Issue Owners con fallback Active Members.
+- `MVP Mobile - Fatal production issue`, id `17375176`, environment `production`, filtro level >= fatal, email a Issue Owners con fallback Active Members.
+- `MVP API - New production issue or regression`, id `17375172`, environment `production`, email a Issue Owners con fallback Active Members.
+- Regla preexistente mobile: `Send a notification for high priority issues`, id `17328341`.
+
+Validacion por API: las reglas anteriores responden por ID con condiciones, filtros y acciones esperadas. El endpoint moderno `alert-rules` no lista issue alerts legacy, pero el detalle por ID responde `200`.
+
+Uptime actual en Sentry: existe un monitor activo `7907317` para `https://finanzas-api-ansq.onrender.com/healthz`, environment `production`, intervalo 600 segundos, timeout 10 segundos, downtime threshold 3. `GET /healthz` respondio `200` con `{"ok":true,"data":{"status":"ok"}}`.
+
+Issue mobile real: `FINT-MOBILE-1`, `ReferenceError: Property 'crypto' doesn't exist`, esta marcado como `resolved`; ultimo evento `2026-07-30T04:52:03Z`.
 
 Si el plan de Sentry no ofrece metric alerts o uptime, reemplazar temporalmente esas dos reglas por alertas de frecuencia de issue y un monitor externo de `/healthz`.
 
@@ -209,13 +236,13 @@ La ausencia de un check-in debe generar alerta. Los monitores no deben incluir I
 
 ### 1.8 Gate de aceptacion Sentry
 
-- [ ] Mobile preview recibido y simbolizado.
-- [ ] Evento API recibido con release y `request_id`.
-- [ ] Ningun evento de prueba contiene PII o datos financieros.
-- [ ] Source maps confirmados.
-- [ ] Alerta mobile recibida por email.
-- [ ] Alerta API recibida por email.
-- [ ] `/healthz` tiene monitor o alternativa documentada.
+- [x] Mobile preview recibido y simbolizado en evento real del release `com.fint.finanzasmobilev2@1.0.0+2`, dist `2`.
+- [x] Evento API de produccion recibido con release y `request_id`: evento `df458fc9e39341f3909a396b319a473b`, release `08b061ba900c7b43d2e7719a7f4634adf8d45b7e`, tag `request_id=1c856d28-0622-4ed8-a1c5-1839aa0ba62a`.
+- [x] Ningun evento de prueba vigente contiene PII o datos financieros en la evidencia API limpia; mobile real inspeccionado sin patrones sensibles detectados.
+- [x] Source maps confirmados por log EAS y stack simbolizado en Sentry.
+- [ ] Alerta mobile recibida por email; reglas creadas, falta confirmacion en bandeja de correo.
+- [ ] Alerta API recibida por email; reglas creadas, falta confirmacion en bandeja de correo.
+- [x] `/healthz` tiene Uptime activo en Sentry.
 - [ ] Propietario y proceso de respuesta definidos.
 
 ## Fase 2: documentos legales publicos

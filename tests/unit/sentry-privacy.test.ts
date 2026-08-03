@@ -35,4 +35,8 @@ describe('Sentry privacy sanitizer', () => {
       breadcrumbs: [{ category: '[Filtered]', data: { headers: '[Filtered]' } }],
     })
   })
+
+  it('filters source context lines containing sensitive keys', () => {
+    expect(sanitizeSentryString("    amount: 1234.56, email: 'qa@example.com', token: 'Bearer secret'")).toBe('[Filtered]')
+  })
 })

@@ -45,6 +45,8 @@ Sentry.init({
     event.extra = sanitizeSentryValue(event.extra) as typeof event.extra
     event.contexts = sanitizeSentryValue(event.contexts) as typeof event.contexts
     event.breadcrumbs = event.breadcrumbs?.map((breadcrumb) => sanitizeSentryValue(breadcrumb) as typeof breadcrumb)
+    event.exception = sanitizeSentryValue(event.exception) as typeof event.exception
+    event.threads = sanitizeSentryValue(event.threads) as typeof event.threads
     return event
   },
 })

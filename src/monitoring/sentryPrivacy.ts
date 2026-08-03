@@ -1,4 +1,5 @@
 const sensitiveSentryKeyPattern = /amount|balance|currency|note|description|email|sender|subject|token|jwt|cookie|header|body|account|category|merchant|phone|address|password|authorization/i
+const sensitiveSentrySourcePattern = /\b(amount|balance|currency|note|description|email|sender|subject|token|jwt|cookie|header|body|account|category|merchant|phone|address|password|authorization)\b\s*[:=]/i
 const emailPattern = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi
 const tokenLikePattern = /(ExponentPushToken\[[^\]]+\]|eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|Bearer\s+[^\s]+)/gi
 
@@ -19,7 +20,8 @@ export function sanitizeSentryValue(value: unknown): unknown {
 }
 
 export function sanitizeSentryString(value: string) {
-  return stripUrlQuery(value).replace(emailPattern, '[FilteredEmail]').replace(tokenLikePattern, '[FilteredToken]')
+  const sanitized = stripUrlQuery(value).replace(emailPattern, '[FilteredEmail]').replace(tokenLikePattern, '[FilteredToken]')
+  return sensitiveSentrySourcePattern.test(sanitized) ? '[Filtered]' : sanitized
 }
 
 export function stripUrlQuery(value: string) {
