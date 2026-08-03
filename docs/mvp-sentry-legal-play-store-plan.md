@@ -384,7 +384,7 @@ Fint ofrece ES, EN y PT. Recomendacion:
 
 ### 2.9 Gate de aceptacion legal
 
-- [ ] Datos legales del operador confirmados.
+- [x] Datos legales del operador confirmados: Cristhofer Moises Ventura Villanueva, Peru, `soporte.fint@gmail.com`, mayores de 18 anos, respuesta de eliminacion hasta 30 dias y sin retenciones excepcionales.
 - [ ] Politica revisada y publicada.
 - [ ] Terminos revisados y publicados.
 - [ ] Pagina de eliminacion funcional.
