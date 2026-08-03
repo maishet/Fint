@@ -10,11 +10,9 @@
     "splash": {
       "image": "./assets/images/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#000000"
+      "backgroundColor": "#07151D"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "bundleIdentifier": "com.fint.finanzasmobilev2",
       "supportsTablet": true
@@ -23,7 +21,7 @@
       "package": "com.fint.finanzasmobilev2",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#000000"
+        "backgroundColor": "#07151D"
       }
     },
     "web": {
@@ -52,7 +50,7 @@
         "expo-notifications",
         {
           "icon": "./assets/images/android-icon-monochrome.png",
-          "color": "#00C7D9"
+          "color": "#087F91"
         }
       ],
       [

@@ -1,31 +1,36 @@
-import { Link, Stack } from 'expo-router'
-import { StyleSheet } from 'react-native'
-import { View, Text } from 'tamagui'
+import { Link, Stack } from "expo-router";
+import { useTranslation } from "react-i18next";
+import { StyleSheet } from "react-native";
+import { View, Text } from "tamagui";
 
 export default function NotFoundScreen() {
+  const { t } = useTranslation();
+
   return (
     <>
-      <Stack.Screen options={{ title: 'Oops!' }} />
+      <Stack.Screen options={{ title: t("notFound.title") }} />
       <View m={10}>
-        <Text>This screen doesn't exist.</Text>
+        <Text>{t("notFound.message")}</Text>
         <Link href="/" style={styles.link}>
-          <Text style={styles.linkText}>Go to home screen!</Text>
+          <Text color="$primary" style={styles.linkText}>
+            {t("notFound.home")}
+          </Text>
         </Link>
       </View>
     </>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: 20,
   },
   title: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   link: {
     marginTop: 15,
@@ -33,6 +38,5 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontSize: 14,
-    color: '#2e78b7',
   },
-})
+});

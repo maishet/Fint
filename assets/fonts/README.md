@@ -2,29 +2,19 @@
 
 ## Requeridas
 
-### Space Grotesk (Títulos y Wordmark)
-- Descargar desde: https://fonts.google.com/specimen/Space+Grotesk
-- Variantes necesarias:
-  - `SpaceGrotesk-Regular.ttf` (400)
-  - `SpaceGrotesk-Medium.ttf` (500)
-  - `SpaceGrotesk-Bold.ttf` (700)
-
-### Inter (Contenido numérico y listas)
+### Inter
 - Descargar desde: https://fonts.google.com/specimen/Inter
 - Variantes necesarias:
-  - `Inter-Regular.ttf` (400)
-  - `Inter-Medium.ttf` (500)
-  - `Inter-SemiBold.ttf` (600)
-  - `Inter-Bold.ttf` (700)
+  - `Inter_18pt-Regular.ttf` (400)
+  - `Inter_18pt-Medium.ttf` (500)
+  - `Inter_24pt-SemiBold.ttf` (600)
+  - `Inter_28pt-Bold.ttf` (700)
 
 ## Configuracion Actual
 
 Las fuentes ya estan configuradas en `tamagui.config.ts` y se cargan en `app/_layout.tsx` desde esta carpeta.
 
-- `Space Grotesk`: titulos, wordmark y jerarquia principal.
-- `Inter`: cuerpo, formularios, navegacion, numeros, importes y graficos.
-
-Esta combinacion encaja con Fint porque Space Grotesk aporta identidad fintech moderna sin perder seriedad, mientras Inter mantiene alta legibilidad para datos financieros.
+`Inter` se usa en titulos, cuerpo, formularios, navegacion, numeros, importes y graficos para mantener una identidad consistente con Fint web.
 
 ## Instalación
 
@@ -34,12 +24,7 @@ Esta combinacion encaja con Fint porque Space Grotesk aporta identidad fintech m
 
 ## Uso en componentes
 
-```typescript
-import { typography } from '@/src/theme/typography';
-
-// Títulos (Space Grotesk)
-<Text style={typography.scales.h1}>Mi Título</Text>
-
-// Contenido numérico (Inter)
-<Text style={typography.scales.body}>$1,234.56</Text>
+```tsx
+<Paragraph fontFamily="$heading">Mi titulo</Paragraph>
+<Paragraph fontFamily="$body">$1,234.56</Paragraph>
 ```

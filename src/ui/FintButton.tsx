@@ -5,16 +5,24 @@ interface FintButtonProps extends Omit<ButtonProps, "variant"> {
   variant?: "solid" | "outlined";
 }
 
-export function FintButton({ disabled, onPress, variant = "solid", ...props }: FintButtonProps) {
+export function FintButton({
+  disabled,
+  onPress,
+  variant = "solid",
+  ...props
+}: FintButtonProps) {
   const [isPressLocked, setIsPressLocked] = useState(false);
   const isMountedRef = useRef(true);
   const isPressLockedRef = useRef(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => () => {
-    isMountedRef.current = false;
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      isMountedRef.current = false;
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    },
+    [],
+  );
 
   const unlock = () => {
     isPressLockedRef.current = false;
@@ -25,7 +33,9 @@ export function FintButton({ disabled, onPress, variant = "solid", ...props }: F
     if (disabled || isPressLockedRef.current || !onPress) return;
     isPressLockedRef.current = true;
     setIsPressLocked(true);
-    const result: unknown = (onPress as unknown as (pressEvent: unknown) => unknown)(event);
+    const result: unknown = (
+      onPress as unknown as (pressEvent: unknown) => unknown
+    )(event);
 
     if (result && typeof (result as Promise<unknown>).then === "function") {
       void Promise.resolve(result).finally(unlock);
@@ -39,14 +49,19 @@ export function FintButton({ disabled, onPress, variant = "solid", ...props }: F
     <Button
       bg={variant === "outlined" ? "transparent" : "$primary"}
       color={variant === "outlined" ? "$primary" : "$primaryForeground"}
-      borderColor="$ring"
+      borderColor="$primary"
       borderWidth={variant === "outlined" ? 1 : 0}
-      rounded={14}
+      minH={50}
+      rounded={11}
       fontFamily="$body"
       fontWeight="700"
-      hoverStyle={{ bg: variant === "outlined" ? "$secondary" : "$accent10" }}
+      hoverStyle={{
+        bg: variant === "outlined" ? "$card" : "$primaryStrong",
+        borderColor: "$primary",
+      }}
       pressStyle={{
-        bg: variant === "outlined" ? "$secondary" : "$accent10",
+        bg: variant === "outlined" ? "$card" : "$primaryStrong",
+        borderColor: "$primary",
         opacity: variant === "outlined" ? 1 : 0.9,
       }}
       disabled={disabled || isPressLocked}
