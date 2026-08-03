@@ -1,4 +1,5 @@
 let lastRequestId: string | null = null
+const SUPPORT_EMAIL = 'soporte.fint@gmail.com'
 
 export function setLastRequestId(requestId: string | null) {
   lastRequestId = requestId
@@ -26,7 +27,6 @@ function getPlatformName() {
 
 export function buildSupportMailto(input: { category: string; description: string; steps?: string; includeDiagnostics: boolean }) {
   const diagnostics = getSupportDiagnostics()
-  const supportEmail = process.env.EXPO_PUBLIC_SUPPORT_EMAIL ?? 'soporte@fint.app'
   const body = [
     `Categoria: ${input.category}`,
     '',
@@ -44,5 +44,5 @@ export function buildSupportMailto(input: { category: string; description: strin
     '',
     'No adjuntes tokens, correos, montos, notas, headers, cookies ni cuerpos HTTP.',
   ].join('\n')
-  return `mailto:${supportEmail}?subject=${encodeURIComponent(`Fint - ${input.category}`)}&body=${encodeURIComponent(body)}`
+  return `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Fint - ${input.category}`)}&body=${encodeURIComponent(body)}`
 }

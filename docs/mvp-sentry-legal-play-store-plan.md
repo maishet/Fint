@@ -461,6 +461,8 @@ Se debe revisar si cada proveedor califica como service provider y por tanto com
 - Explicar si Gmail es opcional y como revisar la app sin conectar una cuenta Gmail personal.
 - Mantener las credenciales activas durante toda la revision.
 
+Estado: el dispositivo Android de QA contiene datos financieros ficticios para cuenta, ingreso, gasto y pago recurrente. El propietario debe conservar las credenciales de esa cuenta fuera del repositorio y registrarlas únicamente en Play Console.
+
 ## Orden de ejecucion recomendado
 
 | Orden | Trabajo | Bloquea Play |
