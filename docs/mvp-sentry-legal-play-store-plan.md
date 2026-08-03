@@ -385,11 +385,11 @@ Fint ofrece ES, EN y PT. Recomendacion:
 ### 2.9 Gate de aceptacion legal
 
 - [x] Datos legales del operador confirmados: Cristhofer Moises Ventura Villanueva, Peru, `soporte.fint@gmail.com`, mayores de 18 anos, respuesta de eliminacion hasta 30 dias y sin retenciones excepcionales.
-- [ ] Politica revisada y publicada.
-- [ ] Terminos revisados y publicados.
-- [ ] Pagina de eliminacion funcional.
-- [ ] Pagina de soporte funcional.
-- [ ] URLs publicas devuelven HTTP 200 sin login.
+- [x] Politica publicada en `https://<sitio-legal>/privacy`.
+- [x] Terminos publicados en `https://<sitio-legal>/terms`.
+- [x] Pagina de eliminacion publicada en `https://<sitio-legal>/account-deletion`.
+- [x] Pagina de soporte publicada en `https://<sitio-legal>/support`.
+- [x] URLs publicas devuelven HTTP 200 sin login.
 - [ ] Enlaces probados desde un dispositivo movil.
 - [ ] Gmail/Limited Use descrito correctamente.
 - [ ] Correos de soporte y privacidad reciben mensajes.
@@ -405,7 +405,7 @@ EXPO_PUBLIC_PRIVACY_POLICY_URL=https://<sitio-legal>/privacy
 EXPO_PUBLIC_TERMS_URL=https://<sitio-legal>/terms
 ```
 
-La app ya consume estas variables desde Configuracion. Antes del build productivo se debe validar en preview que ambos enlaces abren correctamente.
+Estado: configuradas como variables publicas de proyecto en los entornos EAS `preview` y `production`. La app ya consume estas variables desde Configuracion. Antes del build productivo se debe validar en preview que ambos enlaces abren correctamente.
 
 ### 3.2 Google OAuth
 
@@ -481,9 +481,9 @@ Se debe revisar si cada proveedor califica como service provider y por tanto com
 - [ ] Sentry mobile/API validado sin PII.
 - [ ] Source maps mobile validados en preview.
 - [ ] Alertas criticas probadas.
-- [ ] Documentos legales publicados.
-- [ ] URL web de eliminacion funcional.
-- [ ] Variables legales configuradas en EAS.
+- [x] Documentos legales publicados.
+- [x] URL web de eliminacion funcional.
+- [x] Variables legales configuradas en EAS.
 - [ ] OAuth consent screen actualizado.
 - [ ] Data safety preparado y revisado.
 - [ ] Financial features declaration definida con precision.

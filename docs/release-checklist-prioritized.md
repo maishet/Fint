@@ -16,8 +16,8 @@ Use this checklist as the final gate before public launch.
 - [x] Verify the first scheduled `fint-gmail-watch-renewal` run using `docs/monitoring-setup.md`.
 - [x] Finish Sentry acceptance checks for privacy, releases, source maps, uptime, alert email delivery, and owner response process. Follow `docs/mvp-sentry-legal-play-store-plan.md`.
 - [x] Confirm all production secrets and environment variables are correct in EAS, Render, Supabase, and the mobile app.
-- [ ] Host the final privacy policy and terms on public HTTPS URLs.
-- [ ] Confirm the final legal operator data is present in public legal documents.
+- [x] Host the final privacy policy and terms on public HTTPS URLs.
+- [x] Confirm the final legal operator data is present in public legal documents.
 - [ ] Confirm the final app name is legally and commercially available before public submission.
 - [ ] Ensure support email is active and monitored.
 

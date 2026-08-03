@@ -38,6 +38,8 @@ EXPO_PUBLIC_PRIVACY_POLICY_URL=https://<public-domain>/privacy
 EXPO_PUBLIC_TERMS_URL=https://<public-domain>/terms
 ```
 
+These variables are configured for the project `preview` and `production` EAS environments. A new build is required for the app to include them.
+
 Recommended presentation, in order:
 
 1. Responsive HTML pages under the official Fint domain, with a visible effective date, contact email and links between both documents.
