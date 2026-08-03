@@ -14,6 +14,7 @@ import { useThemeMode } from '../src/theme/ThemeMode'
 import { useTheme } from 'tamagui'
 import { attachNotificationResponseListener } from '../src/notifications/pushNotifications'
 import { financeApi } from '../src/api/finance'
+import { sanitizeSentryValue, stripUrlQuery } from '../src/monitoring/sentryPrivacy'
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -33,6 +34,19 @@ Sentry.init({
   environment: process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT ?? 'development',
   sendDefaultPii: false,
   tracesSampleRate: 0.1,
+  beforeSend(event) {
+    delete event.user
+    if (event.request) {
+      delete event.request.cookies
+      delete event.request.data
+      delete event.request.headers
+      if (event.request.url) event.request.url = stripUrlQuery(event.request.url)
+    }
+    event.extra = sanitizeSentryValue(event.extra) as typeof event.extra
+    event.contexts = sanitizeSentryValue(event.contexts) as typeof event.contexts
+    event.breadcrumbs = event.breadcrumbs?.map((breadcrumb) => sanitizeSentryValue(breadcrumb) as typeof breadcrumb)
+    return event
+  },
 })
 
 function RootLayout() {
