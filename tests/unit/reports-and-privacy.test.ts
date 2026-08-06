@@ -19,7 +19,7 @@ test('support mailto includes safe diagnostics only with consent', () => {
   setLastRequestId('req_123')
   const url = buildSupportMailto({ category: 'Cuentas y saldos', description: 'No carga', includeDiagnostics: true })
   const decoded = decodeURIComponent(url)
-  expect(decoded).toStartWith('mailto:soporte.fint@gmail.com?')
+  expect(decoded).toStartWith('mailto:support@myfint.app?')
   expect(decoded).toContain('ID de diagnostico: req_123')
   expect(decoded).toContain('No adjuntes tokens')
   expect(decoded).not.toContain('Authorization')

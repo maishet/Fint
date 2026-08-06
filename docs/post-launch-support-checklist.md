@@ -6,7 +6,7 @@ Usar este checklist durante las primeras 48 horas y luego semanalmente mientras 
 
 1. Revisar alertas nuevas o regresiones de `fint-mobile` y `fint-api` en Sentry.
 2. Confirmar que el monitor de `https://finanzas-api-ansq.onrender.com/healthz` sigue activo.
-3. Revisar correos recibidos en `soporte.fint@gmail.com` y responder o clasificar cada solicitud.
+3. Revisar correos recibidos en `support@myfint.app` y responder o clasificar cada solicitud.
 4. Revisar logs de Render por errores repetidos, rate limits y timeouts. Usar `request_id` para investigar sin copiar datos personales o financieros.
 5. Revisar errores de Gmail: reconexión requerida, fallos de sync y renovación de watch.
 

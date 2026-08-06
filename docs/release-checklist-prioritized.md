@@ -19,19 +19,23 @@ Use this checklist as the final gate before public launch.
 - [x] Host the final privacy policy and terms on public HTTPS URLs.
 - [x] Confirm the final legal operator data is present in public legal documents.
 - [ ] Confirm the final app name is legally and commercially available before public submission.
-- [ ] Send and receive a support test message at `soporte.fint@gmail.com` to confirm operational monitoring.
+- [x] Send and receive a support test message at `support@myfint.app` to confirm operational monitoring through Email Routing to `soporte.fint@gmail.com`.
 
 ## P1 - Strongly Recommended Before Launch
 
 - [ ] Complete a closed-test release in Play Console and review feedback for blockers.
-- [ ] Prepare final Play Store assets:
+- [x] Prepare final Play Store assets:
 - [x] Listing copy and screenshot plan prepared. See `docs/play-store-listing.md`.
 - [ ] App name.
-- [ ] Short description.
-- [ ] Screenshots.
-- [ ] Privacy policy URL.
-- [ ] Terms URL.
-- [ ] Content rating and store metadata.
+- [x] Short description.
+- [x] Screenshots.
+- [x] App icon `assets/images/fint-app-icon-512.png` (512x512).
+- [x] Feature graphic `assets/images/fint-feature-graphic-1024x500.png` (1024x500).
+- [x] Privacy policy URL.
+- [x] Terms URL.
+- [x] Content rating: `Apto para todos`.
+- [x] Ads declaration: no ads.
+- [x] Target audience prepared: `13-15`, `16-17` and `18+`.
 - [ ] Run a focused visual QA pass for ocean-blue branding consistency across login, tabs, reports, and empty states.
 - [ ] Review loading, empty, offline, timeout, and error states across core screens.
 - [x] Add or confirm mobile tests for account, movement, and debt mutation flows. See `tests/unit/finance-mutations.test.ts`.

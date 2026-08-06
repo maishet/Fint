@@ -384,15 +384,15 @@ Fint ofrece ES, EN y PT. Recomendacion:
 
 ### 2.9 Gate de aceptacion legal
 
-- [x] Datos legales del operador confirmados: Cristhofer Moises Ventura Villanueva, Peru, `soporte.fint@gmail.com`, mayores de 18 anos, respuesta de eliminacion hasta 30 dias y sin retenciones excepcionales.
-- [x] Politica publicada en `https://fint-web.vercel.app/privacy`.
-- [x] Terminos publicados en `https://fint-web.vercel.app/terms`.
-- [x] Pagina de eliminacion publicada en `https://fint-web.vercel.app/account-deletion`.
-- [x] Pagina de soporte publicada en `https://fint-web.vercel.app/support`.
+- [x] Datos legales del operador confirmados: Cristhofer Moises Ventura Villanueva, Peru, `support@myfint.app`, publico general, respuesta de eliminacion hasta 30 dias y sin retenciones excepcionales.
+- [x] Politica publicada en `https://myfint.app/privacy`.
+- [x] Terminos publicados en `https://myfint.app/terms`.
+- [x] Pagina de eliminacion publicada en `https://myfint.app/account-deletion`.
+- [x] Pagina de soporte publicada en `https://myfint.app/support`.
 - [x] URLs publicas devuelven HTTP 200 sin login.
 - [x] Enlaces probados desde un dispositivo Android en el APK preview `9b9a8847-9d82-45be-8581-ce9e83d826a6`.
 - [ ] Gmail/Limited Use descrito correctamente.
-- [ ] Correos de soporte y privacidad reciben mensajes.
+- [x] Correos de soporte y privacidad reciben mensajes.
 
 ## Fase 3: conectar documentos con la app y Play Console
 
@@ -401,8 +401,8 @@ Fint ofrece ES, EN y PT. Recomendacion:
 Una vez publicadas las URLs, configurar en preview y production:
 
 ```text
-EXPO_PUBLIC_PRIVACY_POLICY_URL=https://fint-web.vercel.app/privacy
-EXPO_PUBLIC_TERMS_URL=https://fint-web.vercel.app/terms
+EXPO_PUBLIC_PRIVACY_POLICY_URL=https://myfint.app/privacy
+EXPO_PUBLIC_TERMS_URL=https://myfint.app/terms
 ```
 
 Estado: configuradas como variables publicas de proyecto en los entornos EAS `preview` y `production`. La app las abrio correctamente desde Configuracion en el APK preview `9b9a8847-9d82-45be-8581-ce9e83d826a6`.
@@ -415,7 +415,7 @@ Estado: configuradas como variables publicas de proyecto en los entornos EAS `pr
 - Revisar el estado de verificacion OAuth para `https://www.googleapis.com/auth/gmail.readonly` antes de abrir el acceso a usuarios externos.
 - Mantener solo scopes necesarios: `https://www.googleapis.com/auth/gmail.readonly` y `https://www.googleapis.com/auth/userinfo.email`.
 
-Estado: la app externa esta publicada y declara `openid`, `https://www.googleapis.com/auth/userinfo.profile`, `https://www.googleapis.com/auth/userinfo.email` y `https://www.googleapis.com/auth/gmail.readonly`. El backend solicita los dos ultimos para Gmail. El consentimiento con la advertencia de app no verificada fue validado desde el preview Android. Falta la verificacion de marca y de scope restringido para eliminar esa advertencia y el limite de 100 usuarios. Google exige que la homepage y la politica esten en un dominio propio verificado; el subdominio `fint-web.vercel.app` permite las pruebas actuales, pero no sustituye ese dominio para la verificacion publica.
+Estado: la app externa esta publicada y declara `openid`, `https://www.googleapis.com/auth/userinfo.profile`, `https://www.googleapis.com/auth/userinfo.email` y `https://www.googleapis.com/auth/gmail.readonly`. El backend solicita los dos ultimos para Gmail. El consentimiento con la advertencia de app no verificada fue validado desde el preview Android. La homepage y los documentos legales ya usan `myfint.app`; falta confirmar el dominio en Google Search Console y completar la verificacion de marca y del scope restringido para eliminar la advertencia y el limite de 100 usuarios.
 
 ### 3.3 Play Console: App content
 

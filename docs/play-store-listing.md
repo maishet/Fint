@@ -8,8 +8,10 @@ Preparar el listing en español como versión principal. No publicar hasta confi
 | --- | --- |
 | Nombre | Fint |
 | Categoría sugerida | Finanzas |
-| Correo de soporte | soporte.fint@gmail.com |
-| Política de privacidad | https://fint-web.vercel.app/privacy |
+| Correo de soporte | support@myfint.app |
+| Política de privacidad | https://myfint.app/privacy |
+| Términos | https://myfint.app/terms |
+| Eliminación de cuenta | https://myfint.app/account-deletion |
 
 ## Descripción corta
 
@@ -40,15 +42,16 @@ Tus datos y conexiones están bajo tu control. Puedes desconectar Gmail y elimin
 
 ## Capturas de pantalla
 
-Usar datos QA ficticios, sin correos, bancos, tarjetas, saldos ni nombres personales reales. Capturar desde un dispositivo Android real en orientación vertical, sin marcos de teléfono, barras de depuración ni pantallas de consentimiento OAuth.
+Usar las capturas finales de `C:\Users\Usuario\AppData\Local\Temp\opencode\fint-play-store-screenshots\phone\es-PE`. Están ordenadas, usan datos QA y ocultan la foto de perfil. No subir capturas de depuración ni pantallas de consentimiento OAuth.
 
 | Orden | Pantalla | Objetivo |
 | --- | --- | --- |
 | 1 | Inicio | Mostrar resumen del mes, balance y privacidad visual. |
 | 2 | Movimientos | Mostrar historial con categorías y filtros. |
-| 3 | Pagos | Mostrar pagos recurrentes y próximos vencimientos. |
-| 4 | Reportes | Mostrar análisis del periodo y opciones de exportación. |
-| 5 | Cuentas | Mostrar las cuentas organizadas por tipo. |
+| 3 | Registrar movimiento | Mostrar el flujo para registrar actividad financiera. |
+| 4 | Pagos | Mostrar pagos recurrentes y próximos vencimientos. |
+| 5 | Reportes | Mostrar análisis del periodo y opciones de exportación. |
+| 6 | Conectar Gmail | Mostrar la automatización opcional con remitentes autorizados. |
 
 Tomar al menos las tres primeras antes de crear el closed test. Preparar versiones EN/PT solo si esos idiomas también se publicarán en el listing inicial.
 

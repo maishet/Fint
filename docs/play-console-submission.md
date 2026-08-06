@@ -9,20 +9,24 @@ Usar esta ficha al completar Play Console. Verificar cada respuesta contra el AP
 | Nombre de la app | Fint |
 | Operador | Cristhofer Moises Ventura Villanueva |
 | País | Perú |
-| Soporte | soporte.fint@gmail.com |
-| Política de privacidad | https://fint-web.vercel.app/privacy |
-| Eliminación de cuenta | https://fint-web.vercel.app/account-deletion |
-| Términos | https://fint-web.vercel.app/terms |
+| Soporte | support@myfint.app |
+| Política de privacidad | https://myfint.app/privacy |
+| Eliminación de cuenta | https://myfint.app/account-deletion |
+| Términos | https://myfint.app/terms |
 
 ## App content
 
 ### Publicidad
 
-Declarar que la app no contiene anuncios mientras esto siga siendo cierto.
+Confirmado: declarar que la app no contiene anuncios.
 
 ### Público objetivo
 
-Seleccionar solo usuarios de 18 años o más. Fint no está dirigida a menores.
+Fint no tiene una restricción exclusiva para mayores de 18 años. En Público objetivo, seleccionar `13-15`, `16-17` y `18+`. No seleccionar grupos menores de 13 porque Fint no está diseñada específicamente para niños ni participa en el programa Families.
+
+### Clasificación de contenido
+
+Declarar la clasificación `Apto para todos`. Esta clasificación es independiente del público objetivo seleccionado en Play Console.
 
 ### Funciones financieras
 
@@ -30,18 +34,29 @@ Fint registra y organiza información financiera personal. No procesa pagos, no 
 
 ### Eliminación de cuenta
 
-Usar `https://fint-web.vercel.app/account-deletion`. La página explica la eliminación desde Configuración y la solicitud por correo, sin pedir contraseñas, tokens ni información financiera.
+Usar `https://myfint.app/account-deletion`. La página explica la eliminación desde Configuración y la solicitud por correo, sin pedir contraseñas, tokens ni información financiera.
 
 ## Data safety
 
 Esta matriz refleja el comportamiento documentado de Fint. Confirmar cada tipo de dato contra el APK/AAB final, los SDKs instalados y las preguntas exactas de Play Console.
+
+### Respuestas generales
+
+| Pregunta | Respuesta preparada |
+| --- | --- |
+| ¿La app recopila o comparte datos de usuario? | Sí, recopila los tipos detallados debajo. |
+| ¿Los datos se cifran en tránsito? | Sí. |
+| ¿El usuario puede solicitar la eliminación de sus datos? | Sí, desde la app y en `https://myfint.app/account-deletion`. |
+| ¿La app contiene anuncios? | No. |
+| ¿Los datos se venden o usan para publicidad? | No. |
+| ¿Se comparten datos con terceros? | No para publicidad ni venta. Supabase, Render, Google APIs, Firebase, Expo y Sentry actúan como proveedores de servicio; confirmar que sus contratos siguen encajando en la excepción de proveedor de servicio al completar el formulario vigente. |
 
 | Tipo de dato de Play | ¿Cuándo se recopila? | Finalidad | Obligatorio |
 | --- | --- | --- | --- |
 | Nombre | Al crear o completar el perfil si se proporciona | Gestión de cuenta | Según método de registro |
 | Dirección de correo | Al autenticarse o contactar soporte | Gestión de cuenta y comunicaciones del desarrollador | Requerido para cuenta |
 | IDs de usuario | Al operar la cuenta autenticada | Funcionalidad y gestión de cuenta | Requerido |
-| Historial de compras / otra información financiera | Al registrar o importar cuentas, saldos, movimientos, pagos y deudas | Funcionalidad de la app | Según uso del usuario |
+| Otra información financiera | Al registrar o importar cuentas, saldos, movimientos, pagos y deudas | Funcionalidad de la app | Según uso del usuario |
 | Correos | Solo al conectar Gmail | Funcionalidad de la app | Opcional |
 | Otro contenido generado por el usuario | Notas y solicitudes de soporte | Funcionalidad y comunicaciones del desarrollador | Opcional |
 | Registros de fallos y diagnósticos | Cuando Sentry captura un error o rendimiento | Funcionalidad y diagnóstico | Automático con Sentry activo |
@@ -60,7 +75,7 @@ https://www.googleapis.com/auth/userinfo.email
 
 En Google Auth Platform > Data Access, pegar los URI completos. `gmail.readonly` sin el prefijo `https://www.googleapis.com/auth/` no es un scope válido. Es un scope restringido: el acceso público requiere completar la verificación OAuth de Google y sus requisitos aplicables para datos de scopes restringidos.
 
-La aplicación está publicada como externa. Hasta completar la verificación, Google muestra una advertencia de app no verificada y aplica un límite de 100 usuarios. La verificación exige una homepage y política de privacidad bajo un dominio propio verificado; `fint-web.vercel.app` es válido para pruebas actuales, pero no reemplaza ese dominio para la publicación pública de Gmail.
+La aplicación está publicada como externa. Hasta completar la verificación, Google muestra una advertencia de app no verificada y aplica un límite de 100 usuarios. La homepage y la política ya están bajo `myfint.app`; falta confirmar el dominio en Google Search Console y completar la verificación de marca y del scope restringido para la publicación pública de Gmail.
 
 ## Acceso para revisión
 

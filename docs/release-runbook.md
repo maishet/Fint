@@ -10,7 +10,7 @@ Usar este procedimiento para cada APK preview, closed test y release productivo 
 | --- | --- |
 | Aprobar release, revisar alertas y decidir rollback | Propietario de Fint |
 | Build EAS, validacion tecnica y documentacion | Equipo de desarrollo |
-| Soporte a usuarios | `soporte.fint@gmail.com` |
+| Soporte a usuarios | `support@myfint.app` |
 
 ## Antes de construir
 
@@ -35,7 +35,7 @@ bunx expo-doctor
 4. Confirmar que las URLs legales responden sin autenticacion:
 
 ```bash
-bun -e "for(const path of ['/privacy','/terms','/account-deletion','/support']){const res=await fetch('https://fint-web.vercel.app'+path); console.log(path+'='+res.status)}"
+bun -e "for(const path of ['/privacy','/terms','/account-deletion','/support']){const res=await fetch('https://myfint.app'+path); console.log(path+'='+res.status)}"
 ```
 
 ## Preview Android

@@ -1,5 +1,5 @@
 let lastRequestId: string | null = null
-const SUPPORT_EMAIL = 'soporte.fint@gmail.com'
+const SUPPORT_EMAIL = 'support@myfint.app'
 
 export function setLastRequestId(requestId: string | null) {
   lastRequestId = requestId

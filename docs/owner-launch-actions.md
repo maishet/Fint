@@ -6,7 +6,7 @@ Este documento separa las tareas que ya se completaron en desarrollo de las que 
 
 - APK preview validado con políticas y términos públicos.
 - OAuth Gmail publicado con `openid`, perfil, correo y `gmail.readonly`.
-- Formulario de ayuda y soporte envía a `soporte.fint@gmail.com`.
+- Formulario de ayuda y soporte envía a `support@myfint.app`.
 - Cuenta QA preparada en el dispositivo Android conectado con datos ficticios:
   - Cuenta de efectivo.
   - Categorías de ingreso y gasto.
@@ -16,13 +16,15 @@ Este documento separa las tareas que ya se completaron en desarrollo de las que 
 
 ## 1. Validar soporte por correo
 
-Responsable: propietario del correo `soporte.fint@gmail.com`.
+Responsable: propietario del correo `support@myfint.app`.
+
+Estado: completado. `support@myfint.app` recibe mediante Email Routing en `soporte.fint@gmail.com` y el flujo desde Configuración fue probado.
 
 1. Actualizar Expo en el dispositivo para cargar el último cambio del formulario.
 2. Abrir Fint > Configuración > Ayuda > Reportar un problema.
 3. Completar una categoría, una descripción ficticia y pasos ficticios.
-4. Pulsar Enviar y confirmar que el cliente de correo abre un mensaje dirigido a `soporte.fint@gmail.com`.
-5. Enviar el mensaje y responderlo desde `soporte.fint@gmail.com`.
+4. Pulsar Enviar y confirmar que el cliente de correo abre un mensaje dirigido a `support@myfint.app`.
+5. Enviar el mensaje y responderlo desde `support@myfint.app`.
 6. Marcar el resultado en `docs/release-checklist-prioritized.md` solo cuando ambas direcciones funcionen.
 
 Desarrollo puede comprobar el enlace `mailto:` y su contenido, pero no puede enviar ni recibir correos desde la cuenta del propietario.
@@ -45,14 +47,11 @@ La lista completa y textos de store están en `docs/play-store-listing.md`.
 
 Responsable: propietario. Requiere comprar o controlar un dominio propio.
 
-1. Registrar un dominio que controles.
-2. Añadirlo al proyecto `fint-web` en Vercel y aplicar los registros DNS que Vercel indique.
-3. Verificar el dominio en Google Search Console con la misma cuenta propietaria del proyecto Google Cloud.
-4. Actualizar en Vercel las URLs públicas de homepage, privacidad y términos bajo el dominio propio.
-5. Actualizar las variables EAS de privacidad y términos con esas nuevas URLs y crear un nuevo APK preview.
-6. En Google Auth Platform > Branding, actualizar Homepage, Privacy policy y Terms of service con el dominio propio.
-7. En Google Auth Platform > Verification Center, solicitar verificación de marca y del scope restringido `https://www.googleapis.com/auth/gmail.readonly`.
-8. Adjuntar un video en inglés que muestre: abrir Fint, iniciar conexión Gmail, consentimiento con el scope, retorno a Fint, sincronización y desconexión.
+1. Verificar `myfint.app` en Google Search Console con la misma cuenta propietaria del proyecto Google Cloud.
+2. Confirmar que Homepage, Privacy policy y Terms of service en Google Auth Platform > Branding usan `https://myfint.app`.
+3. Confirmar que las variables EAS de privacidad y términos usan las URLs de `myfint.app` antes del próximo APK/AAB.
+4. En Google Auth Platform > Verification Center, solicitar verificación de marca y del scope restringido `https://www.googleapis.com/auth/gmail.readonly`.
+5. Adjuntar un video en inglés que muestre: abrir Fint, iniciar conexión Gmail, consentimiento con el scope, retorno a Fint, sincronización y desconexión.
 
 Sin esta verificación, la aplicación externa publicada muestra la advertencia de app no verificada y tiene un máximo de 100 usuarios para Gmail.
 
@@ -73,10 +72,11 @@ Responsable: propietario con acceso a Play Console.
 
 1. Crear o abrir la aplicación `com.fint.finanzasmobilev2`.
 2. En App content, ingresar:
-   - Política: `https://fint-web.vercel.app/privacy`.
-   - Eliminación de cuenta: `https://fint-web.vercel.app/account-deletion`.
-   - Sin anuncios mientras siga siendo cierto.
-   - Audiencia de 18 años o más.
+    - Política: `https://myfint.app/privacy`.
+    - Eliminación de cuenta: `https://myfint.app/account-deletion`.
+    - Sin anuncios.
+    - Público objetivo: `13-15`, `16-17` y `18+`; no está dirigida específicamente a menores de 13.
+    - Clasificación de contenido: `Apto para todos`.
 3. Completar Data safety usando `docs/play-console-submission.md` y contrastando con el AAB final.
 4. Configurar App access con la cuenta QA y los pasos de revisión.
 5. Completar Content rating y Financial features: Fint organiza información financiera, no es banco, billetera, prestamista ni procesador de pagos.
