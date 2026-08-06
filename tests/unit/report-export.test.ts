@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test'
+import * as XLSX from 'xlsx'
 import type { FinancialReport } from '../../src/api/types'
-import { buildReportCsv, buildReportHtml, type ReportExportLabels } from '../../src/finance/report-document'
+import { buildReportHtml, buildReportXlsx, type ReportExportLabels } from '../../src/finance/report-document'
 
 const report: FinancialReport = {
   reportType: 'financial_closing', version: 1, generatedAt: '2026-07-25T10:00:00Z',
@@ -12,7 +13,7 @@ const report: FinancialReport = {
   series: [{ period: '2026-07-01', income: 1000, expenses: 300, net: 700, transactionCount: 3 }],
   categories: [{ name: 'Comida & hogar', icon: '🍽️', amount: 300, percentage: 100, previousAmount: 250, changePercentage: 20, transactionCount: 2 }],
   accountActivity: [{ id: 'a1', name: 'Principal', accountType: 'cash', income: 1000, expenses: 300, net: 700, transactionCount: 3 }],
-  topTransactions: [{ id: 't1', date: '2026-07-02', type: 'income', amount: 1000, category: 'Sueldo <mensual>', account: 'Principal', note: '' }],
+  topTransactions: [{ id: 't1', date: '2026-07-02', type: 'income', amount: 1000, category: '=Sueldo <mensual>', account: 'Principal', note: '' }],
   currentPosition: { asOf: '2026-07-25T10:00:00Z', accounts: [{ id: 'a1', name: 'Principal', accountType: 'cash', balance: 1700, currency: 'PEN' }], totalAccountBalance: 1700, debts: [{ id: 'd1', description: 'Préstamo', outstanding: 250, originalAmount: 1000, currency: 'PEN', dueDate: '2026-08-10', status: 'active', paidPercentage: 75, account: 'Principal' }], totalDebtOutstanding: 250, netPosition: 1450 },
 }
 
@@ -26,15 +27,15 @@ test('builds a structured, escaped four-page closing report', () => {
   expect(html).toContain('Estado financiero')
   expect(html).toContain('Actividad por cuenta')
   expect(html).toContain('Posición actual')
-  expect(html).toContain('Sueldo &lt;mensual&gt;')
-  expect(html).not.toContain('Sueldo <mensual>')
+  expect(html).toContain('=Sueldo &lt;mensual&gt;')
+  expect(html).not.toContain('=Sueldo <mensual>')
 })
 
-test('builds a localized CSV with every closing section', () => {
-  const csv = buildReportCsv(report, { labels, locale: 'es-PE' })
-  expect(csv).toContain('Resumen ejecutivo')
-  expect(csv).toContain('Actividad por cuenta')
-  expect(csv).toContain('Posición actual')
-  expect(csv).toContain('Movimientos destacados')
-  expect(csv).toContain('Comida & hogar')
+test('builds a real XLSX workbook with numeric amounts and safe text cells', () => {
+  const bytes = buildReportXlsx(report, { labels, locale: 'es-PE' })
+  const workbook = XLSX.read(bytes, { type: 'array' })
+  expect(workbook.SheetNames).toEqual(['Resumen', 'Flujo', 'Categorías', 'Cuentas', 'Movimientos', 'Pagos'])
+  expect(workbook.Sheets.Resumen?.B6?.v).toBe(1000)
+  expect(workbook.Sheets.Categorías?.A2?.v).toContain('Comida & hogar')
+  expect(workbook.Sheets.Movimientos?.C2?.v).toBe("'=Sueldo <mensual>")
 })

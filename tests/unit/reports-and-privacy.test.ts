@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
 import { getPresetRange, getPreviousRange } from '../../src/finance/reports'
-import { buildSupportMailto, setLastRequestId } from '../../src/support/diagnostics'
+import { getSupportDiagnostics, setLastRequestId } from '../../src/support/diagnostics'
 import { validateAnalyticsEvent } from '../../src/analytics/privacy'
 
 test('uses an equivalent previous range for comparisons', () => {
@@ -15,12 +15,8 @@ test('rejects undeclared or sensitive analytics properties', () => {
   expect(() => validateAnalyticsEvent('support_report_submitted', { category: 'Gmail', email: 'user@example.com' } as never)).toThrow('prohibited')
 })
 
-test('support mailto includes safe diagnostics only with consent', () => {
+test('support diagnostics expose only safe metadata', () => {
   setLastRequestId('req_123')
-  const url = buildSupportMailto({ category: 'Cuentas y saldos', description: 'No carga', includeDiagnostics: true })
-  const decoded = decodeURIComponent(url)
-  expect(decoded).toStartWith('mailto:support@myfint.app?')
-  expect(decoded).toContain('ID de diagnostico: req_123')
-  expect(decoded).toContain('No adjuntes tokens')
-  expect(decoded).not.toContain('Authorization')
+  expect(getSupportDiagnostics()).toMatchObject({ diagnosticId: 'req_123' })
+  expect(JSON.stringify(getSupportDiagnostics())).not.toContain('Authorization')
 })

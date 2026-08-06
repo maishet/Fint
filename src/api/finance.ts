@@ -46,6 +46,8 @@ import type {
   FinancialReportPeriod,
   FinancialReportPosition,
   FinancialTopTransaction,
+  InitializeMeResult,
+  SupportReportInput,
   ExpenseCategoriesOverview,
   TransactionPage,
 } from './types'
@@ -70,8 +72,10 @@ function idempotencyKey() {
 export const financeApi = {
   getCapabilities: () => apiRequest<AppCapabilities>('/api/capabilities'),
   getMe: () => apiRequest<CurrentUser>('/api/me'),
+  initializeMe: (locale: 'es' | 'en' | 'pt') => apiRequest<InitializeMeResult>('/api/me/initialize', { method: 'POST', body: JSON.stringify({ locale }) }),
   completeOnboarding: () => apiRequest<CompleteOnboardingResult>('/api/me/onboarding/complete', { method: 'POST', body: JSON.stringify({}) }),
   deleteCurrentUser: (confirmation: string) => apiRequest<DeleteAccountResult>('/api/me', { method: 'DELETE', body: JSON.stringify({ confirmation }) }),
+  submitSupportReport: (input: SupportReportInput) => apiRequest<{ sent: true; messageId: string | null }>('/api/support/reports', { method: 'POST', body: JSON.stringify(input) }),
   listAccounts: () => apiRequest<Account[]>('/api/accounts'),
   listAccountOptions: (query: { currency?: string; accountType?: string; excludeAccountType?: string } = {}) => apiRequest<AccountOption[]>(`/api/accounts/options${toQuery(query)}`),
   getAccount: (id: string, signal?: AbortSignal) => apiRequest<Account>(`/api/accounts/${id}`, { signal }),

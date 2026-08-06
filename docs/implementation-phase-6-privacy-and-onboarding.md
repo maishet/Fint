@@ -17,7 +17,7 @@ Esta fase no cambia calculos financieros, no cifra datos adicionales y no automa
 - Los graficos, porcentajes relativos, colores y estados agregados permanecen visibles.
 - En Cuentas se ocultan totales y balances individuales.
 - En Movimientos se ocultan el card principal y los importes de la lista.
-- En Reportes se ocultan los importes renderizados en pantalla, sin afectar exportacion PDF/CSV.
+- En Reportes se ocultan los importes renderizados en pantalla, sin afectar exportacion PDF/Excel.
 - En Pagos se ocultan montos pendientes, pagados, totales y el hero principal.
 - La preferencia se guarda por usuario en el dispositivo.
 - El onboarding se muestra solo a usuarios nuevos.
@@ -241,7 +241,7 @@ Se mantienen visibles:
 
 Exportacion:
 
-- PDF y CSV mantienen valores reales.
+- PDF y Excel mantienen valores reales.
 - No usar formatter sensible en `exportReport` ni en `report-export`.
 - La exportacion sigue haciendo fetch de datos reales mediante `getFinancialReportExportData`.
 
@@ -447,7 +447,7 @@ Manual QA:
 - Reiniciar app con montos ocultos y verificar que persiste.
 - Cerrar sesion e iniciar con otro usuario; verificar que no hereda preferencia.
 - Revisar TalkBack/VoiceOver: no lee montos ocultos en Inicio, Movimientos ni Reportes.
-- Exportar reporte: PDF/CSV conserva valores reales solo despues de accion explicita.
+- Exportar reporte: PDF/Excel conserva valores reales solo despues de accion explicita.
 - Crear/editar transaccion: formularios siguen mostrando montos reales mientras el usuario edita.
 - Revisar tema claro y oscuro.
 

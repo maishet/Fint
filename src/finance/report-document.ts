@@ -1,4 +1,5 @@
 import type { FinancialReport } from "../api/types";
+import * as XLSX from "xlsx";
 
 export interface ReportExportLabels {
   title: string;
@@ -43,77 +44,61 @@ export interface ReportExportOptions {
   locale: string;
 }
 
-export function buildReportCsv(
+export function buildReportXlsx(
+  report: FinancialReport,
+  options: ReportExportOptions,
+) {
+  const workbook = buildReportWorkbook(report, options);
+  const output = XLSX.write(workbook, { bookType: "xlsx", type: "array" }) as ArrayBuffer;
+  return new Uint8Array(output);
+}
+
+export function buildReportWorkbook(
   report: FinancialReport,
   { labels, locale }: ReportExportOptions,
 ) {
-  const money = (value: number) =>
-    formatMoney(value, report.filters.currency, locale);
-  const rows: Array<Array<string | number | null>> = [
+  const workbook = XLSX.utils.book_new();
+  addSheet(workbook, "Resumen", [
     [labels.title],
     [labels.period, formatPeriod(report, locale)],
     [labels.generated, formatDateTime(report.generatedAt, locale)],
     [],
     [labels.executiveSummary],
-    [labels.income, money(report.summary.income)],
-    [labels.expenses, money(report.summary.expenses)],
-    [labels.net, money(report.summary.net)],
-    [
-      labels.savingsRate,
-      report.summary.savingsRate === null
-        ? null
-        : `${report.summary.savingsRate}%`,
-    ],
+    [labels.income, report.summary.income],
+    [labels.expenses, report.summary.expenses],
+    [labels.net, report.summary.net],
+    [labels.savingsRate, report.summary.savingsRate],
     [labels.transactions, report.summary.transactionCount],
     [labels.financialStatus, labels.statuses[report.summary.status]],
-    [],
-    [labels.flow],
-    [
-      labels.period,
-      labels.income,
-      labels.expenses,
-      labels.net,
-      labels.transactions,
-    ],
+  ]);
+  addSheet(workbook, "Flujo", [
+    [labels.period, labels.income, labels.expenses, labels.net, labels.transactions],
     ...report.series.map((item) => [
       item.period,
-      money(item.income),
-      money(item.expenses),
-      money(item.net),
+      item.income,
+      item.expenses,
+      item.net,
       item.transactionCount,
     ]),
-    [],
-    [labels.categories],
-    [
-      labels.category,
-      labels.amount,
-      "%",
-      labels.previousPeriod,
-      labels.transactions,
-    ],
+  ]);
+  addSheet(workbook, "Categorías", [
+    [labels.category, labels.amount, "%", labels.previousPeriod, labels.transactions],
     ...report.categories.map((item) => [
-      item.name,
-      money(item.amount),
+      `${item.icon ?? ""} ${item.name}`.trim(),
+      item.amount,
       item.percentage,
-      money(item.previousAmount),
+      item.previousAmount,
       item.transactionCount,
     ]),
-    [],
-    [labels.accountActivity],
-    [
-      labels.account,
-      labels.type,
-      labels.income,
-      labels.expenses,
-      labels.net,
-      labels.transactions,
-    ],
+  ]);
+  addSheet(workbook, "Cuentas", [
+    [labels.account, labels.type, labels.income, labels.expenses, labels.net, labels.transactions],
     ...report.accountActivity.map((item) => [
       item.name,
       labels.accountTypes[item.accountType] ?? item.accountType,
-      money(item.income),
-      money(item.expenses),
-      money(item.net),
+      item.income,
+      item.expenses,
+      item.net,
       item.transactionCount,
     ]),
     [],
@@ -122,36 +107,31 @@ export function buildReportCsv(
     ...report.currentPosition.accounts.map((item) => [
       item.name,
       labels.accountTypes[item.accountType] ?? item.accountType,
-      money(item.balance),
+      item.balance,
     ]),
-    [],
-    [labels.debts],
-    [
-      labels.account,
-      labels.outstanding,
-      labels.amount,
-      labels.dueDate,
-      labels.progress,
-    ],
-    ...report.currentPosition.debts.map((item) => [
-      item.description,
-      money(item.outstanding),
-      money(item.originalAmount),
-      item.dueDate,
-      `${item.paidPercentage}%`,
-    ]),
-    [],
-    [labels.topTransactions],
+  ]);
+  addSheet(workbook, "Movimientos", [
     [labels.date, labels.type, labels.category, labels.account, labels.amount],
     ...report.topTransactions.map((item) => [
       item.date,
       item.type === "income" ? labels.incomeType : labels.expenseType,
       item.category,
       item.account,
-      money(item.amount),
+      item.amount,
     ]),
-  ];
-  return rows.map((row) => row.map(csvCell).join(",")).join("\r\n");
+  ]);
+  addSheet(workbook, "Pagos", [
+    [labels.debts, labels.account, labels.outstanding, labels.amount, labels.dueDate, labels.progress],
+    ...report.currentPosition.debts.map((item) => [
+      item.description,
+      item.account,
+      item.outstanding,
+      item.originalAmount,
+      item.dueDate,
+      item.paidPercentage,
+    ]),
+  ]);
+  return workbook;
 }
 
 export function buildReportHtml(
@@ -251,9 +231,19 @@ function buildFlowChart(report: FinancialReport) {
 
 export function reportFileName(
   report: FinancialReport,
-  extension: "pdf" | "csv",
+  extension: "pdf" | "xlsx",
 ) {
   return `fint-cierre-${report.period.from}-${previousDay(report.period.to)}.${extension}`;
+}
+
+function addSheet(workbook: XLSX.WorkBook, name: string, rows: Array<Array<string | number | null | undefined>>) {
+  const sheet = XLSX.utils.aoa_to_sheet(rows.map((row) => row.map(xlsxCell)));
+  XLSX.utils.book_append_sheet(workbook, sheet, name);
+}
+
+function xlsxCell(value: string | number | null | undefined) {
+  if (typeof value !== "string") return value ?? null;
+  return /^[=+\-@]/.test(value) ? `'${value}` : value;
 }
 
 function formatPeriod(report: FinancialReport, locale: string) {
@@ -289,12 +279,6 @@ function formatMoney(value: number, currency: string, locale: string) {
     currencyDisplay: "code",
     maximumFractionDigits: 2,
   }).format(value);
-}
-
-function csvCell(value: string | number | null) {
-  if (value === null) return "";
-  const text = String(value);
-  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
 function escapeHtml(value: string) {

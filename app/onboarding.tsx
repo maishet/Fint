@@ -13,6 +13,7 @@ import { FlatList, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, H1, Paragraph, Spinner, XStack, YStack } from "tamagui";
 import { financeApi } from "../src/api/finance";
+import { getCurrentAppLanguage } from "../src/i18n";
 import {
   requestAndRegisterPushInstallation,
   type PushPermissionState,
@@ -45,7 +46,10 @@ export default function OnboardingScreen() {
   const isLast = index === slideKeys.length - 1;
 
   const completeMutation = useMutation({
-    mutationFn: financeApi.completeOnboarding,
+    mutationFn: async () => {
+      await financeApi.initializeMe(getCurrentAppLanguage());
+      return financeApi.completeOnboarding();
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["me"] });
       router.replace("/(tabs)/dashboard");

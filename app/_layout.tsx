@@ -240,6 +240,20 @@ function RootLayoutNav() {
             }}
           />
           <Stack.Screen
+            name="improvements"
+            options={{
+              title: t("improvements.title"),
+              contentStyle: { backgroundColor: theme.background.val },
+            }}
+          />
+          <Stack.Screen
+            name="web-content"
+            options={{
+              title: t("webContent.title"),
+              contentStyle: { backgroundColor: theme.background.val },
+            }}
+          />
+          <Stack.Screen
             name="gmail-connected"
             options={{ headerShown: false }}
           />

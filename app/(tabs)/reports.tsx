@@ -50,7 +50,7 @@ import {
 import { getCategoryLabel } from "../../src/finance/categoryLabels";
 import { suggestedCategoryIcons } from "../../src/finance/categoryIcons";
 import {
-  exportFinancialReportCsv,
+  exportFinancialReportXlsx,
   exportFinancialReportPdf,
   type ReportExportLabels,
 } from "../../src/finance/report-export";
@@ -85,7 +85,7 @@ const REPORT_TEXT_KEYS = [
   "empty",
   "exportTitle",
   "exportPdf",
-  "exportCsv",
+  "exportExcel",
   "exporting",
   "exported",
   "exportError",
@@ -242,7 +242,7 @@ export default function ReportsScreen() {
     } as unknown as ReportExportLabels,
   };
 
-  const exportReport = async (format: "pdf" | "csv") => {
+  const exportReport = async (format: "pdf" | "xlsx") => {
     setIsExporting(true);
     try {
       const exportReport =
@@ -250,7 +250,7 @@ export default function ReportsScreen() {
       const localizedReport = localizeReport(exportReport, t);
       if (format === "pdf")
         await exportFinancialReportPdf(localizedReport, exportOptions);
-      else await exportFinancialReportCsv(localizedReport, exportOptions);
+      else await exportFinancialReportXlsx(localizedReport, exportOptions);
       toast.show(text.exported, { preset: "success" });
     } catch (error) {
       Sentry.captureException(error, {
@@ -308,13 +308,13 @@ export default function ReportsScreen() {
                 icon: <FileText size={19} color="$primary" />,
               },
               {
-                value: "csv",
-                label: text.exportCsv,
+                value: "xlsx",
+                label: text.exportExcel,
                 icon: <Table2 size={19} color="$primary" />,
               },
             ]}
             onValueChange={(value) => {
-              void exportReport(value as "pdf" | "csv");
+              void exportReport(value as "pdf" | "xlsx");
             }}
             renderTrigger={({ onPress }) => (
               <YStack

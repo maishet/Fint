@@ -3,15 +3,15 @@ import * as Print from 'expo-print'
 import * as Sharing from 'expo-sharing'
 import { Platform } from 'react-native'
 import type { FinancialReport } from '../api/types'
-import { buildReportCsv, buildReportHtml, reportFileName, type ReportExportOptions } from './report-document'
+import { buildReportHtml, buildReportXlsx, reportFileName, type ReportExportOptions } from './report-document'
 
 export type { ReportExportLabels } from './report-document'
 
-export async function exportFinancialReportCsv(report: FinancialReport, options: ReportExportOptions) {
-  const fileName = reportFileName(report, 'csv')
-  const csv = buildReportCsv(report, options)
+export async function exportFinancialReportXlsx(report: FinancialReport, options: ReportExportOptions) {
+  const fileName = reportFileName(report, 'xlsx')
+  const workbook = buildReportXlsx(report, options)
   if (Platform.OS === 'web') {
-    const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' }))
+    const url = URL.createObjectURL(new Blob([workbook], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }))
     const link = document.createElement('a')
     link.href = url
     link.download = fileName
@@ -22,8 +22,8 @@ export async function exportFinancialReportCsv(report: FinancialReport, options:
   if (!(await Sharing.isAvailableAsync())) throw new Error('Sharing is not available on this device')
   const file = new File(Paths.cache, fileName)
   file.create({ overwrite: true })
-  file.write(`\uFEFF${csv}`)
-  await Sharing.shareAsync(file.uri, { mimeType: 'text/csv', dialogTitle: options.labels.title, UTI: 'public.comma-separated-values-text' })
+  file.write(workbook)
+  await Sharing.shareAsync(file.uri, { mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', dialogTitle: options.labels.title, UTI: 'org.openxmlformats.spreadsheetml.sheet' })
 }
 
 export async function exportFinancialReportPdf(report: FinancialReport, options: ReportExportOptions) {

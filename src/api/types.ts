@@ -25,6 +25,24 @@ export interface CompleteOnboardingResult {
   completedAt: string | null
 }
 
+export interface InitializeMeResult {
+  created: number
+  skipped: boolean
+}
+
+export interface SupportReportInput {
+  category: string
+  description: string
+  steps?: string
+  diagnostics?: {
+    appVersion?: string
+    buildNumber?: string
+    platform?: string
+    environment?: string
+    diagnosticId?: string | null
+  }
+}
+
 export interface DeleteAccountResult {
   deleted: true
 }

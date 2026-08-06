@@ -24,5 +24,5 @@ El mantenedor confirmara la recepcion, evaluara el impacto y coordinara la divul
 - Acceso indebido a informacion financiera.
 - Exposicion de tokens de Supabase, Gmail u otros proveedores.
 - Bypass de confirmacion para movimientos sugeridos.
-- Exportaciones PDF o CSV que revelen datos de otra cuenta.
+- Exportaciones PDF o Excel que revelen datos de otra cuenta.
 - Deep links que permitan saltar controles de acceso.

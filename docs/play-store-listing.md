@@ -31,7 +31,7 @@ Con Fint puedes:
 • Organizar efectivo, ahorros y tarjetas.
 • Registrar ingresos y gastos con categorías.
 • Controlar pagos recurrentes y fechas de vencimiento.
-• Revisar reportes y exportarlos en PDF o CSV.
+• Revisar reportes y exportarlos en PDF o Excel.
 • Ocultar montos sensibles cuando compartes tu pantalla.
 • Conectar Gmail de forma opcional para detectar movimientos que siempre revisas antes de confirmar.
 

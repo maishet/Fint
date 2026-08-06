@@ -9,10 +9,10 @@ Use this checklist as the final gate before public launch.
 - [x] Verify login, logout, session restore, onboarding, and app relaunch.
 - [x] Verify core flows for accounts, movements, debts, categories, and Gmail screens.
 - [x] Verify the reports tab loads correctly with real user data.
-- [x] Verify PDF export, CSV export, and share flows on-device.
+- [x] Verify PDF export, Excel export, and share flows on-device.
 - [x] Verify deep linking still works correctly after the Expo Router patch.
 - [x] Confirm `GET /api/reports/financial` returns consistent data for real filters and accounts.
-- [x] Confirm the canonical reports DTO still matches the mobile report view, PDF, and CSV outputs.
+- [x] Confirm the canonical reports DTO still matches the mobile report view, PDF, and Excel outputs.
 - [x] Verify the first scheduled `fint-gmail-watch-renewal` run using `docs/monitoring-setup.md`.
 - [x] Finish Sentry acceptance checks for privacy, releases, source maps, uptime, alert email delivery, and owner response process. Follow `docs/mvp-sentry-legal-play-store-plan.md`.
 - [x] Confirm all production secrets and environment variables are correct in EAS, Render, Supabase, and the mobile app.

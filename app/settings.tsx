@@ -1,13 +1,14 @@
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Alert, AppState, Image, Linking } from "react-native";
+import { Alert, AppState, Image, Linking, Share } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
   ChevronRight,
   FileText,
   Globe2,
+  Github,
   HelpCircle,
   Languages,
   Landmark,
@@ -19,6 +20,7 @@ import {
   Eye,
   EyeOff,
   ShieldCheck,
+  Share2,
   Sun,
   Tags,
   Trash2,
@@ -80,14 +82,8 @@ export default function SettingsScreen() {
       : typeof metadata.picture === "string"
         ? metadata.picture
         : null;
-  const privacyUrl = process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL;
-  const termsUrl = process.env.EXPO_PUBLIC_TERMS_URL;
-  const openLegal = (url?: string) => {
-    if (!url) {
-      Alert.alert(t("settings.legal"), t("settings.legalUnavailable"));
-      return;
-    }
-    void Linking.openURL(url);
+  const shareApp = () => {
+    void Share.share({ message: t("settings.shareMessage"), url: "https://myfint.app" });
   };
   useEffect(() => {
     getPushPermissionState()
@@ -265,7 +261,6 @@ export default function SettingsScreen() {
             )
           }
           label={t("privacy.amounts.title")}
-          detail={t("privacy.amounts.description")}
           value={
             amountsVisible
               ? t("privacy.amounts.visible")
@@ -306,7 +301,22 @@ export default function SettingsScreen() {
         <SettingsRow
           icon={<Globe2 size={19} color="$primary" />}
           label={t("settings.suggestion")}
-          onPress={() => router.push("/support")}
+          onPress={() => router.push("/improvements")}
+        />
+      </SettingsGroup>
+
+      <SettingsGroup title={t("settings.shareSection")}>
+        <SettingsRow
+          icon={<Share2 size={19} color="$primary" />}
+          label={t("settings.shareApp")}
+          onPress={shareApp}
+        />
+        <SettingsRow
+          icon={<Github size={19} color="$primary" />}
+          label={t("settings.github")}
+          onPress={() => {
+            void Linking.openURL("https://github.com/maishet/Fint");
+          }}
         />
       </SettingsGroup>
 
@@ -314,14 +324,12 @@ export default function SettingsScreen() {
         <SettingsRow
           icon={<ShieldCheck size={19} color="$primary" />}
           label={t("settings.privacy")}
-          detail={t("settings.privacyDetail")}
-          onPress={() => openLegal(privacyUrl)}
+          onPress={() => router.push({ pathname: "/web-content", params: { content: "privacy" } })}
         />
         <SettingsRow
           icon={<FileText size={19} color="$primary" />}
           label={t("settings.terms")}
-          detail={t("settings.termsDetail")}
-          onPress={() => openLegal(termsUrl)}
+          onPress={() => router.push({ pathname: "/web-content", params: { content: "terms" } })}
         />
       </SettingsGroup>
 

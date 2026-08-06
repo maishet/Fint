@@ -28,13 +28,13 @@ Fint ayuda a construir una vision completa de las finanzas personales desde el t
 
 | Organiza | Comprende | Actua |
 | --- | --- | --- |
-| Cuentas, saldos, movimientos, categorias y deudas. | Dashboard, comparaciones, tendencias y desglose por cuenta o categoria. | Registra operaciones, confirma sugerencias y exporta reportes en PDF o CSV. |
+| Cuentas, saldos, movimientos, categorias y deudas. | Dashboard, comparaciones, tendencias y desglose por cuenta o categoria. | Registra operaciones, confirma sugerencias y exporta reportes en PDF o Excel. |
 
 ### Capacidades
 
 - **Control financiero:** ingresos, gastos, transferencias, cuentas, categorias y deudas.
 - **Reportes accionables:** filtros temporales, comparaciones, evolucion, posicion actual y movimientos destacados.
-- **Exportacion portable:** documentos PDF y archivos CSV generados directamente en Android.
+- **Exportacion portable:** documentos PDF y archivos Excel generados directamente en Android.
 - **Gmail opcional:** deteccion de movimientos pendientes con filtros definidos por el usuario y confirmacion obligatoria.
 - **Acceso seguro:** sesiones administradas con Supabase Auth y soporte para Google OAuth.
 - **Experiencia localizada:** interfaz disponible en espanol, ingles y portugues.
@@ -53,7 +53,7 @@ flowchart LR
     C --> E[Gmail API]
     C --> F[Financial report DTO]
     F --> A
-    A --> G[PDF and CSV exports]
+    A --> G[PDF and Excel exports]
 ```
 
 La aplicacion movil mantiene la presentacion y las interacciones en Expo. La API privada concentra las reglas de negocio y entrega un DTO canonico que alimenta la vista de reportes y sus exportaciones.
