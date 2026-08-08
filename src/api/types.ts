@@ -93,6 +93,10 @@ export interface Category {
   icon: string | null
 }
 
+// NOTE: 'credit_card' can still appear in `kind` for legacy rules/occurrences created before the
+// credit-card payment flow was removed (single-step fixed_payment only). The app no longer lets
+// users create, edit, or pay those legacy items — they are shown as read-only history if present.
+// TODO: reconsiderar tipos de pago no fijos en el futuro.
 export interface PaymentOccurrence {
   id: string
   ruleId: string | null
@@ -127,9 +131,16 @@ export interface PaymentRule {
   status: 'active' | 'paused' | 'ended'
 }
 
-export type CreatePaymentRuleInput =
-  | { kind: 'fixed_payment'; title: string; frequency: PaymentRule['frequency']; currency: string; fixedAmount: number; categoryId: string; timezone: string; startDate: string }
-  | { kind: 'credit_card'; title: string; frequency: PaymentRule['frequency']; currency: string; cardAccountId: string; timezone: string; startDate: string }
+export interface CreatePaymentRuleInput {
+  kind: 'fixed_payment'
+  title: string
+  frequency: PaymentRule['frequency']
+  currency: string
+  fixedAmount: number
+  categoryId: string
+  timezone: string
+  startDate: string
+}
 
 export interface UpdatePaymentRuleInput {
   title?: string
@@ -149,11 +160,6 @@ export interface PayPaymentOccurrenceInput {
 
 export interface ReversePaymentOccurrencePaymentInput {
   reason?: string | null
-}
-
-export interface UpdateCardOccurrenceAmountsInput {
-  totalAmount: number
-  minimumAmount: number
 }
 
 export interface AccountOption {

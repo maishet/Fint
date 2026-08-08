@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CalendarClock,
   CheckCircle2,
-  CreditCard,
   HandCoins,
   Plus,
   Trash2,
@@ -15,7 +14,6 @@ import { Button, Paragraph, Spinner, XStack, YStack } from "tamagui";
 import { financeApi } from "../../src/api/finance";
 import { formatMoney } from "../../src/api/mappers";
 import type { PaymentOccurrence } from "../../src/api/types";
-import { CardAmountsSheet } from "../../src/components/CardAmountsSheet";
 import { DataStateCard } from "../../src/components/DataStateCard";
 import { OccurrencePaymentSheet } from "../../src/components/OccurrencePaymentSheet";
 import { Screen } from "../../src/components/Screen";
@@ -39,8 +37,6 @@ export default function DebtsScreen() {
   const toast = useToastController();
   const { capabilities } = useCapabilities();
   const [paymentOccurrence, setPaymentOccurrence] =
-    useState<PaymentOccurrence | null>(null);
-  const [amountOccurrence, setAmountOccurrence] =
     useState<PaymentOccurrence | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PaymentOccurrence | null>(
     null,
@@ -206,7 +202,6 @@ export default function DebtsScreen() {
                   deleteTarget?.ruleId === occurrence.ruleId
                 }
                 locale={locale}
-                onConfigureAmount={() => setAmountOccurrence(occurrence)}
                 onDelete={() => setDeleteTarget(occurrence)}
                 onEdit={() =>
                   occurrence.ruleId &&
@@ -227,11 +222,6 @@ export default function DebtsScreen() {
         open={Boolean(paymentOccurrence)}
         onOpenChange={(open) => !open && setPaymentOccurrence(null)}
       />
-      <CardAmountsSheet
-        occurrence={amountOccurrence}
-        open={Boolean(amountOccurrence)}
-        onOpenChange={(open) => !open && setAmountOccurrence(null)}
-      />
       <DeletePaymentRuleDialog
         occurrence={deleteTarget}
         isPending={deleteMutation.isPending}
@@ -248,7 +238,6 @@ function OccurrenceCard({
   isDeleting,
   locale,
   occurrence,
-  onConfigureAmount,
   onDelete,
   onEdit,
   onPay,
@@ -256,7 +245,6 @@ function OccurrenceCard({
   isDeleting: boolean;
   locale: string;
   occurrence: PaymentOccurrence;
-  onConfigureAmount: () => void;
   onDelete: () => void;
   onEdit: () => void;
   onPay: () => void;
@@ -264,17 +252,10 @@ function OccurrenceCard({
   const { t } = useTranslation();
   const { formatSensitiveAmount } = useSensitiveMoney();
   const due = getDueState(occurrence.dueDate, locale, t);
-  const total = occurrence.totalAmount ?? 0;
-  const remaining = occurrence.remainingAmount ?? total;
-  const progress =
-    total > 0
-      ? Math.min(100, Math.round((occurrence.paidAmount / total) * 100))
-      : 0;
-  const needsAmount = occurrence.amountStatus === "required";
-  const kindLabel =
-    occurrence.kind === "credit_card"
-      ? t("payments.creditCard")
-      : t("payments.fixed");
+  const amount = occurrence.totalAmount ?? occurrence.remainingAmount ?? 0;
+  const isPaid = occurrence.paymentStatus === "paid";
+  // Legacy credit_card items are read-only history; the app no longer supports paying them.
+  const isLegacy = occurrence.kind === "credit_card";
   return (
     <FintCard
       p="$3"
@@ -308,10 +289,6 @@ function OccurrenceCard({
           >
             {occurrence.title}
           </Paragraph>
-          <Paragraph color="$color10" fontSize="$1">
-            {kindLabel}
-            {occurrence.cardAccount ? ` · ${occurrence.cardAccount}` : ""}
-          </Paragraph>
           <Paragraph
             color={due.overdue ? "$red10" : "$color10"}
             fontSize="$1"
@@ -321,41 +298,27 @@ function OccurrenceCard({
           </Paragraph>
         </YStack>
         <YStack items="flex-end" gap="$1">
-          <Paragraph
-            color={needsAmount ? "$yellow10" : "$color12"}
-            fontSize="$4"
-            fontWeight="800"
-            shrink={0}
-          >
-            {needsAmount
-              ? t("payments.configureAmount")
-              : formatSensitiveAmount(remaining, occurrence.currency)}
+          <Paragraph color="$color12" fontSize="$4" fontWeight="800" shrink={0}>
+            {formatSensitiveAmount(amount, occurrence.currency)}
           </Paragraph>
           <Paragraph color="$color10" fontSize="$1">
             {statusLabel(occurrence.paymentStatus, t)}
           </Paragraph>
           <XStack gap="$1">
-            <Button
-              circular
-              chromeless
-              size="$3"
-              icon={
-                needsAmount ? (
-                  <CreditCard size={19} color="$yellow10" />
-                ) : (
-                  <CheckCircle2 size={19} color="$primary" />
-                )
-              }
-              onPress={(event) => {
-                event.stopPropagation();
-                needsAmount ? onConfigureAmount() : onPay();
-              }}
-              aria-label={
-                needsAmount
-                  ? t("payments.configureAmountAction")
-                  : t("payments.registerPayment")
-              }
-            />
+            {!isLegacy ? (
+              <Button
+                circular
+                chromeless
+                size="$3"
+                disabled={isPaid}
+                icon={<CheckCircle2 size={19} color={isPaid ? "$color8" : "$primary"} />}
+                onPress={(event) => {
+                  event.stopPropagation();
+                  onPay();
+                }}
+                aria-label={t("payments.registerPayment")}
+              />
+            ) : null}
             <Button
               circular
               chromeless
@@ -378,28 +341,6 @@ function OccurrenceCard({
           </XStack>
         </YStack>
       </XStack>
-      <YStack gap="$1">
-        <XStack justify="space-between">
-          <Paragraph color="$color10" fontSize="$1">
-            {t("debts.paidProgress", { progress })}
-          </Paragraph>
-          <Paragraph color="$color10" fontSize="$1">
-            {formatSensitiveAmount(occurrence.paidAmount, occurrence.currency)}{" "}
-            /{" "}
-            {needsAmount
-              ? "-"
-              : formatSensitiveAmount(total, occurrence.currency)}
-          </Paragraph>
-        </XStack>
-        <YStack height={5} rounded="$10" bg="$muted" overflow="hidden">
-          <YStack
-            width={`${progress}%`}
-            height="100%"
-            bg="$primary"
-            rounded="$10"
-          />
-        </YStack>
-      </YStack>
     </FintCard>
   );
 }
@@ -439,10 +380,9 @@ function statusLabel(
   status: PaymentOccurrence["paymentStatus"],
   t: (key: string) => string,
 ) {
-  if (status === "paid") return t("payments.statusPaid");
-  if (status === "minimum_met") return t("payments.statusMinimumMet");
-  if (status === "partial") return t("payments.statusPartial");
-  return t("payments.statusPending");
+  // Fixed payments are binary: paid or pending. 'partial'/'minimum_met' only appear on
+  // legacy credit_card occurrences kept for history.
+  return status === "paid" ? t("payments.statusPaid") : t("payments.statusPending");
 }
 
 function DebtHero({
