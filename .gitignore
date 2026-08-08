@@ -44,6 +44,7 @@ node_modules
 .env.test.localp
 .env.production.local
 google-services.json
+CLAUDE.md
 
 .expo
 ios
