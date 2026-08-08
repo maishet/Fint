@@ -81,7 +81,6 @@ src/i18n/             Configuracion y traducciones
 src/theme/            Tema, tipografia y preferencias visuales
 src/ui/               Primitivas del sistema de interfaz
 tests/unit/           Pruebas unitarias
-docs/                 Producto, operacion y lanzamiento
 ```
 
 ## Comenzar
@@ -130,14 +129,7 @@ Configura `finanzasmobilev2://auth/callback` como URL de redireccionamiento en S
 
 ## Estado Del Proyecto
 
-Fint se encuentra en preparacion para su primer lanzamiento publico. El flujo principal, los reportes, las exportaciones y la build Android ya fueron validados; el seguimiento restante esta documentado en el [checklist de lanzamiento](docs/release-checklist-prioritized.md).
 
-- [Vision de producto](docs/fint-product-vision.md)
-- [Roadmap del MVP](docs/mvp-phases-roadmap.md)
-- [Plan de pendientes y pagos recurrentes](docs/implementation-plan-pending-and-payments.md)
-- [Preparacion para lanzamiento](docs/launch-readiness.md)
-- [Guia de Play Store](docs/play-store-launch.md)
-- [Monitoreo y operaciones](docs/monitoring-setup.md)
 
 ## Contribuir
 
