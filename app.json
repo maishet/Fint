@@ -15,8 +15,7 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "bundleIdentifier": "com.fint.finanzasmobilev2",
-      "supportsTablet": true,
-      "associatedDomains": ["applinks:myfint.app"]
+      "supportsTablet": true
     },
     "android": {
       "package": "com.fint.finanzasmobilev2",
