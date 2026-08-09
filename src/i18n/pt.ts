@@ -49,6 +49,7 @@ export const ptTranslation = {
     newMovement: "Nova movimentação",
     newIncome: "Receita",
     newExpense: "Despesa",
+    newTransfer: "Transferência",
     viewAll: "Ver tudo",
     signOut: "Sair",
     save: "Salvar",

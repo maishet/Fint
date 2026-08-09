@@ -57,6 +57,9 @@ export default function PendingMovementsScreen() {
   const [categoryError, setCategoryError] = useState<string | undefined>();
   const [discardTarget, setDiscardTarget] =
     useState<PendingMovementCard | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmBulkDiscard, setConfirmBulkDiscard] = useState(false);
   const { capabilities } = useCapabilities();
 
   const pendingQuery = useInfiniteQuery({
@@ -166,12 +169,64 @@ export default function PendingMovementsScreen() {
         preset: "error",
       }),
   });
+  const bulkDiscardMutation = useMutation({
+    mutationFn: (ids: string[]) => financeApi.discardPendingMovementsBulk(ids),
+    onSuccess: async () => {
+      setConfirmBulkDiscard(false);
+      setSelectionMode(false);
+      setSelectedIds(new Set());
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["pending-movements", "pages"],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["pending-movements", "summary"],
+        }),
+      ]);
+      toast.show(t("movementUx.bulkDiscarded"), { preset: "success" });
+    },
+    onError: (error) => {
+      setConfirmBulkDiscard(false);
+      toast.show(t("movementUx.bulkDiscardError"), {
+        message: error instanceof Error ? error.message : undefined,
+        preset: "error",
+      });
+    },
+  });
 
   const openItem = (item: PendingMovementCard) => {
     setExpandedId((current) => (current === item.id ? null : item.id));
     setCategory("");
     setPaymentOccurrenceId(NORMAL_MOVEMENT);
     setCategoryError(undefined);
+  };
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const enterSelectionMode = (initialId?: string) => {
+    setExpandedId(null);
+    setSelectionMode(true);
+    setSelectedIds(initialId ? new Set([initialId]) : new Set());
+  };
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds((current) =>
+      current.size === items.length
+        ? new Set()
+        : new Set(items.map((item) => item.id)),
+    );
   };
 
   const confirm = async (item: PendingMovementCard) => {
@@ -243,7 +298,10 @@ export default function PendingMovementsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           padding: 16,
-          paddingBottom: Math.max(insets.bottom, 24),
+          paddingBottom: Math.max(
+            insets.bottom,
+            selectionMode ? 96 : 24,
+          ),
           flexGrow: items.length ? undefined : 1,
         }}
         ItemSeparatorComponent={() => <YStack height={8} />}
@@ -274,6 +332,31 @@ export default function PendingMovementsScreen() {
                 </Paragraph>
               </YStack>
             </XStack>
+            {items.length ? (
+              <XStack items="center" justify="space-between" mt="$3">
+                {selectionMode ? (
+                  <Button size="$2" chromeless onPress={toggleSelectAll}>
+                    {t("movementUx.selectedCount", {
+                      count: selectedIds.size,
+                    })}
+                  </Button>
+                ) : (
+                  <YStack />
+                )}
+                <Button
+                  size="$2"
+                  chromeless
+                  color="$primary"
+                  onPress={() =>
+                    selectionMode ? exitSelectionMode() : enterSelectionMode()
+                  }
+                >
+                  {selectionMode
+                    ? t("movementUx.cancelSelection")
+                    : t("movementUx.selectMode")}
+                </Button>
+              </XStack>
+            ) : null}
           </FintCard>
         }
         refreshControl={
@@ -318,6 +401,8 @@ export default function PendingMovementsScreen() {
           <PendingCard
             item={item}
             expanded={expandedId === item.id}
+            selectionMode={selectionMode}
+            selected={selectedIds.has(item.id)}
             category={expandedId === item.id ? category : ""}
             categoryError={expandedId === item.id ? categoryError : undefined}
             categories={
@@ -340,7 +425,12 @@ export default function PendingMovementsScreen() {
               (discardMutation.isPending &&
                 discardMutation.variables === item.id)
             }
-            onToggle={() => openItem(item)}
+            onToggle={() =>
+              selectionMode ? toggleSelection(item.id) : openItem(item)
+            }
+            onLongPress={() =>
+              selectionMode ? undefined : enterSelectionMode(item.id)
+            }
             onCategoryChange={(value) => {
               setCategory(value);
               setCategoryError(undefined);
@@ -362,6 +452,31 @@ export default function PendingMovementsScreen() {
           />
         )}
       />
+      {selectionMode && selectedIds.size > 0 ? (
+        <XStack
+          position="absolute"
+          l={0}
+          r={0}
+          b={0}
+          p="$3"
+          pb={Math.max(insets.bottom, 12)}
+          bg="$background"
+          borderTopWidth={1}
+          borderColor="$borderColor"
+        >
+          <FintButton
+            width="100%"
+            minH={48}
+            color="$red10"
+            borderColor="$red6"
+            variant="outlined"
+            icon={<Trash2 size={17} />}
+            onPress={() => setConfirmBulkDiscard(true)}
+          >
+            {t("movementUx.discardSelected", { count: selectedIds.size })}
+          </FintButton>
+        </XStack>
+      ) : null}
       <DiscardPendingDialog
         item={discardTarget}
         isPending={discardMutation.isPending}
@@ -369,6 +484,22 @@ export default function PendingMovementsScreen() {
         onConfirm={() =>
           discardTarget && discardMutation.mutate(discardTarget.id)
         }
+      />
+      <FintConfirmDialog
+        open={confirmBulkDiscard}
+        isPending={bulkDiscardMutation.isPending}
+        title={t("movementUx.discardSelectedTitle", {
+          count: selectedIds.size,
+        })}
+        description={t("movementUx.discardSelectedDescription")}
+        cancelLabel={t("actions.cancel")}
+        confirmLabel={t("movementUx.discardSelected", {
+          count: selectedIds.size,
+        })}
+        destructive
+        icon={<Trash2 size={17} color="$primaryForeground" />}
+        onCancel={() => setConfirmBulkDiscard(false)}
+        onConfirm={() => bulkDiscardMutation.mutate(Array.from(selectedIds))}
       />
     </YStack>
   );
@@ -398,11 +529,14 @@ function PendingCard({
   onConfirm,
   onDiscard,
   onEdit,
+  onLongPress,
   onPaymentOccurrenceChange,
   onToggle,
   paymentOccurrenceId,
   paymentOccurrences,
   referencesLoading,
+  selected,
+  selectionMode,
 }: {
   categories: Awaited<ReturnType<typeof financeApi.listCategories>>;
   category: string;
@@ -414,6 +548,7 @@ function PendingCard({
   onConfirm: () => void;
   onDiscard: () => void;
   onEdit: () => void;
+  onLongPress: () => void;
   onPaymentOccurrenceChange: (value: string) => void;
   onToggle: () => void;
   paymentOccurrenceId: string;
@@ -421,6 +556,8 @@ function PendingCard({
     ReturnType<typeof financeApi.listPaymentOccurrences>
   >;
   referencesLoading: boolean;
+  selected: boolean;
+  selectionMode: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const detectedDate = new Intl.DateTimeFormat(i18n.language, {
@@ -443,14 +580,36 @@ function PendingCard({
       : t("movementUx.reviewRequired");
   const isPayment = paymentOccurrenceId !== NORMAL_MOVEMENT;
   return (
-    <FintCard p="$3" gap="$3" opacity={isPending ? 0.65 : 1}>
+    <FintCard
+      p="$3"
+      gap="$3"
+      opacity={isPending ? 0.65 : 1}
+      borderColor={selected ? "$primary" : "$borderColor"}
+      borderWidth={selected ? 2 : 1}
+    >
       <XStack
         items="center"
         gap="$3"
         role="button"
         onPress={isPending ? undefined : onToggle}
+        onLongPress={isPending ? undefined : onLongPress}
       >
-        <Mail size={18} color="$primary" />
+        {selectionMode ? (
+          <YStack
+            width={22}
+            height={22}
+            rounded="$10"
+            borderWidth={2}
+            borderColor={selected ? "$primary" : "$borderColor"}
+            bg={selected ? "$primary" : "transparent"}
+            items="center"
+            justify="center"
+          >
+            {selected ? <Check size={14} color="$primaryForeground" /> : null}
+          </YStack>
+        ) : (
+          <Mail size={18} color="$primary" />
+        )}
         <YStack flex={1} minW={0} gap="$1">
           <Paragraph color="$color12" fontWeight="800" numberOfLines={2}>
             {item.title}
@@ -473,7 +632,7 @@ function PendingCard({
           {amountLabel}
         </Paragraph>
       </XStack>
-      {expanded ? (
+      {expanded && !selectionMode ? (
         <YStack gap="$3">
           {canQuickConfirm && item.type ? (
             <>

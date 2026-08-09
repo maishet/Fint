@@ -218,6 +218,7 @@ export function SkeletonContentCard({ rows = 3 }: { rows?: number }) {
 export function SkeletonForm({
   fieldCount = 3,
   label,
+  segmentCount = 2,
   showAmount = true,
   showChoiceGrid = false,
   showNote = true,
@@ -225,6 +226,7 @@ export function SkeletonForm({
 }: {
   fieldCount?: number;
   label: string;
+  segmentCount?: number;
   showAmount?: boolean;
   showChoiceGrid?: boolean;
   showNote?: boolean;
@@ -235,8 +237,9 @@ export function SkeletonForm({
       {showSegment ? (
         <FintCard p="$1" bg="$muted">
           <XStack gap="$1">
-            <SkeletonBlock flex={1} height={56} rounded="$6" />
-            <SkeletonBlock flex={1} height={56} rounded="$6" />
+            {Array.from({ length: segmentCount }, (_, index) => (
+              <SkeletonBlock key={index} flex={1} height={segmentCount > 2 ? 64 : 56} rounded="$6" />
+            ))}
           </XStack>
         </FintCard>
       ) : null}

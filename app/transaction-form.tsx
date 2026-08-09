@@ -20,11 +20,11 @@ type MovementKind = 'income' | 'expense' | 'transfer'
 export default function TransactionFormScreen() {
   const router = useRouter()
   const { i18n, t } = useTranslation()
-  const params = useLocalSearchParams<{ id?: string; type?: 'income' | 'expense'; amount?: string; category?: string; account?: string; note?: string; date?: string }>()
+  const params = useLocalSearchParams<{ id?: string; type?: 'income' | 'expense' | 'transfer'; amount?: string; category?: string; account?: string; note?: string; date?: string }>()
   const toast = useToastController()
   const queryClient = useQueryClient()
   const isEditing = Boolean(params.id)
-  const [kind, setKind] = useState<MovementKind>(params.type === 'income' ? 'income' : 'expense')
+  const [kind, setKind] = useState<MovementKind>(!isEditing && params.type === 'transfer' ? 'transfer' : params.type === 'income' ? 'income' : 'expense')
   const [amount, setAmount] = useState(params.amount ?? '')
   const [category, setCategory] = useState(params.category ?? '')
   const [account, setAccount] = useState(params.account ?? '')
@@ -151,7 +151,7 @@ export default function TransactionFormScreen() {
     <>
     <Stack.Screen options={{ title: t(screenTitle) }} />
     <Screen>
-      {isReferenceLoading ? <SkeletonForm label={t('movements.loadingReferences')} showSegment fieldCount={3} /> : <YStack gap="$5" pb="$5">
+      {isReferenceLoading ? <SkeletonForm label={t('movements.loadingReferences')} showSegment segmentCount={isEditing ? 2 : 3} fieldCount={3} /> : <YStack gap="$5" pb="$5">
         <MovementKindSelector value={kind} onValueChange={(value) => { setKind(value); setErrorMessage(null); validation.clearError('category', 'account', 'originAccountId', 'destinationAccountId') }} allowTransfer={!isEditing} />
 
         <MovementAmountField currency={kind === 'transfer' ? (selectedOriginAccount?.currency ?? 'PEN') : (selectedAccount?.currency ?? 'PEN')} error={validation.errors.amount} value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} />
@@ -212,6 +212,11 @@ export default function TransactionFormScreen() {
 function MovementKindSelector({ allowTransfer, onValueChange, value }: { allowTransfer: boolean; onValueChange: (value: MovementKind) => void; value: MovementKind }) {
   const { t } = useTranslation()
   const options = (allowTransfer ? ['expense', 'income', 'transfer'] : ['expense', 'income']) as MovementKind[]
+  // 3-way layout needs to fit "Transferencia"/"Transferência" without ellipsis on narrow phones.
+  // Icon-over-label (instead of icon-beside-label) plus an explicit non-truncating Paragraph
+  // (rather than letting the button auto-wrap a raw string, which defaults to 1 line + ellipsis)
+  // gives every label room to wrap to 2 lines instead of silently cutting off.
+  const stacked = options.length > 2
   return (
     <FintCard p="$1" bg="$muted" rounded="$7">
       <XStack gap="$1">
@@ -221,20 +226,31 @@ function MovementKindSelector({ allowTransfer, onValueChange, value }: { allowTr
           const selectedBg = option === 'income' ? '$green2' : option === 'transfer' ? '$blue2' : '$red2'
           const selectedColor = option === 'income' ? '$green11' : option === 'transfer' ? '$blue11' : '$red11'
           const iconColor = selected ? 'white' : '$color10'
+          const iconNode = option === 'income' ? <ArrowDownLeft size={stacked ? 14 : 16} color={iconColor} /> : option === 'transfer' ? <ArrowLeftRight size={stacked ? 14 : 16} color={iconColor} /> : <ArrowUpRight size={stacked ? 14 : 16} color={iconColor} />
+          const badge = <YStack width={stacked ? 24 : 30} height={stacked ? 24 : 30} rounded="$10" bg={selected ? accent : '$color4'} items="center" justify="center">{iconNode}</YStack>
+          const label = <Paragraph color={selected ? selectedColor : '$color10'} fontSize={stacked ? 12 : 14} fontWeight="700" numberOfLines={2} text="center" lineHeight={stacked ? 14 : undefined}>{t(`forms.${option}`)}</Paragraph>
           return (
             <FintButton
               key={option}
               flex={1}
-              minH={56}
+              minH={stacked ? 64 : 56}
               variant="solid"
               bg={selected ? selectedBg : 'transparent'}
-              color={selected ? selectedColor : '$color10'}
               borderColor={selected ? accent : 'transparent'}
               borderWidth={1}
-              icon={<YStack width={30} height={30} rounded="$10" bg={selected ? accent : '$color4'} items="center" justify="center">{option === 'income' ? <ArrowDownLeft size={16} color={iconColor} /> : option === 'transfer' ? <ArrowLeftRight size={16} color={iconColor} /> : <ArrowUpRight size={16} color={iconColor} />}</YStack>}
               onPress={() => onValueChange(option)}
             >
-              {t(`forms.${option}`)}
+              {stacked ? (
+                <YStack items="center" justify="center" gap="$1" px="$1">
+                  {badge}
+                  {label}
+                </YStack>
+              ) : (
+                <XStack items="center" gap="$2">
+                  {badge}
+                  {label}
+                </XStack>
+              )}
             </FintButton>
           )
         })}

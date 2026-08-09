@@ -281,7 +281,7 @@ export default function SettingsScreen() {
         <SettingsRow
           icon={<Mail size={19} color="$primary" />}
           label={t("settings.gmail")}
-          detail={t("settings.gmailDetail")}
+          // detail={t("settings.gmailDetail")}
           onPress={() => router.push("/gmail-settings")}
         />
         <SettingsRow
@@ -337,7 +337,7 @@ export default function SettingsScreen() {
         <SettingsRow
           icon={<Trash2 size={19} color="$red10" />}
           label={t("settings.deleteAccount")}
-          detail={t("settings.deleteAccountHint")}
+          // detail={t("settings.deleteAccountHint")}
           onPress={() => setDeleteDialogOpen(true)}
         />
       </SettingsGroup>

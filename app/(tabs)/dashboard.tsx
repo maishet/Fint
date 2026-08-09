@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowDownLeft,
+  ArrowLeftRight,
   ArrowUpRight,
   ChartNoAxesCombined,
   CheckCircle2,
@@ -9,7 +10,7 @@ import {
   Sparkles,
 } from "@tamagui/lucide-icons-2";
 import { Link } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { PieChart } from "react-native-gifted-charts";
 import {
@@ -378,32 +379,44 @@ function HeroMetric({
 
 function QuickActions() {
   const { t } = useTranslation();
+  type AccentTuple = readonly [accent: "$green9" | "$red9" | "$blue9", tint: "$green2" | "$red2" | "$blue2", textColor: "$green11" | "$red11" | "$blue11"];
+  const accents: Record<"income" | "expense" | "transfer", AccentTuple> = {
+    income: ["$green9", "$green2", "$green11"],
+    expense: ["$red9", "$red2", "$red11"],
+    transfer: ["$blue9", "$blue2", "$blue11"],
+  };
+  const actions: Array<{ type: "income" | "expense" | "transfer"; labelKey: string; icon: ReactNode }> = [
+    { type: "income", labelKey: "actions.newIncome", icon: <ArrowDownLeft size={16} color="white" /> },
+    { type: "expense", labelKey: "actions.newExpense", icon: <ArrowUpRight size={16} color="white" /> },
+    { type: "transfer", labelKey: "actions.newTransfer", icon: <ArrowLeftRight size={16} color="white" /> },
+  ];
 
   return (
-    <XStack gap="$3">
-      <Link
-        href={{ pathname: "/transaction-form", params: { type: "income" } }}
-        asChild
-      >
-        <FintButton
-          flex={1}
-          icon={<ArrowDownLeft size={16} color="$primaryForeground" />}
-        >
-          {t("actions.newIncome")}
-        </FintButton>
-      </Link>
-      <Link
-        href={{ pathname: "/transaction-form", params: { type: "expense" } }}
-        asChild
-      >
-        <FintButton
-          flex={1}
-          variant="outlined"
-          icon={<ArrowUpRight size={16} color="$primary" />}
-        >
-          {t("actions.newExpense")}
-        </FintButton>
-      </Link>
+    <XStack gap="$2">
+      {actions.map((action) => {
+        const [accent, tint, textColor] = accents[action.type];
+        return (
+          <Link key={action.type} href={{ pathname: "/transaction-form", params: { type: action.type } }} asChild>
+            <FintButton flex={1} minH={64} bg={tint} borderColor={accent} borderWidth={1} pressStyle={{ bg: tint, borderColor: accent, opacity: 0.85 }} hoverStyle={{ bg: tint, borderColor: accent }} px="$2">
+              <YStack items="center" justify="center" gap="$1.5">
+                <YStack width={26} height={26} rounded="$10" bg={accent} items="center" justify="center">
+                  {action.icon}
+                </YStack>
+                <Paragraph
+                  color={textColor}
+                  fontSize={12}
+                  fontWeight="700"
+                  numberOfLines={2}
+                  text="center"
+                  lineHeight={14}
+                >
+                  {t(action.labelKey)}
+                </Paragraph>
+              </YStack>
+            </FintButton>
+          </Link>
+        );
+      })}
     </XStack>
   );
 }
