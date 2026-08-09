@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "REPLACE_WITH_APPLE_TEAM_ID.com.fint.finanzasmobilev2",
+        "paths": ["/gmail-connected", "/gmail-connected/*"]
+      }
+    ]
+  }
+}

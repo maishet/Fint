@@ -15,14 +15,25 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "bundleIdentifier": "com.fint.finanzasmobilev2",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "associatedDomains": ["applinks:myfint.app"]
     },
     "android": {
       "package": "com.fint.finanzasmobilev2",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#07151D"
-      }
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            { "scheme": "https", "host": "myfint.app", "pathPrefix": "/gmail-connected" }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "bundler": "metro",

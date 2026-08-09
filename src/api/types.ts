@@ -63,6 +63,8 @@ export interface AppCapabilities {
 
 export type TransactionType = 'income' | 'expense'
 
+export type MovementKind = TransactionType | 'transfer'
+
 export type AccountType = 'cash' | 'credit_card' | 'checking_account' | 'savings_account'
 
 export interface Account {
@@ -76,7 +78,7 @@ export interface Account {
 export interface Transaction {
   id: string
   date: string
-  type: TransactionType
+  type: MovementKind
   amount: number
   currency: string
   category: string
@@ -84,6 +86,8 @@ export interface Transaction {
   note?: string
   paymentOccurrenceId?: string | null
   paymentOccurrencePaymentId?: string | null
+  transferGroupId?: string | null
+  transferDirection?: 'origin' | 'destination' | null
 }
 
 export interface Category {
@@ -168,6 +172,15 @@ export interface AccountOption {
   currency: string
 }
 
+export type TransferAccountMatch = { accountId: string; accountName: string } | null
+
+export interface PendingMovementTransferInfo {
+  originAccountName: string | null
+  destinationAccountName: string | null
+  originMatch: TransferAccountMatch
+  destinationMatch: TransferAccountMatch
+}
+
 export interface PendingMovementCard {
   id: string
   detectedAt: string
@@ -178,6 +191,7 @@ export interface PendingMovementCard {
   accountSuggestion: AccountOption | null
   requiresReview: boolean
   recognitionConfidence: number | null
+  transfer: PendingMovementTransferInfo | null
 }
 
 export interface PendingMovementPage {
@@ -198,6 +212,7 @@ export interface PendingMovementDetail {
   accountSuggestion: AccountOption | null
   requiresReview: boolean
   recognitionConfidence: number | null
+  transfer: PendingMovementTransferInfo | null
 }
 
 export interface PendingMovementsSummary {
@@ -450,7 +465,7 @@ export type ConfirmPendingInput =
       currency?: string
       transactionDate: string
       accountId: string
-      categoryId: string
+      categoryId?: string
       note?: string | null
     }
   | {
@@ -487,4 +502,25 @@ export interface DiscardPendingInput {
 export interface DiscardPendingResult {
   id: string
   status: 'discarded'
+}
+
+export interface CreateTransferInput {
+  originAccountId: string
+  destinationAccountId: string
+  amount: number
+  currency: string
+  transactionDate: string
+  note?: string | null
+  pendingMovementId?: string | null
+}
+
+export interface TransferResult {
+  transferGroupId: string
+  originTransactionId: string
+  destinationTransactionId: string
+}
+
+export interface TransferReverseResult {
+  transferGroupId: string
+  status: 'voided'
 }

@@ -15,6 +15,7 @@ import type {
   CreatePaymentRuleInput,
   CreateTransactionInput,
   CreateTransactionResult,
+  CreateTransferInput,
   DeleteAccountResult,
   CurrentUser,
   AppCapabilities,
@@ -49,6 +50,8 @@ import type {
   SupportReportInput,
   ExpenseCategoriesOverview,
   TransactionPage,
+  TransferResult,
+  TransferReverseResult,
 } from './types'
 
 function toQuery(params: { [key: string]: string | number | undefined }) {
@@ -123,6 +126,8 @@ export const financeApi = {
   getPendingMovement: (id: string, signal?: AbortSignal) => apiRequest<PendingMovementDetail>(`/api/pending-movements/${id}`, { signal }),
   confirmPendingMovement: (id: string, input: ConfirmPendingInput) => apiRequest<ConfirmPendingResult>(`/api/pending-movements/${id}/confirm`, { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey() }, body: JSON.stringify(input) }),
   discardPendingMovement: (id: string, input: DiscardPendingInput = {}) => apiRequest<DiscardPendingResult>(`/api/pending-movements/${id}/discard`, { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey() }, body: JSON.stringify(input) }),
+  createTransfer: (input: CreateTransferInput) => apiRequest<TransferResult>('/api/transfers', { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey() }, body: JSON.stringify(input) }),
+  reverseTransfer: (transferGroupId: string) => apiRequest<TransferReverseResult>(`/api/transfers/${transferGroupId}/reverse`, { method: 'POST' }),
   upsertPushInstallation: (installationId: string, input: PushInstallationInput) => apiRequest<{ id: string }>(`/api/push/installations/${installationId}`, { method: 'PUT', body: JSON.stringify(input) }),
   deletePushInstallation: (installationId: string) => apiRequest<{ id: string | null }>(`/api/push/installations/${installationId}`, { method: 'DELETE' }),
   startGmailOAuth: () => apiRequest<GmailOAuthStart>('/api/integrations/gmail/oauth/start'),

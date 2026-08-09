@@ -42,6 +42,50 @@ import { SensitiveAmountToggle } from "../../src/privacy/SensitiveAmountToggle";
 
 const PAGE_SIZE = 30;
 
+type MovementListItem =
+  | { kind: "movement"; movement: Transaction }
+  | {
+      kind: "transfer";
+      transferGroupId: string;
+      date: string;
+      amount: number;
+      currency: string;
+      origin: Transaction;
+      destination: Transaction;
+    };
+
+function groupMovements(movements: Transaction[]): MovementListItem[] {
+  const grouped: MovementListItem[] = [];
+  const seen = new Set<string>();
+  for (const movement of movements) {
+    if (movement.type === "transfer" && movement.transferGroupId) {
+      if (seen.has(movement.transferGroupId)) continue;
+      const legs = movements.filter(
+        (item) => item.transferGroupId === movement.transferGroupId,
+      );
+      const origin = legs.find((item) => item.transferDirection === "origin");
+      const destination = legs.find(
+        (item) => item.transferDirection === "destination",
+      );
+      if (origin && destination) {
+        seen.add(movement.transferGroupId);
+        grouped.push({
+          kind: "transfer",
+          transferGroupId: movement.transferGroupId,
+          date: origin.date,
+          amount: origin.amount,
+          currency: origin.currency,
+          origin,
+          destination,
+        });
+        continue;
+      }
+    }
+    grouped.push({ kind: "movement", movement });
+  }
+  return grouped;
+}
+
 function isoDate(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
@@ -65,6 +109,9 @@ export default function MovementsScreen() {
   const [summaryCurrency, setSummaryCurrency] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null);
   const [reverseTarget, setReverseTarget] = useState<Transaction | null>(null);
+  const [reverseTransferTarget, setReverseTransferTarget] = useState<
+    string | null
+  >(null);
   const range = monthRange(month);
   const movementsQuery = useInfiniteQuery({
     queryKey: ["transactions", "pages", range.from, range.to],
@@ -85,6 +132,7 @@ export default function MovementsScreen() {
   const movements = (
     movementsQuery.data?.pages.flatMap((page) => page.items) ?? []
   ).map(normalizeTransaction);
+  const movementItems = groupMovements(movements);
   const summary = movementsQuery.data?.pages[0]?.summary;
   const currencySummary =
     summary?.byCurrency.find((item) => item.currency === summaryCurrency) ??
@@ -191,6 +239,27 @@ export default function MovementsScreen() {
         queryClient.invalidateQueries({ queryKey: ["accounts"] }),
         queryClient.invalidateQueries({ queryKey: ["reports"] }),
         queryClient.invalidateQueries({ queryKey: ["pending-movements"] }),
+      ]);
+      toast.show(t("movementUx.revertedToast"), {
+        message: t("movementUx.revertedMessage"),
+        preset: "success",
+      });
+    },
+    onError: () =>
+      toast.show(t("movementUx.reverseError"), { preset: "error" }),
+  });
+
+  const reverseTransferMutation = useMutation({
+    mutationFn: (transferGroupId: string) =>
+      financeApi.reverseTransfer(transferGroupId),
+    onSuccess: async () => {
+      setReverseTransferTarget(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+        queryClient.invalidateQueries({ queryKey: ["summary"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+        queryClient.invalidateQueries({ queryKey: ["accounts"] }),
+        queryClient.invalidateQueries({ queryKey: ["reports"] }),
       ]);
       toast.show(t("movementUx.revertedToast"), {
         message: t("movementUx.revertedMessage"),
@@ -315,12 +384,14 @@ export default function MovementsScreen() {
   return (
     <YStack flex={1} bg="$background">
       <FlatList
-        data={movements}
-        keyExtractor={(item) => item.id}
+        data={movementItems}
+        keyExtractor={(item) =>
+          item.kind === "transfer" ? item.transferGroupId : item.movement.id
+        }
         contentContainerStyle={{
           padding: 16,
           paddingBottom: Math.max(insets.bottom, 24),
-          flexGrow: movements.length ? undefined : 1,
+          flexGrow: movementItems.length ? undefined : 1,
         }}
         ListHeaderComponent={header}
         ListEmptyComponent={
@@ -351,28 +422,45 @@ export default function MovementsScreen() {
             void movementsQuery.fetchNextPage();
         }}
         onEndReachedThreshold={0.35}
-        renderItem={({ item }) => (
-          <MovementCard
-            movement={item}
-            locale={i18n.language}
-            onDelete={() => setDeleteTarget(item)}
-            onEdit={() =>
-              router.push({
-                pathname: "/transaction-form",
-                params: {
-                  id: item.id,
-                  type: item.type,
-                  amount: String(item.amount),
-                  category: item.category,
-                  account: item.account,
-                  note: item.note ?? "",
-                  date: item.date,
-                },
-              })
-            }
-            onReverse={() => setReverseTarget(item)}
-          />
-        )}
+        renderItem={({ item }) =>
+          item.kind === "transfer" ? (
+            <TransferMovementCard
+              item={item}
+              locale={i18n.language}
+              onReverse={() => setReverseTransferTarget(item.transferGroupId)}
+            />
+          ) : (
+            <MovementCard
+              movement={item.movement}
+              locale={i18n.language}
+              onDelete={() => setDeleteTarget(item.movement)}
+              onEdit={() =>
+                router.push({
+                  pathname: "/transaction-form",
+                  params: {
+                    id: item.movement.id,
+                    type: item.movement.type as "income" | "expense",
+                    amount: String(item.movement.amount),
+                    category: item.movement.category,
+                    account: item.movement.account,
+                    note: item.movement.note ?? "",
+                    date: item.movement.date,
+                  },
+                })
+              }
+              onReverse={() => setReverseTarget(item.movement)}
+            />
+          )
+        }
+      />
+      <ReverseTransferDialog
+        isPending={reverseTransferMutation.isPending}
+        open={Boolean(reverseTransferTarget)}
+        onCancel={() => setReverseTransferTarget(null)}
+        onConfirm={() =>
+          reverseTransferTarget &&
+          reverseTransferMutation.mutate(reverseTransferTarget)
+        }
       />
       <DeleteMovementDialog
         movement={deleteTarget}
@@ -411,6 +499,7 @@ function MovementCard({
   const { t } = useTranslation();
   const { formatSensitiveAmount } = useSensitiveMoney();
   const isIncome = movement.type === "income";
+  const isStrandedTransfer = movement.type === "transfer";
   const isPayment = Boolean(movement.paymentOccurrenceId);
   return (
     <FintCard py="$3">
@@ -420,18 +509,20 @@ function MovementCard({
           minW={0}
           items="center"
           gap="$3"
-          role={isPayment ? undefined : "button"}
-          onPress={isPayment ? undefined : onEdit}
+          role={isPayment || isStrandedTransfer ? undefined : "button"}
+          onPress={isPayment || isStrandedTransfer ? undefined : onEdit}
         >
           <YStack
             width={42}
             height={42}
             rounded="$8"
-            bg={isIncome ? "$green2" : "$red2"}
+            bg={isStrandedTransfer ? "$accent2" : isIncome ? "$green2" : "$red2"}
             items="center"
             justify="center"
           >
-            {isIncome ? (
+            {isStrandedTransfer ? (
+              <ArrowLeftRight size={20} color="$primary" />
+            ) : isIncome ? (
               <ArrowDownLeft size={20} color="$green10" />
             ) : (
               <ArrowUpRight size={20} color="$red10" />
@@ -462,7 +553,7 @@ function MovementCard({
         </XStack>
         <YStack items="flex-end" gap="$1">
           <Paragraph
-            color={isIncome ? "$green10" : "$red10"}
+            color={isStrandedTransfer ? "$color11" : isIncome ? "$green10" : "$red10"}
             fontSize="$3"
             fontWeight="900"
           >
@@ -472,7 +563,7 @@ function MovementCard({
             <Button chromeless size="$2" onPress={onReverse}>
               {t("movementUx.reversePayment")}
             </Button>
-          ) : (
+          ) : isStrandedTransfer ? null : (
             <Button
               chromeless
               circular
@@ -485,6 +576,90 @@ function MovementCard({
         </YStack>
       </XStack>
     </FintCard>
+  );
+}
+
+function TransferMovementCard({
+  item,
+  locale,
+  onReverse,
+}: {
+  item: Extract<MovementListItem, { kind: "transfer" }>;
+  locale: string;
+  onReverse: () => void;
+}) {
+  const { t } = useTranslation();
+  const { formatSensitiveAmount } = useSensitiveMoney();
+  return (
+    <FintCard py="$3">
+      <XStack items="center" gap="$3">
+        <YStack
+          width={42}
+          height={42}
+          rounded="$8"
+          bg="$accent2"
+          items="center"
+          justify="center"
+        >
+          <ArrowLeftRight size={20} color="$primary" />
+        </YStack>
+        <YStack flex={1} minW={0} gap="$1">
+          <Paragraph
+            color="$color12"
+            fontSize="$3"
+            fontWeight="800"
+            numberOfLines={2}
+          >
+            {t("movementUx.transferCardTitle", {
+              origin: item.origin.account,
+              destination: item.destination.account,
+            })}
+          </Paragraph>
+          <Paragraph color="$color10" fontSize="$1" numberOfLines={1}>
+            {new Intl.DateTimeFormat(locale, {
+              day: "2-digit",
+              month: "short",
+            }).format(new Date(`${item.date}T00:00:00`))}
+          </Paragraph>
+        </YStack>
+        <YStack items="flex-end" gap="$1">
+          <Paragraph color="$color11" fontSize="$3" fontWeight="900">
+            {formatSensitiveAmount(item.amount, item.currency)}
+          </Paragraph>
+          <Button chromeless size="$2" onPress={onReverse}>
+            {t("movementUx.reverseTransfer")}
+          </Button>
+        </YStack>
+      </XStack>
+    </FintCard>
+  );
+}
+
+function ReverseTransferDialog({
+  isPending,
+  onCancel,
+  onConfirm,
+  open,
+}: {
+  isPending: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+  open: boolean;
+}) {
+  const { t } = useTranslation();
+  return (
+    <FintConfirmDialog
+      open={open}
+      isPending={isPending}
+      title={t("movementUx.reverseTransfer")}
+      description={t("movementUx.reverseTransferDescription")}
+      cancelLabel={t("actions.cancel")}
+      confirmLabel={t("movementUx.reverseTransfer")}
+      pendingLabel={t("movementUx.reversing")}
+      destructive
+      onCancel={onCancel}
+      onConfirm={onConfirm}
+    />
   );
 }
 
