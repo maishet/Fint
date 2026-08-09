@@ -9,7 +9,7 @@ import {
 import { useToastController } from "@tamagui/toast";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Text } from "react-native";
+import { ScrollView, Text } from "react-native";
 import { Button, Paragraph, Sheet, Spinner, XStack, YStack } from "tamagui";
 import EmojiPicker, { es, en, pt, type EmojiType } from "rn-emoji-keyboard";
 import { z } from "zod";
@@ -290,7 +290,11 @@ export function CreateCategorySheet({
                   <Paragraph color="$color10" fontSize="$1" fontWeight="700">
                     {t("categoryUx.suggestedEmoji")}
                   </Paragraph>
-                  <XStack gap="$2" flexWrap="wrap" rowGap="$2">
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap: 8, paddingRight: 4 }}
+                  >
                     {suggestedCategoryIcons(name, type).map((option) => (
                       <Button
                         key={option}
@@ -321,7 +325,7 @@ export function CreateCategorySheet({
                         </Text>
                       </Button>
                     ))}
-                  </XStack>
+                  </ScrollView>
                 </YStack>
               ) : null}
 

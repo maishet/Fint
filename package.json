@@ -5,6 +5,7 @@
   "main": "expo-router/entry",
   "scripts": {
     "postinstall": "node scripts/patch-expo-router.mjs",
+    "generate:emoji-index": "bun run scripts/generate-emoji-index.ts",
     "upgrade:tamagui": "bunx npm-check-updates -u '*tamagui*' '@tamagui/*' && bun install",
     "start": "bunx expo start -c",
     "android": "bunx expo run:android",
@@ -79,6 +80,7 @@
     "@tamagui/babel-plugin": "^2.4.0",
     "@types/bun": "1.3.9",
     "@types/react": "~19.2.10",
+    "emojibase-data": "^17.0.0",
     "serve": "^14.2.5",
     "typescript": "~5.9.2"
   },
