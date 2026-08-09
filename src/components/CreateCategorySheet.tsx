@@ -1,14 +1,26 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Shapes, X } from "@tamagui/lucide-icons-2";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  Save,
+  Shapes,
+  X,
+} from "@tamagui/lucide-icons-2";
 import { useToastController } from "@tamagui/toast";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Text } from "react-native";
 import { Button, Paragraph, Sheet, Spinner, XStack, YStack } from "tamagui";
 import EmojiPicker, { es, en, pt, type EmojiType } from "rn-emoji-keyboard";
 import { z } from "zod";
+import { ApiRequestError } from "../api/client";
 import { financeApi } from "../api/finance";
-import type { CreateCategoryResult, TransactionType } from "../api/types";
+import type {
+  Category,
+  CategoryMutationResult,
+  CreateCategoryResult,
+  TransactionType,
+} from "../api/types";
 import { FormTextField, MovementTypeSelector } from "./MovementFormControls";
 import { suggestedCategoryIcons } from "../finance/categoryIcons";
 import { getValidationMessage, useSubmitValidation } from "../forms";
@@ -19,14 +31,18 @@ import { useSheetBackHandler } from "../hooks/useSheetBackHandler";
 
 interface CreateCategorySheetProps {
   initialType: TransactionType;
+  category?: Category | null;
   onCreated?: (category: CreateCategoryResult) => void;
+  onUpdated?: (result: CategoryMutationResult) => void;
   onOpenChange: (open: boolean) => void;
   open: boolean;
 }
 
 export function CreateCategorySheet({
   initialType,
+  category,
   onCreated,
+  onUpdated,
   onOpenChange,
   open,
 }: CreateCategorySheetProps) {
@@ -35,6 +51,7 @@ export function CreateCategorySheet({
   const palette = fintPalette[themeMode];
   const toast = useToastController();
   const queryClient = useQueryClient();
+  const isEditing = Boolean(category);
   const [name, setName] = useState("");
   const [type, setType] = useState<TransactionType>(initialType);
   const [icon, setIcon] = useState("🛒");
@@ -58,21 +75,48 @@ export function CreateCategorySheet({
     validation.resetErrors();
   };
 
-  const mutation = useMutation({
+  useEffect(() => {
+    if (!open) return;
+    if (category) {
+      setName(category.name);
+      setType(category.type);
+      setIcon(category.icon || suggestedCategoryIcons(category.name, category.type)[0]);
+      setIconChanged(true);
+    } else {
+      reset();
+    }
+    setErrorMessage(null);
+    validation.resetErrors();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, category]);
+
+  const mutation = useMutation<CreateCategoryResult | CategoryMutationResult, Error, string>({
     mutationFn: (categoryName: string) =>
-      financeApi.createCategory({ name: categoryName, type, icon }),
-    onSuccess: async (created) => {
-      await queryClient.invalidateQueries({ queryKey: ["categories"] });
-      toast.show(t("categories.createdToast"), {
-        message: t("categories.createdMessage"),
+      isEditing
+        ? financeApi.updateCategory(category!.id, { name: categoryName, icon })
+        : financeApi.createCategory({ name: categoryName, type, icon }),
+    onSuccess: async (result) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["categories"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+        queryClient.invalidateQueries({ queryKey: ["reports"] }),
+        queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+      ]);
+      toast.show(t(isEditing ? "categories.updatedToast" : "categories.createdToast"), {
+        message: t(isEditing ? "categories.updatedMessage" : "categories.createdMessage"),
       });
       reset();
       onOpenChange(false);
-      onCreated?.(created);
+      if (isEditing) onUpdated?.(result as CategoryMutationResult);
+      else onCreated?.(result as CreateCategoryResult);
     },
     onError: (error) =>
       setErrorMessage(
-        error instanceof Error ? error.message : t("states.error"),
+        error instanceof ApiRequestError && error.code === "category_name_exists"
+          ? t("categories.duplicateName")
+          : error instanceof Error
+            ? error.message
+            : t("states.error"),
       ),
   });
 
@@ -85,7 +129,6 @@ export function CreateCategorySheet({
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && mutation.isPending) return;
     if (!nextOpen) reset();
-    if (nextOpen) setType(initialType);
     onOpenChange(nextOpen);
   };
   const closeSheet = useCallback(() => {
@@ -120,10 +163,10 @@ export function CreateCategorySheet({
                     fontSize="$7"
                     fontWeight="700"
                   >
-                    {t("categories.newTitle")}
+                    {t(isEditing ? "categories.editTitle" : "categories.newTitle")}
                   </Paragraph>
                   <Paragraph color="$color10">
-                    {t("categories.newSubtitle")}
+                    {t(isEditing ? "categories.editSubtitle" : "categories.newSubtitle")}
                   </Paragraph>
                 </YStack>
                 <Button
@@ -138,14 +181,51 @@ export function CreateCategorySheet({
                 />
               </XStack>
 
-              <MovementTypeSelector
-                value={type}
-                onValueChange={(value) => {
-                  setType(value);
-                  if (!iconChanged)
-                    setIcon(suggestedCategoryIcons(name, value)[0]);
-                }}
-              />
+              {isEditing ? (
+                <XStack
+                  items="center"
+                  gap="$2"
+                  bg="$muted"
+                  borderColor="$borderColor"
+                  borderWidth={1}
+                  rounded="$7"
+                  p="$3"
+                >
+                  <XStack
+                    items="center"
+                    gap="$1"
+                    bg={type === "income" ? "$green2" : "$red2"}
+                    px="$2"
+                    py="$1"
+                    rounded="$10"
+                  >
+                    {type === "income" ? (
+                      <ArrowDownLeft size={12} color="$green10" />
+                    ) : (
+                      <ArrowUpRight size={12} color="$red10" />
+                    )}
+                    <Paragraph
+                      color={type === "income" ? "$green11" : "$red11"}
+                      fontSize={10}
+                      fontWeight="800"
+                    >
+                      {t(`forms.${type}`)}
+                    </Paragraph>
+                  </XStack>
+                  <Paragraph color="$color10" fontSize="$1">
+                    {t("categoryUx.typeLocked")}
+                  </Paragraph>
+                </XStack>
+              ) : (
+                <MovementTypeSelector
+                  value={type}
+                  onValueChange={(value) => {
+                    setType(value);
+                    if (!iconChanged)
+                      setIcon(suggestedCategoryIcons(name, value)[0]);
+                  }}
+                />
+              )}
 
               <XStack
                 bg="$muted"
@@ -208,9 +288,9 @@ export function CreateCategorySheet({
               {name.trim() ? (
                 <YStack gap="$2">
                   <Paragraph color="$color10" fontSize="$1" fontWeight="700">
-                    {t("categoryUx.selectedEmoji")}
+                    {t("categoryUx.suggestedEmoji")}
                   </Paragraph>
-                  <XStack gap="$2">
+                  <XStack gap="$2" flexWrap="wrap" rowGap="$2">
                     {suggestedCategoryIcons(name, type).map((option) => (
                       <Button
                         key={option}
@@ -272,14 +352,16 @@ export function CreateCategorySheet({
                   icon={
                     mutation.isPending ? (
                       <Spinner color="$primaryForeground" />
+                    ) : isEditing ? (
+                      <Save size={18} />
                     ) : (
                       <Shapes size={18} />
                     )
                   }
                 >
                   {mutation.isPending
-                    ? t("categories.creating")
-                    : t("categories.create")}
+                    ? t(isEditing ? "categories.updating" : "categories.creating")
+                    : t(isEditing ? "categories.update" : "categories.create")}
                 </FintButton>
                 <FintButton
                   width="100%"

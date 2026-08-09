@@ -428,6 +428,15 @@ export interface CreateCategoryResult {
   created: boolean
 }
 
+export interface UpdateCategoryInput {
+  name?: string
+  icon?: string
+}
+
+export interface CategoryMutationResult {
+  id: string
+}
+
 export interface CreateTransactionInput {
   type: TransactionType
   amount: number
