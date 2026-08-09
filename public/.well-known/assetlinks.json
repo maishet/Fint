@@ -4,7 +4,7 @@
     "target": {
       "namespace": "android_app",
       "package_name": "com.fint.finanzasmobilev2",
-      "sha256_cert_fingerprints": ["REPLACE_WITH_SHA256_CERT_FINGERPRINT"]
+      "sha256_cert_fingerprints": ["C6:85:6D:3B:D6:24:59:C4:BD:50:67:5B:9B:10:C3:B4:F1:DF:B2:C9:E8:4C:65:E0:1C:B6:6D:76:41:E5:4E:5A"]
     }
   }
 ]
