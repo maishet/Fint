@@ -22,17 +22,7 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#07151D"
-      },
-      "intentFilters": [
-        {
-          "action": "VIEW",
-          "autoVerify": true,
-          "data": [
-            { "scheme": "https", "host": "myfint.app", "pathPrefix": "/gmail-connected" }
-          ],
-          "category": ["BROWSABLE", "DEFAULT"]
-        }
-      ]
+      }
     },
     "web": {
       "bundler": "metro",
@@ -53,7 +43,6 @@
           }
         }
       ],
-      "expo-web-browser",
       "expo-localization",
       "expo-secure-store",
       "@react-native-google-signin/google-signin",

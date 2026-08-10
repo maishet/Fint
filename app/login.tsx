@@ -1,5 +1,3 @@
-import * as ExpoLinking from "expo-linking";
-import * as WebBrowser from "expo-web-browser";
 import {
   Eye,
   EyeOff,
@@ -27,8 +25,6 @@ import { useAuth } from "../src/auth/AuthProvider";
 import { getValidationMessage, useSubmitValidation } from "../src/forms";
 import { FintButton, FintCard } from "../src/ui";
 
-WebBrowser.maybeCompleteAuthSession();
-
 export default function LoginScreen() {
   const { i18n, t } = useTranslation();
   const { session, signIn, signInWithGoogle, signUp } = useAuth();
@@ -54,8 +50,6 @@ export default function LoginScreen() {
   );
 
   if (session) return <Redirect href="/" />;
-
-  const redirectTo = ExpoLinking.createURL("auth/callback");
 
   const runAuthAction = async (action: "signin" | "signup" | "google") => {
     let submittedEmail = email.trim();
@@ -128,7 +122,7 @@ export default function LoginScreen() {
               submittedPassword,
               submittedDisplayName,
             )
-          : await signInWithGoogle(redirectTo);
+          : await signInWithGoogle();
 
     if (!isMountedRef.current) return;
     if (result.error) {

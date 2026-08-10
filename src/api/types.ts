@@ -229,11 +229,6 @@ export interface GmailSource {
   lastSyncAt?: string | null
 }
 
-export interface GmailOAuthStart {
-  authUrl: string
-  expiresInSeconds: number
-}
-
 export interface GmailNativeOAuthResult {
   emailAddress: string
 }

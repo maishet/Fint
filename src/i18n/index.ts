@@ -127,7 +127,6 @@ const resources = {
           "Conecta hasta tres correos y limita la lectura a remitentes de movimientos financieros.",
         preferences: "Gmail y sincronización",
         connect: "Conectar otro correo",
-        connected: "Gmail conectado",
         empty: "Aún no tienes cuentas Gmail conectadas.",
         senders: "Remitentes permitidos",
         sendersHelp:
@@ -597,7 +596,6 @@ const resources = {
           "Connect up to three inboxes and limit processing to financial notification senders.",
         preferences: "Gmail and sync",
         connect: "Connect another account",
-        connected: "Gmail connected",
         empty: "You have no connected Gmail accounts yet.",
         senders: "Allowed senders",
         sendersHelp:

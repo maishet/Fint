@@ -1,11 +1,9 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { useQueryClient } from '@tanstack/react-query'
-import * as WebBrowser from 'expo-web-browser'
 import { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } from '@react-native-google-signin/google-signin'
 import { AppState, Platform } from 'react-native'
 import { supabase } from './supabase'
-import { completeAuthSession } from './completeAuthSession'
 import { GOOGLE_SIGNIN_BASE_CONFIG } from './googleSignIn'
 import { registerPushInstallation, unregisterPushInstallation } from '../notifications/pushNotifications'
 
@@ -22,7 +20,7 @@ interface AuthContextValue {
   session: Session | null
   signIn: (email: string, password: string) => Promise<AuthResult>
   signUp: (email: string, password: string, displayName: string) => Promise<AuthResult>
-  signInWithGoogle: (redirectTo: string) => Promise<AuthResult>
+  signInWithGoogle: () => Promise<AuthResult>
   updateDisplayName: (displayName: string) => Promise<AuthResult>
   signOut: () => Promise<void>
 }
@@ -89,10 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { error } = await supabase.auth.signUp({ email, password, options: { data: { display_name: displayName.trim() } } })
         return { error }
       },
-      async signInWithGoogle(redirectTo) {
-        if (Platform.OS === 'web') return signInWithGoogleWeb(redirectTo)
-        return signInWithGoogleNative()
-      },
+      signInWithGoogle: signInWithGoogleNative,
       async updateDisplayName(displayName) {
         const { error } = await supabase.auth.updateUser({ data: { display_name: displayName.trim() } })
         return { error }
@@ -121,23 +116,6 @@ export function useAuth() {
   return value
 }
 
-async function signInWithGoogleWeb(redirectTo: string): Promise<AuthResult> {
-  logOAuthDebug('redirectTo', redirectTo)
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo, skipBrowserRedirect: true },
-  })
-  if (error || !data.url) return { error }
-  logOAuthDebug('providerUrl', redactUrl(data.url))
-
-  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo)
-  if (result.type !== 'success') return { error: null }
-  logOAuthDebug('callbackUrl', redactUrl(result.url))
-
-  const { error: sessionError } = await completeAuthSession({ url: result.url })
-  return { error: sessionError }
-}
-
 async function signInWithGoogleNative(): Promise<AuthResult> {
   try {
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true })
@@ -155,20 +133,7 @@ async function signInWithGoogleNative(): Promise<AuthResult> {
   }
 }
 
-function logOAuthDebug(label: string, value: string) {
-  if (__DEV__) console.log(`[Fint OAuth] ${label}: ${value}`)
-}
-
 function logSessionExpiry(session: Session | null) {
   if (!__DEV__ || !session?.expires_at) return
   console.log(`[Fint Auth] Access token expires at ${new Date(session.expires_at * 1000).toISOString()} and will refresh automatically.`)
-}
-
-function redactUrl(url: string) {
-  return url
-    .replace(/([?#&]code=)[^&#]+/g, '$1<redacted>')
-    .replace(/([?#&]access_token=)[^&#]+/g, '$1<redacted>')
-    .replace(/([?#&]refresh_token=)[^&#]+/g, '$1<redacted>')
-    .replace(/([?#&]provider_token=)[^&#]+/g, '$1<redacted>')
-    .replace(/([?#&]provider_refresh_token=)[^&#]+/g, '$1<redacted>')
 }

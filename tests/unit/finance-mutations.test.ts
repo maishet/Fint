@@ -100,9 +100,9 @@ test('preserves API validation errors for a failed financial mutation', async ()
 })
 
 test('sends Gmail OAuth, sender configuration, sync, and disconnect contracts', async () => {
-  fetchMock.mockResolvedValueOnce(respond({ authUrl: 'https://accounts.google.com/o/oauth2/v2/auth?state=test' }))
-  await financeApi.startGmailOAuth()
-  expectRequest('/api/integrations/gmail/oauth/start', 'GET')
+  fetchMock.mockResolvedValueOnce(respond({ emailAddress: 'user@example.com' }))
+  await financeApi.connectGmailNative('server-auth-code')
+  expectRequest('/api/integrations/gmail/oauth/native-callback', 'POST', { serverAuthCode: 'server-auth-code' })
 
   const config = { labelIds: ['INBOX'], senderFilters: ['alerts@bank.example', 'receipts@store.example'] }
   fetchMock.mockResolvedValueOnce(respond({ id: 'source-1', ...config }))

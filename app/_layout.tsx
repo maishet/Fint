@@ -254,10 +254,6 @@ function RootLayoutNav() {
             }}
           />
           <Stack.Screen
-            name="gmail-connected"
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
             name="categories"
             options={{
               title: t("categories.routeTitle"),

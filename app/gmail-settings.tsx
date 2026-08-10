@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Mail, Plus, RefreshCw, Save, Trash2 } from "@tamagui/lucide-icons-2";
 import { useToastController } from "@tamagui/toast";
-import * as WebBrowser from "expo-web-browser";
 import {
   GoogleSignin,
   isErrorWithCode,
@@ -9,7 +8,6 @@ import {
   statusCodes,
 } from "@react-native-google-signin/google-signin";
 import { useState } from "react";
-import { Platform } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Paragraph, Spinner, XStack, YStack } from "tamagui";
 import { z } from "zod";
@@ -30,14 +28,6 @@ import {
   FintFormField,
   FintInput,
 } from "../src/ui";
-
-async function connectGmailWeb() {
-  const { authUrl } = await financeApi.startGmailOAuth();
-  await WebBrowser.openAuthSessionAsync(
-    authUrl,
-    "finanzasmobilev2://gmail-connected",
-  );
-}
 
 async function connectGmailNative() {
   GoogleSignin.configure({
@@ -77,8 +67,7 @@ export default function GmailSettingsScreen() {
     retry: false,
   });
   const connectMutation = useMutation({
-    mutationFn: () =>
-      Platform.OS === "web" ? connectGmailWeb() : connectGmailNative(),
+    mutationFn: connectGmailNative,
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["gmail-sources"] }),

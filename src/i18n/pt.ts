@@ -114,7 +114,6 @@ export const ptTranslation = {
       "Conecte até três caixas de entrada e limite o processamento aos remetentes financeiros.",
     preferences: "Gmail e sincronização",
     connect: "Conectar outra conta",
-    connected: "Gmail conectado",
     empty: "Você ainda não possui contas Gmail conectadas.",
     senders: "Remetentes permitidos",
     sendersHelp:
