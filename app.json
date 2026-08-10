@@ -7,11 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "finanzasmobilev2",
     "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/images/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#07151D"
-    },
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "bundleIdentifier": "com.fint.finanzasmobilev2",
@@ -45,6 +40,15 @@
       ],
       "expo-localization",
       "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#07151D"
+        }
+      ],
       "@react-native-google-signin/google-signin",
       [
         "expo-notifications",
