@@ -23,6 +23,7 @@
     "sentry:privacy-test": "bun test tests/unit/sentry-privacy.test.ts"
   },
   "dependencies": {
+    "@react-native-google-signin/google-signin": "^16.1.4",
     "@sentry/react-native": "~7.11.0",
     "@supabase/supabase-js": "^2.87.0",
     "@tamagui/colors": "^2.4.0",
@@ -39,6 +40,7 @@
     "expo-auth-session": "~55.0.17",
     "expo-build-properties": "~55.0.16",
     "expo-constants": "~55.0.17",
+    "expo-dev-client": "~55.0.37",
     "expo-device": "~55.0.19",
     "expo-file-system": "~55.0.24",
     "expo-font": "~55.0.4",

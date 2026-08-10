@@ -234,6 +234,10 @@ export interface GmailOAuthStart {
   expiresInSeconds: number
 }
 
+export interface GmailNativeOAuthResult {
+  emailAddress: string
+}
+
 export interface GmailSourceConfigInput {
   labelIds: string[]
   senderFilters: string[]

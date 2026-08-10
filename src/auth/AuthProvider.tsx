@@ -2,10 +2,16 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { useQueryClient } from '@tanstack/react-query'
 import * as WebBrowser from 'expo-web-browser'
+import { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } from '@react-native-google-signin/google-signin'
 import { AppState, Platform } from 'react-native'
 import { supabase } from './supabase'
 import { completeAuthSession } from './completeAuthSession'
+import { GOOGLE_SIGNIN_BASE_CONFIG } from './googleSignIn'
 import { registerPushInstallation, unregisterPushInstallation } from '../notifications/pushNotifications'
+
+if (Platform.OS !== 'web') {
+  GoogleSignin.configure(GOOGLE_SIGNIN_BASE_CONFIG)
+}
 
 interface AuthResult {
   error: Error | null
@@ -84,20 +90,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error }
       },
       async signInWithGoogle(redirectTo) {
-        logOAuthDebug('redirectTo', redirectTo)
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: { redirectTo, skipBrowserRedirect: true },
-        })
-        if (error || !data.url) return { error }
-        logOAuthDebug('providerUrl', redactUrl(data.url))
-
-        const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo)
-        if (result.type !== 'success') return { error: null }
-        logOAuthDebug('callbackUrl', redactUrl(result.url))
-
-        const { error: sessionError } = await completeAuthSession({ url: result.url })
-        return { error: sessionError }
+        if (Platform.OS === 'web') return signInWithGoogleWeb(redirectTo)
+        return signInWithGoogleNative()
       },
       async updateDisplayName(displayName) {
         const { error } = await supabase.auth.updateUser({ data: { display_name: displayName.trim() } })
@@ -105,6 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       async signOut() {
         await unregisterPushInstallation().catch(() => undefined)
+        if (Platform.OS !== 'web') await GoogleSignin.signOut().catch(() => undefined)
         const { error } = await supabase.auth.signOut()
         if (error) {
           const { error: localError } = await supabase.auth.signOut({ scope: 'local' })
@@ -124,6 +119,40 @@ export function useAuth() {
   const value = useContext(AuthContext)
   if (!value) throw new Error('useAuth must be used inside AuthProvider')
   return value
+}
+
+async function signInWithGoogleWeb(redirectTo: string): Promise<AuthResult> {
+  logOAuthDebug('redirectTo', redirectTo)
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo, skipBrowserRedirect: true },
+  })
+  if (error || !data.url) return { error }
+  logOAuthDebug('providerUrl', redactUrl(data.url))
+
+  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo)
+  if (result.type !== 'success') return { error: null }
+  logOAuthDebug('callbackUrl', redactUrl(result.url))
+
+  const { error: sessionError } = await completeAuthSession({ url: result.url })
+  return { error: sessionError }
+}
+
+async function signInWithGoogleNative(): Promise<AuthResult> {
+  try {
+    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true })
+    const response = await GoogleSignin.signIn()
+    if (!isSuccessResponse(response)) return { error: null }
+
+    const idToken = response.data.idToken
+    if (!idToken) return { error: new Error('missing_google_id_token') }
+
+    const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token: idToken })
+    return { error }
+  } catch (error) {
+    if (isErrorWithCode(error) && error.code === statusCodes.SIGN_IN_CANCELLED) return { error: null }
+    return { error: error instanceof Error ? error : new Error(String(error)) }
+  }
 }
 
 function logOAuthDebug(label: string, value: string) {

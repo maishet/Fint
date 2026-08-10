@@ -2,12 +2,23 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Mail, Plus, RefreshCw, Save, Trash2 } from "@tamagui/lucide-icons-2";
 import { useToastController } from "@tamagui/toast";
 import * as WebBrowser from "expo-web-browser";
+import {
+  GoogleSignin,
+  isErrorWithCode,
+  isSuccessResponse,
+  statusCodes,
+} from "@react-native-google-signin/google-signin";
 import { useState } from "react";
+import { Platform } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Paragraph, Spinner, XStack, YStack } from "tamagui";
 import { z } from "zod";
 import { financeApi } from "../src/api/finance";
 import type { GmailSource } from "../src/api/types";
+import {
+  GMAIL_READONLY_SCOPE,
+  GOOGLE_SIGNIN_BASE_CONFIG,
+} from "../src/auth/googleSignIn";
 import { DataStateCard } from "../src/components/DataStateCard";
 import { Screen } from "../src/components/Screen";
 import { SkeletonBlock, SkeletonGroup } from "../src/components/Skeleton";
@@ -20,27 +31,65 @@ import {
   FintInput,
 } from "../src/ui";
 
+async function connectGmailWeb() {
+  const { authUrl } = await financeApi.startGmailOAuth();
+  await WebBrowser.openAuthSessionAsync(
+    authUrl,
+    "finanzasmobilev2://gmail-connected",
+  );
+}
+
+async function connectGmailNative() {
+  GoogleSignin.configure({
+    ...GOOGLE_SIGNIN_BASE_CONFIG,
+    offlineAccess: true,
+    scopes: [GMAIL_READONLY_SCOPE],
+    // Sin esto, si el usuario ya había concedido este scope antes, Google no
+    // reemite un refresh token y el backend se queda sin acceso persistente.
+    forceCodeForRefreshToken: true,
+  });
+  try {
+    // Sin esto, si ya hay una sesión nativa de Google en caché (p.ej. del login),
+    // signIn() la reutiliza en silencio y nunca muestra el selector de cuenta.
+    await GoogleSignin.signOut().catch(() => undefined);
+    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+    const response = await GoogleSignin.signIn();
+    if (!isSuccessResponse(response)) return;
+
+    const serverAuthCode = response.data.serverAuthCode;
+    if (!serverAuthCode) throw new Error("missing_gmail_server_auth_code");
+    await financeApi.connectGmailNative(serverAuthCode);
+  } catch (error) {
+    if (isErrorWithCode(error) && error.code === statusCodes.SIGN_IN_CANCELLED) return;
+    throw error;
+  } finally {
+    GoogleSignin.configure(GOOGLE_SIGNIN_BASE_CONFIG);
+  }
+}
+
 export default function GmailSettingsScreen() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const toast = useToastController();
   const sourcesQuery = useQuery({
     queryKey: ["gmail-sources"],
     queryFn: financeApi.listGmailSources,
     retry: false,
   });
   const connectMutation = useMutation({
-    mutationFn: async () => {
-      const { authUrl } = await financeApi.startGmailOAuth();
-      return WebBrowser.openAuthSessionAsync(
-        authUrl,
-        "finanzasmobilev2://gmail-connected",
-      );
-    },
+    mutationFn: () =>
+      Platform.OS === "web" ? connectGmailWeb() : connectGmailNative(),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["gmail-sources"] }),
         queryClient.invalidateQueries({ queryKey: ["me"] }),
       ]);
+    },
+    onError: (error) => {
+      toast.show(t("states.error"), {
+        message: error instanceof Error ? error.message : undefined,
+        preset: "error",
+      });
     },
   });
   const connect = () => connectMutation.mutate();
