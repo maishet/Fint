@@ -16,7 +16,7 @@
       "package": "com.fint.finanzasmobilev2",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#07151D"
+        "backgroundColor": "#087F91"
       }
     },
     "web": {
