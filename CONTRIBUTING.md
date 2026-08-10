@@ -1,6 +1,6 @@
-# Contribuir A Fint
+# Contribuir A My Fint
 
-Gracias por considerar una contribucion a Fint. Buscamos cambios pequenos, claros y faciles de revisar que preserven la privacidad y la calidad de la experiencia financiera.
+Gracias por considerar una contribucion a My Fint. Buscamos cambios pequenos, claros y faciles de revisar que preserven la privacidad y la calidad de la experiencia financiera.
 
 ## Antes De Empezar
 
@@ -12,7 +12,7 @@ Gracias por considerar una contribucion a Fint. Buscamos cambios pequenos, claro
 ## Entorno Local
 
 ```bash
-git clone https://github.com/maishet/finanzas-mobilev2.git
+git clone https://github.com/maishet/Fint.git finanzas-mobilev2
 cd finanzas-mobilev2
 bun install --frozen-lockfile
 ```

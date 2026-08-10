@@ -90,7 +90,7 @@ export default function OnboardingScreen() {
           fontWeight="800"
           textTransform="uppercase"
         >
-          Fint
+          My Fint
         </Paragraph>
         <Button
           chromeless

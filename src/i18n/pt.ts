@@ -1,6 +1,6 @@
 export const ptTranslation = {
   auth: {
-    title: "Fint",
+    title: "My Fint",
     subtitle: "Controle suas contas, movimentações e dívidas em um só lugar.",
     email: "E-mail",
     password: "Senha",
@@ -10,11 +10,11 @@ export const ptTranslation = {
     google: "Continuar com Google",
     headline: "Dinheiro claro, mente tranquila.",
     intro:
-      "Registre despesas, receitas e dívidas. A Fint ajuda você a entender o seu mês.",
+      "Registre despesas, receitas e dívidas. A My Fint ajuda você a entender o seu mês.",
     welcome: "Que bom ter você de volta",
     registerTitle: "Crie sua conta",
     loginHint: "Entre para revisar suas finanças.",
-    registerHint: "Comece a organizar seu dinheiro com a Fint.",
+    registerHint: "Comece a organizar seu dinheiro com a My Fint.",
     noAccount: "Não tem uma conta?",
     hasAccount: "Já tem uma conta?",
     registerLink: "Cadastre-se",
@@ -315,7 +315,7 @@ export const ptTranslation = {
     skip: "Pular",
     start: "Começar",
     next: "Avançar",
-    finish: "Entrar no Fint",
+    finish: "Entrar no My Fint",
     finishing: "Preparando...",
     completeError: "Não foi possível concluir o onboarding. Tente novamente.",
     notifications: {
@@ -334,7 +334,7 @@ export const ptTranslation = {
     slides: {
       welcome: {
         title: "Seu dinheiro mais claro",
-        subtitle: "A Fint ajuda você a entender o mês sem complicação.",
+        subtitle: "A My Fint ajuda você a entender o mês sem complicação.",
         bullets: [
           "Centralize suas contas.",
           "Entenda receitas e despesas.",

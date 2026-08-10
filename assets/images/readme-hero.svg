@@ -37,7 +37,7 @@
       <circle cx="253" cy="131" r="2" fill="#D9F6FF"/>
     </g>
 
-    <text x="88" y="188" fill="#F7FCFF" font-family="Arial, Helvetica, sans-serif" font-size="88" font-weight="700" letter-spacing="-4">Fint</text>
+    <text x="88" y="188" fill="#F7FCFF" font-family="Arial, Helvetica, sans-serif" font-size="88" font-weight="700" letter-spacing="-4">My Fint</text>
     <text x="92" y="239" fill="#BFEFFF" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="400" letter-spacing="0.2">Tu panorama financiero, claro.</text>
     <rect x="92" y="277" width="56" height="4" rx="2" fill="#53C5ED"/>
     <text x="162" y="287" fill="#D9F6FF" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="600" letter-spacing="2.4">OPEN SOURCE PERSONAL FINANCE</text>

@@ -72,7 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!session) return
-    registerPushInstallation().catch((error) => console.warn('[Fint Push] automatic register failed', error instanceof Error ? error.message : String(error)))
+    registerPushInstallation().catch((error) => console.warn('[My Fint Push] automatic register failed', error instanceof Error ? error.message : String(error)))
   }, [session])
 
   const value = useMemo<AuthContextValue>(
@@ -135,5 +135,5 @@ async function signInWithGoogleNative(): Promise<AuthResult> {
 
 function logSessionExpiry(session: Session | null) {
   if (!__DEV__ || !session?.expires_at) return
-  console.log(`[Fint Auth] Access token expires at ${new Date(session.expires_at * 1000).toISOString()} and will refresh automatically.`)
+  console.log(`[My Fint Auth] Access token expires at ${new Date(session.expires_at * 1000).toISOString()} and will refresh automatically.`)
 }

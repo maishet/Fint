@@ -75,7 +75,7 @@ export default function SettingsScreen() {
         ? metadata.full_name
         : typeof metadata.name === "string"
           ? metadata.name
-          : (session?.user.email ?? "Fint");
+          : (session?.user.email ?? "My Fint");
   const avatarUrl =
     typeof metadata.avatar_url === "string"
       ? metadata.avatar_url

@@ -14,7 +14,7 @@
 
 Las fuentes ya estan configuradas en `tamagui.config.ts` y se cargan en `app/_layout.tsx` desde esta carpeta.
 
-`Inter` se usa en titulos, cuerpo, formularios, navegacion, numeros, importes y graficos para mantener una identidad consistente con Fint web.
+`Inter` se usa en titulos, cuerpo, formularios, navegacion, numeros, importes y graficos para mantener una identidad consistente con My Fint web.
 
 ## Instalación
 

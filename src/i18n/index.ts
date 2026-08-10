@@ -13,7 +13,7 @@ const resources = {
   es: {
     translation: {
       auth: {
-        title: "Fint",
+        title: "My Fint",
         subtitle:
           "Controla tus cuentas, movimientos y deudas desde un solo lugar.",
         email: "Correo",
@@ -24,11 +24,11 @@ const resources = {
         google: "Continuar con Google",
         headline: "Dinero claro, mente tranquila.",
         intro:
-          "Registra gastos, ingresos y deudas. Fint te ayuda a ver tu mes sin enredos.",
+          "Registra gastos, ingresos y deudas. My Fint te ayuda a ver tu mes sin enredos.",
         welcome: "Qué gusto verte de nuevo",
         registerTitle: "Crea tu cuenta",
         loginHint: "Entra para revisar tus finanzas.",
-        registerHint: "Empieza a ordenar tu dinero desde Fint.",
+        registerHint: "Empieza a ordenar tu dinero desde My Fint.",
         noAccount: "¿No tienes cuenta?",
         hasAccount: "¿Ya tienes cuenta?",
         registerLink: "Regístrate",
@@ -331,7 +331,7 @@ const resources = {
         skip: "Omitir",
         start: "Comenzar",
         next: "Siguiente",
-        finish: "Entrar a Fint",
+        finish: "Entrar a My Fint",
         finishing: "Preparando...",
         completeError:
           "No pudimos completar la configuración inicial. Intenta nuevamente.",
@@ -352,7 +352,7 @@ const resources = {
         slides: {
           welcome: {
             title: "Tu dinero, más claro",
-            subtitle: "Fint te ayuda a entender tu mes sin complicarte.",
+            subtitle: "My Fint te ayuda a entender tu mes sin complicarte.",
             bullets: [
               "Centraliza tus cuentas.",
               "Entiende ingresos y gastos.",
@@ -483,7 +483,7 @@ const resources = {
   en: {
     translation: {
       auth: {
-        title: "Fint",
+        title: "My Fint",
         subtitle: "Track accounts, transactions, and debts in one place.",
         email: "Email",
         password: "Password",
@@ -493,11 +493,11 @@ const resources = {
         google: "Continue with Google",
         headline: "Clear money, calm mind.",
         intro:
-          "Track expenses, income, and debts. Fint helps you understand your month without friction.",
+          "Track expenses, income, and debts. My Fint helps you understand your month without friction.",
         welcome: "Good to see you again",
         registerTitle: "Create your account",
         loginHint: "Sign in to review your finances.",
-        registerHint: "Start organizing your money with Fint.",
+        registerHint: "Start organizing your money with My Fint.",
         noAccount: "No account?",
         hasAccount: "Already have an account?",
         registerLink: "Register",
@@ -799,7 +799,7 @@ const resources = {
         skip: "Skip",
         start: "Start",
         next: "Next",
-        finish: "Start using Fint",
+        finish: "Start using My Fint",
         finishing: "Preparing...",
         completeError: "We could not complete onboarding. Try again.",
         notifications: {
@@ -818,7 +818,7 @@ const resources = {
         slides: {
           welcome: {
             title: "A clearer view of your money",
-            subtitle: "Fint helps you understand your month without friction.",
+            subtitle: "My Fint helps you understand your month without friction.",
             bullets: [
               "Centralize your accounts.",
               "Understand income and expenses.",
@@ -1011,18 +1011,18 @@ i18n.addResourceBundle(
       help: "Reportar un problema",
       suggestion: "Solicitar una mejora",
       shareSection: "Compartir y comunidad",
-      shareApp: "Compartir Fint",
+      shareApp: "Compartir My Fint",
       shareAppDetail: "Invita a alguien usando myfint.app",
-      shareMessage: "Organiza tus finanzas con Fint: https://myfint.app",
+      shareMessage: "Organiza tus finanzas con My Fint: https://myfint.app",
       github: "Ver GitHub",
       githubDetail: "Código fuente y seguimiento técnico",
       rateStore: "Califícanos en la tienda",
-      rateStorePending: "Disponible cuando Fint esté publicado en Google Play.",
+      rateStorePending: "Disponible cuando My Fint esté publicado en Google Play.",
       legal: "Legal",
       privacy: "Política de privacidad",
       privacyDetail: "Cómo protegemos y utilizamos tus datos",
       terms: "Términos y condiciones",
-      termsDetail: "Reglas y condiciones de uso de Fint",
+      termsDetail: "Reglas y condiciones de uso de My Fint",
       legalUnavailable:
         "Este documento aún no tiene una URL pública configurada.",
       session: "Cuenta",
@@ -1073,7 +1073,7 @@ i18n.addResourceBundle(
       submit: "Reportar un problema",
       confirmTitle: "Enviar correo a soporte",
       confirmMessage:
-        "Fint enviará este reporte por correo a nuestro equipo de soporte. ¿Deseas continuar?",
+        "My Fint enviará este reporte por correo a nuestro equipo de soporte. ¿Deseas continuar?",
       confirmSend: "Enviar",
       submitting: "Enviando reporte...",
       submitSuccess: "Correo enviado a soporte. Te responderemos si necesitamos más detalles.",
@@ -1121,7 +1121,7 @@ i18n.addResourceBundle(
     },
     webContent: {
       title: "Contenido",
-      loadError: "No pudimos cargar este contenido dentro de Fint.",
+      loadError: "No pudimos cargar este contenido dentro de My Fint.",
     },
     reports: {
       title: "Cierre financiero",
@@ -1239,8 +1239,8 @@ i18n.addResourceBundle(
       transferCardTitle: "Transferencia: {{origin}} → {{destination}}",
       transferOutTitle: "Salida de {{account}}",
       transferInTitle: "Entrada a {{account}}",
-      transferNoteToOutside: "Hacia una cuenta que no está en Fint",
-      transferNoteFromOutside: "Desde una cuenta que no está en Fint",
+      transferNoteToOutside: "Hacia una cuenta que no está en My Fint",
+      transferNoteFromOutside: "Desde una cuenta que no está en My Fint",
       transferUnknownTitle: "No reconocimos ninguna cuenta tuya en este correo",
       transferUnknownHint: "Probablemente no te interesa, salvo que sí sea tuya.",
       transferRegisterManually: "Es mío, registrar manualmente",
@@ -1389,18 +1389,18 @@ i18n.addResourceBundle(
       help: "Report a problem",
       suggestion: "Request an improvement",
       shareSection: "Share and community",
-      shareApp: "Share Fint",
+      shareApp: "Share My Fint",
       shareAppDetail: "Invite someone using myfint.app",
-      shareMessage: "Organize your finances with Fint: https://myfint.app",
+      shareMessage: "Organize your finances with My Fint: https://myfint.app",
       github: "View GitHub",
       githubDetail: "Source code and technical tracking",
       rateStore: "Rate us in the store",
-      rateStorePending: "Available when Fint is published on Google Play.",
+      rateStorePending: "Available when My Fint is published on Google Play.",
       legal: "Legal",
       privacy: "Privacy policy",
       privacyDetail: "How we protect and use your data",
       terms: "Terms and conditions",
-      termsDetail: "Rules and conditions for using Fint",
+      termsDetail: "Rules and conditions for using My Fint",
       legalUnavailable:
         "This document does not have a public URL configured yet.",
       session: "Account",
@@ -1449,7 +1449,7 @@ i18n.addResourceBundle(
       submit: "Report a problem",
       confirmTitle: "Send support email",
       confirmMessage:
-        "Fint will email this report to our support team. Do you want to continue?",
+        "My Fint will email this report to our support team. Do you want to continue?",
       confirmSend: "Send",
       submitting: "Sending report...",
       submitSuccess: "Email sent to support. We will reply if we need more details.",
@@ -1496,7 +1496,7 @@ i18n.addResourceBundle(
     },
     webContent: {
       title: "Content",
-      loadError: "We could not load this content inside Fint.",
+      loadError: "We could not load this content inside My Fint.",
     },
     reports: {
       title: "Financial report",
@@ -1614,8 +1614,8 @@ i18n.addResourceBundle(
       transferCardTitle: "Transfer: {{origin}} → {{destination}}",
       transferOutTitle: "Sent from {{account}}",
       transferInTitle: "Received into {{account}}",
-      transferNoteToOutside: "To an account that is not in Fint",
-      transferNoteFromOutside: "From an account that is not in Fint",
+      transferNoteToOutside: "To an account that is not in My Fint",
+      transferNoteFromOutside: "From an account that is not in My Fint",
       transferUnknownTitle: "We couldn't recognize any of your accounts in this email",
       transferUnknownHint: "This probably doesn't matter to you, unless it really is yours.",
       transferRegisterManually: "It's mine, register it manually",
@@ -1763,18 +1763,18 @@ i18n.addResourceBundle(
       help: "Relatar um problema",
       suggestion: "Sugerir uma melhoria",
       shareSection: "Compartilhar e comunidade",
-      shareApp: "Compartilhar Fint",
+      shareApp: "Compartilhar My Fint",
       shareAppDetail: "Convide alguém usando myfint.app",
-      shareMessage: "Organize suas finanças com Fint: https://myfint.app",
+      shareMessage: "Organize suas finanças com My Fint: https://myfint.app",
       github: "Ver GitHub",
       githubDetail: "Código-fonte e acompanhamento técnico",
       rateStore: "Avalie-nos na loja",
-      rateStorePending: "Disponível quando a Fint estiver publicada no Google Play.",
+      rateStorePending: "Disponível quando a My Fint estiver publicada no Google Play.",
       legal: "Legal",
       privacy: "Política de privacidade",
       privacyDetail: "Como protegemos e utilizamos seus dados",
       terms: "Termos e condições",
-      termsDetail: "Regras e condições de uso da Fint",
+      termsDetail: "Regras e condições de uso da My Fint",
       legalUnavailable:
         "Este documento ainda não possui uma URL pública configurada.",
       session: "Conta",
@@ -1825,7 +1825,7 @@ i18n.addResourceBundle(
       submit: "Relatar um problema",
       confirmTitle: "Enviar e-mail ao suporte",
       confirmMessage:
-        "A Fint enviará este relatório por e-mail para nossa equipe de suporte. Deseja continuar?",
+        "A My Fint enviará este relatório por e-mail para nossa equipe de suporte. Deseja continuar?",
       confirmSend: "Enviar",
       submitting: "Enviando relatório...",
       submitSuccess: "E-mail enviado ao suporte. Responderemos se precisarmos de mais detalhes.",
@@ -1872,7 +1872,7 @@ i18n.addResourceBundle(
     },
     webContent: {
       title: "Conteúdo",
-      loadError: "Não foi possível carregar este conteúdo dentro da Fint.",
+      loadError: "Não foi possível carregar este conteúdo dentro da My Fint.",
     },
     reports: {
       title: "Fechamento financeiro",
@@ -1990,8 +1990,8 @@ i18n.addResourceBundle(
       transferCardTitle: "Transferência: {{origin}} → {{destination}}",
       transferOutTitle: "Saída de {{account}}",
       transferInTitle: "Entrada em {{account}}",
-      transferNoteToOutside: "Para uma conta que não está no Fint",
-      transferNoteFromOutside: "De uma conta que não está no Fint",
+      transferNoteToOutside: "Para uma conta que não está no My Fint",
+      transferNoteFromOutside: "De uma conta que não está no My Fint",
       transferUnknownTitle: "Não reconhecemos nenhuma conta sua neste e-mail",
       transferUnknownHint: "Provavelmente isso não te interessa, a menos que seja sua.",
       transferRegisterManually: "É minha, registrar manualmente",

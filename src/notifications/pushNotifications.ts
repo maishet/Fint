@@ -69,7 +69,7 @@ export async function registerPushInstallation() {
     await SecureStore.setItemAsync(installationRegisteredKey, 'true')
   } catch (error) {
     await SecureStore.deleteItemAsync(installationRegisteredKey).catch(() => undefined)
-    console.warn('[Fint Push] registration failed', error instanceof Error ? error.message : String(error))
+    console.warn('[My Fint Push] registration failed', error instanceof Error ? error.message : String(error))
     throw error
   }
   return installationId

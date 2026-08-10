@@ -30,7 +30,7 @@ export function AppHeader({ showGreeting = false, title }: AppHeaderProps) {
         : typeof metadata.name === "string"
           ? metadata.name
           : session?.user.email;
-  const firstName = displayName?.split(" ")[0] || "Fint";
+  const firstName = displayName?.split(" ")[0] || "My Fint";
   const initial = displayName?.slice(0, 1).toUpperCase() || "F";
   const heading = showGreeting
     ? t(`header.${getGreetingKey()}`, { name: firstName })
@@ -67,7 +67,7 @@ export function AppHeader({ showGreeting = false, title }: AppHeaderProps) {
           </YStack>
           <YStack flex={1} minW={0}>
             <Paragraph color="$headerMuted" fontSize="$1" fontWeight="800">
-              Fint
+              My Fint
             </Paragraph>
             <Paragraph
               color="$headerForeground"

@@ -8,7 +8,7 @@ export default function SentryTestScreen() {
   if (process.env.EXPO_PUBLIC_ENABLE_SENTRY_TESTS !== 'true') return <Redirect href="/" />
 
   const sendControlledEvent = async () => {
-    Sentry.captureException(new Error('Fint controlled Sentry mobile validation'), {
+    Sentry.captureException(new Error('My Fint controlled Sentry mobile validation'), {
       tags: { operation: 'sentry_controlled_mobile_validation' },
       extra: {
         safe: 'This event validates sanitization.',

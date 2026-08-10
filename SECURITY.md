@@ -8,7 +8,7 @@ Durante la etapa pre-release, las correcciones de seguridad se aplican a la rama
 
 No abras un issue publico para vulnerabilidades, credenciales expuestas o problemas que permitan acceder a datos de otras personas.
 
-Usa el formulario privado de [GitHub Security Advisories](https://github.com/maishet/finanzas-mobilev2/security/advisories/new) e incluye:
+Usa el formulario privado de [GitHub Security Advisories](https://github.com/maishet/Fint/security/advisories/new) e incluye:
 
 - Descripcion del problema y su posible impacto.
 - Pasos minimos para reproducirlo.

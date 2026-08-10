@@ -34,7 +34,7 @@ export default function AuthCallbackScreen() {
 
       if (__DEV__) {
         setDebugMessage(getDebugMessage(callbackUrl))
-        console.log('[Fint OAuth Callback]', getDebugMessage(callbackUrl))
+        console.log('[My Fint OAuth Callback]', getDebugMessage(callbackUrl))
       }
 
       if (error_description) {
@@ -68,7 +68,7 @@ export default function AuthCallbackScreen() {
           )
           return
         }
-        if (__DEV__) console.log('[Fint OAuth Callback] session established')
+        if (__DEV__) console.log('[My Fint OAuth Callback] session established')
         router.replace('/')
       } catch (error) {
         if (!isMounted) return
@@ -115,7 +115,7 @@ function getOAuthCallbackParams(url: string | null) {
   if (!url) return {}
 
   const { params, errorCode } = QueryParams.getQueryParams(url)
-  if (__DEV__ && errorCode) console.log('[Fint OAuth Callback] errorCode', errorCode)
+  if (__DEV__ && errorCode) console.log('[My Fint OAuth Callback] errorCode', errorCode)
 
   return {
     code: getStringParam(params.code),
