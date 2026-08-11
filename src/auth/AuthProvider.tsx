@@ -22,6 +22,7 @@ interface AuthContextValue {
   signUp: (email: string, password: string, displayName: string) => Promise<AuthResult>
   signInWithGoogle: () => Promise<AuthResult>
   updateDisplayName: (displayName: string) => Promise<AuthResult>
+  changePassword: (currentPassword: string, newPassword: string) => Promise<AuthResult>
   signOut: () => Promise<void>
 }
 
@@ -90,6 +91,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithGoogle: signInWithGoogleNative,
       async updateDisplayName(displayName) {
         const { error } = await supabase.auth.updateUser({ data: { display_name: displayName.trim() } })
+        return { error }
+      },
+      async changePassword(currentPassword, newPassword) {
+        const email = session?.user.email
+        if (!email) return { error: new Error('missing_email') }
+        const { error: reauthError } = await supabase.auth.signInWithPassword({ email, password: currentPassword })
+        if (reauthError) return { error: reauthError }
+        const { error } = await supabase.auth.updateUser({ password: newPassword })
         return { error }
       },
       async signOut() {

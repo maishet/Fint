@@ -77,6 +77,10 @@ export function useSubmitValidation<TField extends string>() {
     return null
   }, [])
 
+  const setError = useCallback((field: TField, message: string) => {
+    setErrors((current) => ({ ...current, [field]: message }))
+  }, [])
+
   const clearError = useCallback((...fields: TField[]) => {
     setErrors((current) => {
       if (!fields.some((field) => current[field])) return current
@@ -88,5 +92,5 @@ export function useSubmitValidation<TField extends string>() {
 
   const resetErrors = useCallback(() => setErrors({}), [])
 
-  return { clearError, errors, resetErrors, validate }
+  return { clearError, errors, resetErrors, setError, validate }
 }
