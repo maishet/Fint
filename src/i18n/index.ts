@@ -988,6 +988,12 @@ i18n.addResourceBundle(
     },
     actions: { edit: "Editar", delete: "Eliminar" },
     tabs: { payments: "Pagos", reports: "Reportes" },
+    notifications: {
+      dailyReminder: {
+        title: "¿Anotaste tus movimientos?",
+        body: "Registra los ingresos y gastos de hoy en My Fint.",
+      },
+    },
     settings: {
       profile: "Mi perfil",
       editProfile: "Editar nombre y consultar los datos de tu cuenta",
@@ -1000,6 +1006,10 @@ i18n.addResourceBundle(
       notificationsUnsupported: "No disponible",
       notificationsError:
         "No pudimos activar las notificaciones en este dispositivo.",
+      notificationsSection: "Notificaciones",
+      dailyReminders: "Recordatorios diarios",
+      dailyRemindersDetail:
+        "Te avisamos a las 8:00 p. m. para anotar tus movimientos",
       light: "Claro",
       dark: "Oscuro",
       system: "Según el dispositivo",
@@ -1367,6 +1377,12 @@ i18n.addResourceBundle(
     },
     actions: { edit: "Edit", delete: "Delete" },
     tabs: { payments: "Payments", reports: "Reports" },
+    notifications: {
+      dailyReminder: {
+        title: "Did you log your transactions?",
+        body: "Record today's income and expenses in My Fint.",
+      },
+    },
     settings: {
       profile: "My profile",
       editProfile: "Edit your name and review account details",
@@ -1378,6 +1394,9 @@ i18n.addResourceBundle(
       notificationsOff: "Disabled",
       notificationsUnsupported: "Unavailable",
       notificationsError: "We could not enable notifications on this device.",
+      notificationsSection: "Notifications",
+      dailyReminders: "Daily reminders",
+      dailyRemindersDetail: "We'll nudge you at 8:00 PM to log your transactions",
       light: "Light",
       dark: "Dark",
       system: "Use device setting",
@@ -1740,6 +1759,12 @@ i18n.addResourceBundle(
     },
     actions: { edit: "Editar", delete: "Excluir" },
     tabs: { payments: "Pagamentos", reports: "Relatórios" },
+    notifications: {
+      dailyReminder: {
+        title: "Você anotou suas movimentações?",
+        body: "Registre as receitas e despesas de hoje no My Fint.",
+      },
+    },
     settings: {
       profile: "Meu perfil",
       editProfile: "Edite o nome e consulte os dados da sua conta",
@@ -1752,6 +1777,10 @@ i18n.addResourceBundle(
       notificationsUnsupported: "Indisponível",
       notificationsError:
         "Não foi possível ativar as notificações neste dispositivo.",
+      notificationsSection: "Notificações",
+      dailyReminders: "Lembretes diários",
+      dailyRemindersDetail:
+        "Avisamos às 20h para anotar suas movimentações",
       light: "Claro",
       dark: "Escuro",
       system: "Conforme o dispositivo",

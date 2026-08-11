@@ -17,6 +17,7 @@ import {
   MonitorSmartphone,
   Moon,
   Bell,
+  Clock,
   Eye,
   EyeOff,
   ShieldCheck,
@@ -42,14 +43,16 @@ import { Screen } from "../src/components/Screen";
 import { changeAppLanguage, type AppLanguage } from "../src/i18n";
 import { getSupportDiagnostics } from "../src/support/diagnostics";
 import { useThemeMode } from "../src/theme/ThemeMode";
-import { FintButton, FintCard, FintSheetSelect } from "../src/ui";
+import { FintButton, FintCard, FintSheetSelect, FintSwitchRow } from "../src/ui";
 import {
   getPushPermissionState,
   registerPushInstallation,
   requestAndRegisterPushInstallation,
+  unregisterPushInstallation,
   type PushPermissionState,
 } from "../src/notifications/pushNotifications";
 import { useSensitiveAmounts } from "../src/privacy/SensitiveAmountsProvider";
+import { useDailyReminders } from "../src/notifications/DailyRemindersProvider";
 
 export default function SettingsScreen() {
   const { i18n, t } = useTranslation();
@@ -61,6 +64,8 @@ export default function SettingsScreen() {
   const { session, signOut } = useAuth();
   const { themeMode, themePreference, setThemePreference } = useThemeMode();
   const { amountsVisible, toggleAmountsVisibility } = useSensitiveAmounts();
+  const { enabled: dailyRemindersEnabled, setEnabled: setDailyRemindersEnabled } =
+    useDailyReminders();
   const router = useRouter();
   const diagnostics = getSupportDiagnostics();
   const [pushState, setPushState] =
@@ -99,7 +104,17 @@ export default function SettingsScreen() {
     });
     return () => subscription.remove();
   }, []);
-  const enableNotifications = async () => {
+  const handleNotificationsToggle = async (next: boolean) => {
+    if (!next) {
+      setPushState("undetermined");
+      if (dailyRemindersEnabled) setDailyRemindersEnabled(false);
+      try {
+        await unregisterPushInstallation();
+      } catch {
+        // Best-effort: ignore failures when disabling notifications.
+      }
+      return;
+    }
     if (pushState === "denied") {
       await Linking.openSettings();
       return;
@@ -122,12 +137,6 @@ export default function SettingsScreen() {
       );
     }
   };
-  const notificationValue =
-    pushState === "granted"
-      ? t("settings.notificationsOn")
-      : pushState === "unsupported"
-        ? t("settings.notificationsUnsupported")
-        : t("settings.notificationsOff");
   const deleteConfirmationToken = t("settings.deleteAccountConfirmationToken");
   const canDeleteAccount =
     normalizeConfirmation(deleteConfirmation) ===
@@ -284,11 +293,25 @@ export default function SettingsScreen() {
           // detail={t("settings.gmailDetail")}
           onPress={() => router.push("/gmail-settings")}
         />
-        <SettingsRow
+      </SettingsGroup>
+
+      <SettingsGroup title={t("settings.notificationsSection")}>
+        <FintSwitchRow
           icon={<Bell size={19} color="$primary" />}
           label={t("settings.notifications")}
-          value={notificationValue}
-          onPress={enableNotifications}
+          checked={pushState === "granted"}
+          disabled={pushState === "unsupported"}
+          onCheckedChange={(next) => {
+            void handleNotificationsToggle(next);
+          }}
+        />
+        <FintSwitchRow
+          icon={<Clock size={19} color="$primary" />}
+          label={t("settings.dailyReminders")}
+          detail={t("settings.dailyRemindersDetail")}
+          checked={dailyRemindersEnabled}
+          disabled={pushState !== "granted"}
+          onCheckedChange={setDailyRemindersEnabled}
         />
       </SettingsGroup>
 

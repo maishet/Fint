@@ -10,6 +10,7 @@ import { AuthProvider } from '../auth/AuthProvider'
 import { ThemeModeContext, type ThemePreference } from '../theme/ThemeMode'
 import { CurrentToast } from '../ui/CurrentToast'
 import { SensitiveAmountsProvider } from '../privacy/SensitiveAmountsProvider'
+import { DailyRemindersProvider } from '../notifications/DailyRemindersProvider'
 
 const themeModeStorageKey = 'fint-theme-mode'
 
@@ -48,7 +49,7 @@ export function AppProviders({ children, ...rest }: Omit<TamaguiProviderProps, '
         <ToastProvider swipeDirection="horizontal" duration={5000}>
           <Theme name={themeMode} forceClassName>
             <QueryClientProvider client={queryClient}>
-              <AuthProvider><SensitiveAmountsProvider>{children}</SensitiveAmountsProvider></AuthProvider>
+              <AuthProvider><SensitiveAmountsProvider><DailyRemindersProvider>{children}</DailyRemindersProvider></SensitiveAmountsProvider></AuthProvider>
             </QueryClientProvider>
           </Theme>
           <CurrentToast />

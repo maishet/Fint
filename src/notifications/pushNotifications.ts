@@ -101,13 +101,14 @@ export function attachNotificationResponseListener(router: Router) {
   }
 }
 
-async function configureNotificationChannels(Notifications: NotificationsModule) {
+export async function configureNotificationChannels(Notifications: NotificationsModule) {
   if (Platform.OS !== 'android') return
-  await Notifications.setNotificationChannelAsync('payment-reminders', { name: 'Recordatorios de pagos', importance: Notifications.AndroidImportance.HIGH, sound: 'default' })
-  await Notifications.setNotificationChannelAsync('pending-movements', { name: 'Movimientos pendientes', importance: Notifications.AndroidImportance.HIGH, sound: 'default' })
+  await Notifications.setNotificationChannelAsync('payment-reminders', { name: 'Recordatorios de pagos', importance: Notifications.AndroidImportance.HIGH })
+  await Notifications.setNotificationChannelAsync('pending-movements', { name: 'Movimientos pendientes', importance: Notifications.AndroidImportance.HIGH })
+  await Notifications.setNotificationChannelAsync('daily-reminders', { name: 'Recordatorios diarios', importance: Notifications.AndroidImportance.HIGH })
 }
 
-async function loadNotifications() {
+export async function loadNotifications() {
   if (Platform.OS === 'web' || Constants.appOwnership === 'expo') return null
   notificationsModulePromise ??= import('expo-notifications').then((Notifications) => {
     Notifications.setNotificationHandler({
