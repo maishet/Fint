@@ -111,7 +111,6 @@ export default function SettingsScreen() {
       try {
         await unregisterPushInstallation();
       } catch {
-        // Best-effort: ignore failures when disabling notifications.
       }
       return;
     }
@@ -261,7 +260,7 @@ export default function SettingsScreen() {
             />
           )}
         />
-        <SettingsRow
+        <FintSwitchRow
           icon={
             amountsVisible ? (
               <Eye size={19} color="$primary" />
@@ -270,12 +269,13 @@ export default function SettingsScreen() {
             )
           }
           label={t("privacy.amounts.title")}
-          value={
+          detail={
             amountsVisible
               ? t("privacy.amounts.visible")
               : t("privacy.amounts.hidden")
           }
-          onPress={toggleAmountsVisibility}
+          checked={!amountsVisible}
+          onCheckedChange={toggleAmountsVisibility}
         />
         <SettingsRow
           icon={<Landmark size={19} color="$primary" />}
