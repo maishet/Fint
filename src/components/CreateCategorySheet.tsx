@@ -10,7 +10,7 @@ import { useToastController } from "@tamagui/toast";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, Text } from "react-native";
-import { Button, Paragraph, Sheet, Spinner, XStack, YStack } from "tamagui";
+import { Button, Paragraph, Sheet, XStack, YStack } from "tamagui";
 import EmojiPicker, { es, en, pt, type EmojiType } from "rn-emoji-keyboard";
 import { z } from "zod";
 import { ApiRequestError } from "../api/client";
@@ -26,7 +26,7 @@ import { suggestedCategoryIcons } from "../finance/categoryIcons";
 import { getValidationMessage, useSubmitValidation } from "../forms";
 import { useThemeMode } from "../theme/ThemeMode";
 import { fintPalette } from "../theme/palette";
-import { FintButton } from "../ui";
+import { FintButton, FintSpinner } from "../ui";
 import { useSheetBackHandler } from "../hooks/useSheetBackHandler";
 
 interface CreateCategorySheetProps {
@@ -355,7 +355,7 @@ export function CreateCategorySheet({
                   onPress={submit}
                   icon={
                     mutation.isPending ? (
-                      <Spinner color="$primaryForeground" />
+                      <FintSpinner color="$primaryForeground" />
                     ) : isEditing ? (
                       <Save size={18} />
                     ) : (

@@ -19,7 +19,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Button, Paragraph, Spinner, XStack, YStack } from "tamagui";
+import { Button, Paragraph, XStack, YStack } from "tamagui";
 import { financeApi } from "../../src/api/finance";
 import { formatMoney, normalizeTransaction } from "../../src/api/mappers";
 import type { Transaction } from "../../src/api/types";
@@ -36,6 +36,7 @@ import {
   FintCard,
   FintConfirmDialog,
   FintSheetSelect,
+  FintSpinner,
 } from "../../src/ui";
 import { useSensitiveMoney } from "../../src/privacy/useSensitiveMoney";
 import { SensitiveAmountToggle } from "../../src/privacy/SensitiveAmountToggle";
@@ -401,8 +402,8 @@ export default function MovementsScreen() {
         }
         ListFooterComponent={
           movementsQuery.isFetchingNextPage ? (
-            <YStack py="$4">
-              <Spinner color="$primary" />
+            <YStack py="$4" items="center">
+              <FintSpinner color="$primary" />
             </YStack>
           ) : null
         }

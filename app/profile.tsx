@@ -13,12 +13,12 @@ import {
 } from "@tamagui/lucide-icons-2";
 import { useToastController } from "@tamagui/toast";
 import { useTranslation } from "react-i18next";
-import { Button, Input, Paragraph, Spinner, XStack, YStack } from "tamagui";
+import { Button, Input, Paragraph, XStack, YStack } from "tamagui";
 import { z } from "zod";
 import { useAuth } from "../src/auth/AuthProvider";
 import { Screen } from "../src/components/Screen";
 import { getValidationMessage, useSubmitValidation } from "../src/forms";
-import { FintButton, FintCard } from "../src/ui";
+import { FintButton, FintCard, FintSpinner } from "../src/ui";
 
 export default function ProfileScreen() {
   const { i18n, t } = useTranslation();
@@ -422,7 +422,7 @@ export default function ProfileScreen() {
                   disabled={isUpdatingPassword}
                   icon={
                     isUpdatingPassword ? (
-                      <Spinner size="small" color="$primaryForeground" />
+                      <FintSpinner size="small" color="$primaryForeground" />
                     ) : undefined
                   }
                   onPress={() => {
@@ -458,7 +458,7 @@ export default function ProfileScreen() {
           disabled={isSaving || isSigningOut}
           icon={
             isSaving ? (
-              <Spinner size="small" color="$primaryForeground" />
+              <FintSpinner size="small" color="$primaryForeground" />
             ) : (
               <Save size={19} color="$primaryForeground" />
             )
@@ -478,7 +478,7 @@ export default function ProfileScreen() {
           borderColor="$primary"
           icon={
             isSigningOut ? (
-              <Spinner size="small" color="$primary" />
+              <FintSpinner size="small" color="$primary" />
             ) : (
               <LogOut size={20} color="$primary" />
             )

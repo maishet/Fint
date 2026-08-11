@@ -33,7 +33,6 @@ import {
   Input,
   Paragraph,
   Separator,
-  Spinner,
   XStack,
   YStack,
 } from "tamagui";
@@ -43,7 +42,13 @@ import { Screen } from "../src/components/Screen";
 import { changeAppLanguage, type AppLanguage } from "../src/i18n";
 import { getSupportDiagnostics } from "../src/support/diagnostics";
 import { useThemeMode } from "../src/theme/ThemeMode";
-import { FintButton, FintCard, FintSheetSelect, FintSwitchRow } from "../src/ui";
+import {
+  FintButton,
+  FintCard,
+  FintSheetSelect,
+  FintSpinner,
+  FintSwitchRow,
+} from "../src/ui";
 import {
   getPushPermissionState,
   registerPushInstallation,
@@ -496,7 +501,7 @@ function DeleteAccountDialog({
               opacity={canDelete ? 1 : 0.58}
               icon={
                 isPending ? (
-                  <Spinner color="$primaryForeground" />
+                  <FintSpinner color="$primaryForeground" />
                 ) : (
                   <Trash2
                     size={17}

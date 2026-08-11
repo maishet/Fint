@@ -9,7 +9,7 @@ import {
 } from "@react-native-google-signin/google-signin";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Paragraph, Spinner, XStack, YStack } from "tamagui";
+import { Paragraph, XStack, YStack } from "tamagui";
 import { z } from "zod";
 import { financeApi } from "../src/api/finance";
 import type { GmailSource } from "../src/api/types";
@@ -27,6 +27,7 @@ import {
   FintConfirmDialog,
   FintFormField,
   FintInput,
+  FintSpinner,
 } from "../src/ui";
 
 async function connectGmailNative() {
@@ -123,7 +124,13 @@ export default function GmailSettingsScreen() {
             visibleSources.filter((source) => source.status === "active")
               .length >= 3
           }
-          icon={connectMutation.isPending ? <Spinner /> : <Plus size={18} />}
+          icon={
+            connectMutation.isPending ? (
+              <FintSpinner color="$primaryForeground" />
+            ) : (
+              <Plus size={18} />
+            )
+          }
           onPress={connect}
         >
           {t("gmail.connect")}
@@ -339,7 +346,7 @@ function GmailSourceCard({
             disabled={pending || source.status === "error"}
             icon={
               syncMutation.isPending ? (
-                <Spinner size="small" />
+                <FintSpinner size="small" color="$primary" />
               ) : (
                 <RefreshCw size={16} />
               )

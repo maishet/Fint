@@ -11,7 +11,7 @@ import { useToastController } from "@tamagui/toast";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button, Paragraph, Spinner, XStack, YStack } from "tamagui";
+import { Button, Paragraph, XStack, YStack } from "tamagui";
 import { financeApi } from "../../src/api/finance";
 import { normalizeAccount } from "../../src/api/mappers";
 import type { Account, AccountsOverview } from "../../src/api/types";
@@ -28,6 +28,7 @@ import {
   FintCard,
   FintConfirmDialog,
   FintSheetSelect,
+  FintSpinner,
 } from "../../src/ui";
 import { SensitiveAmountToggle } from "../../src/privacy/SensitiveAmountToggle";
 import { useSensitiveMoney } from "../../src/privacy/useSensitiveMoney";
@@ -387,7 +388,7 @@ function AccountCard({
           disabled={isDeleting}
           icon={
             isDeleting ? (
-              <Spinner size="small" color="$red10" />
+              <FintSpinner size="small" color="$red10" />
             ) : (
               <Trash2 size={19} color="$red10" />
             )

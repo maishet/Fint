@@ -1,11 +1,11 @@
 import { useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator } from "react-native";
 import { WebView } from "react-native-webview";
 import type { ShouldStartLoadRequest } from "react-native-webview/lib/WebViewTypes";
 import { YStack } from "tamagui";
 import { DataStateCard } from "../src/components/DataStateCard";
+import { FintLoadingScreen } from "../src/ui";
 
 const githubUrl = "https://github.com/maishet/Fint";
 
@@ -32,7 +32,9 @@ export default function WebContentScreen() {
         key={retryKey}
         source={{ uri: config.url }}
         startInLoadingState
-        renderLoading={() => <YStack flex={1} items="center" justify="center"><ActivityIndicator /></YStack>}
+        renderLoading={() => (
+          <FintLoadingScreen position="absolute" t={0} r={0} b={0} l={0} />
+        )}
         onError={() => setFailed(true)}
         onHttpError={() => setFailed(true)}
         onShouldStartLoadWithRequest={(request) => shouldOpenInside(request, config.allowedHosts)}

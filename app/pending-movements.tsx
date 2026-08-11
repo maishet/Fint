@@ -18,7 +18,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Button, Paragraph, Spinner, XStack, YStack } from "tamagui";
+import { Button, Paragraph, XStack, YStack } from "tamagui";
 import { financeApi } from "../src/api/finance";
 import { supabase } from "../src/auth/supabase";
 import { formatMoney } from "../src/api/mappers";
@@ -37,6 +37,7 @@ import {
   FintConfirmDialog,
   FintFormField,
   FintSheetSelect,
+  FintSpinner,
 } from "../src/ui";
 import { getInstallationId } from "../src/notifications/pushNotifications";
 import { useCapabilities } from "../src/api/capabilities";
@@ -392,8 +393,8 @@ export default function PendingMovementsScreen() {
         }
         ListFooterComponent={
           pendingQuery.isFetchingNextPage ? (
-            <YStack py="$4">
-              <Spinner color="$primary" />
+            <YStack py="$4" items="center">
+              <FintSpinner color="$primary" />
             </YStack>
           ) : null
         }

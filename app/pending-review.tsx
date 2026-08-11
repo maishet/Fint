@@ -13,7 +13,7 @@ import { useToastController } from "@tamagui/toast";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button, Paragraph, Spinner, XStack, YStack } from "tamagui";
+import { Button, Paragraph, XStack, YStack } from "tamagui";
 import { z } from "zod";
 import { financeApi } from "../src/api/finance";
 import { formatMoney } from "../src/api/mappers";
@@ -46,6 +46,7 @@ import {
   FintDateField,
   FintFormField,
   FintSheetSelect,
+  FintSpinner,
 } from "../src/ui";
 import { getInstallationId } from "../src/notifications/pushNotifications";
 
@@ -621,7 +622,7 @@ export default function PendingReviewScreen() {
                     disabled={isPending || isReferenceLoading}
                     icon={
                       confirmMutation.isPending ? (
-                        <Spinner color="$primaryForeground" />
+                        <FintSpinner color="$primaryForeground" />
                       ) : (
                         <Save size={18} />
                       )
@@ -733,7 +734,7 @@ function TransferScenario1Summary({
           disabled={isPending}
           icon={
             isPending ? (
-              <Spinner color="$primaryForeground" />
+              <FintSpinner color="$primaryForeground" />
             ) : (
               <Check size={18} />
             )
@@ -848,7 +849,7 @@ function TransferScenario1Editor({
           minH={50}
           disabled={isPending || !canConfirm}
           icon={
-            isPending ? <Spinner color="$primaryForeground" /> : <Check size={18} />
+            isPending ? <FintSpinner color="$primaryForeground" /> : <Check size={18} />
           }
           onPress={onConfirm}
         >
@@ -946,7 +947,7 @@ function TransferScenario2Summary({
           disabled={isPending}
           icon={
             isPending ? (
-              <Spinner color="$primaryForeground" />
+              <FintSpinner color="$primaryForeground" />
             ) : (
               <Check size={18} />
             )

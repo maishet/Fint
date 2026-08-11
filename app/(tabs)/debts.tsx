@@ -10,7 +10,7 @@ import { useToastController } from "@tamagui/toast";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button, Paragraph, Spinner, XStack, YStack } from "tamagui";
+import { Button, Paragraph, XStack, YStack } from "tamagui";
 import { financeApi } from "../../src/api/finance";
 import { formatMoney } from "../../src/api/mappers";
 import type { PaymentOccurrence } from "../../src/api/types";
@@ -24,7 +24,12 @@ import {
 } from "../../src/components/Skeleton";
 import { formatDateString, parseDateString } from "../../src/finance/dates";
 import { usePressOnce } from "../../src/hooks/usePressOnce";
-import { FintButton, FintCard, FintConfirmDialog } from "../../src/ui";
+import {
+  FintButton,
+  FintCard,
+  FintConfirmDialog,
+  FintSpinner,
+} from "../../src/ui";
 import { getAppLocale } from "../../src/i18n";
 import { useCapabilities } from "../../src/api/capabilities";
 import { useSensitiveMoney } from "../../src/privacy/useSensitiveMoney";
@@ -326,7 +331,7 @@ function OccurrenceCard({
               disabled={isDeleting}
               icon={
                 isDeleting ? (
-                  <Spinner size="small" color="$red10" />
+                  <FintSpinner size="small" color="$red10" />
                 ) : (
                   <Trash2 size={17} color="$red10" />
                 )

@@ -1,5 +1,6 @@
 import type { ComponentProps } from "react";
-import { Button, Dialog, Spinner, XStack, YStack } from "tamagui";
+import { Button, Dialog, XStack, YStack } from "tamagui";
+import { FintSpinner } from "./FintSpinner";
 
 export function FintConfirmDialog({
   cancelLabel,
@@ -68,7 +69,7 @@ export function FintConfirmDialog({
               color="$primaryForeground"
               fontWeight="700"
               disabled={isPending}
-              icon={isPending ? <Spinner color="$primaryForeground" /> : icon}
+              icon={isPending ? <FintSpinner color="$primaryForeground" /> : icon}
               onPress={onConfirm}
             >
               {isPending ? (pendingLabel ?? confirmLabel) : confirmLabel}

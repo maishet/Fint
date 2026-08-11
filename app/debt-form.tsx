@@ -4,7 +4,7 @@ import { useToastController } from '@tamagui/toast'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Paragraph, Spinner, XStack, YStack } from 'tamagui'
+import { Paragraph, XStack, YStack } from 'tamagui'
 import { z } from 'zod'
 import { financeApi } from '../src/api/finance'
 import type { PaymentRule } from '../src/api/types'
@@ -18,7 +18,7 @@ import { todayDateString } from '../src/finance/dates'
 import { getValidationMessage, parseDecimalInput, useSubmitValidation } from '../src/forms'
 import { registerPushInstallation } from '../src/notifications/pushNotifications'
 import { useCapabilities } from '../src/api/capabilities'
-import { FintButton, FintDateField, FintFormField, FintSheetSelect } from '../src/ui'
+import { FintButton, FintDateField, FintFormField, FintSheetSelect, FintSpinner } from '../src/ui'
 
 // NOTE: the payments/debts module only supports 'fixed_payment' rules (single-step flow:
 // create rule -> mark occurrence as paid). credit_card rules were removed; see
@@ -139,7 +139,7 @@ export default function DebtFormScreen() {
 
             {errorMessage ? <XStack bg="$red2" borderColor="$red6" borderWidth={1} rounded="$5" p="$3"><Paragraph color="$red11" fontSize="$2">{errorMessage}</Paragraph></XStack> : null}
             <YStack gap="$2">
-              <FintButton width="100%" minH={52} disabled={mutation.isPending} icon={mutation.isPending ? <Spinner color="$primaryForeground" /> : <Save size={18} />} onPress={submit}>{mutation.isPending ? t('payments.saving') : isEditing ? t('accounts.update') : t('payments.createRecurring')}</FintButton>
+              <FintButton width="100%" minH={52} disabled={mutation.isPending} icon={mutation.isPending ? <FintSpinner color="$primaryForeground" /> : <Save size={18} />} onPress={submit}>{mutation.isPending ? t('payments.saving') : isEditing ? t('accounts.update') : t('payments.createRecurring')}</FintButton>
               <FintButton width="100%" minH={48} variant="outlined" disabled={mutation.isPending} onPress={() => router.back()}>{t('actions.cancel')}</FintButton>
             </YStack>
           </YStack>

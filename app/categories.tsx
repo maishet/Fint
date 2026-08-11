@@ -3,7 +3,7 @@ import { ArrowDownLeft, ArrowUpRight, Plus, Shapes, Trash2 } from '@tamagui/luci
 import { useToastController } from '@tamagui/toast'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Paragraph, Separator, Spinner, XStack, YStack } from 'tamagui'
+import { Button, Paragraph, Separator, XStack, YStack } from 'tamagui'
 import { financeApi } from '../src/api/finance'
 import type { Category, TransactionType } from '../src/api/types'
 import { CreateCategorySheet } from '../src/components/CreateCategorySheet'
@@ -13,7 +13,7 @@ import { Screen } from '../src/components/Screen'
 import { SkeletonGroup, SkeletonList } from '../src/components/Skeleton'
 import { getCategoryLabel } from '../src/finance/categoryLabels'
 import { suggestedCategoryIcons } from '../src/finance/categoryIcons'
-import { FintButton, FintCard, FintConfirmDialog } from '../src/ui'
+import { FintButton, FintCard, FintConfirmDialog, FintSpinner } from '../src/ui'
 
 export default function CategoriesScreen() {
   const { t } = useTranslation()
@@ -114,7 +114,7 @@ export default function CategoriesScreen() {
                     disabled={deleteMutation.isPending && deleteTarget?.id === category.id}
                     icon={
                       deleteMutation.isPending && deleteTarget?.id === category.id
-                        ? <Spinner size="small" color="$red10" />
+                        ? <FintSpinner size="small" color="$red10" />
                         : <Trash2 size={18} color="$red10" />
                     }
                     pressStyle={{ bg: '$red3' }}

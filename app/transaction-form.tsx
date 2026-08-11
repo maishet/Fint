@@ -4,7 +4,7 @@ import { useToastController } from '@tamagui/toast'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Paragraph, Spinner, XStack, YStack } from 'tamagui'
+import { Paragraph, XStack, YStack } from 'tamagui'
 import { z } from 'zod'
 import { financeApi } from '../src/api/finance'
 import { Screen } from '../src/components/Screen'
@@ -13,7 +13,7 @@ import { CategoryPickerSheet } from '../src/components/CategoryPickerSheet'
 import { MovementAmountField, MovementNoteField, MovementPickerTrigger } from '../src/components/MovementFormControls'
 import { todayDateString } from '../src/finance/dates'
 import { getValidationMessage, parseDecimalInput, useSubmitValidation } from '../src/forms'
-import { FintButton, FintCard, FintDateField, FintFormField, FintSheetSelect } from '../src/ui'
+import { FintButton, FintCard, FintDateField, FintFormField, FintSheetSelect, FintSpinner } from '../src/ui'
 
 type MovementKind = 'income' | 'expense' | 'transfer'
 
@@ -198,7 +198,7 @@ export default function TransactionFormScreen() {
         {errorMessage ? <Paragraph color="$red10">{errorMessage}</Paragraph> : null}
 
         <YStack gap="$2">
-          <FintButton width="100%" minH={52} disabled={isPending || isReferenceLoading} icon={isPending ? <Spinner color="$primaryForeground" /> : <Save size={18} />} onPress={submit}>
+          <FintButton width="100%" minH={52} disabled={isPending || isReferenceLoading} icon={isPending ? <FintSpinner color="$primaryForeground" /> : <Save size={18} />} onPress={submit}>
             {isPending ? t(isEditing ? 'movementUx.updating' : 'movements.creating') : isEditing ? t('actions.save') : t(kind === 'income' ? 'movementUx.registerIncome' : kind === 'transfer' ? 'movementUx.registerTransfer' : 'movementUx.registerExpense')}
           </FintButton>
           <FintButton width="100%" minH={48} variant="outlined" disabled={isPending} onPress={() => router.back()}>{t('actions.cancel')}</FintButton>
@@ -212,10 +212,6 @@ export default function TransactionFormScreen() {
 function MovementKindSelector({ allowTransfer, onValueChange, value }: { allowTransfer: boolean; onValueChange: (value: MovementKind) => void; value: MovementKind }) {
   const { t } = useTranslation()
   const options = (allowTransfer ? ['expense', 'income', 'transfer'] : ['expense', 'income']) as MovementKind[]
-  // 3-way layout needs to fit "Transferencia"/"Transferência" without ellipsis on narrow phones.
-  // Icon-over-label (instead of icon-beside-label) plus an explicit non-truncating Paragraph
-  // (rather than letting the button auto-wrap a raw string, which defaults to 1 line + ellipsis)
-  // gives every label room to wrap to 2 lines instead of silently cutting off.
   const stacked = options.length > 2
   return (
     <FintCard p="$1" bg="$muted" rounded="$7">

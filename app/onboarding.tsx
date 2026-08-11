@@ -11,14 +11,14 @@ import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Button, H1, Paragraph, Spinner, XStack, YStack } from "tamagui";
+import { Button, H1, Paragraph, XStack, YStack } from "tamagui";
 import { financeApi } from "../src/api/finance";
 import { getCurrentAppLanguage } from "../src/i18n";
 import {
   requestAndRegisterPushInstallation,
   type PushPermissionState,
 } from "../src/notifications/pushNotifications";
-import { FintButton, FintCard } from "../src/ui";
+import { FintButton, FintCard, FintSpinner } from "../src/ui";
 
 type SlideKey =
   "welcome" | "accounts" | "payments" | "privacy" | "notifications";
@@ -139,7 +139,7 @@ export default function OnboardingScreen() {
           disabled={completeMutation.isPending}
           icon={
             completeMutation.isPending ? (
-              <Spinner color="$primaryForeground" />
+              <FintSpinner color="$primaryForeground" />
             ) : undefined
           }
           onPress={goNext}
@@ -299,7 +299,7 @@ function NotificationPermissionBlock({
           disabled={isPending}
           icon={
             isPending ? (
-              <Spinner color="$primary" />
+              <FintSpinner color="$primary" />
             ) : (
               <Bell size={16} color="$primary" />
             )

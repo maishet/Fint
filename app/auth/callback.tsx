@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react'
 import * as QueryParams from 'expo-auth-session/build/QueryParams'
 import * as Linking from 'expo-linking'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { H2, Paragraph, Spinner, YStack } from 'tamagui'
+import { H2, Paragraph, YStack } from 'tamagui'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../src/auth/AuthProvider'
 import { completeAuthSession } from '../../src/auth/completeAuthSession'
 import { supabase } from '../../src/auth/supabase'
-import { FintButton, FintCard } from '../../src/ui'
+import { FintButton, FintCard, FintLoadingScreen } from '../../src/ui'
 
 export default function AuthCallbackScreen() {
   const router = useRouter()
@@ -84,29 +84,26 @@ export default function AuthCallbackScreen() {
     }
   }, [callbackUrl, code, error_description, router, session, t])
 
+  if (!errorMessage) {
+    return <FintLoadingScreen label={t('authCallback.loading')} />
+  }
+
   return (
     <YStack flex={1} items="center" justify="center" gap="$4" p="$5" bg="$background">
-      {errorMessage ? (
-        <FintCard width="100%" maxW={360} gap="$4" p="$5">
-          <YStack gap="$2" items="center">
-            <H2 color="$color12" fontFamily="$heading" size="$7" text="center">{t('authCallback.title')}</H2>
-            <Paragraph color="$color10" text="center" lineHeight="$5">
-              {errorMessage}
+      <FintCard width="100%" maxW={360} gap="$4" p="$5">
+        <YStack gap="$2" items="center">
+          <H2 color="$color12" fontFamily="$heading" size="$7" text="center">{t('authCallback.title')}</H2>
+          <Paragraph color="$color10" text="center" lineHeight="$5">
+            {errorMessage}
+          </Paragraph>
+          {debugMessage ? (
+            <Paragraph color="$color9" fontSize="$2" text="center" lineHeight="$3">
+              Debug: {debugMessage}
             </Paragraph>
-            {debugMessage ? (
-              <Paragraph color="$color9" fontSize="$2" text="center" lineHeight="$3">
-                Debug: {debugMessage}
-              </Paragraph>
-            ) : null}
-          </YStack>
-          <FintButton onPress={() => router.replace('/login')}>{t('authCallback.backToLogin')}</FintButton>
-        </FintCard>
-      ) : (
-        <YStack items="center" gap="$3">
-          <Spinner size="large" color="$accent10" />
-          <Paragraph color="$color10">{t('authCallback.loading')}</Paragraph>
+          ) : null}
         </YStack>
-      )}
+        <FintButton onPress={() => router.replace('/login')}>{t('authCallback.backToLogin')}</FintButton>
+      </FintCard>
     </YStack>
   )
 }

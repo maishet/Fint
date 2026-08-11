@@ -4,7 +4,7 @@ import { useToastController } from '@tamagui/toast'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Paragraph, ScrollView, Sheet, Spinner, XStack, YStack } from 'tamagui'
+import { Paragraph, ScrollView, Sheet, XStack, YStack } from 'tamagui'
 import { z } from 'zod'
 import { financeApi } from '../api/finance'
 import { formatMoney } from '../api/mappers'
@@ -13,7 +13,7 @@ import { todayDateString } from '../finance/dates'
 import { getValidationMessage, parseDecimalInput, useSubmitValidation } from '../forms'
 import { useSheetBackHandler } from '../hooks/useSheetBackHandler'
 import { getInstallationId } from '../notifications/pushNotifications'
-import { FintButton, FintDateField, FintFormField, FintInput } from '../ui'
+import { FintButton, FintDateField, FintFormField, FintInput, FintSpinner } from '../ui'
 import { MovementPickerTrigger } from './MovementFormControls'
 
 export function OccurrencePaymentSheet({ accounts, occurrence, onOpenChange, open }: { accounts: AccountOption[]; occurrence: PaymentOccurrence | null; onOpenChange: (open: boolean) => void; open: boolean }) {
@@ -90,7 +90,7 @@ export function OccurrencePaymentSheet({ accounts, occurrence, onOpenChange, ope
             </FintFormField>
             <FintFormField label={t('payments.note')}><FintInput width="100%" placeholder={t('payments.noteOptionalPlaceholder')} value={note} onChangeText={setNote} /></FintFormField>
             {errorMessage ? <Paragraph color="$red10">{errorMessage}</Paragraph> : null}
-            <FintButton disabled={mutation.isPending || eligibleAccounts.length === 0} icon={mutation.isPending ? <Spinner color="$primaryForeground" /> : <CheckCircle2 size={18} />} onPress={submit}>{mutation.isPending ? t('payments.registering') : t('payments.confirmPayment')}</FintButton>
+            <FintButton disabled={mutation.isPending || eligibleAccounts.length === 0} icon={mutation.isPending ? <FintSpinner color="$primaryForeground" /> : <CheckCircle2 size={18} />} onPress={submit}>{mutation.isPending ? t('payments.registering') : t('payments.confirmPayment')}</FintButton>
           </YStack>
         </Sheet.ScrollView>
       </Sheet.Frame>

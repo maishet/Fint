@@ -26,7 +26,6 @@ import {
   Button,
   Paragraph,
   ScrollView,
-  Spinner,
   XStack,
   YStack,
 } from "tamagui";
@@ -59,7 +58,7 @@ import {
   type ReportPeriodPreset,
 } from "../../src/finance/reports";
 import { getAppLocale, type AppLanguage } from "../../src/i18n";
-import { FintCard, FintSheetSelect } from "../../src/ui";
+import { FintCard, FintSheetSelect, FintSpinner } from "../../src/ui";
 import { useSensitiveMoney } from "../../src/privacy/useSensitiveMoney";
 import { SensitiveAmountToggle } from "../../src/privacy/SensitiveAmountToggle";
 
@@ -331,7 +330,7 @@ export default function ReportsScreen() {
                 aria-label={text.exportTitle}
               >
                 {isExporting ? (
-                  <Spinner size="small" color="$heroAccent" />
+                  <FintSpinner size="small" color="$heroAccent" />
                 ) : (
                   <Download size={21} color="$heroAccent" />
                 )}

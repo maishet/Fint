@@ -1,12 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { Redirect } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Spinner, YStack } from "tamagui";
+import { YStack } from "tamagui";
 import { ApiRequestError } from "../src/api/client";
 import { financeApi } from "../src/api/finance";
 import { useAuth } from "../src/auth/AuthProvider";
 import { getInitialRoute } from "../src/auth/initial-route";
 import { DataStateCard } from "../src/components/DataStateCard";
+import { FintLoadingScreen } from "../src/ui";
 
 export default function IndexScreen() {
   const { t } = useTranslation();
@@ -19,11 +20,7 @@ export default function IndexScreen() {
   });
 
   if (isLoading || (!!session && meQuery.isLoading)) {
-    return (
-      <YStack flex={1} items="center" justify="center" bg="$background">
-        <Spinner size="large" color="$accent10" />
-      </YStack>
-    );
+    return <FintLoadingScreen />;
   }
 
   const isUnauthorized =
