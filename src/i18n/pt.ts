@@ -56,6 +56,7 @@ export const ptTranslation = {
     cancel: "Cancelar",
     retry: "Tentar novamente",
     close: "Fechar",
+    viewDetail: "Ver detalhe",
   },
   states: {
     loading: "Carregando...",
@@ -123,6 +124,7 @@ export const ptTranslation = {
     syncing: "Sincronizando...",
     syncComplete: "Sincronização concluída",
     syncSummary: "{{processed}} processados · {{created}} novos",
+    connectError: "Não foi possível conectar a conta.",
     reconnectRequired: "Esta conta precisa ser reconectada ao Google.",
     reconnect: "Reconectar conta",
     disconnect: "Desconectar conta",

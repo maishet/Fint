@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Building2, Coins, CreditCard, Landmark, PiggyBank, Save, Wallet } from '@tamagui/lucide-icons-2'
-import { useToastController } from '@tamagui/toast'
+import { useNotify } from '../src/ui/notify'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -22,7 +22,7 @@ export default function AccountFormScreen() {
   const isEditing = Boolean(accountId)
   const { i18n, t } = useTranslation()
   const router = useRouter()
-  const toast = useToastController()
+  const toast = useNotify()
   const queryClient = useQueryClient()
   const accountsQuery = useQuery({ queryKey: ['accounts', 'detail', accountId], queryFn: ({ signal }) => financeApi.getAccount(accountId!, signal), retry: false, enabled: isEditing })
   const account = accountsQuery.data

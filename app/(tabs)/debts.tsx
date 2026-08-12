@@ -6,7 +6,7 @@ import {
   Plus,
   Trash2,
 } from "@tamagui/lucide-icons-2";
-import { useToastController } from "@tamagui/toast";
+import { useNotify } from "../../src/ui/notify";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -39,7 +39,7 @@ export default function DebtsScreen() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const toast = useToastController();
+  const toast = useNotify();
   const { capabilities } = useCapabilities();
   const [paymentOccurrence, setPaymentOccurrence] =
     useState<PaymentOccurrence | null>(null);

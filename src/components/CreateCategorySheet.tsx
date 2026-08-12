@@ -6,7 +6,7 @@ import {
   Shapes,
   X,
 } from "@tamagui/lucide-icons-2";
-import { useToastController } from "@tamagui/toast";
+import { useNotify } from "../ui/notify";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, Text } from "react-native";
@@ -49,7 +49,7 @@ export function CreateCategorySheet({
   const { t, i18n } = useTranslation();
   const { themeMode } = useThemeMode();
   const palette = fintPalette[themeMode];
-  const toast = useToastController();
+  const toast = useNotify();
   const queryClient = useQueryClient();
   const isEditing = Boolean(category);
   const [name, setName] = useState("");

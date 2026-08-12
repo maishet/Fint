@@ -11,6 +11,7 @@ import {
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import { SplashScreen, Stack, useRouter } from "expo-router";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as Sentry from "@sentry/react-native";
 import { AppProviders } from "../src/providers/AppProviders";
 import { useAuth } from "../src/auth/AuthProvider";
@@ -119,9 +120,11 @@ function RootLayout() {
   }
 
   return (
-    <Providers>
-      <RootLayoutNav />
-    </Providers>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Providers>
+        <RootLayoutNav />
+      </Providers>
+    </GestureHandlerRootView>
   );
 }
 

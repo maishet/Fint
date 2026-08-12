@@ -12,7 +12,7 @@ import {
   Shapes,
   Trash2,
 } from "@tamagui/lucide-icons-2";
-import { useToastController } from "@tamagui/toast";
+import { useNotify } from "../src/ui/notify";
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -48,7 +48,7 @@ const NORMAL_MOVEMENT = "__transaction__";
 export default function PendingMovementsScreen() {
   const { i18n, t } = useTranslation();
   const router = useRouter();
-  const toast = useToastController();
+  const toast = useNotify();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const [expandedId, setExpandedId] = useState<string | null>(null);

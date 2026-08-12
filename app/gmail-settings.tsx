@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Mail, Plus, RefreshCw, Save, Trash2 } from "@tamagui/lucide-icons-2";
-import { useToastController } from "@tamagui/toast";
+import { useNotify } from "../src/ui/notify";
 import {
   GoogleSignin,
   isErrorWithCode,
@@ -61,7 +61,7 @@ async function connectGmailNative() {
 export default function GmailSettingsScreen() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const toast = useToastController();
+  const toast = useNotify();
   const sourcesQuery = useQuery({
     queryKey: ["gmail-sources"],
     queryFn: financeApi.listGmailSources,
@@ -76,9 +76,11 @@ export default function GmailSettingsScreen() {
       ]);
     },
     onError: (error) => {
-      toast.show(t("states.error"), {
-        message: error instanceof Error ? error.message : undefined,
-        preset: "error",
+      const detail = error instanceof Error ? error.message : undefined;
+      toast.error(t("states.error"), {
+        message: t("gmail.connectError"),
+        detail,
+        detailLabel: detail ? t("actions.viewDetail") : undefined,
       });
     },
   });
@@ -202,7 +204,7 @@ function GmailSourceCard({
 }) {
   const { i18n, t } = useTranslation();
   const queryClient = useQueryClient();
-  const toast = useToastController();
+  const toast = useNotify();
   const [senders, setSenders] = useState(source.senderFilters.join(", "));
   const [saveErrorMessage, setSaveErrorMessage] = useState<string | null>(null);
   const [disconnectOpen, setDisconnectOpen] = useState(false);

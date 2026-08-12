@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { useToastController } from "@tamagui/toast";
+import { useNotify } from "../src/ui/notify";
 import {
   HelpCircle,
   Lightbulb,
@@ -38,7 +38,7 @@ type SupportReportPayload = {
 export default function SupportScreen() {
   const { i18n, t } = useTranslation();
   const router = useRouter();
-  const toast = useToastController();
+  const toast = useNotify();
   const categories = t("support.categories", {
     returnObjects: true,
   }) as string[];

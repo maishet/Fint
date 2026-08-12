@@ -7,7 +7,7 @@ import {
   Trash2,
   Wallet,
 } from "@tamagui/lucide-icons-2";
-import { useToastController } from "@tamagui/toast";
+import { useNotify } from "../../src/ui/notify";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -36,7 +36,7 @@ import { useSensitiveMoney } from "../../src/privacy/useSensitiveMoney";
 export default function AccountsScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const toast = useToastController();
+  const toast = useNotify();
   const queryClient = useQueryClient();
   const [deleteTarget, setDeleteTarget] = useState<Account | null>(null);
   const [currency, setCurrency] = useState("");

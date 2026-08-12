@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDownLeft, ArrowUpRight, Plus, Shapes, Trash2 } from '@tamagui/lucide-icons-2'
-import { useToastController } from '@tamagui/toast'
+import { useNotify } from '../src/ui/notify'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Paragraph, Separator, XStack, YStack } from 'tamagui'
@@ -18,7 +18,7 @@ import { FintButton, FintCard, FintConfirmDialog, FintSpinner } from '../src/ui'
 export default function CategoriesScreen() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
-  const toast = useToastController()
+  const toast = useNotify()
   const [type, setType] = useState<TransactionType>('expense')
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)

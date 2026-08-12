@@ -13,7 +13,7 @@ import {
   Plus,
   Trash2,
 } from "@tamagui/lucide-icons-2";
-import { useToastController } from "@tamagui/toast";
+import { useNotify } from "../../src/ui/notify";
 import { Link, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -101,7 +101,7 @@ function monthRange(month: Date) {
 export default function MovementsScreen() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
-  const toast = useToastController();
+  const toast = useNotify();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const [month, setMonth] = useState(
@@ -217,12 +217,11 @@ export default function MovementsScreen() {
         queryClient.invalidateQueries({ queryKey: ["accounts"] }),
         queryClient.invalidateQueries({ queryKey: ["reports"] }),
       ]);
-      toast.show(t("movementUx.deletedToast"), {
+      toast.success(t("movementUx.deletedToast"), {
         message: t("movementUx.deletedMessage"),
-        preset: "success",
       });
     },
-    onError: () => toast.show(t("movementUx.deleteError"), { preset: "error" }),
+    onError: () => toast.error(t("movementUx.deleteError")),
   });
 
   const reversePaymentMutation = useMutation({

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { CheckCircle2, Wallet } from '@tamagui/lucide-icons-2'
-import { useToastController } from '@tamagui/toast'
+import { useNotify } from '../ui/notify'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -18,7 +18,7 @@ import { MovementPickerTrigger } from './MovementFormControls'
 
 export function OccurrencePaymentSheet({ accounts, occurrence, onOpenChange, open }: { accounts: AccountOption[]; occurrence: PaymentOccurrence | null; onOpenChange: (open: boolean) => void; open: boolean }) {
   const { i18n, t } = useTranslation()
-  const toast = useToastController()
+  const toast = useNotify()
   const queryClient = useQueryClient()
   const insets = useSafeAreaInsets()
   const eligibleAccounts = occurrence ? accounts.filter((account) => account.currency === occurrence.currency) : []

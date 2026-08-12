@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarDays, FileText, Repeat, Save, Shapes } from '@tamagui/lucide-icons-2'
-import { useToastController } from '@tamagui/toast'
+import { useNotify } from '../src/ui/notify'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -32,7 +32,7 @@ export default function DebtFormScreen() {
   const isEditing = Boolean(ruleId)
   const { i18n, t } = useTranslation()
   const router = useRouter()
-  const toast = useToastController()
+  const toast = useNotify()
   const queryClient = useQueryClient()
   const { capabilities } = useCapabilities()
   const categoriesQuery = useQuery({ queryKey: ['categories', 'expense'], queryFn: () => financeApi.listCategories('expense'), retry: false })

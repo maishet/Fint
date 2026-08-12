@@ -69,6 +69,7 @@ const resources = {
         cancel: "Cancelar",
         retry: "Reintentar",
         close: "Cerrar",
+        viewDetail: "Ver detalle",
       },
       states: {
         loading: "Cargando...",
@@ -136,6 +137,7 @@ const resources = {
         syncing: "Sincronizando...",
         syncComplete: "Sincronización completada",
         syncSummary: "{{processed}} procesados · {{created}} nuevos",
+        connectError: "No pudimos conectar la cuenta.",
         reconnectRequired: "Esta cuenta requiere reconexión con Google.",
         reconnect: "Reconectar correo",
         disconnect: "Desconectar correo",
@@ -538,6 +540,7 @@ const resources = {
         cancel: "Cancel",
         retry: "Retry",
         close: "Close",
+        viewDetail: "View detail",
       },
       states: {
         loading: "Loading...",
@@ -605,6 +608,7 @@ const resources = {
         syncing: "Syncing...",
         syncComplete: "Sync complete",
         syncSummary: "{{processed}} processed · {{created}} new",
+        connectError: "We couldn't connect the account.",
         reconnectRequired: "This account needs to reconnect with Google.",
         reconnect: "Reconnect account",
         disconnect: "Disconnect account",

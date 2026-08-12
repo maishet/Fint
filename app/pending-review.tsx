@@ -9,7 +9,7 @@ import {
   Trash2,
   WalletCards,
 } from "@tamagui/lucide-icons-2";
-import { useToastController } from "@tamagui/toast";
+import { useNotify } from "../src/ui/notify";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -69,7 +69,7 @@ function transferScenario(
 export default function PendingReviewScreen() {
   const router = useRouter();
   const { i18n, t } = useTranslation();
-  const toast = useToastController();
+  const toast = useNotify();
   const queryClient = useQueryClient();
   const params = useLocalSearchParams<{ id?: string }>();
   const pendingId = params.id ?? "";

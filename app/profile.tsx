@@ -11,7 +11,7 @@ import {
   ShieldCheck,
   UserRound,
 } from "@tamagui/lucide-icons-2";
-import { useToastController } from "@tamagui/toast";
+import { useNotify } from "../src/ui/notify";
 import { useTranslation } from "react-i18next";
 import { Button, Input, Paragraph, XStack, YStack } from "tamagui";
 import { z } from "zod";
@@ -23,7 +23,7 @@ import { FintButton, FintCard, FintSpinner } from "../src/ui";
 export default function ProfileScreen() {
   const { i18n, t } = useTranslation();
   const { session, signOut, updateDisplayName, changePassword } = useAuth();
-  const toast = useToastController();
+  const toast = useNotify();
   const appMetadata = session?.user.app_metadata ?? {};
   const providers = Array.isArray(appMetadata.providers)
     ? (appMetadata.providers as string[])

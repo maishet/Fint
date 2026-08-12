@@ -16,7 +16,7 @@ import {
   Target,
   WalletCards,
 } from "@tamagui/lucide-icons-2";
-import { useToastController } from "@tamagui/toast";
+import { useNotify } from "../../src/ui/notify";
 import * as Sentry from "@sentry/react-native";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -154,7 +154,7 @@ export default function ReportsScreen() {
   const text = getReportText(t);
   const locale = getAppLocale(language);
   const queryClient = useQueryClient();
-  const toast = useToastController();
+  const toast = useNotify();
   const router = useRouter();
   const [preset, setPreset] = useState<ReportPeriodPreset>("currentMonth");
   const [accountId, setAccountId] = useState(ALL_ACCOUNTS);
@@ -243,19 +243,26 @@ export default function ReportsScreen() {
 
   const exportReport = async (format: "pdf" | "xlsx") => {
     setIsExporting(true);
-    try {
-      const exportReport =
+    const task = (async () => {
+      const exportData =
         await financeApi.getFinancialReportExportData(reportFilters);
-      const localizedReport = localizeReport(exportReport, t);
+      const localizedReport = localizeReport(exportData, t);
       if (format === "pdf")
         await exportFinancialReportPdf(localizedReport, exportOptions);
       else await exportFinancialReportXlsx(localizedReport, exportOptions);
-      toast.show(text.exported, { preset: "success" });
+    })();
+    // Toast de proceso: "Preparando…" → "Reporte listo" / error.
+    toast.promise(task, {
+      loading: text.exporting,
+      success: text.exported,
+      error: text.exportError,
+    });
+    try {
+      await task;
     } catch (error) {
       Sentry.captureException(error, {
         tags: { operation: `report_export_${format}` },
       });
-      toast.show(text.exportError, { preset: "error" });
     } finally {
       setIsExporting(false);
     }

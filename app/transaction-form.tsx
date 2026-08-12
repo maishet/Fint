@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, CalendarDays, Save, Shapes, WalletCards } from '@tamagui/lucide-icons-2'
-import { useToastController } from '@tamagui/toast'
+import { useNotify } from '../src/ui/notify'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -21,7 +21,7 @@ export default function TransactionFormScreen() {
   const router = useRouter()
   const { i18n, t } = useTranslation()
   const params = useLocalSearchParams<{ id?: string; type?: 'income' | 'expense' | 'transfer'; amount?: string; category?: string; account?: string; note?: string; date?: string }>()
-  const toast = useToastController()
+  const toast = useNotify()
   const queryClient = useQueryClient()
   const isEditing = Boolean(params.id)
   const [kind, setKind] = useState<MovementKind>(!isEditing && params.type === 'transfer' ? 'transfer' : params.type === 'income' ? 'income' : 'expense')

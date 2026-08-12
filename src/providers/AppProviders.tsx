@@ -1,5 +1,4 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ToastProvider, ToastViewport } from '@tamagui/toast'
 import * as SecureStore from 'expo-secure-store'
 import { useEffect, useState } from 'react'
 import { Platform, useColorScheme } from 'react-native'
@@ -8,7 +7,7 @@ import { config } from '../../tamagui.config'
 import { loadStoredLanguage } from '../i18n'
 import { AuthProvider } from '../auth/AuthProvider'
 import { ThemeModeContext, type ThemePreference } from '../theme/ThemeMode'
-import { CurrentToast } from '../ui/CurrentToast'
+import { FintToaster } from '../ui/FintToaster'
 import { SensitiveAmountsProvider } from '../privacy/SensitiveAmountsProvider'
 import { DailyRemindersProvider } from '../notifications/DailyRemindersProvider'
 
@@ -46,15 +45,12 @@ export function AppProviders({ children, ...rest }: Omit<TamaguiProviderProps, '
   return (
     <ThemeModeContext.Provider value={{ themeMode, themePreference, setThemePreference }}>
       <TamaguiProvider config={config} defaultTheme={themeMode} {...rest}>
-        <ToastProvider swipeDirection="horizontal" duration={5000}>
-          <Theme name={themeMode} forceClassName>
-            <QueryClientProvider client={queryClient}>
-              <AuthProvider><SensitiveAmountsProvider><DailyRemindersProvider>{children}</DailyRemindersProvider></SensitiveAmountsProvider></AuthProvider>
-            </QueryClientProvider>
-          </Theme>
-          <CurrentToast />
-          <ToastViewport top="$8" left={0} right={0} />
-        </ToastProvider>
+        <Theme name={themeMode} forceClassName>
+          <QueryClientProvider client={queryClient}>
+            <AuthProvider><SensitiveAmountsProvider><DailyRemindersProvider>{children}</DailyRemindersProvider></SensitiveAmountsProvider></AuthProvider>
+          </QueryClientProvider>
+          <FintToaster />
+        </Theme>
       </TamaguiProvider>
     </ThemeModeContext.Provider>
   )
