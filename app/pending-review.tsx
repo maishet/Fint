@@ -314,11 +314,26 @@ export default function PendingReviewScreen() {
           ? (selectedCategory?.id ?? "")
           : undefined,
     });
-    if (payload && selectedAccount)
-      confirmMutation.mutate({
-        ...payload,
-        currency: selectedOccurrence?.currency ?? selectedAccount.currency,
+    if (!payload || !selectedAccount) return;
+    const movementCurrency =
+      selectedOccurrence?.currency ??
+      detail?.currency ??
+      selectedAccount.currency;
+    if (
+      !selectedOccurrence &&
+      detail?.currency &&
+      detail.currency !== selectedAccount.currency
+    ) {
+      toast.show(t("movements.currencyMismatchTitle"), {
+        preset: "error",
+        message: t("movements.currencyMismatch", {
+          detected: detail.currency,
+          account: selectedAccount.currency,
+        }),
       });
+      return;
+    }
+    confirmMutation.mutate({ ...payload, currency: movementCurrency });
   };
 
   const isPending =
@@ -460,7 +475,7 @@ export default function PendingReviewScreen() {
                 </YStack>
 
                 <MovementAmountField
-                  currency={selectedAccount?.currency ?? detail.currency ?? "PEN"}
+                  currency={detail.currency ?? selectedAccount?.currency ?? "PEN"}
                   error={validation.errors.amount}
                   value={amount}
                   onChangeText={(value) => {

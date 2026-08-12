@@ -236,7 +236,8 @@ export default function PendingMovementsScreen() {
       !item.type ||
       item.amount === null ||
       !item.currency ||
-      item.requiresReview
+      item.requiresReview ||
+      item.accountSuggestion.currency !== item.currency
     ) {
       router.push({ pathname: "/pending-review", params: { id: item.id } });
       return;

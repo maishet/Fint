@@ -226,6 +226,9 @@ export const ptTranslation = {
     noAccounts: "Você precisa de uma conta antes de registrar movimentações.",
     noCategories: "Crie uma categoria para este tipo de movimentação.",
     referencesError: "Não foi possível carregar contas ou categorias.",
+    currencyMismatchTitle: "A moeda não corresponde",
+    currencyMismatch:
+      "Este consumo é em {{detected}} e a conta selecionada é em {{account}}. Escolha uma conta em {{detected}} para registrar o valor real.",
     invalidForm: "Revise o valor, a data, a conta e a categoria.",
     creating: "Salvando movimentação...",
     createdToast: "Movimentação criada",

@@ -240,6 +240,9 @@ const resources = {
         noAccounts: "Necesitas una cuenta antes de registrar movimientos.",
         noCategories: "Crea una categoría para este tipo de movimiento.",
         referencesError: "No pudimos cargar las cuentas o categorías.",
+        currencyMismatchTitle: "La moneda no coincide",
+        currencyMismatch:
+          "Este consumo es en {{detected}} y la cuenta seleccionada es en {{account}}. Elige una cuenta en {{detected}} para registrar el monto real.",
         invalidForm: "Revisa el monto, la fecha, la cuenta y la categoría.",
         creating: "Guardando movimiento...",
         createdToast: "Movimiento creado",
@@ -712,6 +715,9 @@ const resources = {
         noAccounts: "You need an account before recording transactions.",
         noCategories: "Create a category for this transaction type.",
         referencesError: "Could not load accounts or categories.",
+        currencyMismatchTitle: "Currency mismatch",
+        currencyMismatch:
+          "This charge is in {{detected}} and the selected account is in {{account}}. Pick a {{detected}} account to record the real amount.",
         invalidForm: "Review the amount, date, account, and category.",
         creating: "Saving transaction...",
         createdToast: "Transaction created",
