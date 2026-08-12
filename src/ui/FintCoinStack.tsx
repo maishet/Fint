@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AccessibilityInfo, Animated, Easing, Platform, View } from "react-native";
+import { AccessibilityInfo, Animated, Easing, View } from "react-native";
 
 export interface FintCoinStackProps {
   color?: string;
@@ -41,8 +41,6 @@ export function FintCoinStack({
   const progress = useRef(COINS.map(() => new Animated.Value(1))).current;
 
   useEffect(() => {
-    if (Platform.OS === "web") return;
-
     let isActive = true;
     AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
       if (isActive) setIsReduceMotionEnabled(enabled);
@@ -58,7 +56,7 @@ export function FintCoinStack({
     };
   }, []);
 
-  const shouldAnimate = Platform.OS !== "web" && !isReduceMotionEnabled;
+  const shouldAnimate = !isReduceMotionEnabled;
 
   useEffect(() => {
     if (!shouldAnimate) {

@@ -16,7 +16,6 @@ type NotificationsModule = typeof import('expo-notifications')
 let notificationsModulePromise: Promise<NotificationsModule | null> | null = null
 
 export async function getInstallationId() {
-  if (Platform.OS === 'web') return null
   const existing = await SecureStore.getItemAsync(installationKey)
   if (existing) return existing
   const id = randomUuid()
@@ -25,7 +24,7 @@ export async function getInstallationId() {
 }
 
 export async function getPushPermissionState(): Promise<PushPermissionState> {
-  if (Platform.OS === 'web' || !Device.isDevice) return 'unsupported'
+  if (!Device.isDevice) return 'unsupported'
   const Notifications = await loadNotifications()
   if (!Notifications) return 'unsupported'
   const permissions = await Notifications.getPermissionsAsync()
@@ -48,7 +47,7 @@ export async function requestAndRegisterPushInstallation() {
 }
 
 export async function registerPushInstallation() {
-  if (Platform.OS === 'web' || !Device.isDevice) return null
+  if (!Device.isDevice) return null
   const Notifications = await loadNotifications()
   if (!Notifications) return null
   await configureNotificationChannels(Notifications)
@@ -109,7 +108,7 @@ export async function configureNotificationChannels(Notifications: Notifications
 }
 
 export async function loadNotifications() {
-  if (Platform.OS === 'web' || Constants.appOwnership === 'expo') return null
+  if (Constants.appOwnership === 'expo') return null
   notificationsModulePromise ??= import('expo-notifications').then((Notifications) => {
     Notifications.setNotificationHandler({
       handleNotification: async () => ({ shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: false, shouldShowBanner: true, shouldShowList: true }),

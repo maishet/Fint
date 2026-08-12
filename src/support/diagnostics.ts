@@ -20,6 +20,5 @@ export function getSupportDiagnostics() {
 
 function getPlatformName() {
   if (typeof navigator !== 'undefined' && navigator.product === 'ReactNative') return 'native'
-  if (typeof navigator !== 'undefined') return 'web'
   return 'test'
 }

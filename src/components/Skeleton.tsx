@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
-import { Animated, Platform } from "react-native";
+import { Animated } from "react-native";
 import { Separator, XStack, YStack, type YStackProps } from "tamagui";
 import { FintCard } from "../ui";
 
@@ -17,11 +17,6 @@ export function SkeletonGroup({ children, label }: SkeletonGroupProps) {
   const opacity = useRef(new Animated.Value(0.5)).current;
 
   useEffect(() => {
-    if (Platform.OS === "web") {
-      opacity.setValue(0.72);
-      return;
-    }
-
     const animation = Animated.loop(
       Animated.sequence([
         Animated.timing(opacity, {

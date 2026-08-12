@@ -2,7 +2,6 @@ import * as Localization from "expo-localization";
 import * as SecureStore from "expo-secure-store";
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
-import { Platform } from "react-native";
 import { ptTranslation } from "./pt";
 
 export type AppLanguage = "es" | "en" | "pt";
@@ -2176,19 +2175,14 @@ i18n.addResourceBundle(
 );
 
 export async function loadStoredLanguage() {
-  const value =
-    Platform.OS === "web"
-      ? window.localStorage.getItem(languageStorageKey)
-      : await SecureStore.getItemAsync(languageStorageKey);
+  const value = await SecureStore.getItemAsync(languageStorageKey);
   if (value === "es" || value === "en" || value === "pt")
     await i18n.changeLanguage(value);
 }
 
 export async function changeAppLanguage(language: AppLanguage) {
   await i18n.changeLanguage(language);
-  if (Platform.OS === "web")
-    window.localStorage.setItem(languageStorageKey, language);
-  else await SecureStore.setItemAsync(languageStorageKey, language);
+  await SecureStore.setItemAsync(languageStorageKey, language);
 }
 
 export function getAppLocale(language = i18n.resolvedLanguage) {

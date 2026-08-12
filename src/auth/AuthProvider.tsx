@@ -2,14 +2,12 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { useQueryClient } from '@tanstack/react-query'
 import { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } from '@react-native-google-signin/google-signin'
-import { AppState, Platform } from 'react-native'
+import { AppState } from 'react-native'
 import { supabase } from './supabase'
 import { GOOGLE_SIGNIN_BASE_CONFIG } from './googleSignIn'
 import { registerPushInstallation, unregisterPushInstallation } from '../notifications/pushNotifications'
 
-if (Platform.OS !== 'web') {
-  GoogleSignin.configure(GOOGLE_SIGNIN_BASE_CONFIG)
-}
+GoogleSignin.configure(GOOGLE_SIGNIN_BASE_CONFIG)
 
 interface AuthResult {
   error: Error | null
@@ -57,8 +55,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [queryClient])
 
   useEffect(() => {
-    if (Platform.OS === 'web') return
-
     supabase.auth.startAutoRefresh()
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') supabase.auth.startAutoRefresh()
@@ -103,7 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       async signOut() {
         await unregisterPushInstallation().catch(() => undefined)
-        if (Platform.OS !== 'web') await GoogleSignin.signOut().catch(() => undefined)
+        await GoogleSignin.signOut().catch(() => undefined)
         const { error } = await supabase.auth.signOut()
         if (error) {
           const { error: localError } = await supabase.auth.signOut({ scope: 'local' })

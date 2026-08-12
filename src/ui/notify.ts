@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Alert, Platform } from "react-native";
+import { Alert } from "react-native";
 import * as Haptics from "expo-haptics";
 import { toast } from "sonner-native";
 
@@ -35,7 +35,6 @@ export type NotifyOptions = {
 };
 
 function triggerHaptic(preset?: NotifyPreset) {
-  if (Platform.OS === "web") return;
   try {
     if (preset === "success") {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

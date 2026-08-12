@@ -27,14 +27,12 @@ export const analyticsEventProperties = {
 const prohibitedPropertyPattern = /amount|balance|currency|note|description|email|sender|subject|token|jwt|cookie|header|body|accountName|categoryName|merchant|phone|address|advertising/i
 
 export async function isAnalyticsEnabled() {
-  const value = canUseLocalStorage() ? window.localStorage.getItem(analyticsEnabledStorageKey) : await getSecureStoreItem(analyticsEnabledStorageKey)
+  const value = await getSecureStoreItem(analyticsEnabledStorageKey)
   return value !== 'false'
 }
 
 export async function setAnalyticsEnabled(enabled: boolean) {
-  const value = enabled ? 'true' : 'false'
-  if (canUseLocalStorage()) window.localStorage.setItem(analyticsEnabledStorageKey, value)
-  else await setSecureStoreItem(analyticsEnabledStorageKey, value)
+  await setSecureStoreItem(analyticsEnabledStorageKey, enabled ? 'true' : 'false')
 }
 
 export function validateAnalyticsEvent<Name extends AnalyticsEventName>(name: Name, properties: Partial<AnalyticsEventProperties[Name]> = {}) {
@@ -47,10 +45,6 @@ export async function trackAnalyticsEvent<Name extends AnalyticsEventName>(name:
   validateAnalyticsEvent(name, properties)
   if (!(await isAnalyticsEnabled())) return
   if (__DEV__) console.info('[analytics-preview]', name, properties)
-}
-
-function canUseLocalStorage() {
-  return typeof window !== 'undefined' && Boolean(window.localStorage)
 }
 
 async function getSecureStoreItem(key: string) {

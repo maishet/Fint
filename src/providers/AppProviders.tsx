@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import * as SecureStore from 'expo-secure-store'
 import { useEffect, useState } from 'react'
-import { Platform, useColorScheme } from 'react-native'
+import { useColorScheme } from 'react-native'
 import { TamaguiProvider, Theme, type TamaguiProviderProps } from 'tamagui'
 import { config } from '../../tamagui.config'
 import { loadStoredLanguage } from '../i18n'
@@ -57,15 +57,10 @@ export function AppProviders({ children, ...rest }: Omit<TamaguiProviderProps, '
 }
 
 async function getStoredThemeMode() {
-  const value = Platform.OS === 'web' ? window.localStorage.getItem(themeModeStorageKey) : await SecureStore.getItemAsync(themeModeStorageKey)
+  const value = await SecureStore.getItemAsync(themeModeStorageKey)
   return value === 'light' || value === 'dark' || value === 'system' ? value : null
 }
 
 async function storeThemeMode(themeMode: ThemePreference) {
-  if (Platform.OS === 'web') {
-    window.localStorage.setItem(themeModeStorageKey, themeMode)
-    return
-  }
-
   await SecureStore.setItemAsync(themeModeStorageKey, themeMode)
 }

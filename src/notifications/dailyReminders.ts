@@ -16,7 +16,6 @@ async function hasNotificationPermission() {
 }
 
 export async function scheduleDailyReminder() {
-  if (Platform.OS === 'web') return false
   const Notifications = await loadNotifications()
   if (!Notifications) return false
   if (!(await hasNotificationPermission())) return false
@@ -39,7 +38,6 @@ export async function scheduleDailyReminder() {
 }
 
 export async function cancelDailyReminder() {
-  if (Platform.OS === 'web') return
   const Notifications = await loadNotifications()
   if (!Notifications) return
   const existing = await SecureStore.getItemAsync(reminderNotificationIdKey)
@@ -50,6 +48,5 @@ export async function cancelDailyReminder() {
 }
 
 export async function isDailyReminderSchedulable() {
-  if (Platform.OS === 'web') return false
   return hasNotificationPermission()
 }

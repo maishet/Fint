@@ -132,11 +132,9 @@ Configura `finanzasmobilev2://auth/callback` como URL de redireccionamiento en S
 | `bun run start` | Inicia Expo y limpia la cache de Metro. |
 | `bun run android` | Compila y ejecuta la aplicacion en Android. |
 | `bun run ios` | Compila y ejecuta la aplicacion en iOS. |
-| `bun run web` | Inicia la aplicacion en el navegador. |
 | `bun run typecheck` | Valida el proyecto con TypeScript. |
 | `bun run test` | Ejecuta las pruebas unitarias. |
 | `bun run test:coverage` | Ejecuta las pruebas unitarias con cobertura. |
-| `bun run test:e2e` | Ejecuta las pruebas end-to-end con Playwright. |
 | `bunx expo-doctor` | Revisa la compatibilidad del proyecto Expo. |
 | `bun run build:preview:android` | Genera un APK para pruebas internas. |
 | `bun run build:production:android` | Genera un AAB para Google Play. |
