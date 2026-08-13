@@ -1,9 +1,8 @@
-import * as SecureStore from 'expo-secure-store'
 import { Platform } from 'react-native'
 import i18n from '../i18n'
 import { configureNotificationChannels, loadNotifications } from './pushNotifications'
 
-const reminderNotificationIdKey = 'fint-daily-reminder-notification-id'
+const REMINDER_ID = 'fint-daily-reminder'
 
 export const REMINDER_HOUR = 20
 export const REMINDER_MINUTE = 0
@@ -20,11 +19,13 @@ export async function scheduleDailyReminder() {
   if (!Notifications) return false
   if (!(await hasNotificationPermission())) return false
   await configureNotificationChannels(Notifications)
-  await cancelDailyReminder()
-  const identifier = await Notifications.scheduleNotificationAsync({
+  await Notifications.cancelAllScheduledNotificationsAsync().catch(() => undefined)
+  await Notifications.scheduleNotificationAsync({
+    identifier: REMINDER_ID,
     content: {
       title: i18n.t('notifications.dailyReminder.title'),
       body: i18n.t('notifications.dailyReminder.body'),
+      data: { type: 'daily-reminder' },
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
@@ -33,18 +34,13 @@ export async function scheduleDailyReminder() {
       ...(Platform.OS === 'android' ? { channelId: 'daily-reminders' } : {}),
     },
   })
-  await SecureStore.setItemAsync(reminderNotificationIdKey, identifier)
   return true
 }
 
 export async function cancelDailyReminder() {
   const Notifications = await loadNotifications()
   if (!Notifications) return
-  const existing = await SecureStore.getItemAsync(reminderNotificationIdKey)
-  if (existing) {
-    await Notifications.cancelScheduledNotificationAsync(existing).catch(() => undefined)
-    await SecureStore.deleteItemAsync(reminderNotificationIdKey).catch(() => undefined)
-  }
+  await Notifications.cancelAllScheduledNotificationsAsync().catch(() => undefined)
 }
 
 export async function isDailyReminderSchedulable() {
