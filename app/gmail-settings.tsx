@@ -246,6 +246,7 @@ function GmailSourceCard({
     onSuccess: () => {
       setSaveErrorMessage(null);
       queryClient.invalidateQueries({ queryKey: ["gmail-sources"] });
+      toast.show(t("gmail.filterSaved"), { preset: "success" });
     },
     onError: (error) =>
       setSaveErrorMessage(
@@ -255,9 +256,16 @@ function GmailSourceCard({
   const deleteMutation = useMutation({
     mutationFn: () => financeApi.disconnectGmailSource(source.id),
     onSuccess: () => {
+      setDisconnectOpen(false);
       queryClient.invalidateQueries({ queryKey: ["gmail-sources"] });
       queryClient.invalidateQueries({ queryKey: ["me"] });
+      toast.show(t("gmail.disconnected"), { preset: "success" });
     },
+    onError: (error) =>
+      toast.show(t("gmail.disconnectError"), {
+        message: error instanceof Error ? error.message : undefined,
+        preset: "error",
+      }),
   });
   const pending =
     syncMutation.isPending ||

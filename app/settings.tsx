@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Alert, AppState, Image, Linking, Share } from "react-native";
+import { AppState, Image, Linking, Share } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -48,6 +48,7 @@ import {
   FintSheetSelect,
   FintSpinner,
   FintSwitchRow,
+  useNotify,
 } from "../src/ui";
 import {
   getPushPermissionState,
@@ -67,6 +68,7 @@ export default function SettingsScreen() {
       : "es"
   ) as AppLanguage;
   const { session, signOut } = useAuth();
+  const notify = useNotify();
   const { themeMode, themePreference, setThemePreference } = useThemeMode();
   const { amountsVisible, toggleAmountsVisibility } = useSensitiveAmounts();
   const { enabled: dailyRemindersEnabled, setEnabled: setDailyRemindersEnabled } =
@@ -127,18 +129,17 @@ export default function SettingsScreen() {
       const nextState = await requestAndRegisterPushInstallation();
       setPushState(nextState);
       if (nextState !== "granted")
-        Alert.alert(
-          t("settings.notifications"),
-          t("settings.notificationsError"),
-        );
+        notify.error(t("settings.notifications"), {
+          message: t("settings.notificationsError"),
+        });
     } catch (error) {
       setPushState("undetermined");
-      Alert.alert(
-        t("settings.notifications"),
-        error instanceof Error
-          ? error.message
-          : t("settings.notificationsError"),
-      );
+      notify.error(t("settings.notifications"), {
+        message:
+          error instanceof Error
+            ? error.message
+            : t("settings.notificationsError"),
+      });
     }
   };
   const deleteConfirmationToken = t("settings.deleteAccountConfirmationToken");
@@ -157,12 +158,12 @@ export default function SettingsScreen() {
       await signOut().catch(() => undefined);
     },
     onError: (error) =>
-      Alert.alert(
-        t("settings.deleteAccount"),
-        error instanceof Error
-          ? error.message
-          : t("settings.deleteAccountError"),
-      ),
+      notify.error(t("settings.deleteAccount"), {
+        message:
+          error instanceof Error
+            ? error.message
+            : t("settings.deleteAccountError"),
+      }),
   });
 
   return (
