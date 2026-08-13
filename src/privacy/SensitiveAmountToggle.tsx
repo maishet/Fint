@@ -1,6 +1,7 @@
 import { Eye, EyeOff } from '@tamagui/lucide-icons-2'
 import { useTranslation } from 'react-i18next'
 import { YStack } from 'tamagui'
+import { haptics } from '../ui/haptics'
 import { useSensitiveAmounts } from './SensitiveAmountsProvider'
 
 export function SensitiveAmountToggle({ color = '$primary', inverse = false }: { color?: string; inverse?: boolean }) {
@@ -22,7 +23,11 @@ export function SensitiveAmountToggle({ color = '$primary', inverse = false }: {
       pressStyle={{ scale: 0.96, opacity: 0.84 }}
       role="button"
       aria-label={label}
-      onPress={toggleAmountsVisibility}
+      accessibilityHint={t('privacy.amounts.toggleHint')}
+      onPress={() => {
+        haptics.select()
+        toggleAmountsVisibility()
+      }}
     >
       <Icon size={21} color={color as never} />
     </YStack>

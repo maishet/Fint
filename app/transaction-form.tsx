@@ -31,7 +31,7 @@ export default function TransactionFormScreen() {
   const [originAccountId, setOriginAccountId] = useState('')
   const [destinationAccountId, setDestinationAccountId] = useState('')
   const [note, setNote] = useState(params.note ?? '')
-  const [transactionDate, setTransactionDate] = useState(params.date ?? todayDateString)
+  const [transactionDate, setTransactionDate] = useState(() => params.date ?? todayDateString())
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const validation = useSubmitValidation<'account' | 'amount' | 'category' | 'transactionDate' | 'originAccountId' | 'destinationAccountId'>()
   const accountsQuery = useQuery({ queryKey: ['account-options'], queryFn: () => financeApi.listAccountOptions(), retry: false })

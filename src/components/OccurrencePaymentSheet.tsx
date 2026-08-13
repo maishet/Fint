@@ -24,7 +24,7 @@ export function OccurrencePaymentSheet({ accounts, occurrence, onOpenChange, ope
   const eligibleAccounts = occurrence ? accounts.filter((account) => account.currency === occurrence.currency) : []
   const [amount, setAmount] = useState('')
   const [accountId, setAccountId] = useState('')
-  const [transactionDate, setTransactionDate] = useState(todayDateString)
+  const [transactionDate, setTransactionDate] = useState(() => todayDateString())
   const [note, setNote] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const validation = useSubmitValidation<'accountId' | 'amount' | 'transactionDate'>()

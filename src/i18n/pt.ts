@@ -307,6 +307,7 @@ export const ptTranslation = {
       show: "Mostrar valores",
       hide: "Ocultar valores",
       hiddenLabel: "Valor oculto",
+      toggleHint: "Alterna entre mostrar e ocultar os valores.",
       description: "Oculte saldos e valores ao compartilhar sua tela.",
     },
   },

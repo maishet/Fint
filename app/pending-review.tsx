@@ -76,7 +76,7 @@ export default function PendingReviewScreen() {
   const hydratedId = useRef<string | null>(null);
   const [type, setType] = useState<TransactionType>("expense");
   const [amount, setAmount] = useState("");
-  const [transactionDate, setTransactionDate] = useState(todayDateString);
+  const [transactionDate, setTransactionDate] = useState(() => todayDateString());
   const [accountId, setAccountId] = useState("");
   const [category, setCategory] = useState("");
   const [paymentOccurrenceId, setPaymentOccurrenceId] =

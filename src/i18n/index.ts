@@ -321,6 +321,7 @@ const resources = {
           show: "Mostrar montos",
           hide: "Ocultar montos",
           hiddenLabel: "Monto oculto",
+          toggleHint: "Alterna entre mostrar y ocultar los montos.",
           description:
             "Oculta balances e importes cuando compartas tu pantalla.",
         },
@@ -795,6 +796,7 @@ const resources = {
           show: "Show amounts",
           hide: "Hide amounts",
           hiddenLabel: "Hidden amount",
+          toggleHint: "Toggles between showing and hiding amounts.",
           description: "Hide balances and amounts when sharing your screen.",
         },
       },
@@ -1239,6 +1241,12 @@ i18n.addResourceBundle(
     movementUx: {
       pendingTitle: "Pendientes detectados",
       pendingReviewHint: "Revisa, edita o descarta movimientos detectados.",
+      searchPlaceholder: "Buscar por categoría, nota, cuenta o monto",
+      searchScopeHint: "Buscando solo en el mes seleccionado.",
+      searchEmptyTitle: "Sin resultados",
+      searchEmptyDescription:
+        "No encontramos movimientos que coincidan con tu búsqueda en este mes.",
+      searchClear: "Limpiar búsqueda",
       pendingNeedsEdit:
         "Revisa el pendiente para completar los datos faltantes.",
       pendingDiscarded: "Pendiente descartado",
@@ -1638,6 +1646,12 @@ i18n.addResourceBundle(
     movementUx: {
       pendingTitle: "Detected pending items",
       pendingReviewHint: "Review, edit, or discard detected transactions.",
+      searchPlaceholder: "Search by category, note, account, or amount",
+      searchScopeHint: "Searching only within the selected month.",
+      searchEmptyTitle: "No results",
+      searchEmptyDescription:
+        "We couldn't find movements matching your search this month.",
+      searchClear: "Clear search",
       pendingNeedsEdit:
         "Review the pending item to complete the missing details.",
       pendingDiscarded: "Pending item discarded",
@@ -2040,6 +2054,12 @@ i18n.addResourceBundle(
     movementUx: {
       pendingTitle: "Pendências detectadas",
       pendingReviewHint: "Revise, edite ou descarte movimentações detectadas.",
+      searchPlaceholder: "Buscar por categoria, nota, conta ou valor",
+      searchScopeHint: "Buscando apenas no mês selecionado.",
+      searchEmptyTitle: "Sem resultados",
+      searchEmptyDescription:
+        "Não encontramos movimentações que correspondam à sua busca neste mês.",
+      searchClear: "Limpar busca",
       pendingNeedsEdit: "Revise a pendência para completar os dados faltantes.",
       pendingDiscarded: "Pendência descartada",
       pendingConfirmError: "Não foi possível confirmar a pendência.",

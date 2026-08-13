@@ -16,6 +16,7 @@ import { financeApi } from "../../src/api/finance";
 import { normalizeAccount } from "../../src/api/mappers";
 import type { Account, AccountsOverview } from "../../src/api/types";
 import { DataStateCard } from "../../src/components/DataStateCard";
+import { EmptyState } from "../../src/components/EmptyState";
 import { Screen } from "../../src/components/Screen";
 import {
   SkeletonGroup,
@@ -169,45 +170,14 @@ export default function AccountsScreen() {
           />
         ) : null}
         {!isLoading && !error && accounts.length === 0 ? (
-          <FintCard
-            bg="$accent1"
-            borderColor="$accent4"
-            items="center"
-            gap="$3"
-            py="$6"
-          >
-            <YStack
-              width={48}
-              height={48}
-              rounded="$10"
-              bg="$accent3"
-              items="center"
-              justify="center"
-            >
-              <Wallet size={23} color="$primary" />
-            </YStack>
-            <YStack items="center" gap="$1">
-              <Paragraph
-                color="$color12"
-                fontFamily="$heading"
-                fontSize="$5"
-                fontWeight="700"
-              >
-                {t("accounts.emptyTitle")}
-              </Paragraph>
-              <Paragraph
-                color="$color10"
-                fontSize="$2"
-                text="center"
-                maxW={260}
-              >
-                {t("accounts.emptyDescription")}
-              </Paragraph>
-            </YStack>
-            <FintButton icon={<Plus size={16} />} onPress={openCreate}>
-              {t("actions.newAccount")}
-            </FintButton>
-          </FintCard>
+          <EmptyState
+            icon={<Wallet size={26} color="$primary" />}
+            title={t("accounts.emptyTitle")}
+            description={t("accounts.emptyDescription")}
+            actionLabel={t("actions.newAccount")}
+            actionIcon={<Plus size={16} />}
+            onAction={openCreate}
+          />
         ) : null}
         {!isLoading && !error
           ? accounts.map((account) => (

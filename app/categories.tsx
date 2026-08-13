@@ -8,6 +8,7 @@ import { financeApi } from '../src/api/finance'
 import type { Category, TransactionType } from '../src/api/types'
 import { CreateCategorySheet } from '../src/components/CreateCategorySheet'
 import { DataStateCard } from '../src/components/DataStateCard'
+import { EmptyState } from '../src/components/EmptyState'
 import { MovementTypeSelector } from '../src/components/MovementFormControls'
 import { Screen } from '../src/components/Screen'
 import { SkeletonGroup, SkeletonList } from '../src/components/Skeleton'
@@ -69,14 +70,13 @@ export default function CategoriesScreen() {
         {categoriesQuery.isLoading ? <SkeletonGroup label={t('states.loading')}><SkeletonList grouped rows={6} /></SkeletonGroup> : null}
         {categoriesQuery.error ? <DataStateCard message={t('categories.loadError')} onRetry={() => { void categoriesQuery.refetch() }} /> : null}
         {!categoriesQuery.isLoading && !categoriesQuery.error && categories.length === 0 ? (
-          <FintCard gap="$3" items="center" py="$6">
-            <YStack width={58} height={58} rounded="$10" bg="$secondary" items="center" justify="center">
-              <Shapes size={28} color="$primary" />
-            </YStack>
-            <Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="700">{t('categories.emptyTitle')}</Paragraph>
-            <Paragraph color="$color10" text="center">{t('categories.emptyDescription')}</Paragraph>
-            <FintButton onPress={openCreate}>{t('categories.newAction')}</FintButton>
-          </FintCard>
+          <EmptyState
+            icon={<Shapes size={28} color="$primary" />}
+            title={t('categories.emptyTitle')}
+            description={t('categories.emptyDescription')}
+            actionLabel={t('categories.newAction')}
+            onAction={openCreate}
+          />
         ) : null}
         {!categoriesQuery.isLoading && !categoriesQuery.error && categories.length > 0 ? (
           <FintCard p={0} overflow="hidden">

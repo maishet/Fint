@@ -1,6 +1,7 @@
 import type { ComponentProps } from "react";
 import { Button, Dialog, XStack, YStack } from "tamagui";
 import { FintSpinner } from "./FintSpinner";
+import { haptics } from "./haptics";
 
 export function FintConfirmDialog({
   cancelLabel,
@@ -60,7 +61,15 @@ export function FintConfirmDialog({
             </Dialog.Description>
           </YStack>
           <XStack gap="$3">
-            <Button flex={1} chromeless disabled={isPending} onPress={onCancel}>
+            <Button
+              flex={1}
+              chromeless
+              disabled={isPending}
+              onPress={() => {
+                haptics.tap();
+                onCancel();
+              }}
+            >
               {cancelLabel}
             </Button>
             <Button
@@ -70,7 +79,10 @@ export function FintConfirmDialog({
               fontWeight="700"
               disabled={isPending}
               icon={isPending ? <FintSpinner color="$primaryForeground" /> : icon}
-              onPress={onConfirm}
+              onPress={() => {
+                haptics[destructive ? "warning" : "tap"]();
+                onConfirm();
+              }}
             >
               {isPending ? (pendingLabel ?? confirmLabel) : confirmLabel}
             </Button>

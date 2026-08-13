@@ -1,7 +1,8 @@
+import { getAppLocale } from '../i18n'
 import type { Account, DashboardSummary, Summary, Transaction } from './types'
 
-export function formatMoney(value = 0, currency = 'PEN') {
-  return new Intl.NumberFormat('es-PE', { currency, currencyDisplay: 'code', style: 'currency' }).format(value)
+export function formatMoney(value = 0, currency = 'PEN', locale = getAppLocale()) {
+  return new Intl.NumberFormat(locale, { currency, currencyDisplay: 'code', style: 'currency' }).format(value)
 }
 
 export function normalizeSummary(summary?: Summary): DashboardSummary {

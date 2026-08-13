@@ -11,20 +11,23 @@ import {
   ChevronRight,
   Mail,
   Plus,
+  Search,
   Trash2,
+  X,
 } from "@tamagui/lucide-icons-2";
 import { useNotify } from "../../src/ui/notify";
 import { Link, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Button, Paragraph, XStack, YStack } from "tamagui";
+import { Button, Input, Paragraph, XStack, YStack } from "tamagui";
 import { financeApi } from "../../src/api/finance";
 import { formatMoney, normalizeTransaction } from "../../src/api/mappers";
 import type { Transaction } from "../../src/api/types";
 import { supabase } from "../../src/auth/supabase";
 import { DataStateCard } from "../../src/components/DataStateCard";
+import { EmptyState } from "../../src/components/EmptyState";
 import {
   SkeletonGroup,
   SkeletonHero,
@@ -108,6 +111,7 @@ export default function MovementsScreen() {
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   );
   const [summaryCurrency, setSummaryCurrency] = useState("");
+  const [search, setSearch] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null);
   const [reverseTarget, setReverseTarget] = useState<Transaction | null>(null);
   const [reverseTransferTarget, setReverseTransferTarget] = useState<
@@ -134,6 +138,30 @@ export default function MovementsScreen() {
     movementsQuery.data?.pages.flatMap((page) => page.items) ?? []
   ).map(normalizeTransaction);
   const movementItems = groupMovements(movements);
+  const deferredSearch = useDeferredValue(search);
+  const term = deferredSearch.trim().toLocaleLowerCase();
+  const filteredItems = term
+    ? movementItems.filter((item) => {
+        const fields =
+          item.kind === "transfer"
+            ? [
+                item.origin.account,
+                item.destination.account,
+                item.origin.note,
+                item.destination.note,
+                String(item.amount),
+              ]
+            : [
+                getCategoryLabel(item.movement.category, t),
+                item.movement.note,
+                item.movement.account,
+                String(item.movement.amount),
+              ];
+        return fields.some(
+          (field) => field != null && field.toLocaleLowerCase().includes(term),
+        );
+      })
+    : movementItems;
   const summary = movementsQuery.data?.pages[0]?.summary;
   const currencySummary =
     summary?.byCurrency.find((item) => item.currency === summaryCurrency) ??
@@ -162,6 +190,21 @@ export default function MovementsScreen() {
     if (currencySummary && summaryCurrency !== currencySummary.currency)
       setSummaryCurrency(currencySummary.currency);
   }, [currencySummary, summaryCurrency]);
+
+  useEffect(() => {
+    if (
+      term &&
+      movementsQuery.hasNextPage &&
+      !movementsQuery.isFetchingNextPage
+    ) {
+      void movementsQuery.fetchNextPage();
+    }
+  }, [
+    term,
+    movementsQuery.hasNextPage,
+    movementsQuery.isFetchingNextPage,
+    movementsQuery.fetchNextPage,
+  ]);
 
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | null = null;
@@ -370,6 +413,48 @@ export default function MovementsScreen() {
           />
         </Link>
       </XStack>
+      <YStack gap="$2">
+        <XStack
+          items="center"
+          gap="$2.5"
+          bg="$muted"
+          borderColor="$input"
+          borderWidth={1}
+          rounded={14}
+          px="$3.5"
+          minH={56}
+        >
+          <Search size={20} color="$color10" />
+          <Input
+            flex={1}
+            unstyled
+            color="$color12"
+            fontSize="$4"
+            placeholderTextColor="$mutedForeground"
+            placeholder={t("movementUx.searchPlaceholder")}
+            value={search}
+            onChangeText={setSearch}
+            autoCapitalize="none"
+            returnKeyType="search"
+          />
+          {search ? (
+            <XStack
+              role="button"
+              onPress={() => setSearch("")}
+              aria-label={t("movementUx.searchClear")}
+              p="$1.5"
+              pressStyle={{ opacity: 0.6 }}
+            >
+              <X size={18} color="$color10" />
+            </XStack>
+          ) : null}
+        </XStack>
+        {term ? (
+          <Paragraph color="$color9" fontSize="$1">
+            {t("movementUx.searchScopeHint")}
+          </Paragraph>
+        ) : null}
+      </YStack>
       {movementsQuery.error ? (
         <DataStateCard
           message={t("states.error")}
@@ -384,20 +469,28 @@ export default function MovementsScreen() {
   return (
     <YStack flex={1} bg="$background">
       <FlatList
-        data={movementItems}
+        data={filteredItems}
         keyExtractor={(item) =>
           item.kind === "transfer" ? item.transferGroupId : item.movement.id
         }
         contentContainerStyle={{
           padding: 16,
           paddingBottom: Math.max(insets.bottom, 24),
-          flexGrow: movementItems.length ? undefined : 1,
+          flexGrow: filteredItems.length ? undefined : 1,
         }}
         ListHeaderComponent={header}
         ListEmptyComponent={
-          !movementsQuery.isLoading && !movementsQuery.error ? (
+          movementsQuery.isLoading || movementsQuery.error ? null : term ? (
+            <EmptyState
+              icon={<Search size={26} color="$primary" />}
+              title={t("movementUx.searchEmptyTitle")}
+              description={t("movementUx.searchEmptyDescription")}
+              actionLabel={t("movementUx.searchClear")}
+              onAction={() => setSearch("")}
+            />
+          ) : (
             <DataStateCard message={t("movements.emptyDescription")} />
-          ) : null
+          )
         }
         ListFooterComponent={
           movementsQuery.isFetchingNextPage ? (

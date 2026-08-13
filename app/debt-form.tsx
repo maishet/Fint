@@ -45,7 +45,7 @@ export default function DebtFormScreen() {
   const [amount, setAmount] = useState('')
   const [selectedCurrency, setSelectedCurrency] = useState('PEN')
   const [frequency, setFrequency] = useState<Frequency>('monthly')
-  const [startDate, setStartDate] = useState(todayDateString)
+  const [startDate, setStartDate] = useState(() => todayDateString())
   const [categoryId, setCategoryId] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const validation = useSubmitValidation<'title' | 'amount' | 'categoryId' | 'startDate'>()

@@ -5,6 +5,7 @@ import { Keyboard } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Input, Paragraph, Sheet, XStack, YStack, type XStackProps } from 'tamagui'
 import { useSheetBackHandler } from '../hooks/useSheetBackHandler'
+import { haptics } from './haptics'
 
 export interface FintSelectOption {
   icon?: ReactNode
@@ -61,6 +62,7 @@ export function FintSheetSelect({ label, onValueChange, options, placeholder, se
         role="button"
         onPress={() => {
           Keyboard.dismiss()
+          haptics.select()
           onValueChange(option.value)
           setIsOpen(false)
           setSearch('')

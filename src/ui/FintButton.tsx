@@ -1,14 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, type ButtonProps } from "tamagui";
+import { haptics } from "./haptics";
 
 interface FintButtonProps extends Omit<ButtonProps, "variant"> {
   variant?: "solid" | "outlined";
+  haptic?: "tap" | "select" | "warning" | "none";
 }
 
 export function FintButton({
   disabled,
   onPress,
   variant = "solid",
+  haptic = "tap",
   ...props
 }: FintButtonProps) {
   const [isPressLocked, setIsPressLocked] = useState(false);
@@ -31,6 +34,7 @@ export function FintButton({
 
   const handlePress: ButtonProps["onPress"] = (event) => {
     if (disabled || isPressLockedRef.current || !onPress) return;
+    if (haptic !== "none") haptics[haptic]();
     isPressLockedRef.current = true;
     setIsPressLocked(true);
     const result: unknown = (

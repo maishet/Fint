@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Paragraph, Switch, XStack, YStack } from "tamagui";
+import { haptics } from "./haptics";
 
 export function FintSwitchRow({
   checked,
@@ -17,7 +18,9 @@ export function FintSwitchRow({
   onCheckedChange: (checked: boolean) => void;
 }) {
   const toggle = () => {
-    if (!disabled) onCheckedChange(!checked);
+    if (disabled) return;
+    haptics.select();
+    onCheckedChange(!checked);
   };
   return (
     <XStack

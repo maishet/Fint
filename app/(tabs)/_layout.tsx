@@ -9,6 +9,7 @@ import {
   Wallet,
 } from "@tamagui/lucide-icons-2";
 import { AppHeader } from "../../src/components/AppHeader";
+import { haptics } from "../../src/ui/haptics";
 
 export default function TabLayout() {
   const { t } = useTranslation();
@@ -16,6 +17,9 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      screenListeners={{
+        tabPress: () => haptics.select(),
+      }}
       screenOptions={{
         tabBarActiveTintColor: theme.tabActive.val,
         tabBarInactiveTintColor: theme.tabInactive.val,
