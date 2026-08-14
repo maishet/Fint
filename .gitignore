@@ -45,6 +45,7 @@ node_modules
 .env.production.local
 google-services.json
 CLAUDE.md
+AGENTS.md
 
 .expo
 ios
