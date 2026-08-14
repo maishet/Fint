@@ -1017,7 +1017,7 @@ i18n.addResourceBundle(
       loading: "Completando inicio de sesión...",
       backToLogin: "Volver al inicio de sesión",
     },
-    actions: { edit: "Editar", delete: "Eliminar" },
+    actions: { edit: "Editar", delete: "Eliminar", done: "Listo" },
     tabs: { payments: "Pagos", reports: "Reportes" },
     notifications: {
       dailyReminder: {
@@ -1039,8 +1039,8 @@ i18n.addResourceBundle(
         "No pudimos activar las notificaciones en este dispositivo.",
       notificationsSection: "Notificaciones",
       dailyReminders: "Recordatorios diarios",
-      dailyRemindersDetail:
-        "Te avisamos a las 8:00 p. m. para anotar tus movimientos",
+      dailyRemindersDetail: "Te recordamos anotar tus movimientos cada día",
+      dailyReminderTime: "Hora del recordatorio",
       light: "Claro",
       dark: "Oscuro",
       system: "Según el dispositivo",
@@ -1427,7 +1427,7 @@ i18n.addResourceBundle(
       loading: "Completing sign-in...",
       backToLogin: "Back to login",
     },
-    actions: { edit: "Edit", delete: "Delete" },
+    actions: { edit: "Edit", delete: "Delete", done: "Done" },
     tabs: { payments: "Payments", reports: "Reports" },
     notifications: {
       dailyReminder: {
@@ -1448,7 +1448,8 @@ i18n.addResourceBundle(
       notificationsError: "We could not enable notifications on this device.",
       notificationsSection: "Notifications",
       dailyReminders: "Daily reminders",
-      dailyRemindersDetail: "We'll nudge you at 8:00 PM to log your transactions",
+      dailyRemindersDetail: "We'll remind you to log your transactions every day",
+      dailyReminderTime: "Reminder time",
       light: "Light",
       dark: "Dark",
       system: "Use device setting",
@@ -1830,7 +1831,7 @@ i18n.addResourceBundle(
       loading: "Concluindo login...",
       backToLogin: "Voltar ao login",
     },
-    actions: { edit: "Editar", delete: "Excluir" },
+    actions: { edit: "Editar", delete: "Excluir", done: "Concluído" },
     tabs: { payments: "Pagamentos", reports: "Relatórios" },
     notifications: {
       dailyReminder: {
@@ -1852,8 +1853,8 @@ i18n.addResourceBundle(
         "Não foi possível ativar as notificações neste dispositivo.",
       notificationsSection: "Notificações",
       dailyReminders: "Lembretes diários",
-      dailyRemindersDetail:
-        "Avisamos às 20h para anotar suas movimentações",
+      dailyRemindersDetail: "Lembramos você de anotar suas movimentações todos os dias",
+      dailyReminderTime: "Horário do lembrete",
       light: "Claro",
       dark: "Escuro",
       system: "Conforme o dispositivo",

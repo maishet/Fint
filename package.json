@@ -19,6 +19,7 @@
     "sentry:privacy-test": "bun test tests/unit/sentry-privacy.test.ts"
   },
   "dependencies": {
+    "@react-native-community/datetimepicker": "8.6.0",
     "@react-native-community/netinfo": "11.5.2",
     "@react-native-google-signin/google-signin": "^16.1.4",
     "@sentry/react-native": "~7.11.0",

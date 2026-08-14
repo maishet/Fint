@@ -14,7 +14,7 @@ async function hasNotificationPermission() {
   return permissions.granted
 }
 
-export async function scheduleDailyReminder() {
+export async function scheduleDailyReminder(hour: number = REMINDER_HOUR, minute: number = REMINDER_MINUTE) {
   const Notifications = await loadNotifications()
   if (!Notifications) return false
   if (!(await hasNotificationPermission())) return false
@@ -29,8 +29,8 @@ export async function scheduleDailyReminder() {
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour: REMINDER_HOUR,
-      minute: REMINDER_MINUTE,
+      hour,
+      minute,
       ...(Platform.OS === 'android' ? { channelId: 'daily-reminders' } : {}),
     },
   })

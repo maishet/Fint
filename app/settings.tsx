@@ -18,6 +18,7 @@ import {
   Moon,
   Bell,
   Clock,
+  AlarmClock,
   Eye,
   EyeOff,
   ShieldCheck,
@@ -39,7 +40,7 @@ import {
 import { financeApi } from "../src/api/finance";
 import { useAuth } from "../src/auth/AuthProvider";
 import { Screen } from "../src/components/Screen";
-import { changeAppLanguage, type AppLanguage } from "../src/i18n";
+import { changeAppLanguage, getAppLocale, type AppLanguage } from "../src/i18n";
 import { getSupportDiagnostics } from "../src/support/diagnostics";
 import { useThemeMode } from "../src/theme/ThemeMode";
 import {
@@ -48,6 +49,7 @@ import {
   FintSheetSelect,
   FintSpinner,
   FintSwitchRow,
+  FintTimeField,
   useNotify,
 } from "../src/ui";
 import {
@@ -71,8 +73,13 @@ export default function SettingsScreen() {
   const notify = useNotify();
   const { themeMode, themePreference, setThemePreference } = useThemeMode();
   const { amountsVisible, toggleAmountsVisibility } = useSensitiveAmounts();
-  const { enabled: dailyRemindersEnabled, setEnabled: setDailyRemindersEnabled } =
-    useDailyReminders();
+  const {
+    enabled: dailyRemindersEnabled,
+    setEnabled: setDailyRemindersEnabled,
+    hour: reminderHour,
+    minute: reminderMinute,
+    setReminderTime,
+  } = useDailyReminders();
   const router = useRouter();
   const diagnostics = getSupportDiagnostics();
   const [pushState, setPushState] =
@@ -312,13 +319,30 @@ export default function SettingsScreen() {
           }}
         />
         <FintSwitchRow
-          icon={<Clock size={19} color="$primary" />}
+          icon={<AlarmClock size={19} color="$primary" />}
           label={t("settings.dailyReminders")}
           detail={t("settings.dailyRemindersDetail")}
           checked={dailyRemindersEnabled}
           disabled={pushState !== "granted"}
           onCheckedChange={setDailyRemindersEnabled}
         />
+        {dailyRemindersEnabled ? (
+          <FintTimeField
+            hour={reminderHour}
+            minute={reminderMinute}
+            onChange={setReminderTime}
+            title={t("settings.dailyReminderTime")}
+            doneLabel={t("actions.done")}
+            renderTrigger={({ onPress }) => (
+              <SettingsRow
+                icon={<Clock size={19} color="$primary" />}
+                label={t("settings.dailyReminderTime")}
+                value={formatReminderTime(reminderHour, reminderMinute, language)}
+                onPress={onPress}
+              />
+            )}
+          />
+        ) : null}
       </SettingsGroup>
 
       <SettingsGroup title={t("settings.contact")}>
@@ -527,6 +551,25 @@ function normalizeConfirmation(value: string) {
   return value.trim().toLocaleLowerCase();
 }
 
+function formatReminderTime(
+  hour: number,
+  minute: number,
+  language: AppLanguage,
+) {
+  const date = new Date();
+  date.setHours(hour, minute, 0, 0);
+  try {
+    return date.toLocaleTimeString(getAppLocale(language), {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  } catch {
+    return `${hour.toString().padStart(2, "0")}:${minute
+      .toString()
+      .padStart(2, "0")}`;
+  }
+}
+
 function SettingsGroup({
   children,
   title,
@@ -534,7 +577,9 @@ function SettingsGroup({
   children: ReactNode;
   title: string;
 }) {
-  const items = Array.isArray(children) ? children : [children];
+  const items = (Array.isArray(children) ? children : [children]).filter(
+    Boolean,
+  );
   return (
     <YStack gap="$2">
       <Paragraph
