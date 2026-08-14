@@ -16,8 +16,9 @@ import * as Sentry from "@sentry/react-native";
 import { AppProviders } from "../src/providers/AppProviders";
 import { useAuth } from "../src/auth/AuthProvider";
 import { useThemeMode } from "../src/theme/ThemeMode";
-import { useTheme } from "tamagui";
+import { useTheme, YStack } from "tamagui";
 import { attachNotificationResponseListener } from "../src/notifications/pushNotifications";
+import { OfflineBanner } from "../src/components/OfflineBanner";
 import { financeApi } from "../src/api/finance";
 import {
   sanitizeSentryValue,
@@ -26,7 +27,6 @@ import {
 import { fintPalette } from "../src/theme/palette";
 
 export {
-  // Catch any errors thrown by the Layout component.
   ErrorBoundary,
 } from "expo-router";
 
@@ -34,7 +34,6 @@ export const unstable_settings = {
   initialRouteName: "index",
 };
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 Sentry.init({
@@ -110,7 +109,6 @@ function RootLayout() {
 
   useEffect(() => {
     if (fontsLoaded || fontsError) {
-      // Hide the splash screen after the fonts have loaded (or an error was returned) and the UI is ready.
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontsError]);
@@ -140,9 +138,7 @@ function RootLayoutNav() {
   const meQuery = useQuery({
     queryKey: ["me"],
     queryFn: financeApi.getMe,
-    enabled: !!session,
-    retry: false,
-  });
+    enabled: !!session,  });
   const { themeMode } = useThemeMode();
   const theme = useTheme();
   const router = useRouter();
@@ -165,6 +161,7 @@ function RootLayoutNav() {
             : fintPalette.light.headerBackground
         }
       />
+      <YStack flex={1}>
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Protected guard={!session}>
@@ -265,6 +262,8 @@ function RootLayoutNav() {
           />
         </Stack.Protected>
       </Stack>
+      <OfflineBanner />
+      </YStack>
     </ThemeProvider>
   );
 }

@@ -81,6 +81,21 @@ export function useSubmitValidation<TField extends string>() {
     setErrors((current) => ({ ...current, [field]: message }))
   }, [])
 
+  const validateField = useCallback((field: TField, schema: ZodType, value: unknown) => {
+    const result = schema.safeParse(value)
+    if (result.success) {
+      setErrors((current) => {
+        if (!current[field]) return current
+        const next = { ...current }
+        delete next[field]
+        return next
+      })
+      return
+    }
+    const message = result.error.issues[0]?.message
+    if (message) setErrors((current) => ({ ...current, [field]: message }))
+  }, [])
+
   const clearError = useCallback((...fields: TField[]) => {
     setErrors((current) => {
       if (!fields.some((field) => current[field])) return current
@@ -92,5 +107,5 @@ export function useSubmitValidation<TField extends string>() {
 
   const resetErrors = useCallback(() => setErrors({}), [])
 
-  return { clearError, errors, resetErrors, setError, validate }
+  return { clearError, errors, resetErrors, setError, validate, validateField }
 }

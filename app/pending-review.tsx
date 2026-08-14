@@ -96,30 +96,22 @@ export default function PendingReviewScreen() {
   const detailQuery = useQuery({
     queryKey: ["pending-movements", "detail", pendingId],
     queryFn: ({ signal }) => financeApi.getPendingMovement(pendingId, signal),
-    enabled: Boolean(pendingId),
-    retry: false,
-  });
+    enabled: Boolean(pendingId),  });
   const detail = detailQuery.data;
   const scenario = transferScenario(detail);
   const accountsQuery = useQuery({
     queryKey: ["account-options"],
     queryFn: () => financeApi.listAccountOptions(),
-    enabled: Boolean(detailQuery.data),
-    retry: false,
-  });
+    enabled: Boolean(detailQuery.data),  });
   const categoriesQuery = useQuery({
     queryKey: ["categories", type],
     queryFn: () => financeApi.listCategories(type),
-    enabled: Boolean(detailQuery.data),
-    retry: false,
-  });
+    enabled: Boolean(detailQuery.data),  });
   const occurrencesQuery = useQuery({
     queryKey: ["payment-occurrences", "open"],
     queryFn: ({ signal }) =>
       financeApi.listPaymentOccurrences({ status: "open" }, signal),
-    enabled: Boolean(detailQuery.data),
-    retry: false,
-  });
+    enabled: Boolean(detailQuery.data),  });
   const accounts = accountsQuery.data ?? [];
   const categories = categoriesQuery.data ?? [];
   const selectedAccount = accounts.find((item) => item.id === accountId);

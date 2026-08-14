@@ -126,14 +126,10 @@ export default function MovementsScreen() {
         { ...range, limit: PAGE_SIZE, cursor: pageParam },
         signal,
       ),
-    getNextPageParam: (page) => page.pageInfo.nextCursor ?? undefined,
-    retry: false,
-  });
+    getNextPageParam: (page) => page.pageInfo.nextCursor ?? undefined,  });
   const pendingSummaryQuery = useQuery({
     queryKey: ["pending-movements", "summary"],
-    queryFn: financeApi.getPendingMovementsSummary,
-    retry: false,
-  });
+    queryFn: financeApi.getPendingMovementsSummary,  });
   const movements = (
     movementsQuery.data?.pages.flatMap((page) => page.items) ?? []
   ).map(normalizeTransaction);

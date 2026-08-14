@@ -64,9 +64,7 @@ export default function GmailSettingsScreen() {
   const toast = useNotify();
   const sourcesQuery = useQuery({
     queryKey: ["gmail-sources"],
-    queryFn: financeApi.listGmailSources,
-    retry: false,
-  });
+    queryFn: financeApi.listGmailSources,  });
   const connectMutation = useMutation({
     mutationFn: connectGmailNative,
     onSuccess: async () => {

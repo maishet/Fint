@@ -1,4 +1,12 @@
 import { apiRequest } from './client'
+import {
+  AccountListSchema,
+  AccountSchema,
+  AccountsOverviewSchema,
+  DashboardOverviewSchema,
+  TransactionListSchema,
+  TransactionPageSchema,
+} from './schemas'
 import type {
   Account,
   AccountOption,
@@ -80,19 +88,19 @@ export const financeApi = {
   completeOnboarding: () => apiRequest<CompleteOnboardingResult>('/api/me/onboarding/complete', { method: 'POST', body: JSON.stringify({}) }),
   deleteCurrentUser: (confirmation: string) => apiRequest<DeleteAccountResult>('/api/me', { method: 'DELETE', body: JSON.stringify({ confirmation }) }),
   submitSupportReport: (input: SupportReportInput) => apiRequest<{ sent: true; messageId: string | null }>('/api/support/reports', { method: 'POST', body: JSON.stringify(input) }),
-  listAccounts: () => apiRequest<Account[]>('/api/accounts'),
+  listAccounts: () => apiRequest<Account[]>('/api/accounts', {}, { schema: AccountListSchema }),
   listAccountOptions: (query: { currency?: string; accountType?: string; excludeAccountType?: string } = {}) => apiRequest<AccountOption[]>(`/api/accounts/options${toQuery(query)}`),
-  getAccount: (id: string, signal?: AbortSignal) => apiRequest<Account>(`/api/accounts/${id}`, { signal }),
+  getAccount: (id: string, signal?: AbortSignal) => apiRequest<Account>(`/api/accounts/${id}`, { signal }, { schema: AccountSchema }),
   createAccount: (input: CreateAccountInput) => apiRequest<CreateAccountResult>('/api/accounts', { method: 'POST', body: JSON.stringify(input) }),
   updateAccount: (id: string, input: UpdateAccountInput) => apiRequest<AccountMutationResult>(`/api/accounts/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
   deleteAccount: (id: string) => apiRequest<AccountMutationResult>(`/api/accounts/${id}`, { method: 'DELETE' }),
   getSummary: () => apiRequest<Summary>('/api/summary'),
   getFinanceOptions: () => apiRequest<{ baseCurrency: string }>('/api/finance/options'),
-  getAccountsOverview: (currency?: string, signal?: AbortSignal) => apiRequest<AccountsOverview>(`/api/accounts/overview${toQuery({ currency })}`, { signal }),
-  getDashboardOverview: (currency?: string, signal?: AbortSignal) => apiRequest<DashboardOverview>(`/api/dashboard/overview${toQuery({ currency })}`, { signal }),
+  getAccountsOverview: (currency?: string, signal?: AbortSignal) => apiRequest<AccountsOverview>(`/api/accounts/overview${toQuery({ currency })}`, { signal }, { schema: AccountsOverviewSchema }),
+  getDashboardOverview: (currency?: string, signal?: AbortSignal) => apiRequest<DashboardOverview>(`/api/dashboard/overview${toQuery({ currency })}`, { signal }, { schema: DashboardOverviewSchema }),
   getDashboardExpenseCategories: (query: { currency: string; accountId?: string }, signal?: AbortSignal) => apiRequest<ExpenseCategoriesOverview>(`/api/dashboard/expense-categories${toQuery(query)}`, { signal }),
-  listTransactions: (query: TransactionQuery = {}) => apiRequest<Transaction[]>(`/api/transactions${toQuery({ ...query })}`),
-  getTransactionPage: (query: { from?: string; to?: string; limit?: number; cursor?: string } = {}, signal?: AbortSignal) => apiRequest<TransactionPage>(`/api/transactions/page${toQuery(query)}`, { signal }),
+  listTransactions: (query: TransactionQuery = {}) => apiRequest<Transaction[]>(`/api/transactions${toQuery({ ...query })}`, {}, { schema: TransactionListSchema }),
+  getTransactionPage: (query: { from?: string; to?: string; limit?: number; cursor?: string } = {}, signal?: AbortSignal) => apiRequest<TransactionPage>(`/api/transactions/page${toQuery(query)}`, { signal }, { schema: TransactionPageSchema }),
   async listAllTransactions(query: Omit<TransactionQuery, 'limit' | 'offset'> = {}) {
     const pageSize = 200
     const transactions: Transaction[] = []

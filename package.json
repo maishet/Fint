@@ -19,6 +19,7 @@
     "sentry:privacy-test": "bun test tests/unit/sentry-privacy.test.ts"
   },
   "dependencies": {
+    "@react-native-community/netinfo": "11.5.2",
     "@react-native-google-signin/google-signin": "^16.1.4",
     "@sentry/react-native": "~7.11.0",
     "@supabase/supabase-js": "^2.87.0",
@@ -26,7 +27,8 @@
     "@tamagui/config": "^2.4.0",
     "@tamagui/lucide-icons-2": "^2.4.0",
     "@tamagui/themes": "^2.4.0",
-    "@tanstack/react-query": "^5.90.12",
+    "@tanstack/react-query": "^5.101.2",
+    "@tanstack/react-query-persist-client": "^5.90.12",
     "babel-preset-expo": "~55.0.0",
     "burnt": "^0.12.2",
     "currency-codes": "^2.2.0",

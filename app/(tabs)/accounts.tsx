@@ -46,9 +46,7 @@ export default function AccountsScreen() {
   const accountsQuery = useQuery({
     queryKey: ["accounts", "overview", currency],
     queryFn: ({ signal }) =>
-      financeApi.getAccountsOverview(currency || undefined, signal),
-    retry: false,
-  });
+      financeApi.getAccountsOverview(currency || undefined, signal),  });
   const accounts = (accountsQuery.data?.items ?? []).map(normalizeAccount);
   const isInitialFetch = !initialLoadSettled && accountsQuery.isFetching;
   const isLoading = accountsQuery.isLoading || isInitialFetch;

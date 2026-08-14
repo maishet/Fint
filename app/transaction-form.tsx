@@ -13,6 +13,8 @@ import { CategoryPickerSheet } from '../src/components/CategoryPickerSheet'
 import { MovementAmountField, MovementNoteField, MovementPickerTrigger } from '../src/components/MovementFormControls'
 import { todayDateString } from '../src/finance/dates'
 import { getValidationMessage, parseDecimalInput, useSubmitValidation } from '../src/forms'
+import { useUnsavedChangesGuard } from '../src/hooks/useUnsavedChangesGuard'
+import { UnsavedChangesDialog } from '../src/components/UnsavedChangesDialog'
 import { FintButton, FintCard, FintDateField, FintFormField, FintSheetSelect, FintSpinner } from '../src/ui'
 
 type MovementKind = 'income' | 'expense' | 'transfer'
@@ -24,6 +26,7 @@ export default function TransactionFormScreen() {
   const toast = useNotify()
   const queryClient = useQueryClient()
   const isEditing = Boolean(params.id)
+  const [saved, setSaved] = useState(false)
   const [kind, setKind] = useState<MovementKind>(!isEditing && params.type === 'transfer' ? 'transfer' : params.type === 'income' ? 'income' : 'expense')
   const [amount, setAmount] = useState(params.amount ?? '')
   const [category, setCategory] = useState(params.category ?? '')
@@ -33,9 +36,17 @@ export default function TransactionFormScreen() {
   const [note, setNote] = useState(params.note ?? '')
   const [transactionDate, setTransactionDate] = useState(() => params.date ?? todayDateString())
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const isDirty = !saved && (
+    amount !== (params.amount ?? '') ||
+    note !== (params.note ?? '') ||
+    category !== (params.category ?? '') ||
+    originAccountId !== '' ||
+    destinationAccountId !== ''
+  )
+  const guard = useUnsavedChangesGuard(isDirty)
   const validation = useSubmitValidation<'account' | 'amount' | 'category' | 'transactionDate' | 'originAccountId' | 'destinationAccountId'>()
-  const accountsQuery = useQuery({ queryKey: ['account-options'], queryFn: () => financeApi.listAccountOptions(), retry: false })
-  const categoriesQuery = useQuery({ queryKey: ['categories', kind === 'transfer' ? 'expense' : kind], queryFn: () => financeApi.listCategories(kind === 'transfer' ? 'expense' : kind), enabled: kind !== 'transfer', retry: false })
+  const accountsQuery = useQuery({ queryKey: ['account-options'], queryFn: () => financeApi.listAccountOptions() })
+  const categoriesQuery = useQuery({ queryKey: ['categories', kind === 'transfer' ? 'expense' : kind], queryFn: () => financeApi.listCategories(kind === 'transfer' ? 'expense' : kind), enabled: kind !== 'transfer' })
   const accounts = accountsQuery.data ?? []
   const categories = categoriesQuery.data ?? []
   const selectedAccount = accounts.find((item) => item.name === account)
@@ -82,7 +93,8 @@ export default function TransactionFormScreen() {
         queryClient.invalidateQueries({ queryKey: ['reports'] }),
       ])
       toast.show(t(isEditing ? 'movementUx.updatedToast' : 'movements.createdToast'), { message: t(isEditing ? 'movementUx.updatedMessage' : 'movements.createdMessage'), preset: 'success' })
-      router.back()
+      setSaved(true)
+      guard.bypass(() => router.back())
     },
     onError: (error) => setErrorMessage(error instanceof Error ? error.message : t('states.error')),
   })
@@ -108,7 +120,8 @@ export default function TransactionFormScreen() {
         queryClient.invalidateQueries({ queryKey: ['reports'] }),
       ])
       toast.show(t('movements.createdToast'), { message: t('movements.createdMessage'), preset: 'success' })
-      router.back()
+      setSaved(true)
+      guard.bypass(() => router.back())
     },
     onError: (error) => setErrorMessage(error instanceof Error ? error.message : t('states.error')),
   })
@@ -149,12 +162,13 @@ export default function TransactionFormScreen() {
 
   return (
     <>
+    <UnsavedChangesDialog open={guard.open} onCancel={guard.onCancel} onConfirm={guard.onConfirm} />
     <Stack.Screen options={{ title: t(screenTitle) }} />
     <Screen>
       {isReferenceLoading ? <SkeletonForm label={t('movements.loadingReferences')} showSegment segmentCount={isEditing ? 2 : 3} fieldCount={3} /> : <YStack gap="$5" pb="$5">
         <MovementKindSelector value={kind} onValueChange={(value) => { setKind(value); setErrorMessage(null); validation.clearError('category', 'account', 'originAccountId', 'destinationAccountId') }} allowTransfer={!isEditing} />
 
-        <MovementAmountField currency={kind === 'transfer' ? (selectedOriginAccount?.currency ?? 'PEN') : (selectedAccount?.currency ?? 'PEN')} error={validation.errors.amount} value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} />
+        <MovementAmountField currency={kind === 'transfer' ? (selectedOriginAccount?.currency ?? 'PEN') : (selectedAccount?.currency ?? 'PEN')} error={validation.errors.amount} value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} onBlur={() => { if (amount.trim()) validation.validateField('amount', transactionSchema.shape.amount, parseDecimalInput(amount)) }} />
 
         {kind === 'transfer' ? (
           <>

@@ -71,23 +71,17 @@ export default function PendingMovementsScreen() {
         { limit: PAGE_SIZE, cursor: pageParam },
         signal,
       ),
-    getNextPageParam: (page) => page.pageInfo.nextCursor ?? undefined,
-    retry: false,
-  });
+    getNextPageParam: (page) => page.pageInfo.nextCursor ?? undefined,  });
   const items = pendingQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const expandedItem = items.find((item) => item.id === expandedId) ?? null;
   const categoriesQuery = useQuery({
     queryKey: ["categories", expandedItem?.type],
     queryFn: () => financeApi.listCategories(expandedItem?.type ?? undefined),
-    enabled: Boolean(expandedItem?.accountSuggestion && expandedItem.type),
-    retry: false,
-  });
+    enabled: Boolean(expandedItem?.accountSuggestion && expandedItem.type),  });
   const occurrencesQuery = useQuery({
     queryKey: ["payment-occurrences", "open"],
     queryFn: ({ signal }) =>
-      financeApi.listPaymentOccurrences({ status: "open" }, signal),
-    retry: false,
-  });
+      financeApi.listPaymentOccurrences({ status: "open" }, signal),  });
 
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | null = null;

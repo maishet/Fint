@@ -61,9 +61,7 @@ export default function DashboardScreen() {
   const [expenseAccountId, setExpenseAccountId] = useState(ALL_ACCOUNTS);
   const overviewQuery = useQuery({
     queryKey: ["dashboard", "overview"],
-    queryFn: ({ signal }) => financeApi.getDashboardOverview(undefined, signal),
-    retry: false,
-  });
+    queryFn: ({ signal }) => financeApi.getDashboardOverview(undefined, signal),  });
   const expenseQuery = useQuery({
     queryKey: [
       "dashboard",
@@ -81,9 +79,7 @@ export default function DashboardScreen() {
         },
         signal,
       ),
-    enabled: Boolean(overviewQuery.data?.currency),
-    retry: false,
-  });
+    enabled: Boolean(overviewQuery.data?.currency),  });
   const overview = overviewQuery.data;
   const locale = getAppLocale(i18n.resolvedLanguage);
   const categoryColors = [

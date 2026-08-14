@@ -15,9 +15,7 @@ export default function IndexScreen() {
   const meQuery = useQuery({
     queryKey: ["me"],
     queryFn: financeApi.getMe,
-    enabled: !!session,
-    retry: false,
-  });
+    enabled: !!session,  });
 
   if (isLoading || (!!session && meQuery.isLoading)) {
     return <FintLoadingScreen />;

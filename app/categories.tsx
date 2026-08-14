@@ -24,7 +24,7 @@ export default function CategoriesScreen() {
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null)
-  const categoriesQuery = useQuery({ queryKey: ['categories'], queryFn: () => financeApi.listCategories(), retry: false })
+  const categoriesQuery = useQuery({ queryKey: ['categories'], queryFn: () => financeApi.listCategories() })
   const categories = (categoriesQuery.data ?? []).filter((category) => category.type === type)
 
   const openCreate = () => { setEditingCategory(null); setIsSheetOpen(true) }

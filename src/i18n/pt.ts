@@ -67,6 +67,7 @@ export const ptTranslation = {
     debtNotFound: "Não encontramos esta dívida ativa.",
     profileLoadError: "Não foi possível carregar seu perfil.",
   },
+  network: { offlineBanner: "Sem conexão — mostrando dados salvos" },
   formLabels: { openingBalanceOptional: "Saldo inicial (opcional)" },
   systemCategories: { debtPayment: "Pagamento de dívida" },
   movementUx: {
@@ -459,6 +460,12 @@ export const ptTranslation = {
     openingBalance: "Saldo inicial",
     select: "Selecionar",
     accountCreated: "Conta criada",
+    discard: {
+      title: "Descartar alterações?",
+      description: "Você tem alterações não salvas. Se sair agora, elas serão perdidas.",
+      confirm: "Descartar",
+      keepEditing: "Continuar editando",
+    },
   },
   notFound: {
     title: "Página não encontrada",

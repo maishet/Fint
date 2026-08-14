@@ -79,6 +79,7 @@ const resources = {
         debtNotFound: "No encontramos esta deuda activa.",
         profileLoadError: "No pudimos cargar tu perfil.",
       },
+      network: { offlineBanner: "Sin conexión — mostrando datos guardados" },
       formLabels: { openingBalanceOptional: "Saldo inicial (opcional)" },
       systemCategories: { debtPayment: "Pago de deuda" },
       movementUx: {
@@ -480,6 +481,12 @@ const resources = {
         openingBalance: "Saldo inicial",
         select: "Seleccionar",
         accountCreated: "Cuenta creada",
+        discard: {
+          title: "¿Descartar cambios?",
+          description: "Tienes cambios sin guardar. Si sales ahora, se perderán.",
+          confirm: "Descartar",
+          keepEditing: "Seguir editando",
+        },
       },
       notFound: {
         title: "Página no encontrada",
@@ -557,6 +564,7 @@ const resources = {
         debtNotFound: "This active debt could not be found.",
         profileLoadError: "We could not load your profile.",
       },
+      network: { offlineBanner: "Offline — showing saved data" },
       formLabels: { openingBalanceOptional: "Opening balance (optional)" },
       systemCategories: { debtPayment: "Debt payment" },
       movementUx: {
@@ -955,6 +963,12 @@ const resources = {
         openingBalance: "Opening balance",
         select: "Select",
         accountCreated: "Account created",
+        discard: {
+          title: "Discard changes?",
+          description: "You have unsaved changes. If you leave now, they will be lost.",
+          confirm: "Discard",
+          keepEditing: "Keep editing",
+        },
       },
       notFound: {
         title: "Page not found",

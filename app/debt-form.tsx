@@ -16,6 +16,8 @@ import { SkeletonForm } from '../src/components/Skeleton'
 import { currencyOptions } from '../src/finance/currencies'
 import { todayDateString } from '../src/finance/dates'
 import { getValidationMessage, parseDecimalInput, useSubmitValidation } from '../src/forms'
+import { useUnsavedChangesGuard } from '../src/hooks/useUnsavedChangesGuard'
+import { UnsavedChangesDialog } from '../src/components/UnsavedChangesDialog'
 import { registerPushInstallation } from '../src/notifications/pushNotifications'
 import { useCapabilities } from '../src/api/capabilities'
 import { FintButton, FintDateField, FintFormField, FintSheetSelect, FintSpinner } from '../src/ui'
@@ -35,9 +37,9 @@ export default function DebtFormScreen() {
   const toast = useNotify()
   const queryClient = useQueryClient()
   const { capabilities } = useCapabilities()
-  const categoriesQuery = useQuery({ queryKey: ['categories', 'expense'], queryFn: () => financeApi.listCategories('expense'), retry: false })
-  const rulesQuery = useQuery({ queryKey: ['payment-rules'], queryFn: financeApi.listPaymentRules, retry: false })
-  const optionsQuery = useQuery({ queryKey: ['finance-options'], queryFn: financeApi.getFinanceOptions, retry: false })
+  const categoriesQuery = useQuery({ queryKey: ['categories', 'expense'], queryFn: () => financeApi.listCategories('expense') })
+  const rulesQuery = useQuery({ queryKey: ['payment-rules'], queryFn: financeApi.listPaymentRules })
+  const optionsQuery = useQuery({ queryKey: ['finance-options'], queryFn: financeApi.getFinanceOptions })
   const categories = categoriesQuery.data ?? []
   const rules = rulesQuery.data ?? []
   const currentRule = rules.find((rule) => rule.id === ruleId)
@@ -48,6 +50,16 @@ export default function DebtFormScreen() {
   const [startDate, setStartDate] = useState(() => todayDateString())
   const [categoryId, setCategoryId] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
+  const isDirty = !saved && (isEditing
+    ? Boolean(currentRule) && (
+        title !== currentRule!.title ||
+        amount !== (currentRule!.fixedAmount ? String(currentRule!.fixedAmount) : '') ||
+        categoryId !== (currentRule!.categoryId ?? '') ||
+        frequency !== currentRule!.frequency ||
+        startDate !== currentRule!.startDate)
+    : title !== '' || amount !== '' || categoryId !== '')
+  const guard = useUnsavedChangesGuard(isDirty)
   const validation = useSubmitValidation<'title' | 'amount' | 'categoryId' | 'startDate'>()
   const selectedCategory = categories.find((category) => category.id === categoryId)
   const currency = selectedCurrency
@@ -91,7 +103,8 @@ export default function DebtFormScreen() {
       ])
       if (!isEditing && capabilities.features.pushPaymentReminders) registerPushInstallation().catch(() => undefined)
       toast.show(t(isEditing ? 'payments.recurringUpdated' : 'payments.recurringCreated'), { message: t(isEditing ? 'payments.changesSaved' : 'payments.firstOccurrenceReady'), preset: 'success', duration: 3500 })
-      router.back()
+      setSaved(true)
+      guard.bypass(() => router.back())
     },
     onError: () => setErrorMessage(t(isEditing ? 'payments.updateError' : 'payments.createError')),
   })
@@ -111,6 +124,7 @@ export default function DebtFormScreen() {
 
   return (
     <>
+      <UnsavedChangesDialog open={guard.open} onCancel={guard.onCancel} onConfirm={guard.onConfirm} />
       <Stack.Screen options={{ title: t(isEditing ? 'payments.editRecurring' : 'payments.newRecurring') }} />
       <Screen>
         {isLoading ? <SkeletonForm label={t('states.loading')} fieldCount={4} /> : null}
@@ -118,12 +132,12 @@ export default function DebtFormScreen() {
         {!isLoading && !error && isEditing && !currentRule ? <DataStateCard message={t('payments.notFound')} /> : null}
         {!isLoading && !error && (!isEditing || currentRule) ? (
           <YStack gap="$5" pb="$5">
-            <FormTextField label={t('forms.name')} required error={validation.errors.title} icon={<FileText size={21} color="$primary" />} placeholder={t('payments.titlePlaceholder')} value={title} onChangeText={(value) => { setTitle(value); validation.clearError('title') }} />
+            <FormTextField label={t('forms.name')} required error={validation.errors.title} icon={<FileText size={21} color="$primary" />} placeholder={t('payments.titlePlaceholder')} value={title} onChangeText={(value) => { setTitle(value); validation.clearError('title') }} onBlur={() => validation.validateField('title', schema.shape.title, title)} />
 
             {isEditing ? (
-              <MovementAmountField currency={currency} error={validation.errors.amount} helperText={t('payments.amountEditLocked')} value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} />
+              <MovementAmountField currency={currency} error={validation.errors.amount} helperText={t('payments.amountEditLocked')} value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} onBlur={() => { if (amount.trim()) validation.validateField('amount', schema.shape.amount, parseDecimalInput(amount)) }} />
             ) : (
-              <FintSheetSelect label={t('forms.currency')} showLabel={false} placeholder={t('forms.select')} searchable searchPlaceholder={t('accounts.searchCurrency')} value={selectedCurrency} onValueChange={setSelectedCurrency} options={currencyOptions} renderTrigger={({ onPress }) => <MovementAmountField currency={currency} error={validation.errors.amount} helperText={t('payments.currencyChangeHint')} value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} onCurrencyPress={onPress} />} />
+              <FintSheetSelect label={t('forms.currency')} showLabel={false} placeholder={t('forms.select')} searchable searchPlaceholder={t('accounts.searchCurrency')} value={selectedCurrency} onValueChange={setSelectedCurrency} options={currencyOptions} renderTrigger={({ onPress }) => <MovementAmountField currency={currency} error={validation.errors.amount} helperText={t('payments.currencyChangeHint')} value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} onBlur={() => { if (amount.trim()) validation.validateField('amount', schema.shape.amount, parseDecimalInput(amount)) }} onCurrencyPress={onPress} />} />
             )}
 
             <FintFormField label={t('payments.frequency')} showLabel={false}>

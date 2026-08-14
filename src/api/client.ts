@@ -1,3 +1,4 @@
+import type { ZodType } from 'zod'
 import { supabase } from '../auth/supabase'
 import type { ApiEnvelope } from './types'
 import { getRequestErrorMessage } from './error-message'
@@ -5,6 +6,37 @@ import { setLastRequestId } from '../support/diagnostics'
 
 const apiUrl = process.env.EXPO_PUBLIC_API_URL
 const requestTimeoutMs = 30_000
+
+export type ApiRequestConfig = {
+  schema?: ZodType
+  retryOn401?: boolean
+}
+
+async function monitorResponseContract(path: string, data: unknown, schema: ZodType) {
+  const result = schema.safeParse(data)
+  if (result.success) return
+  try {
+    const Sentry = await import('@sentry/react-native')
+    Sentry.captureMessage('api_response_schema_mismatch', {
+      level: 'warning',
+      tags: { endpoint: normalizeEndpoint(path) },
+      extra: {
+        issues: result.error.issues.slice(0, 20).map((issue) => ({
+          path: issue.path.join('.'),
+          code: issue.code,
+        })),
+      },
+    })
+  } catch {
+    // Reportar es best-effort; nunca debe afectar la petición.
+  }
+}
+
+function normalizeEndpoint(path: string) {
+  return path
+    .split('?')[0]
+    .replace(/\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '/:id')
+}
 
 export class ApiRequestError extends Error {
   status: number
@@ -18,7 +50,8 @@ export class ApiRequestError extends Error {
   }
 }
 
-export async function apiRequest<T>(path: string, options: RequestInit = {}) {
+export async function apiRequest<T>(path: string, options: RequestInit = {}, config: ApiRequestConfig = {}): Promise<T> {
+  const { schema, retryOn401 = true } = config
   if (!apiUrl) throw new Error('Missing EXPO_PUBLIC_API_URL')
 
   const { data } = await supabase.auth.getSession()
@@ -55,7 +88,15 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}) {
   const envelope = await parseEnvelope<T>(response)
 
   if (!response.ok || !envelope.ok) {
-    if (response.status === 401) await supabase.auth.signOut()
+    if (response.status === 401) {
+      if (retryOn401) {
+        const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession()
+        if (!refreshError && refreshed.session) {
+          return apiRequest<T>(path, options, { schema, retryOn401: false })
+        }
+      }
+      await supabase.auth.signOut()
+    }
     const message = getRequestErrorMessage(response.status, envelope.message ?? envelope.error)
     throw new ApiRequestError(message, response.status, envelope.error)
   }
@@ -63,6 +104,8 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}) {
   if (envelope.data === undefined) {
     throw new ApiRequestError('API response did not include data', response.status, 'missing_data')
   }
+
+  if (schema) await monitorResponseContract(path, envelope.data, schema)
 
   return envelope.data
 }

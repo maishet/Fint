@@ -50,9 +50,7 @@ export default function DebtsScreen() {
   const occurrencesQuery = useQuery({
     queryKey: ["payment-occurrences", "open"],
     queryFn: ({ signal }) =>
-      financeApi.listPaymentOccurrences({ status: "open" }, signal),
-    retry: false,
-  });
+      financeApi.listPaymentOccurrences({ status: "open" }, signal),  });
   const accountsQuery = useQuery({
     queryKey: [
       "account-options",
@@ -63,9 +61,7 @@ export default function DebtsScreen() {
       financeApi.listAccountOptions({
         currency: paymentOccurrence?.currency,
         excludeAccountType: "credit_card",
-      }),
-    retry: false,
-    enabled: Boolean(paymentOccurrence),
+      }),    enabled: Boolean(paymentOccurrence),
   });
   const occurrences = occurrencesQuery.data ?? [];
   const accounts = accountsQuery.data ?? [];

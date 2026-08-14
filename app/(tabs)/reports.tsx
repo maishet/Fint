@@ -172,16 +172,12 @@ export default function ReportsScreen() {
   };
   const optionsQuery = useQuery({
     queryKey: ["reports", "financial", "options"],
-    queryFn: ({ signal }) => financeApi.getFinancialReportOptions(signal),
-    retry: false,
-    staleTime: 5 * 60_000,
+    queryFn: ({ signal }) => financeApi.getFinancialReportOptions(signal),    staleTime: 5 * 60_000,
   });
   const periodQuery = useQuery({
     queryKey: ["reports", "financial", "period", reportFilters],
     queryFn: ({ signal }) =>
-      financeApi.getFinancialReportPeriod(reportFilters, signal),
-    retry: false,
-  });
+      financeApi.getFinancialReportPeriod(reportFilters, signal),  });
   const selectedCurrency =
     currency ||
     periodQuery.data?.filters.currency ||
@@ -197,9 +193,7 @@ export default function ReportsScreen() {
         },
         signal,
       ),
-    enabled: Boolean(selectedCurrency),
-    retry: false,
-  });
+    enabled: Boolean(selectedCurrency),  });
   const topTransactionsQuery = useQuery({
     queryKey: [
       "reports",
@@ -220,9 +214,7 @@ export default function ReportsScreen() {
         },
         signal,
       ),
-    enabled: Boolean(selectedCurrency),
-    retry: false,
-  });
+    enabled: Boolean(selectedCurrency),  });
   const reportError = optionsQuery.error ?? periodQuery.error;
   const report = periodQuery.data;
   const hasMovements = Boolean(report?.summary.transactionCount);

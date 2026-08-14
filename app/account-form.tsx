@@ -15,6 +15,8 @@ import { Screen } from '../src/components/Screen'
 import { SkeletonForm } from '../src/components/Skeleton'
 import { currencyOptions } from '../src/finance/currencies'
 import { getValidationMessage, parseDecimalInput, useSubmitValidation } from '../src/forms'
+import { useUnsavedChangesGuard } from '../src/hooks/useUnsavedChangesGuard'
+import { UnsavedChangesDialog } from '../src/components/UnsavedChangesDialog'
 import { FintButton, FintCard, FintFormField, FintSheetSelect, FintSpinner } from '../src/ui'
 
 export default function AccountFormScreen() {
@@ -24,7 +26,7 @@ export default function AccountFormScreen() {
   const router = useRouter()
   const toast = useNotify()
   const queryClient = useQueryClient()
-  const accountsQuery = useQuery({ queryKey: ['accounts', 'detail', accountId], queryFn: ({ signal }) => financeApi.getAccount(accountId!, signal), retry: false, enabled: isEditing })
+  const accountsQuery = useQuery({ queryKey: ['accounts', 'detail', accountId], queryFn: ({ signal }) => financeApi.getAccount(accountId!, signal), enabled: isEditing })
   const account = accountsQuery.data
   const [name, setName] = useState('')
   const [accountType, setAccountType] = useState<AccountType>('cash')
@@ -32,6 +34,11 @@ export default function AccountFormScreen() {
   const [openingBalance, setOpeningBalance] = useState('')
   const [initializedAccountId, setInitializedAccountId] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
+  const isDirty = !saved && (isEditing
+    ? Boolean(account) && (name !== account!.name || accountType !== account!.accountType || currency !== account!.currency)
+    : name !== '' || openingBalance !== '' || accountType !== 'cash' || currency !== 'PEN')
+  const guard = useUnsavedChangesGuard(isDirty)
   const validation = useSubmitValidation<'accountType' | 'currency' | 'name' | 'openingBalance'>()
   const requiredMessage = getValidationMessage(t, i18n.resolvedLanguage, 'required')
   const amountMessage = getValidationMessage(t, i18n.resolvedLanguage, 'amount')
@@ -74,7 +81,8 @@ export default function AccountFormScreen() {
         preset: 'success',
         duration: 3500,
       })
-      router.back()
+      setSaved(true)
+      guard.bypass(() => router.back())
     },
     onError: (error) => setErrorMessage(error instanceof ApiRequestError && error.code === 'account_name_exists' ? t('accounts.duplicateName') : error instanceof Error ? error.message : t('states.error')),
   })
@@ -95,6 +103,7 @@ export default function AccountFormScreen() {
 
   return (
     <>
+      <UnsavedChangesDialog open={guard.open} onCancel={guard.onCancel} onConfirm={guard.onConfirm} />
       <Stack.Screen options={{ title: t(isEditing ? 'accounts.editTitle' : 'accounts.newTitle') }} />
       <Screen>
         {isLoading ? <SkeletonForm label={t('states.loading')} fieldCount={1} showAmount={false} showChoiceGrid showNote={false} /> : null}
@@ -103,7 +112,7 @@ export default function AccountFormScreen() {
 
         {!isLoading && !accountsQuery.error && !notFound ? (
           <YStack gap="$5" pb="$5">
-            <FormTextField label={t('forms.name')} required error={validation.errors.name} icon={<Landmark size={21} color="$primary" />} placeholder={t('accounts.namePlaceholder')} value={name} onChangeText={(value) => { setName(value); validation.clearError('name') }} autoCapitalize="words" />
+            <FormTextField label={t('forms.name')} required error={validation.errors.name} icon={<Landmark size={21} color="$primary" />} placeholder={t('accounts.namePlaceholder')} value={name} onChangeText={(value) => { setName(value); validation.clearError('name') }} onBlur={() => validation.validateField('name', accountDetailsSchema.shape.name, name)} autoCapitalize="words" />
 
             <FintFormField label={t('forms.accountType')} required error={validation.errors.accountType} showLabel={false}>
               <FintCard width="100%" gap="$3" p="$3" borderColor={validation.errors.accountType ? '$red8' : '$borderColor'}>
@@ -141,7 +150,7 @@ export default function AccountFormScreen() {
             </FintFormField>
 
             {!isEditing ? (
-              <MovementAmountField label={t('formLabels.openingBalanceOptional')} required={false} currency={currency} error={validation.errors.openingBalance} value={openingBalance} onChangeText={(value) => { setOpeningBalance(value); validation.clearError('openingBalance') }} />
+              <MovementAmountField label={t('formLabels.openingBalanceOptional')} required={false} currency={currency} error={validation.errors.openingBalance} value={openingBalance} onChangeText={(value) => { setOpeningBalance(value); validation.clearError('openingBalance') }} onBlur={() => { if (openingBalance.trim()) validation.validateField('openingBalance', accountDetailsSchema.shape.openingBalance, parseDecimalInput(openingBalance)) }} />
             ) : null}
 
             <FintFormField label={t('forms.currency')} required error={validation.errors.currency} showLabel={false}><FintSheetSelect label={t('forms.currency')} showLabel={false} value={currency} options={currencyOptions} placeholder={t('forms.select')} searchable searchPlaceholder={t('accounts.searchCurrency')} onValueChange={(value) => { setCurrency(value); validation.clearError('currency') }} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<Coins size={21} color="$primary" />} invalid={Boolean(validation.errors.currency)} label={t('forms.currency')} required onPress={onPress} value={selectedLabel} />} /></FintFormField>
