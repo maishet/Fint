@@ -186,6 +186,20 @@ function RootLayoutNav() {
             }}
           />
           <Stack.Screen
+            name="transaction-detail"
+            options={{
+              title: t("transactionDetail.title"),
+              contentStyle: { backgroundColor: theme.background.val },
+            }}
+          />
+          <Stack.Screen
+            name="import-transactions"
+            options={{
+              title: t("import.title"),
+              contentStyle: { backgroundColor: theme.background.val },
+            }}
+          />
+          <Stack.Screen
             name="pending-movements"
             options={{
               title: t("movementUx.pendingTitle"),

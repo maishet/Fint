@@ -18,6 +18,7 @@ import type { Account, AccountsOverview } from "../../src/api/types";
 import { DataStateCard } from "../../src/components/DataStateCard";
 import { EmptyState } from "../../src/components/EmptyState";
 import { Screen } from "../../src/components/Screen";
+import { SwipeableRow } from "../../src/components/SwipeableRow";
 import {
   SkeletonGroup,
   SkeletonHero,
@@ -299,6 +300,13 @@ function AccountCard({
   const Icon = getAccountIcon(account.accountType);
 
   return (
+    <SwipeableRow
+      enabled={!isDeleting}
+      onAction={onDelete}
+      actionColor="$red9"
+      actionIcon={<Trash2 size={20} color="white" />}
+      actionLabel={t("accounts.deleteAccessibility", { name: account.name })}
+    >
     <FintCard p="$2">
       <XStack items="center" gap="$1">
         <XStack
@@ -367,6 +375,7 @@ function AccountCard({
         />
       </XStack>
     </FintCard>
+    </SwipeableRow>
   );
 }
 

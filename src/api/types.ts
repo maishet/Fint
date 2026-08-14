@@ -450,6 +450,23 @@ export interface CreateTransactionResult {
   id: string
 }
 
+export interface ImportTransactionItem {
+  type: TransactionType
+  amount: number
+  currency: string
+  category: string
+  account: string
+  note?: string
+  transactionDate: string
+}
+
+export interface ImportTransactionsResult {
+  created: number
+  duplicates: number
+  failed: number
+  errors: Array<{ index: number; reason: string }>
+}
+
 export interface UpdateTransactionInput extends CreateTransactionInput {
   transactionDate: string
 }

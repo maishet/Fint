@@ -6,6 +6,7 @@ import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
   ChevronRight,
+  Download,
   FileText,
   Globe2,
   Github,
@@ -26,6 +27,7 @@ import {
   Sun,
   Tags,
   Trash2,
+  Upload,
   UserRound,
 } from "@tamagui/lucide-icons-2";
 import {
@@ -46,12 +48,14 @@ import { useThemeMode } from "../src/theme/ThemeMode";
 import {
   FintButton,
   FintCard,
+  FintConfirmDialog,
   FintSheetSelect,
   FintSpinner,
   FintSwitchRow,
   FintTimeField,
   useNotify,
 } from "../src/ui";
+import { exportBackupXlsx } from "../src/finance/backup-export";
 import {
   getPushPermissionState,
   registerPushInstallation,
@@ -86,6 +90,7 @@ export default function SettingsScreen() {
     useState<PushPermissionState>("undetermined");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const metadata = session?.user.user_metadata ?? {};
   const displayName =
     typeof metadata.display_name === "string"
@@ -149,6 +154,66 @@ export default function SettingsScreen() {
       });
     }
   };
+  const exportMutation = useMutation({
+    mutationFn: async () => {
+      const [accounts, categories, transactions] = await Promise.all([
+        financeApi.listAccounts(),
+        financeApi.listCategories(),
+        financeApi.listAllTransactions(),
+      ]);
+      if (!accounts.length && !categories.length && !transactions.length) {
+        throw new Error(t("settings.export.empty"));
+      }
+      await exportBackupXlsx(
+        { accounts, categories, transactions },
+        {
+          sheets: {
+            accounts: t("settings.export.sheets.accounts"),
+            categories: t("settings.export.sheets.categories"),
+            movements: t("settings.export.sheets.movements"),
+          },
+          columns: {
+            name: t("settings.export.columns.name"),
+            type: t("settings.export.columns.type"),
+            currency: t("settings.export.columns.currency"),
+            balance: t("settings.export.columns.balance"),
+            icon: t("settings.export.columns.icon"),
+            date: t("settings.export.columns.date"),
+            category: t("settings.export.columns.category"),
+            account: t("settings.export.columns.account"),
+            amount: t("settings.export.columns.amount"),
+            note: t("settings.export.columns.note"),
+          },
+          types: {
+            income: t("forms.income"),
+            expense: t("forms.expense"),
+            transfer: t("forms.transfer"),
+          },
+          accountTypes: {
+            cash: t("accountTypes.cash"),
+            credit_card: t("accountTypes.creditCard"),
+            checking_account: t("accountTypes.checkingAccount"),
+            savings_account: t("accountTypes.savingsAccount"),
+          },
+        },
+        t("settings.export.action"),
+        new Date().toISOString(),
+      );
+    },
+    onSuccess: () => {
+      setExportDialogOpen(false);
+      notify.success(t("settings.export.success"), {
+        message: t("settings.export.successMessage"),
+      });
+    },
+    onError: (error) => {
+      setExportDialogOpen(false);
+      notify.error(t("settings.export.error"), {
+        message: error instanceof Error ? error.message : undefined,
+      });
+    },
+  });
+
   const deleteConfirmationToken = t("settings.deleteAccountConfirmationToken");
   const canDeleteAccount =
     normalizeConfirmation(deleteConfirmation) ===
@@ -308,6 +373,21 @@ export default function SettingsScreen() {
         />
       </SettingsGroup>
 
+      <SettingsGroup title={t("settings.dataSection")}>
+        <SettingsRow
+          icon={<Upload size={19} color="$primary" />}
+          label={t("import.action")}
+          detail={t("import.hint")}
+          onPress={() => router.push("/import-transactions")}
+        />
+        <SettingsRow
+          icon={<Download size={19} color="$primary" />}
+          label={t("settings.export.action")}
+          detail={t("settings.export.hint")}
+          onPress={() => setExportDialogOpen(true)}
+        />
+      </SettingsGroup>
+
       <SettingsGroup title={t("settings.notificationsSection")}>
         <FintSwitchRow
           icon={<Bell size={19} color="$primary" />}
@@ -394,6 +474,19 @@ export default function SettingsScreen() {
           onPress={() => setDeleteDialogOpen(true)}
         />
       </SettingsGroup>
+
+      <FintConfirmDialog
+        open={exportDialogOpen}
+        isPending={exportMutation.isPending}
+        title={t("settings.export.warningTitle")}
+        description={t("settings.export.warningDescription")}
+        cancelLabel={t("actions.cancel")}
+        confirmLabel={t("settings.export.confirm")}
+        pendingLabel={t("settings.export.exporting")}
+        icon={<Download size={17} color="$primaryForeground" />}
+        onCancel={() => setExportDialogOpen(false)}
+        onConfirm={() => exportMutation.mutate()}
+      />
 
       <DeleteAccountDialog
         confirmation={deleteConfirmation}

@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Mail,
   Plus,
+  RotateCcw,
   Search,
   Trash2,
   X,
@@ -28,6 +29,7 @@ import type { Transaction } from "../../src/api/types";
 import { supabase } from "../../src/auth/supabase";
 import { DataStateCard } from "../../src/components/DataStateCard";
 import { EmptyState } from "../../src/components/EmptyState";
+import { SwipeableRow } from "../../src/components/SwipeableRow";
 import {
   SkeletonGroup,
   SkeletonHero,
@@ -118,12 +120,21 @@ export default function MovementsScreen() {
     string | null
   >(null);
   const range = monthRange(month);
+  const deferredSearch = useDeferredValue(search);
+  const term = deferredSearch.trim();
+  const isSearching = term.length > 0;
   const movementsQuery = useInfiniteQuery({
-    queryKey: ["transactions", "pages", range.from, range.to],
+    // Con término de búsqueda vamos al servidor con `q` sobre TODO el historial
+    // (sin rango de mes); sin término, paginamos el mes seleccionado.
+    queryKey: isSearching
+      ? ["transactions", "search", term]
+      : ["transactions", "pages", range.from, range.to],
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam, signal }) =>
       financeApi.getTransactionPage(
-        { ...range, limit: PAGE_SIZE, cursor: pageParam },
+        isSearching
+          ? { q: term, limit: PAGE_SIZE, cursor: pageParam }
+          : { ...range, limit: PAGE_SIZE, cursor: pageParam },
         signal,
       ),
     getNextPageParam: (page) => page.pageInfo.nextCursor ?? undefined,  });
@@ -134,30 +145,6 @@ export default function MovementsScreen() {
     movementsQuery.data?.pages.flatMap((page) => page.items) ?? []
   ).map(normalizeTransaction);
   const movementItems = groupMovements(movements);
-  const deferredSearch = useDeferredValue(search);
-  const term = deferredSearch.trim().toLocaleLowerCase();
-  const filteredItems = term
-    ? movementItems.filter((item) => {
-        const fields =
-          item.kind === "transfer"
-            ? [
-                item.origin.account,
-                item.destination.account,
-                item.origin.note,
-                item.destination.note,
-                String(item.amount),
-              ]
-            : [
-                getCategoryLabel(item.movement.category, t),
-                item.movement.note,
-                item.movement.account,
-                String(item.movement.amount),
-              ];
-        return fields.some(
-          (field) => field != null && field.toLocaleLowerCase().includes(term),
-        );
-      })
-    : movementItems;
   const summary = movementsQuery.data?.pages[0]?.summary;
   const currencySummary =
     summary?.byCurrency.find((item) => item.currency === summaryCurrency) ??
@@ -186,21 +173,6 @@ export default function MovementsScreen() {
     if (currencySummary && summaryCurrency !== currencySummary.currency)
       setSummaryCurrency(currencySummary.currency);
   }, [currencySummary, summaryCurrency]);
-
-  useEffect(() => {
-    if (
-      term &&
-      movementsQuery.hasNextPage &&
-      !movementsQuery.isFetchingNextPage
-    ) {
-      void movementsQuery.fetchNextPage();
-    }
-  }, [
-    term,
-    movementsQuery.hasNextPage,
-    movementsQuery.isFetchingNextPage,
-    movementsQuery.fetchNextPage,
-  ]);
 
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | null = null;
@@ -465,14 +437,14 @@ export default function MovementsScreen() {
   return (
     <YStack flex={1} bg="$background">
       <FlatList
-        data={filteredItems}
+        data={movementItems}
         keyExtractor={(item) =>
           item.kind === "transfer" ? item.transferGroupId : item.movement.id
         }
         contentContainerStyle={{
           padding: 16,
           paddingBottom: Math.max(insets.bottom, 24),
-          flexGrow: filteredItems.length ? undefined : 1,
+          flexGrow: movementItems.length ? undefined : 1,
         }}
         ListHeaderComponent={header}
         ListEmptyComponent={
@@ -523,13 +495,14 @@ export default function MovementsScreen() {
               movement={item.movement}
               locale={i18n.language}
               onDelete={() => setDeleteTarget(item.movement)}
-              onEdit={() =>
+              onOpenDetail={() =>
                 router.push({
-                  pathname: "/transaction-form",
+                  pathname: "/transaction-detail",
                   params: {
                     id: item.movement.id,
                     type: item.movement.type as "income" | "expense",
                     amount: String(item.movement.amount),
+                    currency: item.movement.currency,
                     category: item.movement.category,
                     account: item.movement.account,
                     note: item.movement.note ?? "",
@@ -576,13 +549,13 @@ function MovementCard({
   locale,
   movement,
   onDelete,
-  onEdit,
+  onOpenDetail,
   onReverse,
 }: {
   locale: string;
   movement: Transaction;
   onDelete: () => void;
-  onEdit: () => void;
+  onOpenDetail: () => void;
   onReverse: () => void;
 }) {
   const { t } = useTranslation();
@@ -590,7 +563,24 @@ function MovementCard({
   const isIncome = movement.type === "income";
   const isStrandedTransfer = movement.type === "transfer";
   const isPayment = Boolean(movement.paymentOccurrenceId);
+  const canReverse = isPayment && Boolean(movement.paymentOccurrencePaymentId);
+  const canDelete = !isPayment && !isStrandedTransfer;
   return (
+    <SwipeableRow
+      enabled={canReverse || canDelete}
+      onAction={canReverse ? onReverse : onDelete}
+      actionColor={canReverse ? "$yellow9" : "$red9"}
+      actionIcon={
+        canReverse ? (
+          <RotateCcw size={20} color="white" />
+        ) : (
+          <Trash2 size={20} color="white" />
+        )
+      }
+      actionLabel={
+        canReverse ? t("movementUx.reversePayment") : t("movementUx.deleteTitle")
+      }
+    >
     <FintCard py="$3">
       <XStack items="center" gap="$3">
         <XStack
@@ -599,7 +589,7 @@ function MovementCard({
           items="center"
           gap="$3"
           role={isPayment || isStrandedTransfer ? undefined : "button"}
-          onPress={isPayment || isStrandedTransfer ? undefined : onEdit}
+          onPress={isPayment || isStrandedTransfer ? undefined : onOpenDetail}
         >
           <YStack
             width={42}
@@ -665,6 +655,7 @@ function MovementCard({
         </YStack>
       </XStack>
     </FintCard>
+    </SwipeableRow>
   );
 }
 
@@ -680,6 +671,12 @@ function TransferMovementCard({
   const { t } = useTranslation();
   const { formatSensitiveAmount } = useSensitiveMoney();
   return (
+    <SwipeableRow
+      onAction={onReverse}
+      actionColor="$yellow9"
+      actionIcon={<RotateCcw size={20} color="white" />}
+      actionLabel={t("movementUx.reverseTransfer")}
+    >
     <FintCard py="$3">
       <XStack items="center" gap="$3">
         <YStack
@@ -721,6 +718,7 @@ function TransferMovementCard({
         </YStack>
       </XStack>
     </FintCard>
+    </SwipeableRow>
   );
 }
 

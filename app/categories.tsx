@@ -3,7 +3,7 @@ import { ArrowDownLeft, ArrowUpRight, Plus, Shapes, Trash2 } from '@tamagui/luci
 import { useNotify } from '../src/ui/notify'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Paragraph, Separator, XStack, YStack } from 'tamagui'
+import { Button, Paragraph, XStack, YStack } from 'tamagui'
 import { financeApi } from '../src/api/finance'
 import type { Category, TransactionType } from '../src/api/types'
 import { CreateCategorySheet } from '../src/components/CreateCategorySheet'
@@ -11,6 +11,7 @@ import { DataStateCard } from '../src/components/DataStateCard'
 import { EmptyState } from '../src/components/EmptyState'
 import { MovementTypeSelector } from '../src/components/MovementFormControls'
 import { Screen } from '../src/components/Screen'
+import { SwipeableRow } from '../src/components/SwipeableRow'
 import { SkeletonGroup, SkeletonList } from '../src/components/Skeleton'
 import { getCategoryLabel } from '../src/finance/categoryLabels'
 import { suggestedCategoryIcons } from '../src/finance/categoryIcons'
@@ -79,52 +80,60 @@ export default function CategoriesScreen() {
           />
         ) : null}
         {!categoriesQuery.isLoading && !categoriesQuery.error && categories.length > 0 ? (
-          <FintCard p={0} overflow="hidden">
-            {categories.map((category, index) => (
-              <YStack key={category.id}>
-                {index > 0 ? <Separator ml={66} /> : null}
-                <XStack items="center" gap="$1" px="$2" py="$1">
-                  <XStack
-                    flex={1}
-                    minW={0}
-                    items="center"
-                    gap="$3"
-                    px="$2"
-                    py="$2"
-                    rounded="$5"
-                    cursor="pointer"
-                    role="button"
-                    pressStyle={{ bg: '$secondary' }}
-                    onPress={() => openEdit(category)}
-                    aria-label={t('categories.editAccessibility', { name: getCategoryLabel(category.name, t) })}
-                  >
-                    <YStack width={42} height={42} rounded="$9" bg="$secondary" items="center" justify="center">
-                      <Paragraph fontSize="$5">{category.icon || suggestedCategoryIcons(category.name, category.type)[0]}</Paragraph>
-                    </YStack>
-                    <Paragraph color="$color12" fontSize="$3" fontWeight="700" flex={1} numberOfLines={1}>{getCategoryLabel(category.name, t)}</Paragraph>
-                    <XStack items="center" gap="$1" bg={category.type === 'income' ? '$green2' : '$red2'} px="$2" py="$1" rounded="$10">
-                      {category.type === 'income' ? <ArrowDownLeft size={12} color="$green10" /> : <ArrowUpRight size={12} color="$red10" />}
-                      <Paragraph color={category.type === 'income' ? '$green11' : '$red11'} fontSize={10} fontWeight="800">{t(`forms.${category.type}`)}</Paragraph>
+          <YStack gap="$2">
+            {categories.map((category) => (
+              <SwipeableRow
+                key={category.id}
+                enabled={!(deleteMutation.isPending && deleteTarget?.id === category.id)}
+                onAction={() => setDeleteTarget(category)}
+                actionColor="$red9"
+                actionIcon={<Trash2 size={20} color="white" />}
+                actionLabel={t('categories.deleteAccessibility', { name: getCategoryLabel(category.name, t) })}
+              >
+                <FintCard p="$2">
+                  <XStack items="center" gap="$1">
+                    <XStack
+                      flex={1}
+                      minW={0}
+                      items="center"
+                      gap="$3"
+                      px="$2"
+                      py="$2"
+                      rounded="$5"
+                      cursor="pointer"
+                      role="button"
+                      pressStyle={{ bg: '$secondary' }}
+                      onPress={() => openEdit(category)}
+                      aria-label={t('categories.editAccessibility', { name: getCategoryLabel(category.name, t) })}
+                    >
+                      <YStack width={42} height={42} rounded="$9" bg="$secondary" items="center" justify="center">
+                        <Paragraph fontSize="$5">{category.icon || suggestedCategoryIcons(category.name, category.type)[0]}</Paragraph>
+                      </YStack>
+                      <Paragraph color="$color12" fontSize="$3" fontWeight="700" flex={1} numberOfLines={1}>{getCategoryLabel(category.name, t)}</Paragraph>
+                      <XStack items="center" gap="$1" bg={category.type === 'income' ? '$green2' : '$red2'} px="$2" py="$1" rounded="$10">
+                        {category.type === 'income' ? <ArrowDownLeft size={12} color="$green10" /> : <ArrowUpRight size={12} color="$red10" />}
+                        <Paragraph color={category.type === 'income' ? '$green11' : '$red11'} fontSize={10} fontWeight="800">{t(`forms.${category.type}`)}</Paragraph>
+                      </XStack>
                     </XStack>
+                    <Button
+                      circular
+                      chromeless
+                      size="$3"
+                      disabled={deleteMutation.isPending && deleteTarget?.id === category.id}
+                      icon={
+                        deleteMutation.isPending && deleteTarget?.id === category.id
+                          ? <FintSpinner size="small" color="$red10" />
+                          : <Trash2 size={18} color="$red10" />
+                      }
+                      pressStyle={{ bg: '$red3' }}
+                      onPress={() => setDeleteTarget(category)}
+                      aria-label={t('categories.deleteAccessibility', { name: getCategoryLabel(category.name, t) })}
+                    />
                   </XStack>
-                  <Button
-                    circular
-                    chromeless
-                    size="$3"
-                    disabled={deleteMutation.isPending && deleteTarget?.id === category.id}
-                    icon={
-                      deleteMutation.isPending && deleteTarget?.id === category.id
-                        ? <FintSpinner size="small" color="$red10" />
-                        : <Trash2 size={18} color="$red10" />
-                    }
-                    pressStyle={{ bg: '$red3' }}
-                    onPress={() => setDeleteTarget(category)}
-                    aria-label={t('categories.deleteAccessibility', { name: getCategoryLabel(category.name, t) })}
-                  />
-                </XStack>
-              </YStack>
+                </FintCard>
+              </SwipeableRow>
             ))}
-          </FintCard>
+          </YStack>
         ) : null}
       </Screen>
       <CreateCategorySheet initialType={type} category={editingCategory} open={isSheetOpen} onOpenChange={handleSheetOpenChange} />

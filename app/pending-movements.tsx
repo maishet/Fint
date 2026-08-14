@@ -30,6 +30,7 @@ import { CategoryPickerSheet } from "../src/components/CategoryPickerSheet";
 import { DataStateCard } from "../src/components/DataStateCard";
 import { MovementPickerTrigger } from "../src/components/MovementFormControls";
 import { SkeletonGroup, SkeletonList } from "../src/components/Skeleton";
+import { SwipeableRow } from "../src/components/SwipeableRow";
 import { getValidationMessage } from "../src/forms";
 import {
   FintButton,
@@ -576,6 +577,13 @@ function PendingCard({
       : t("movementUx.reviewRequired");
   const isPayment = paymentOccurrenceId !== NORMAL_MOVEMENT;
   return (
+    <SwipeableRow
+      enabled={!selectionMode && !isPending}
+      onAction={onDiscard}
+      actionColor="$red9"
+      actionIcon={<Trash2 size={20} color="white" />}
+      actionLabel={t("movementUx.discardShort")}
+    >
     <FintCard
       p="$3"
       gap="$3"
@@ -749,6 +757,7 @@ function PendingCard({
         </YStack>
       ) : null}
     </FintCard>
+    </SwipeableRow>
   );
 }
 

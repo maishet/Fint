@@ -25,6 +25,8 @@ import type {
   CreateTransactionInput,
   CreateTransactionResult,
   CreateTransferInput,
+  ImportTransactionItem,
+  ImportTransactionsResult,
   DeleteAccountResult,
   CurrentUser,
   AppCapabilities,
@@ -100,7 +102,7 @@ export const financeApi = {
   getDashboardOverview: (currency?: string, signal?: AbortSignal) => apiRequest<DashboardOverview>(`/api/dashboard/overview${toQuery({ currency })}`, { signal }, { schema: DashboardOverviewSchema }),
   getDashboardExpenseCategories: (query: { currency: string; accountId?: string }, signal?: AbortSignal) => apiRequest<ExpenseCategoriesOverview>(`/api/dashboard/expense-categories${toQuery(query)}`, { signal }),
   listTransactions: (query: TransactionQuery = {}) => apiRequest<Transaction[]>(`/api/transactions${toQuery({ ...query })}`, {}, { schema: TransactionListSchema }),
-  getTransactionPage: (query: { from?: string; to?: string; limit?: number; cursor?: string } = {}, signal?: AbortSignal) => apiRequest<TransactionPage>(`/api/transactions/page${toQuery(query)}`, { signal }, { schema: TransactionPageSchema }),
+  getTransactionPage: (query: { from?: string; to?: string; limit?: number; cursor?: string; q?: string } = {}, signal?: AbortSignal) => apiRequest<TransactionPage>(`/api/transactions/page${toQuery(query)}`, { signal }, { schema: TransactionPageSchema }),
   async listAllTransactions(query: Omit<TransactionQuery, 'limit' | 'offset'> = {}) {
     const pageSize = 200
     const transactions: Transaction[] = []
@@ -120,6 +122,7 @@ export const financeApi = {
   getFinancialTopTransactions: (query: Omit<FinancialReportQuery, 'grouping'> & { limit?: number }, signal?: AbortSignal) => apiRequest<FinancialTopTransaction[]>(`/api/reports/financial/top-transactions${toQuery({ ...query })}`, { signal }),
   getFinancialReportExportData: (query: FinancialReportQuery) => apiRequest<FinancialReport>(`/api/reports/financial/export-data${toQuery({ ...query })}`),
   createTransaction: (input: CreateTransactionInput) => apiRequest<CreateTransactionResult>('/api/transactions', { method: 'POST', body: JSON.stringify(input) }),
+  importTransactions: (items: ImportTransactionItem[]) => apiRequest<ImportTransactionsResult>('/api/transactions/import', { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey() }, body: JSON.stringify({ items }) }),
   updateTransaction: (id: string, input: UpdateTransactionInput) => apiRequest<{ id: string }>(`/api/transactions/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
   deleteTransaction: (id: string) => apiRequest<{ id: string }>(`/api/transactions/${id}`, { method: 'DELETE' }),
   listCategories: (type?: TransactionType) => apiRequest<Category[]>(`/api/categories${toQuery({ type })}`),

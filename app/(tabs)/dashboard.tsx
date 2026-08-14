@@ -9,7 +9,7 @@ import {
   Landmark,
   Sparkles,
 } from "@tamagui/lucide-icons-2";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { PieChart } from "react-native-gifted-charts";
@@ -983,6 +983,7 @@ function RecentMovements({
   transactions: Transaction[];
 }) {
   const { t } = useTranslation();
+  const router = useRouter();
   const { formatSensitiveAmount } = useSensitiveMoney();
 
   return (
@@ -1013,6 +1014,7 @@ function RecentMovements({
           {transactions.map((transaction, index) => {
             const type = transaction.type;
             const isIncome = type === "income";
+            const canOpen = type === "income" || type === "expense";
             return (
               <XStack
                 key={transaction.id}
@@ -1022,6 +1024,26 @@ function RecentMovements({
                 p="$3"
                 borderBottomColor="$borderColor"
                 borderBottomWidth={index < transactions.length - 1 ? 1 : 0}
+                role={canOpen ? "button" : undefined}
+                pressStyle={canOpen ? { bg: "$secondary" } : undefined}
+                onPress={
+                  canOpen
+                    ? () =>
+                        router.push({
+                          pathname: "/transaction-detail",
+                          params: {
+                            id: transaction.id,
+                            type: type as "income" | "expense",
+                            amount: String(transaction.amount),
+                            currency: transaction.currency,
+                            category: transaction.category,
+                            account: transaction.account,
+                            note: transaction.note ?? "",
+                            date: transaction.date,
+                          },
+                        })
+                    : undefined
+                }
               >
                 <XStack items="center" gap="$3" flex={1} minW={0}>
                   <YStack
