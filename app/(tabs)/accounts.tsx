@@ -364,12 +364,12 @@ function AccountCard({
           disabled={isDeleting}
           icon={
             isDeleting ? (
-              <FintSpinner size="small" color="$red10" />
+              <FintSpinner size="small" color="$color8" />
             ) : (
-              <Trash2 size={19} color="$red10" />
+              <Trash2 size={18} color="$color8" />
             )
           }
-          pressStyle={{ bg: "$red3" }}
+          pressStyle={{ bg: "$color4" }}
           onPress={onDelete}
           aria-label={t("accounts.deleteAccessibility", { name: account.name })}
         />

@@ -36,20 +36,19 @@ export function SwipeableRow({
       friction={2}
       rightThreshold={40}
       overshootRight={false}
-      onSwipeableWillOpen={() => haptics.warning()}
-      onSwipeableOpen={() => {
-        // El gesto es la acción: dispara y resetea la fila.
+      onSwipeableWillOpen={() => {
+        haptics.warning()
         onAction()
         swipeableRef.current?.close()
       }}
       renderRightActions={() => (
         <YStack
-          width={80}
-          ml="$2"
+          flex={1}
           bg={actionColor as never}
-          rounded="$6"
-          items="center"
+          rounded={18}
+          items="flex-end"
           justify="center"
+          pr="$5"
           aria-label={actionLabel}
         >
           {actionIcon}

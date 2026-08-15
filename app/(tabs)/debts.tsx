@@ -17,6 +17,7 @@ import type { PaymentOccurrence } from "../../src/api/types";
 import { DataStateCard } from "../../src/components/DataStateCard";
 import { OccurrencePaymentSheet } from "../../src/components/OccurrencePaymentSheet";
 import { Screen } from "../../src/components/Screen";
+import { SwipeableRow } from "../../src/components/SwipeableRow";
 import {
   SkeletonGroup,
   SkeletonHero,
@@ -258,6 +259,12 @@ function OccurrenceCard({
   // Legacy credit_card items are read-only history; the app no longer supports paying them.
   const isLegacy = occurrence.kind === "credit_card";
   return (
+    <SwipeableRow
+      enabled={!isDeleting}
+      onAction={onDelete}
+      actionIcon={<Trash2 size={20} color="white" />}
+      actionLabel={t("payments.deleteRecurring")}
+    >
     <FintCard
       p="$3"
       gap="$3"
@@ -327,12 +334,12 @@ function OccurrenceCard({
               disabled={isDeleting}
               icon={
                 isDeleting ? (
-                  <FintSpinner size="small" color="$red10" />
+                  <FintSpinner size="small" color="$color8" />
                 ) : (
-                  <Trash2 size={17} color="$red10" />
+                  <Trash2 size={16} color="$color8" />
                 )
               }
-              pressStyle={{ bg: "$red3" }}
+              pressStyle={{ bg: "$color4" }}
               onPress={(event) => {
                 event.stopPropagation();
                 onDelete();
@@ -343,6 +350,7 @@ function OccurrenceCard({
         </YStack>
       </XStack>
     </FintCard>
+    </SwipeableRow>
   );
 }
 

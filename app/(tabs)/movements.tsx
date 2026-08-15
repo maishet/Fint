@@ -647,7 +647,7 @@ function MovementCard({
               chromeless
               circular
               size="$2"
-              icon={<Trash2 size={15} color="$red10" />}
+              icon={<Trash2 size={14} color="$color8" />}
               onPress={onDelete}
               aria-label={t("movementUx.deleteTitle")}
             />

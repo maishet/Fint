@@ -122,10 +122,10 @@ export default function CategoriesScreen() {
                       disabled={deleteMutation.isPending && deleteTarget?.id === category.id}
                       icon={
                         deleteMutation.isPending && deleteTarget?.id === category.id
-                          ? <FintSpinner size="small" color="$red10" />
-                          : <Trash2 size={18} color="$red10" />
+                          ? <FintSpinner size="small" color="$color8" />
+                          : <Trash2 size={17} color="$color8" />
                       }
-                      pressStyle={{ bg: '$red3' }}
+                      pressStyle={{ bg: '$color4' }}
                       onPress={() => setDeleteTarget(category)}
                       aria-label={t('categories.deleteAccessibility', { name: getCategoryLabel(category.name, t) })}
                     />
