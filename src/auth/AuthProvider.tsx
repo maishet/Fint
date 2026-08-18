@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { useQueryClient } from '@tanstack/react-query'
 import { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } from '@react-native-google-signin/google-signin'
+import * as AppleAuthentication from 'expo-apple-authentication'
 import { AppState } from 'react-native'
 import { supabase } from './supabase'
 import { GOOGLE_SIGNIN_BASE_CONFIG } from './googleSignIn'
@@ -19,6 +20,7 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<AuthResult>
   signUp: (email: string, password: string, displayName: string) => Promise<AuthResult>
   signInWithGoogle: () => Promise<AuthResult>
+  signInWithApple: () => Promise<AuthResult>
   updateDisplayName: (displayName: string) => Promise<AuthResult>
   changePassword: (currentPassword: string, newPassword: string) => Promise<AuthResult>
   signOut: () => Promise<void>
@@ -85,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error }
       },
       signInWithGoogle: signInWithGoogleNative,
+      signInWithApple: signInWithAppleNative,
       async updateDisplayName(displayName) {
         const { error } = await supabase.auth.updateUser({ data: { display_name: displayName.trim() } })
         return { error }
@@ -136,6 +139,37 @@ async function signInWithGoogleNative(): Promise<AuthResult> {
     if (isErrorWithCode(error) && error.code === statusCodes.SIGN_IN_CANCELLED) return { error: null }
     return { error: error instanceof Error ? error : new Error(String(error)) }
   }
+}
+
+async function signInWithAppleNative(): Promise<AuthResult> {
+  try {
+    const credential = await AppleAuthentication.signInAsync({
+      requestedScopes: [
+        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        AppleAuthentication.AppleAuthenticationScope.EMAIL,
+      ],
+    })
+
+    const identityToken = credential.identityToken
+    if (!identityToken) return { error: new Error('missing_apple_identity_token') }
+
+    const { data, error } = await supabase.auth.signInWithIdToken({ provider: 'apple', token: identityToken })
+    if (error) return { error }
+
+    const displayName = [credential.fullName?.givenName, credential.fullName?.familyName].filter(Boolean).join(' ').trim()
+    if (displayName && !data.user?.user_metadata?.display_name) {
+      await supabase.auth.updateUser({ data: { display_name: displayName } }).catch(() => undefined)
+    }
+
+    return { error: null }
+  } catch (error) {
+    if (isAppleCancellation(error)) return { error: null }
+    return { error: error instanceof Error ? error : new Error(String(error)) }
+  }
+}
+
+function isAppleCancellation(error: unknown) {
+  return typeof error === 'object' && error !== null && (error as { code?: string }).code === 'ERR_REQUEST_CANCELED'
 }
 
 function logSessionExpiry(session: Session | null) {

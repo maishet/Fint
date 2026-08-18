@@ -8,6 +8,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { Image, KeyboardAvoidingView, Platform } from "react-native";
 import Svg, { Path } from "react-native-svg";
+import * as AppleAuthentication from "expo-apple-authentication";
 import { Redirect } from "expo-router";
 import {
   Button,
@@ -18,6 +19,7 @@ import {
   Separator,
   XStack,
   YStack,
+  useThemeName,
 } from "tamagui";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
@@ -27,7 +29,8 @@ import { FintButton, FintCard } from "../src/ui";
 
 export default function LoginScreen() {
   const { i18n, t } = useTranslation();
-  const { session, signIn, signInWithGoogle, signUp } = useAuth();
+  const { session, signIn, signInWithApple, signInWithGoogle, signUp } =
+    useAuth();
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
@@ -51,11 +54,13 @@ export default function LoginScreen() {
 
   if (session) return <Redirect href="/" />;
 
-  const runAuthAction = async (action: "signin" | "signup" | "google") => {
+  const runAuthAction = async (
+    action: "signin" | "signup" | "google" | "apple",
+  ) => {
     let submittedEmail = email.trim();
     let submittedDisplayName = displayName.trim();
     let submittedPassword = password;
-    if (action !== "google") {
+    if (action !== "google" && action !== "apple") {
       const authSchema = z
         .object({
           displayName:
@@ -122,7 +127,9 @@ export default function LoginScreen() {
               submittedPassword,
               submittedDisplayName,
             )
-          : await signInWithGoogle();
+          : action === "apple"
+            ? await signInWithApple()
+            : await signInWithGoogle();
 
     if (!isMountedRef.current) return;
     if (result.error) {
@@ -353,6 +360,11 @@ export default function LoginScreen() {
                 </Paragraph>
               </XStack>
             </FintButton>
+            <AppleSignInButton
+              authMode={authMode}
+              disabled={isSubmitting}
+              onPress={() => runAuthAction("apple")}
+            />
 
             <XStack items="center" justify="center" gap="$1.5">
               <Paragraph color="$color9">
@@ -384,6 +396,54 @@ export default function LoginScreen() {
         </YStack>
       </YStack>
     </KeyboardAvoidingView>
+  );
+}
+
+function AppleSignInButton({
+  authMode,
+  disabled,
+  onPress,
+}: {
+  authMode: "login" | "register";
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  const themeName = useThemeName();
+  const [isAvailable, setIsAvailable] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS !== "ios") return;
+    let isMounted = true;
+    AppleAuthentication.isAvailableAsync()
+      .then((available) => {
+        if (isMounted) setIsAvailable(available);
+      })
+      .catch(() => undefined);
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  if (Platform.OS !== "ios" || !isAvailable) return null;
+
+  return (
+    <AppleAuthentication.AppleAuthenticationButton
+      buttonType={
+        authMode === "login"
+          ? AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN
+          : AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP
+      }
+      buttonStyle={
+        themeName === "dark"
+          ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
+          : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+      }
+      cornerRadius={11}
+      style={{ height: 50, width: "100%", opacity: disabled ? 0.5 : 1 }}
+      onPress={() => {
+        if (!disabled) onPress();
+      }}
+    />
   );
 }
 

@@ -10,7 +10,13 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "bundleIdentifier": "com.fint.finanzasmobilev2",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleDevelopmentRegion": "es",
+        "CFBundleLocalizations": ["es", "en", "pt"]
+      }
     },
     "android": {
       "package": "com.fint.finanzasmobilev2",
@@ -34,17 +40,29 @@
         }
       ],
       "expo-localization",
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": "Permite que My Fint use Face ID para proteger tus datos financieros guardados en el dispositivo."
+        }
+      ],
       [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#07151D"
+          "backgroundColor": "#07151D",
+          "ios": {
+            "backgroundColor": "#FFFFFF",
+            "dark": {
+              "backgroundColor": "#07151D"
+            }
+          }
         }
       ],
       "@react-native-google-signin/google-signin",
+      "expo-apple-authentication",
       [
         "expo-notifications",
         {

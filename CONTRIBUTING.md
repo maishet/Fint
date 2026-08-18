@@ -35,7 +35,7 @@ bun run test
 bunx expo-doctor
 ```
 
-Para cambios visuales, valida al menos un dispositivo Android y adjunta capturas o un video corto al pull request.
+Para cambios visuales, valida al menos un dispositivo Android y adjunta capturas o un video corto al pull request. Si el cambio toca codigo especifico de iOS (`Platform.OS`, configuracion nativa o el login con Apple), indica en el pull request si pudiste validarlo en un iPhone o si queda pendiente.
 
 ## Pull Requests
 

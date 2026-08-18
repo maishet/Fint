@@ -29,8 +29,12 @@ que secuestrar en absoluto para este flujo.
 - `assetlinks.json` sigue publicado en `https://myfint.app/.well-known/assetlinks.json` (vía el
   Worker de Cloudflare `myfint-well-known`) — no hace daño dejarlo, y sirve como base si en el futuro
   se necesita verificar `myfint.app` para otro propósito (otro deep link, compartir contenido, etc.).
-- `apple-app-site-association` nunca se llegó a publicar (iOS quedó descartado por decisión del
-  usuario) y el placeholder local fue borrado.
+- `apple-app-site-association` nunca se llegó a publicar y el placeholder local fue borrado. En su
+  momento fue porque iOS estaba descartado; iOS volvió al alcance (ver `docs/ios-build-setup.md` en
+  el vault), pero el archivo **sigue sin hacer falta**: por la misma razón que en Android, el flujo de
+  Gmail ya no usa deep links, así que no hay ningún Universal Link que verificar. La app tampoco
+  declara `ios.associatedDomains` en `app.json`. Si algún día se necesita un Universal Link, este
+  archivo habría que crearlo y publicarlo junto al `assetlinks.json` existente.
 
 Si en el futuro se necesita un nuevo App Link verificado, este archivo `assetlinks.json` y el Worker
 de Cloudflare siguen siendo el punto de partida — solo haría falta agregar la nueva ruta/`intentFilter`
