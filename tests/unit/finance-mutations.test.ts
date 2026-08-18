@@ -89,6 +89,18 @@ test('sends recurring payment mutations and assigns an idempotency key to a paym
   expect(options.headers).toMatchObject({ 'Idempotency-Key': expect.any(String) })
 })
 
+test('carries the auto-pay account through create and clears it when auto-pay is turned off', async () => {
+  const input = { title: 'Netflix', kind: 'fixed_payment' as const, frequency: 'monthly' as const, fixedAmount: 44.9, categoryId: 'category-1', currency: 'PEN', timezone: 'America/Lima', startDate: '2026-08-01', autoPayEnabled: true, autoPayAccountId: 'account-1' }
+
+  fetchMock.mockResolvedValueOnce(respond({ id: 'rule-1' }))
+  await financeApi.createPaymentRule(input)
+  expectRequest('/api/payment-rules', 'POST', input)
+
+  fetchMock.mockResolvedValueOnce(respond({ id: 'rule-1' }))
+  await financeApi.updatePaymentRule('rule-1', { autoPayEnabled: false, autoPayAccountId: null })
+  expectRequest('/api/payment-rules/rule-1', 'PATCH', { autoPayEnabled: false, autoPayAccountId: null })
+})
+
 test('preserves API validation errors for a failed financial mutation', async () => {
   fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ ok: false, error: 'account_name_exists', message: 'Nombre duplicado' }), { status: 409, headers: { 'Content-Type': 'application/json' } }))
 

@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CalendarDays, FileText, Repeat, Save, Shapes } from '@tamagui/lucide-icons-2'
+import { CalendarDays, FileText, Landmark, Repeat, Save, Shapes, WalletCards } from '@tamagui/lucide-icons-2'
 import { useNotify } from '../src/ui/notify'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Paragraph, XStack, YStack } from 'tamagui'
+import { Paragraph, YStack } from 'tamagui'
 import { z } from 'zod'
 import { financeApi } from '../src/api/finance'
 import type { PaymentRule } from '../src/api/types'
@@ -20,7 +20,7 @@ import { useUnsavedChangesGuard } from '../src/hooks/useUnsavedChangesGuard'
 import { UnsavedChangesDialog } from '../src/components/UnsavedChangesDialog'
 import { registerPushInstallation } from '../src/notifications/pushNotifications'
 import { useCapabilities } from '../src/api/capabilities'
-import { FintButton, FintDateField, FintFormField, FintSheetSelect, FintSpinner } from '../src/ui'
+import { FintButton, FintDateField, FintFormField, FintSheetSelect, FintSpinner, FintSwitchRow } from '../src/ui'
 
 // NOTE: the payments/debts module only supports 'fixed_payment' rules (single-step flow:
 // create rule -> mark occurrence as paid). credit_card rules were removed; see
@@ -49,18 +49,28 @@ export default function DebtFormScreen() {
   const [frequency, setFrequency] = useState<Frequency>('monthly')
   const [startDate, setStartDate] = useState(() => todayDateString())
   const [categoryId, setCategoryId] = useState('')
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [autoPayEnabled, setAutoPayEnabled] = useState(false)
+  const [autoPayAccountId, setAutoPayAccountId] = useState('')
   const [saved, setSaved] = useState(false)
+  const autoPayAvailable = capabilities.features.autoPayPayments
+  const autoPayAccountsQuery = useQuery({
+    queryKey: ['account-options', 'auto-pay', selectedCurrency],
+    queryFn: () => financeApi.listAccountOptions({ currency: selectedCurrency, excludeAccountType: 'credit_card' }),
+    enabled: autoPayAvailable,
+  })
+  const autoPayAccounts = autoPayAccountsQuery.data ?? []
   const isDirty = !saved && (isEditing
     ? Boolean(currentRule) && (
         title !== currentRule!.title ||
         amount !== (currentRule!.fixedAmount ? String(currentRule!.fixedAmount) : '') ||
         categoryId !== (currentRule!.categoryId ?? '') ||
         frequency !== currentRule!.frequency ||
-        startDate !== currentRule!.startDate)
-    : title !== '' || amount !== '' || categoryId !== '')
+        startDate !== currentRule!.startDate ||
+        autoPayEnabled !== currentRule!.autoPayEnabled ||
+        autoPayAccountId !== (currentRule!.autoPayAccountId ?? ''))
+    : title !== '' || amount !== '' || categoryId !== '' || autoPayEnabled)
   const guard = useUnsavedChangesGuard(isDirty)
-  const validation = useSubmitValidation<'title' | 'amount' | 'categoryId' | 'startDate'>()
+  const validation = useSubmitValidation<'title' | 'amount' | 'categoryId' | 'startDate' | 'autoPayAccountId'>()
   const selectedCategory = categories.find((category) => category.id === categoryId)
   const currency = selectedCurrency
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Lima'
@@ -80,6 +90,8 @@ export default function DebtFormScreen() {
     setAmount(currentRule.fixedAmount ? String(currentRule.fixedAmount) : '')
     setSelectedCurrency(currentRule.currency)
     setCategoryId(currentRule.categoryId ?? '')
+    setAutoPayEnabled(currentRule.autoPayEnabled)
+    setAutoPayAccountId(currentRule.autoPayAccountId ?? '')
   }, [currentRule])
 
   useEffect(() => {
@@ -87,12 +99,18 @@ export default function DebtFormScreen() {
     setSelectedCurrency(optionsQuery.data.baseCurrency)
   }, [currentRule, optionsQuery.data?.baseCurrency])
 
+  useEffect(() => {
+    if (!autoPayAccountId || autoPayAccountsQuery.isPending) return
+    if (!autoPayAccounts.some((account) => account.id === autoPayAccountId)) setAutoPayAccountId('')
+  }, [autoPayAccountId, autoPayAccounts, autoPayAccountsQuery.isPending])
+
   const mutation = useMutation({
     mutationFn: async (payload: z.infer<typeof schema>) => {
+      const autoPay = { autoPayEnabled, autoPayAccountId: autoPayEnabled ? autoPayAccountId : null }
       if (ruleId) {
-        return financeApi.updatePaymentRule(ruleId, { title: payload.title, frequency, fixedAmount: payload.amount, categoryId: payload.categoryId, startDate: payload.startDate })
+        return financeApi.updatePaymentRule(ruleId, { title: payload.title, frequency, fixedAmount: payload.amount, categoryId: payload.categoryId, startDate: payload.startDate, ...autoPay })
       }
-      return financeApi.createPaymentRule({ kind: 'fixed_payment', title: payload.title, frequency, currency, fixedAmount: payload.amount, categoryId: payload.categoryId, timezone, startDate: payload.startDate })
+      return financeApi.createPaymentRule({ kind: 'fixed_payment', title: payload.title, frequency, currency, fixedAmount: payload.amount, categoryId: payload.categoryId, timezone, startDate: payload.startDate, ...autoPay })
     },
     onSuccess: async () => {
       await Promise.all([
@@ -106,16 +124,19 @@ export default function DebtFormScreen() {
       setSaved(true)
       guard.bypass(() => router.back())
     },
-    onError: () => setErrorMessage(t(isEditing ? 'payments.updateError' : 'payments.createError')),
+    onError: (error) => toast.error(t(isEditing ? 'payments.updateError' : 'payments.createError'), { message: error instanceof Error ? error.message : undefined, duration: 4500 }),
   })
 
   const submit = () => {
-    setErrorMessage(null)
     if (!capabilities.features.recurringPayments) {
-      setErrorMessage(t('payments.disabledTemporary'))
+      toast.error(t('payments.disabledTemporary'))
       return
     }
     const payload = validation.validate(schema, { title, amount: parseDecimalInput(amount), categoryId, startDate })
+    if (autoPayEnabled && !autoPayAccountId) {
+      validation.setError('autoPayAccountId', t('payments.autoPayAccountRequired'))
+      return
+    }
     if (payload) mutation.mutate(payload)
   }
 
@@ -151,7 +172,46 @@ export default function DebtFormScreen() {
               {categories.length === 0 ? <ReferenceHint message={t('payments.categoryRequiredHint')} action={t('payments.createCategory')} onPress={() => router.push('/categories')} /> : null}
             </FintFormField>
 
-            {errorMessage ? <XStack bg="$red2" borderColor="$red6" borderWidth={1} rounded="$5" p="$3"><Paragraph color="$red11" fontSize="$2">{errorMessage}</Paragraph></XStack> : null}
+            {autoPayAvailable ? (
+              <YStack bg="$secondary" rounded="$5" gap="$2" py="$1">
+                <FintSwitchRow
+                  checked={autoPayEnabled}
+                  detail={t('payments.autoPayHint')}
+                  icon={<Landmark size={21} color="$primary" />}
+                  label={t('payments.autoPayLabel')}
+                  onCheckedChange={(checked) => { setAutoPayEnabled(checked); if (!checked) validation.clearError('autoPayAccountId') }}
+                />
+                {autoPayEnabled ? (
+                  <YStack px="$3" pb="$3">
+                    {autoPayAccounts.length === 0 && !autoPayAccountsQuery.isPending ? (
+                      <ReferenceHint message={t('payments.autoPayNoAccounts', { currency })} action={t('payments.autoPayCreateAccount')} onPress={() => router.push('/account-form')} />
+                    ) : (
+                      <FintFormField label={t('payments.autoPayAccount')} required error={validation.errors.autoPayAccountId} showLabel={false}>
+                        <FintSheetSelect
+                          label={t('payments.autoPayAccount')}
+                          showLabel={false}
+                          placeholder={t('movements.selectAccount')}
+                          value={autoPayAccountId}
+                          onValueChange={(value) => { setAutoPayAccountId(value); validation.clearError('autoPayAccountId') }}
+                          options={autoPayAccounts.map((account) => ({ value: account.id, label: `${account.name} · ${account.currency}` }))}
+                          renderTrigger={({ onPress, selectedLabel }) => (
+                            <MovementPickerTrigger
+                              icon={<WalletCards size={21} color="$primary" />}
+                              invalid={Boolean(validation.errors.autoPayAccountId)}
+                              label={t('payments.autoPayAccount')}
+                              required
+                              onPress={onPress}
+                              value={selectedLabel}
+                            />
+                          )}
+                        />
+                      </FintFormField>
+                    )}
+                  </YStack>
+                ) : null}
+              </YStack>
+            ) : null}
+
             <YStack gap="$2">
               <FintButton width="100%" minH={52} disabled={mutation.isPending} icon={mutation.isPending ? <FintSpinner color="$primaryForeground" /> : <Save size={18} />} onPress={submit}>{mutation.isPending ? t('payments.saving') : isEditing ? t('accounts.update') : t('payments.createRecurring')}</FintButton>
               <FintButton width="100%" minH={48} variant="outlined" disabled={mutation.isPending} onPress={() => router.back()}>{t('actions.cancel')}</FintButton>

@@ -53,9 +53,11 @@ export interface AppCapabilities {
     pendingToPayment: boolean
     recurringPayments: boolean
     pushPaymentReminders: boolean
+    autoPayPayments: boolean
   }
   jobs?: {
     paymentOccurrencesGenerate: boolean
+    paymentAutoPost?: boolean
     paymentReminders: boolean
     pushReceipts: boolean
   }
@@ -116,6 +118,7 @@ export interface PaymentOccurrence {
   paymentStatus: 'unpaid' | 'partial' | 'minimum_met' | 'paid'
   temporalStatus: 'upcoming' | 'due_today' | 'overdue'
   cardAccount: string | null
+  autoPayEnabled: boolean
 }
 
 export interface PaymentRule {
@@ -133,6 +136,9 @@ export interface PaymentRule {
   startDate: string
   nextDueDate: string
   status: 'active' | 'paused' | 'ended'
+  autoPayEnabled: boolean
+  autoPayAccountId: string | null
+  autoPayAccount: string | null
 }
 
 export interface CreatePaymentRuleInput {
@@ -144,6 +150,8 @@ export interface CreatePaymentRuleInput {
   categoryId: string
   timezone: string
   startDate: string
+  autoPayEnabled?: boolean
+  autoPayAccountId?: string | null
 }
 
 export interface UpdatePaymentRuleInput {
@@ -152,6 +160,8 @@ export interface UpdatePaymentRuleInput {
   fixedAmount?: number
   categoryId?: string
   startDate?: string
+  autoPayEnabled?: boolean
+  autoPayAccountId?: string | null
 }
 
 export interface PayPaymentOccurrenceInput {

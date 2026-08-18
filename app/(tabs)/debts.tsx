@@ -3,6 +3,7 @@ import {
   CalendarClock,
   CheckCircle2,
   HandCoins,
+  Landmark,
   Plus,
   Trash2,
 } from "@tamagui/lucide-icons-2";
@@ -304,6 +305,23 @@ function OccurrenceCard({
           >
             {due.label}
           </Paragraph>
+          {occurrence.autoPayEnabled && !isPaid ? (
+            <XStack>
+              <XStack
+                bg="$secondary"
+                rounded="$3"
+                px="$2"
+                py="$1"
+                gap="$1"
+                items="center"
+              >
+                <Landmark size={12} color="$primary" />
+                <Paragraph color="$primary" fontSize="$1" fontWeight="700">
+                  {t("payments.autoPayBadge")}
+                </Paragraph>
+              </XStack>
+            </XStack>
+          ) : null}
         </YStack>
         <YStack items="flex-end" gap="$1">
           <Paragraph color="$color12" fontSize="$4" fontWeight="800" shrink={0}>
