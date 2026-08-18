@@ -16,11 +16,28 @@
         "resourceClass": "m-medium"
       }
     },
+    "simulator": {
+      "distribution": "internal",
+      "node": "22.14.0",
+      "ios": {
+        "simulator": true,
+        "resourceClass": "m-medium"
+      }
+    },
     "production": {
       "autoIncrement": true,
       "node": "22.14.0",
       "ios": {
         "resourceClass": "m-medium"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "REEMPLAZAR_CON_TU_APPLE_ID",
+        "ascAppId": "REEMPLAZAR_CON_EL_APP_ID_DE_APP_STORE_CONNECT",
+        "appleTeamId": "REEMPLAZAR_CON_TU_TEAM_ID"
       }
     }
   }
