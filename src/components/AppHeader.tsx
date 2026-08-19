@@ -1,9 +1,12 @@
 import { useRouter } from "expo-router";
+import { ImageUp } from "@tamagui/lucide-icons-2";
 import { Image, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { Paragraph, useTheme, XStack, YStack } from "tamagui";
 import { useAuth } from "../auth/AuthProvider";
+import { resolveDisplayName } from "../auth/displayName";
+import { useCapabilities } from "../api/capabilities";
 
 interface AppHeaderProps {
   showGreeting?: boolean;
@@ -15,6 +18,7 @@ export function AppHeader({ showGreeting = false, title }: AppHeaderProps) {
   const { session } = useAuth();
   const router = useRouter();
   const theme = useTheme();
+  const { capabilities } = useCapabilities();
   const metadata = session?.user.user_metadata ?? {};
   const avatarUrl =
     typeof metadata.avatar_url === "string"
@@ -22,14 +26,7 @@ export function AppHeader({ showGreeting = false, title }: AppHeaderProps) {
       : typeof metadata.picture === "string"
         ? metadata.picture
         : null;
-  const displayName =
-    typeof metadata.display_name === "string"
-      ? metadata.display_name
-      : typeof metadata.full_name === "string"
-        ? metadata.full_name
-        : typeof metadata.name === "string"
-          ? metadata.name
-          : session?.user.email;
+  const displayName = resolveDisplayName(session);
   const firstName = displayName?.split(" ")[0] || "My Fint";
   const initial = displayName?.slice(0, 1).toUpperCase() || "F";
   const heading = showGreeting
@@ -82,45 +79,64 @@ export function AppHeader({ showGreeting = false, title }: AppHeaderProps) {
           </YStack>
         </XStack>
 
-        <YStack
-          width={40}
-          height={40}
-          rounded={999}
-          overflow="hidden"
-          bg="$headerBackground"
-          borderColor="$headerAccent"
-          borderWidth={1}
-          items="center"
-          justify="center"
-          pressStyle={{ opacity: 0.78 }}
-          onPress={() => router.push("/settings")}
-          aria-label={t("header.menuTitle")}
-        >
-          {avatarUrl ? (
-            <Image
-              source={{ uri: avatarUrl }}
-              style={{ width: 40, height: 40, borderRadius: 999 }}
-              resizeMode="cover"
-              accessibilityLabel={displayName ?? undefined}
-            />
-          ) : (
-            <Text
-              style={{
-                color: theme.headerAccent.val,
-                fontFamily: "InterBold",
-                fontSize: 16,
-                fontWeight: "700",
-                includeFontPadding: false,
-                lineHeight: 40,
-                textAlign: "center",
-                textAlignVertical: "center",
-                width: 40,
-              }}
+        <XStack items="center" gap="$2">
+          {capabilities.features.captureImport ? (
+            <YStack
+              width={40}
+              height={40}
+              rounded={999}
+              bg="$headerBackground"
+              borderColor="$headerAccent"
+              borderWidth={1}
+              items="center"
+              justify="center"
+              pressStyle={{ opacity: 0.78 }}
+              onPress={() => router.push("/capture-import")}
+              aria-label={t("capture.action")}
             >
-              {initial}
-            </Text>
-          )}
-        </YStack>
+              <ImageUp size={19} color="$headerAccent" />
+            </YStack>
+          ) : null}
+          <YStack
+            width={40}
+            height={40}
+            rounded={999}
+            overflow="hidden"
+            bg="$headerBackground"
+            borderColor="$headerAccent"
+            borderWidth={1}
+            items="center"
+            justify="center"
+            pressStyle={{ opacity: 0.78 }}
+            onPress={() => router.push("/settings")}
+            aria-label={t("header.menuTitle")}
+          >
+            {avatarUrl ? (
+              <Image
+                source={{ uri: avatarUrl }}
+                style={{ width: 40, height: 40, borderRadius: 999 }}
+                resizeMode="cover"
+                accessibilityLabel={displayName ?? undefined}
+              />
+            ) : (
+              <Text
+                style={{
+                  color: theme.headerAccent.val,
+                  fontFamily: "InterBold",
+                  fontSize: 16,
+                  fontWeight: "700",
+                  includeFontPadding: false,
+                  lineHeight: 40,
+                  textAlign: "center",
+                  textAlignVertical: "center",
+                  width: 40,
+                }}
+              >
+                {initial}
+              </Text>
+            )}
+          </YStack>
+        </XStack>
       </XStack>
     </SafeAreaView>
   );

@@ -54,6 +54,7 @@ export interface AppCapabilities {
     recurringPayments: boolean
     pushPaymentReminders: boolean
     autoPayPayments: boolean
+    captureImport: boolean
   }
   jobs?: {
     paymentOccurrencesGenerate: boolean
@@ -537,6 +538,73 @@ export interface DiscardPendingInput {
 export interface DiscardPendingResult {
   id: string
   status: 'discarded'
+}
+
+export interface SetPendingMovementTypeInput {
+  type: TransactionType
+}
+
+export interface SetPendingMovementTypeResult {
+  id: string
+  type: TransactionType
+}
+
+export interface ReceiptExtraction {
+  bank: 'yape' | 'plin' | 'bcp' | 'bbva' | 'interbank' | 'scotiabank' | 'banco_nacion' | 'other' | 'unknown'
+  documentKind: 'transfer_receipt' | 'payment_receipt' | 'unknown'
+  amount: number | null
+  currency: 'PEN' | 'USD' | null
+  occurredAt: string | null
+  operationNumber: string | null
+  recipientName: string | null
+  senderName: string | null
+  originAccountLabel: string | null
+  directionHint: 'outgoing' | 'incoming' | 'unknown'
+  confidence: number
+}
+
+export interface CaptureItemInput {
+  clientCaptureId: string
+  source: 'camera' | 'gallery' | 'share'
+  capturedAt: string | null
+  extraction: ReceiptExtraction
+  extractor: {
+    provider: 'cloudflare-workers-ai'
+    model: string
+    latencyMs: number | null
+  }
+}
+
+export interface CreateFromCaptureInput {
+  captures: CaptureItemInput[]
+  profileHints: { displayName: string | null }
+}
+
+export interface CaptureResultPreview {
+  title: string
+  type: TransactionType | 'unknown'
+  amount: number | null
+  currency: string | null
+  occurredAt: string | null
+  recipientName: string | null
+}
+
+export interface CaptureResultItem {
+  clientCaptureId: string
+  status: 'created' | 'duplicate' | 'unrecognized'
+  pendingMovementId: string | null
+  bank: string
+  confidence: number
+  requiresReview: boolean
+  warnings: string[]
+  preview: CaptureResultPreview | null
+}
+
+export interface CreateFromCaptureResult {
+  created: number
+  duplicates: number
+  unrecognized: number
+  results: CaptureResultItem[]
 }
 
 export interface CreateTransferInput {

@@ -9,6 +9,7 @@ export const disabledCapabilities: AppCapabilities = {
     recurringPayments: false,
     pushPaymentReminders: false,
     autoPayPayments: false,
+    captureImport: false,
   },
 }
 

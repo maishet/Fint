@@ -1,5 +1,5 @@
-const sensitiveSentryKeyPattern = /amount|balance|currency|note|description|email|sender|subject|token|jwt|cookie|header|body|account|category|merchant|phone|address|password|authorization/i
-const sensitiveSentrySourcePattern = /\b(amount|balance|currency|note|description|email|sender|subject|token|jwt|cookie|header|body|account|category|merchant|phone|address|password|authorization)\b\s*[:=]/i
+const sensitiveSentryKeyPattern = /amount|balance|currency|note|description|email|sender|subject|token|jwt|cookie|header|body|account|category|merchant|phone|address|password|authorization|image|base64|extraction|recipientName|senderName/i
+const sensitiveSentrySourcePattern = /\b(amount|balance|currency|note|description|email|sender|subject|token|jwt|cookie|header|body|account|category|merchant|phone|address|password|authorization|image|base64|extraction|recipientName|senderName)\b\s*[:=]/i
 const emailPattern = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi
 const tokenLikePattern = /(ExponentPushToken\[[^\]]+\]|eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|Bearer\s+[^\s]+)/gi
 

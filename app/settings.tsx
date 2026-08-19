@@ -22,6 +22,7 @@ import {
   AlarmClock,
   Eye,
   EyeOff,
+  ImageUp,
   ShieldCheck,
   Share2,
   Sun,
@@ -40,7 +41,9 @@ import {
   YStack,
 } from "tamagui";
 import { financeApi } from "../src/api/finance";
+import { useCapabilities } from "../src/api/capabilities";
 import { useAuth } from "../src/auth/AuthProvider";
+import { resolveDisplayName } from "../src/auth/displayName";
 import { Screen } from "../src/components/Screen";
 import { changeAppLanguage, getAppLocale, type AppLanguage } from "../src/i18n";
 import { getSupportDiagnostics } from "../src/support/diagnostics";
@@ -85,6 +88,7 @@ export default function SettingsScreen() {
     setReminderTime,
   } = useDailyReminders();
   const router = useRouter();
+  const { capabilities } = useCapabilities();
   const diagnostics = getSupportDiagnostics();
   const [pushState, setPushState] =
     useState<PushPermissionState>("undetermined");
@@ -92,14 +96,7 @@ export default function SettingsScreen() {
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const metadata = session?.user.user_metadata ?? {};
-  const displayName =
-    typeof metadata.display_name === "string"
-      ? metadata.display_name
-      : typeof metadata.full_name === "string"
-        ? metadata.full_name
-        : typeof metadata.name === "string"
-          ? metadata.name
-          : (session?.user.email ?? "My Fint");
+  const displayName = resolveDisplayName(session) ?? "My Fint";
   const avatarUrl =
     typeof metadata.avatar_url === "string"
       ? metadata.avatar_url
@@ -374,6 +371,14 @@ export default function SettingsScreen() {
       </SettingsGroup>
 
       <SettingsGroup title={t("settings.dataSection")}>
+        {capabilities.features.captureImport ? (
+          <SettingsRow
+            icon={<ImageUp size={19} color="$primary" />}
+            label={t("capture.settingsAction")}
+            detail={t("capture.settingsHint")}
+            onPress={() => router.push("/capture-import")}
+          />
+        ) : null}
         <SettingsRow
           icon={<Upload size={19} color="$primary" />}
           label={t("import.action")}

@@ -1,4 +1,5 @@
 import { apiRequest } from './client'
+import { randomId } from '../shared/id'
 import {
   AccountListSchema,
   AccountSchema,
@@ -14,6 +15,7 @@ import type {
   AccountsOverview,
   Category,
   CategoryMutationResult,
+  CaptureItemInput,
   CompleteOnboardingResult,
   ConfirmPendingInput,
   ConfirmPendingResult,
@@ -21,6 +23,7 @@ import type {
   CreateAccountResult,
   CreateCategoryInput,
   CreateCategoryResult,
+  CreateFromCaptureResult,
   CreatePaymentRuleInput,
   CreateTransactionInput,
   CreateTransactionResult,
@@ -39,6 +42,8 @@ import type {
   PendingMovementDetail,
   PendingMovementPage,
   PendingMovementsSummary,
+  SetPendingMovementTypeInput,
+  SetPendingMovementTypeResult,
   Summary,
   Transaction,
   TransactionQuery,
@@ -75,13 +80,7 @@ function toQuery(params: { [key: string]: string | number | undefined }) {
   return query ? `?${query}` : ''
 }
 
-function idempotencyKey() {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID()
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {
-    const value = Math.floor(Math.random() * 16)
-    return (char === 'x' ? value : (value & 0x3) | 0x8).toString(16)
-  })
-}
+const idempotencyKey = randomId
 
 export const financeApi = {
   getCapabilities: () => apiRequest<AppCapabilities>('/api/capabilities'),
@@ -142,6 +141,8 @@ export const financeApi = {
   confirmPendingMovement: (id: string, input: ConfirmPendingInput) => apiRequest<ConfirmPendingResult>(`/api/pending-movements/${id}/confirm`, { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey() }, body: JSON.stringify(input) }),
   discardPendingMovement: (id: string, input: DiscardPendingInput = {}) => apiRequest<DiscardPendingResult>(`/api/pending-movements/${id}/discard`, { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey() }, body: JSON.stringify(input) }),
   discardPendingMovementsBulk: (ids: string[]) => apiRequest<{ discarded: string[] }>('/api/pending-movements/bulk-discard', { method: 'POST', body: JSON.stringify({ ids }) }),
+  setPendingMovementType: (id: string, input: SetPendingMovementTypeInput) => apiRequest<SetPendingMovementTypeResult>(`/api/pending-movements/${id}/set-type`, { method: 'POST', body: JSON.stringify(input) }),
+  createPendingFromCapture: (captures: CaptureItemInput[], displayName: string | null) => apiRequest<CreateFromCaptureResult>('/api/pending-movements/from-capture', { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey() }, body: JSON.stringify({ captures, profileHints: { displayName } }) }),
   createTransfer: (input: CreateTransferInput) => apiRequest<TransferResult>('/api/transfers', { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey() }, body: JSON.stringify(input) }),
   reverseTransfer: (transferGroupId: string) => apiRequest<TransferReverseResult>(`/api/transfers/${transferGroupId}/reverse`, { method: 'POST' }),
   upsertPushInstallation: (installationId: string, input: PushInstallationInput) => apiRequest<{ id: string }>(`/api/push/installations/${installationId}`, { method: 'PUT', body: JSON.stringify(input) }),

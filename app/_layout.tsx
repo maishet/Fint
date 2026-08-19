@@ -200,6 +200,13 @@ function RootLayoutNav() {
             }}
           />
           <Stack.Screen
+            name="capture-import"
+            options={{
+              title: t("capture.title"),
+              contentStyle: { backgroundColor: theme.background.val },
+            }}
+          />
+          <Stack.Screen
             name="pending-movements"
             options={{
               title: t("movementUx.pendingTitle"),
