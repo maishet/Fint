@@ -27,6 +27,7 @@ import {
   enqueueSharedFiles,
   hasQueuedShareFiles,
 } from "../src/capture/shareQueue";
+import { MAX_SHARE_QUEUE_SIZE } from "../src/capture/share-queue-logic";
 import {
   sanitizeSentryValue,
   stripUrlQuery,
@@ -180,7 +181,8 @@ function RootLayoutNav() {
     resetShareIntent();
     if (paths.length === 0) return;
     void (async () => {
-      await enqueueSharedFiles(paths);
+      const { droppedCount } = await enqueueSharedFiles(paths);
+      if (droppedCount > 0) toast.info(t("capture.batchLimitExceeded", { max: MAX_SHARE_QUEUE_SIZE }));
       await processShareQueueIfReady();
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps

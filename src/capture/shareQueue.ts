@@ -1,16 +1,10 @@
 import { Directory, File, Paths } from 'expo-file-system'
 import * as SecureStore from 'expo-secure-store'
 import { randomId } from '../shared/id'
+import { partitionExpired, splitByCapacity, SHARE_QUEUE_TTL_MS, type QueuedShareImage } from './share-queue-logic'
 
 const QUEUE_STORAGE_KEY = 'fint-share-queue'
 const SHARE_DIR_NAME = 'fint-share'
-const MAX_QUEUE_SIZE = 5
-const QUEUE_TTL_MS = 15 * 60 * 1000
-
-type QueuedShareImage = {
-  uri: string
-  expiresAt: number
-}
 
 function shareDirectory(): Directory {
   const dir = new Directory(Paths.cache, SHARE_DIR_NAME)
@@ -45,34 +39,33 @@ async function writeQueue(queue: QueuedShareImage[]): Promise<void> {
   await SecureStore.setItemAsync(QUEUE_STORAGE_KEY, JSON.stringify(queue))
 }
 
+/** Borra del disco lo que ya expiró (TTL 15 min) y actualiza la cola persistida. */
 async function purgeExpired(): Promise<QueuedShareImage[]> {
   const queue = await readQueue()
-  const now = Date.now()
-  const fresh = queue.filter((item) => item.expiresAt > now)
-  for (const item of queue) {
-    if (item.expiresAt <= now) deleteIfExists(new File(item.uri))
-  }
-  if (fresh.length !== queue.length) await writeQueue(fresh)
+  const { fresh, expired } = partitionExpired(queue, Date.now())
+  for (const item of expired) deleteIfExists(new File(item.uri))
+  if (expired.length > 0) await writeQueue(fresh)
   return fresh
 }
 
-export async function enqueueSharedFiles(sourcePaths: string[]): Promise<void> {
+export async function enqueueSharedFiles(sourcePaths: string[]): Promise<{ droppedCount: number }> {
   const existing = await purgeExpired()
-  const capacity = MAX_QUEUE_SIZE - existing.length
-  if (capacity <= 0) return
+  const { accepted, droppedCount } = splitByCapacity(sourcePaths, existing.length)
+  if (accepted.length === 0) return { droppedCount }
 
   const now = Date.now()
   const added: QueuedShareImage[] = []
-  for (const sourcePath of sourcePaths.slice(0, capacity)) {
+  for (const sourcePath of accepted) {
     try {
       const dest = new File(shareDirectory(), `${randomId()}.bin`)
       new File(sourcePath).copy(dest)
-      added.push({ uri: dest.uri, expiresAt: now + QUEUE_TTL_MS })
+      added.push({ uri: dest.uri, expiresAt: now + SHARE_QUEUE_TTL_MS })
     } catch {
       // Un archivo compartido que no se pudo copiar simplemente se omite.
     }
   }
   if (added.length > 0) await writeQueue([...existing, ...added])
+  return { droppedCount }
 }
 
 export async function hasQueuedShareFiles(): Promise<boolean> {
