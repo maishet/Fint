@@ -11,6 +11,7 @@ import {
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import { SplashScreen, Stack, useRouter } from "expo-router";
+import { useShareIntent } from "expo-share-intent";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as Sentry from "@sentry/react-native";
 import { AppProviders } from "../src/providers/AppProviders";
@@ -20,11 +21,18 @@ import { useTheme, YStack } from "tamagui";
 import { attachNotificationResponseListener } from "../src/notifications/pushNotifications";
 import { OfflineBanner } from "../src/components/OfflineBanner";
 import { financeApi } from "../src/api/finance";
+import { useCapabilities } from "../src/api/capabilities";
+import {
+  discardShareQueue,
+  enqueueSharedFiles,
+  hasQueuedShareFiles,
+} from "../src/capture/shareQueue";
 import {
   sanitizeSentryValue,
   stripUrlQuery,
 } from "../src/monitoring/sentryPrivacy";
 import { fintPalette } from "../src/theme/palette";
+import { useNotify } from "../src/ui";
 
 export {
   ErrorBoundary,
@@ -142,12 +150,46 @@ function RootLayoutNav() {
   const { themeMode } = useThemeMode();
   const theme = useTheme();
   const router = useRouter();
+  const toast = useNotify();
+  const { capabilities } = useCapabilities();
+  const { hasShareIntent, shareIntent, resetShareIntent } = useShareIntent({ resetOnBackground: false });
   const setupComplete = meQuery.data?.setupComplete;
 
   useEffect(() => {
     if (setupComplete !== true) return;
     return attachNotificationResponseListener(router);
   }, [router, setupComplete]);
+
+  async function processShareQueueIfReady() {
+    if (!session || setupComplete !== true) return;
+    const pending = await hasQueuedShareFiles();
+    if (!pending) return;
+    if (!capabilities.features.captureImport) {
+      await discardShareQueue();
+      toast.info(t("capture.shareDiscarded"));
+      return;
+    }
+    router.push("/capture-import");
+  }
+
+  useEffect(() => {
+    if (!hasShareIntent) return;
+    const paths = (shareIntent.files ?? [])
+      .map((file) => file.path)
+      .filter((path): path is string => Boolean(path));
+    resetShareIntent();
+    if (paths.length === 0) return;
+    void (async () => {
+      await enqueueSharedFiles(paths);
+      await processShareQueueIfReady();
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasShareIntent, shareIntent, resetShareIntent]);
+
+  useEffect(() => {
+    void processShareQueueIfReady();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, setupComplete, capabilities.features.captureImport]);
 
   return (
     <ThemeProvider

@@ -129,7 +129,7 @@ const resources = {
       capture: {
         title: "Importar constancia",
         action: "Importar constancia",
-        openingGallery: "Abriendo galería…",
+        opening: "Preparando…",
         progress: "Procesando imagen {{current}} de {{total}}…",
         batchLimitExceeded: "Solo se procesan las primeras {{max}} imágenes; el resto se descartó.",
         nameHint: "Agrega tu nombre completo en tu perfil para que te preguntemos menos seguido quién hizo cada operación.",
@@ -148,6 +148,7 @@ const resources = {
         done: "Listo",
         settingsAction: "Importar constancia",
         settingsHint: "Sube un Yape, Plin o constancia bancaria desde tu galería",
+        shareDiscarded: "Se descartó la imagen compartida: la importación por captura está desactivada.",
         errors: {
           permissionDenied: "Necesitamos permiso para continuar.",
           saveFailed: "No pudimos guardar las capturas.",
@@ -699,7 +700,7 @@ const resources = {
       capture: {
         title: "Import receipt",
         action: "Import receipt",
-        openingGallery: "Opening gallery…",
+        opening: "Preparing…",
         progress: "Processing image {{current}} of {{total}}…",
         batchLimitExceeded: "Only the first {{max}} images are processed; the rest were dropped.",
         nameHint: "Add your full name to your profile so we ask less often who made each operation.",
@@ -718,6 +719,7 @@ const resources = {
         done: "Done",
         settingsAction: "Import receipt",
         settingsHint: "Upload a Yape, Plin or bank receipt from your gallery",
+        shareDiscarded: "The shared image was discarded: capture import is currently disabled.",
         errors: {
           permissionDenied: "We need permission to continue.",
           saveFailed: "We couldn't save the captures.",

@@ -85,6 +85,14 @@
           "photosPermission": "My Fint necesita acceso a tus fotos para importar constancias de pago desde la galería.",
           "cameraPermission": "My Fint necesita acceso a la cámara para fotografiar constancias de pago."
         }
+      ],
+      [
+        "expo-share-intent",
+        {
+          "androidIntentFilters": ["image/*"],
+          "androidMultiIntentFilters": ["image/*"],
+          "disableIOS": true
+        }
       ]
     ],
     "experiments": {

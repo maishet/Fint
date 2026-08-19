@@ -117,7 +117,7 @@ export const ptTranslation = {
   capture: {
     title: "Importar comprovante",
     action: "Importar comprovante",
-    openingGallery: "Abrindo galeria…",
+    opening: "Preparando…",
     progress: "Processando imagem {{current}} de {{total}}…",
     batchLimitExceeded: "Só as primeiras {{max}} imagens são processadas; o resto foi descartado.",
     nameHint: "Adicione seu nome completo no seu perfil para perguntarmos com menos frequência quem fez cada operação.",
@@ -136,6 +136,7 @@ export const ptTranslation = {
     done: "Concluído",
     settingsAction: "Importar comprovante",
     settingsHint: "Envie um Yape, Plin ou comprovante bancário da sua galeria",
+    shareDiscarded: "A imagem compartilhada foi descartada: a importação por captura está desativada.",
     errors: {
       permissionDenied: "Precisamos de permissão para continuar.",
       saveFailed: "Não foi possível salvar as capturas.",

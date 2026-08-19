@@ -11,6 +11,7 @@ import type { CaptureItemInput, CreateFromCaptureResult, TransactionType } from 
 import { useAuth } from '../src/auth/AuthProvider'
 import { resolveDisplayName } from '../src/auth/displayName'
 import { CaptureRejectedError, MAX_CAPTURE_BATCH_SIZE, prepareImageForOcr, sweepStaleCaptureFiles } from '../src/capture/image-pipeline'
+import { consumeShareQueue } from '../src/capture/shareQueue'
 import { extractReceipt, VISION_MODEL, VisionRequestError } from '../src/capture/visionClient'
 import { Screen } from '../src/components/Screen'
 import { randomId } from '../src/shared/id'
@@ -53,7 +54,11 @@ export default function CaptureImportScreen() {
   useEffect(() => {
     if (didAutoPick.current) return
     didAutoPick.current = true
-    void pickFromGallery()
+    void (async () => {
+      const shared = await consumeShareQueue()
+      if (shared.length > 0) await runBatch('share', shared)
+      else await pickFromGallery()
+    })()
   }, [])
 
   const displayName = resolveDisplayName(session) ?? null
@@ -66,7 +71,7 @@ export default function CaptureImportScreen() {
     ])
   }
 
-  async function runBatch(source: 'camera' | 'gallery', uris: string[]) {
+  async function runBatch(source: 'camera' | 'gallery' | 'share', uris: string[]) {
     setPhase('working')
     setResponse(null)
     setFailed([])
@@ -177,7 +182,7 @@ export default function CaptureImportScreen() {
           {phase === 'opening' ? (
             <FintCard items="center" gap="$3" py="$6">
               <FintSpinner color="$primary" />
-              <Paragraph color="$color11" fontWeight="600">{t('capture.openingGallery')}</Paragraph>
+              <Paragraph color="$color11" fontWeight="600">{t('capture.opening')}</Paragraph>
             </FintCard>
           ) : null}
 
