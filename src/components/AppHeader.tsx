@@ -1,12 +1,10 @@
 import { useRouter } from "expo-router";
-import { ImageUp } from "@tamagui/lucide-icons-2";
 import { Image, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { Paragraph, useTheme, XStack, YStack } from "tamagui";
 import { useAuth } from "../auth/AuthProvider";
 import { resolveDisplayName } from "../auth/displayName";
-import { useCapabilities } from "../api/capabilities";
 
 interface AppHeaderProps {
   showGreeting?: boolean;
@@ -18,7 +16,6 @@ export function AppHeader({ showGreeting = false, title }: AppHeaderProps) {
   const { session } = useAuth();
   const router = useRouter();
   const theme = useTheme();
-  const { capabilities } = useCapabilities();
   const metadata = session?.user.user_metadata ?? {};
   const avatarUrl =
     typeof metadata.avatar_url === "string"
@@ -80,23 +77,6 @@ export function AppHeader({ showGreeting = false, title }: AppHeaderProps) {
         </XStack>
 
         <XStack items="center" gap="$2">
-          {capabilities.features.captureImport ? (
-            <YStack
-              width={40}
-              height={40}
-              rounded={999}
-              bg="$headerBackground"
-              borderColor="$headerAccent"
-              borderWidth={1}
-              items="center"
-              justify="center"
-              pressStyle={{ opacity: 0.78 }}
-              onPress={() => router.push("/capture-import")}
-              aria-label={t("capture.action")}
-            >
-              <ImageUp size={19} color="$headerAccent" />
-            </YStack>
-          ) : null}
           <YStack
             width={40}
             height={40}

@@ -1,51 +1,52 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, ArrowDownLeft, ArrowUpRight, CheckCircle2 } from '@tamagui/lucide-icons-2'
+import { AlertTriangle, ArrowDownLeft, ArrowUpRight, CheckCircle2, Clock, Copy } from '@tamagui/lucide-icons-2'
 import * as ImagePicker from 'expo-image-picker'
 import { Stack, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { ComponentProps } from 'react'
 import { Paragraph, XStack, YStack } from 'tamagui'
+import { formatMoney } from '../src/api/mappers'
+import { ApiRequestError } from '../src/api/client'
 import { financeApi } from '../src/api/finance'
-import type { CaptureItemInput, CreateFromCaptureResult, TransactionType } from '../src/api/types'
+import type { CaptureResultPreview, TransactionType } from '../src/api/types'
 import { useAuth } from '../src/auth/AuthProvider'
 import { resolveDisplayName } from '../src/auth/displayName'
 import { CaptureRejectedError, MAX_CAPTURE_BATCH_SIZE, prepareImageForOcr, sweepStaleCaptureFiles } from '../src/capture/image-pipeline'
 import { consumeShareQueue } from '../src/capture/shareQueue'
 import { extractReceipt, VISION_MODEL, VisionRequestError } from '../src/capture/visionClient'
+import { formatDateString } from '../src/finance/dates'
+import { getAppLocale } from '../src/i18n'
 import { Screen } from '../src/components/Screen'
 import { randomId } from '../src/shared/id'
 import { FintButton, FintCard, FintSpinner, useNotify } from '../src/ui'
 
-type FailedCapture = {
+type RowStatus = 'queued' | 'processing' | 'created' | 'duplicate' | 'unrecognized' | 'failed'
+
+type CaptureRow = {
   clientCaptureId: string
-  reasonKey: string
+  uri: string
+  status: RowStatus
+  bank: string | null
+  preview: CaptureResultPreview | null
+  warnings: string[]
+  pendingMovementId: string | null
+  errorText: string | null
 }
 
-type ScreenPhase = 'opening' | 'working' | 'results'
-
-function reasonKeyFor(error: unknown): string {
-  if (error instanceof CaptureRejectedError) return `capture.pipelineErrors.${error.reasonCode}`
-  if (error instanceof VisionRequestError) {
-    if (error.kind === 'quota_exceeded') return 'capture.errors.quotaExhausted'
-    if (error.kind === 'unauthorized') return 'capture.errors.unauthorized'
-    return 'capture.errors.visionUnavailable'
-  }
-  return 'capture.errors.unknown'
-}
+type ScreenPhase = 'opening' | 'processing'
 
 export default function CaptureImportScreen() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const router = useRouter()
   const toast = useNotify()
   const queryClient = useQueryClient()
   const { session } = useAuth()
   const [phase, setPhase] = useState<ScreenPhase>('opening')
-  const [progressLabel, setProgressLabel] = useState('')
-  const [response, setResponse] = useState<CreateFromCaptureResult | null>(null)
-  const [failed, setFailed] = useState<FailedCapture[]>([])
+  const [rows, setRows] = useState<CaptureRow[]>([])
   const [directionAnswers, setDirectionAnswers] = useState<Record<string, TransactionType>>({})
   const didAutoPick = useRef(false)
+  const locale = getAppLocale(i18n.resolvedLanguage)
 
   useEffect(() => {
     sweepStaleCaptureFiles()
@@ -64,17 +65,23 @@ export default function CaptureImportScreen() {
   const displayName = resolveDisplayName(session) ?? null
   const hasWeakName = !displayName || displayName.trim().split(/\s+/).filter(Boolean).length < 2
 
-  async function invalidatePending() {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['pending-movements'] }),
-      queryClient.invalidateQueries({ queryKey: ['pending-movements', 'summary'] }),
-    ])
+  function updateRow(id: string, patch: Partial<CaptureRow>) {
+    setRows((current) => current.map((row) => (row.clientCaptureId === id ? { ...row, ...patch } : row)))
+  }
+
+  function describeError(error: unknown): string {
+    if (error instanceof CaptureRejectedError) return t(`capture.pipelineErrors.${error.reasonCode}`, { defaultValue: t('capture.errors.unknown') })
+    if (error instanceof VisionRequestError) {
+      if (error.kind === 'quota_exceeded') return t('capture.errors.quotaExhausted')
+      if (error.kind === 'unauthorized') return t('capture.errors.unauthorized')
+      return t('capture.errors.visionUnavailable')
+    }
+    if (error instanceof ApiRequestError) return error.message
+    return t('capture.errors.unknown')
   }
 
   async function runBatch(source: 'camera' | 'gallery' | 'share', uris: string[]) {
-    setPhase('working')
-    setResponse(null)
-    setFailed([])
+    setPhase('processing')
     setDirectionAnswers({})
 
     const capped = uris.slice(0, MAX_CAPTURE_BATCH_SIZE)
@@ -83,46 +90,54 @@ export default function CaptureImportScreen() {
     }
     if (hasWeakName) toast.info(t('capture.nameHint'))
 
-    const captures: CaptureItemInput[] = []
-    const failures: FailedCapture[] = []
+    const initialRows: CaptureRow[] = capped.map((uri) => ({
+      clientCaptureId: randomId(),
+      uri,
+      status: 'queued',
+      bank: null,
+      preview: null,
+      warnings: [],
+      pendingMovementId: null,
+      errorText: null,
+    }))
+    setRows(initialRows)
 
-    for (let index = 0; index < capped.length; index += 1) {
-      setProgressLabel(t('capture.progress', { current: index + 1, total: capped.length }))
-      const clientCaptureId = randomId()
+    for (const row of initialRows) {
+      updateRow(row.clientCaptureId, { status: 'processing' })
       let prepared: Awaited<ReturnType<typeof prepareImageForOcr>> | null = null
       try {
-        prepared = await prepareImageForOcr(capped[index]!)
+        prepared = await prepareImageForOcr(row.uri)
         const { extraction, latencyMs } = await extractReceipt(prepared.base64)
-        captures.push({
-          clientCaptureId,
-          source,
-          capturedAt: null,
-          extraction,
-          extractor: { provider: 'cloudflare-workers-ai', model: VISION_MODEL, latencyMs },
+        const result = await financeApi.createPendingFromCapture(
+          [{
+            clientCaptureId: row.clientCaptureId,
+            source,
+            capturedAt: null,
+            extraction,
+            extractor: { provider: 'cloudflare-workers-ai', model: VISION_MODEL, latencyMs },
+          }],
+          displayName,
+        )
+        const item = result.results[0]
+        if (!item) throw new Error('empty capture result')
+        updateRow(row.clientCaptureId, {
+          status: item.status,
+          bank: item.bank,
+          preview: item.preview,
+          warnings: item.warnings,
+          pendingMovementId: item.pendingMovementId,
         })
       } catch (error) {
-        failures.push({ clientCaptureId, reasonKey: reasonKeyFor(error) })
+        updateRow(row.clientCaptureId, { status: 'failed', errorText: describeError(error) })
       } finally {
         prepared?.cleanup()
       }
     }
 
-    setFailed(failures)
-
-    if (captures.length === 0) {
-      setPhase('results')
-      return
-    }
-
-    try {
-      const result = await financeApi.createPendingFromCapture(captures, displayName)
-      setResponse(result)
-      await invalidatePending()
-    } catch (error) {
-      toast.error(t('capture.errors.saveFailed'), { message: error instanceof Error ? error.message : undefined })
-    } finally {
-      setPhase('results')
-    }
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['pending-movements'] }),
+      queryClient.invalidateQueries({ queryKey: ['pending-movements', 'summary'] }),
+    ])
   }
 
   async function pickFromGallery() {
@@ -146,24 +161,34 @@ export default function CaptureImportScreen() {
     await runBatch('gallery', result.assets.map((asset) => asset.uri))
   }
 
-  const undeterminedItems = (response?.results ?? []).filter(
-    (item) => item.status !== 'unrecognized' && item.pendingMovementId && item.warnings.includes('direction_undetermined'),
+  const isProcessing = rows.some((row) => row.status === 'queued' || row.status === 'processing')
+  const createdCount = rows.filter((row) => row.status === 'created').length
+  const duplicateCount = rows.filter((row) => row.status === 'duplicate').length
+  const unrecognizedCount = rows.filter((row) => row.status === 'unrecognized').length
+  const failedCount = rows.filter((row) => row.status === 'failed').length
+
+  const undeterminedRows = rows.filter(
+    (row) => row.status !== 'unrecognized' && row.status !== 'failed' && row.status !== 'queued' && row.status !== 'processing'
+      && row.pendingMovementId && row.warnings.includes('direction_undetermined'),
   )
-  const needsAnswers = undeterminedItems.length > 0
-  const allAnswered = undeterminedItems.every((item) => directionAnswers[item.clientCaptureId])
+  const needsAnswers = undeterminedRows.length > 0
+  const allAnswered = undeterminedRows.every((row) => directionAnswers[row.clientCaptureId])
 
   const finishMutation = useMutation({
     mutationFn: async () => {
       await Promise.all(
-        undeterminedItems.map((item) => {
-          const type = directionAnswers[item.clientCaptureId]
-          if (!type || !item.pendingMovementId) return Promise.resolve()
-          return financeApi.setPendingMovementType(item.pendingMovementId, { type })
+        undeterminedRows.map((row) => {
+          const type = directionAnswers[row.clientCaptureId]
+          if (!type || !row.pendingMovementId) return Promise.resolve()
+          return financeApi.setPendingMovementType(row.pendingMovementId, { type })
         }),
       )
     },
     onSuccess: async () => {
-      await invalidatePending()
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['pending-movements'] }),
+        queryClient.invalidateQueries({ queryKey: ['pending-movements', 'summary'] }),
+      ])
       router.replace('/pending-movements')
     },
     onError: (error) => toast.error(t('capture.errors.saveFailed'), { message: error instanceof Error ? error.message : undefined }),
@@ -186,77 +211,32 @@ export default function CaptureImportScreen() {
             </FintCard>
           ) : null}
 
-          {phase === 'working' ? (
-            <FintCard items="center" gap="$3" py="$6">
-              <FintSpinner color="$primary" />
-              <Paragraph color="$color11" fontWeight="600">{progressLabel}</Paragraph>
-            </FintCard>
-          ) : null}
-
-          {phase === 'results' ? (
+          {phase === 'processing' ? (
             <>
-              <FintCard items="center" gap="$3" py="$5">
-                <YStack width={60} height={60} rounded="$12" bg="$green2" items="center" justify="center">
-                  <CheckCircle2 size={30} color="$green10" />
-                </YStack>
-                <Paragraph color="$color12" fontFamily="$heading" fontSize="$6" fontWeight="800">
-                  {t('capture.resultTitle')}
-                </Paragraph>
-                <YStack gap="$2" width="100%">
-                  <ResultRow label={t('capture.created')} value={response?.created ?? 0} color="$green10" />
-                  <ResultRow label={t('capture.duplicates')} value={response?.duplicates ?? 0} color="$color10" />
-                  <ResultRow label={t('capture.unrecognized')} value={response?.unrecognized ?? 0} color={response?.unrecognized ? '$yellow10' : '$color10'} />
-                  {failed.length > 0 ? <ResultRow label={t('capture.failed')} value={failed.length} color="$red10" /> : null}
-                </YStack>
-              </FintCard>
+              <XStack gap="$2" flexWrap="wrap">
+                <StatBadge label={t('capture.created')} value={createdCount} color="$green10" />
+                <StatBadge label={t('capture.duplicates')} value={duplicateCount} color="$color10" />
+                {unrecognizedCount > 0 ? <StatBadge label={t('capture.unrecognized')} value={unrecognizedCount} color="$yellow10" /> : null}
+                {failedCount > 0 ? <StatBadge label={t('capture.failed')} value={failedCount} color="$red10" /> : null}
+              </XStack>
 
-              {needsAnswers ? (
-                <YStack gap="$3">
-                  <Paragraph color="$color11" fontWeight="700" fontSize="$3">{t('capture.needsReviewTitle')}</Paragraph>
-                  {undeterminedItems.map((item) => (
-                    <FintCard key={item.clientCaptureId} gap="$2.5">
-                      <Paragraph color="$color12" fontWeight="700">{item.preview?.title ?? item.bank}</Paragraph>
-                      {item.preview?.recipientName ? (
-                        <Paragraph color="$color10" fontSize="$2">{t('capture.recipientLabel', { name: item.preview.recipientName })}</Paragraph>
-                      ) : null}
-                      <Paragraph color="$color11" fontSize="$2" fontWeight="600">{t('capture.whoDidThis')}</Paragraph>
-                      <XStack gap="$2">
-                        <DirectionOption
-                          selected={directionAnswers[item.clientCaptureId] === 'income'}
-                          icon={<ArrowDownLeft size={16} />}
-                          label={t('capture.iWasPaid')}
-                          onPress={() => setDirectionAnswers((current) => ({ ...current, [item.clientCaptureId]: 'income' }))}
-                        />
-                        <DirectionOption
-                          selected={directionAnswers[item.clientCaptureId] === 'expense'}
-                          icon={<ArrowUpRight size={16} />}
-                          label={t('capture.iPaid')}
-                          onPress={() => setDirectionAnswers((current) => ({ ...current, [item.clientCaptureId]: 'expense' }))}
-                        />
-                      </XStack>
-                    </FintCard>
-                  ))}
-                </YStack>
-              ) : null}
-
-              {failed.length > 0 ? (
-                <YStack gap="$2" bg="$red2" borderColor="$red7" borderWidth={1} rounded="$6" p="$3">
-                  <XStack items="center" gap="$2">
-                    <AlertTriangle size={16} color="$red10" />
-                    <Paragraph color="$red11" fontWeight="700" fontSize="$2">{t('capture.someFailedTitle')}</Paragraph>
-                  </XStack>
-                  {failed.map((item) => (
-                    <Paragraph key={item.clientCaptureId} color="$red10" fontSize="$1">
-                      {t(item.reasonKey, { defaultValue: t('capture.errors.unknown') })}
-                    </Paragraph>
-                  ))}
-                </YStack>
-              ) : null}
+              <YStack gap="$3">
+                {rows.map((row) => (
+                  <CaptureRowCard
+                    key={row.clientCaptureId}
+                    row={row}
+                    locale={locale}
+                    t={t}
+                    selectedType={directionAnswers[row.clientCaptureId]}
+                    onSelectType={(type) => setDirectionAnswers((current) => ({ ...current, [row.clientCaptureId]: type }))}
+                  />
+                ))}
+              </YStack>
 
               <FintButton
                 width="100%"
                 minH={52}
-                disabled={(needsAnswers && !allAnswered) || finishMutation.isPending}
+                disabled={isProcessing || (needsAnswers && !allAnswered) || finishMutation.isPending}
                 icon={finishMutation.isPending ? <FintSpinner color="$primaryForeground" /> : undefined}
                 onPress={finish}
               >
@@ -270,12 +250,103 @@ export default function CaptureImportScreen() {
   )
 }
 
-function ResultRow({ color, label, value }: { color: string; label: string; value: number }) {
+function StatBadge({ color, label, value }: { color: string; label: string; value: number }) {
   return (
-    <XStack items="center" justify="space-between" bg="$muted" rounded="$5" px="$3" py="$2.5">
-      <Paragraph color="$color11" fontWeight="600">{label}</Paragraph>
-      <Paragraph color={color as never} fontSize="$5" fontWeight="900">{value}</Paragraph>
+    <XStack items="center" gap="$1.5" bg="$muted" rounded="$5" px="$2.5" py="$1.5">
+      <Paragraph color={color as never} fontSize="$3" fontWeight="900">{value}</Paragraph>
+      <Paragraph color="$color10" fontSize="$1" fontWeight="600">{label}</Paragraph>
     </XStack>
+  )
+}
+
+function previewLine(preview: CaptureResultPreview | null, locale: string): string | null {
+  if (!preview) return null
+  const parts: string[] = []
+  if (preview.amount != null) parts.push(formatMoney(preview.amount, preview.currency ?? 'PEN', locale))
+  if (preview.occurredAt) parts.push(formatDateString(preview.occurredAt, locale))
+  return parts.length > 0 ? parts.join(' · ') : null
+}
+
+function CaptureRowCard({
+  row, locale, t, selectedType, onSelectType,
+}: {
+  row: CaptureRow
+  locale: string
+  t: (key: string, opts?: Record<string, unknown>) => string
+  selectedType: TransactionType | undefined
+  onSelectType: (type: TransactionType) => void
+}) {
+  const title = row.preview?.title ?? row.bank ?? '—'
+  const amountDate = previewLine(row.preview, locale)
+  const needsAnswer = (row.status === 'created' || row.status === 'duplicate')
+    && Boolean(row.pendingMovementId) && row.warnings.includes('direction_undetermined')
+
+  return (
+    <FintCard gap="$2">
+      {row.status === 'queued' ? (
+        <XStack items="center" gap="$2.5">
+          <Clock size={18} color="$color9" />
+          <Paragraph color="$color9" fontWeight="600">{t('capture.rowQueued')}</Paragraph>
+        </XStack>
+      ) : null}
+
+      {row.status === 'processing' ? (
+        <XStack items="center" gap="$2.5">
+          <FintSpinner color="$color10" />
+          <Paragraph color="$color11" fontWeight="600">{t('capture.rowProcessing')}</Paragraph>
+        </XStack>
+      ) : null}
+
+      {row.status === 'failed' ? (
+        <XStack items="center" gap="$2.5">
+          <AlertTriangle size={18} color="$red10" />
+          <Paragraph color="$red11" fontWeight="600" flex={1}>{row.errorText}</Paragraph>
+        </XStack>
+      ) : null}
+
+      {row.status === 'unrecognized' ? (
+        <XStack items="center" gap="$2.5">
+          <AlertTriangle size={18} color="$yellow10" />
+          <Paragraph color="$color11" fontWeight="600">{t('capture.rowUnrecognized')}</Paragraph>
+        </XStack>
+      ) : null}
+
+      {row.status === 'created' || row.status === 'duplicate' ? (
+        <YStack gap="$1.5">
+          <XStack items="center" gap="$2.5">
+            {row.status === 'created' ? <CheckCircle2 size={18} color="$green10" /> : <Copy size={18} color="$color9" />}
+            <Paragraph color="$color12" fontWeight="700" flex={1}>{title}</Paragraph>
+          </XStack>
+          {amountDate ? <Paragraph color="$color11" fontSize="$3" fontWeight="600">{amountDate}</Paragraph> : null}
+          {row.preview?.recipientName ? (
+            <Paragraph color="$color10" fontSize="$2">{t('capture.recipientLabel', { name: row.preview.recipientName })}</Paragraph>
+          ) : null}
+          {row.status === 'duplicate' ? (
+            <Paragraph color="$color9" fontSize="$2">{t('capture.rowDuplicate')}</Paragraph>
+          ) : null}
+
+          {needsAnswer ? (
+            <YStack gap="$1.5" pt="$1.5">
+              <Paragraph color="$color11" fontSize="$2" fontWeight="600">{t('capture.whoDidThis')}</Paragraph>
+              <XStack gap="$2">
+                <DirectionOption
+                  selected={selectedType === 'income'}
+                  icon={<ArrowDownLeft size={16} />}
+                  label={t('capture.iWasPaid')}
+                  onPress={() => onSelectType('income')}
+                />
+                <DirectionOption
+                  selected={selectedType === 'expense'}
+                  icon={<ArrowUpRight size={16} />}
+                  label={t('capture.iPaid')}
+                  onPress={() => onSelectType('expense')}
+                />
+              </XStack>
+            </YStack>
+          ) : null}
+        </YStack>
+      ) : null}
+    </FintCard>
   )
 }
 

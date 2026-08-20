@@ -9,6 +9,7 @@ import {
   ArrowLeftRight,
   ArrowUpRight,
   ChevronRight,
+  ImageUp,
   Mail,
   Plus,
   RotateCcw,
@@ -45,6 +46,8 @@ import {
 } from "../../src/ui";
 import { useSensitiveMoney } from "../../src/privacy/useSensitiveMoney";
 import { SensitiveAmountToggle } from "../../src/privacy/SensitiveAmountToggle";
+import { useCapabilities } from "../../src/api/capabilities";
+import { useThemeMode } from "../../src/theme/ThemeMode";
 
 const PAGE_SIZE = 30;
 
@@ -109,6 +112,8 @@ export default function MovementsScreen() {
   const toast = useNotify();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
+  const { capabilities } = useCapabilities();
+  const { themeMode } = useThemeMode();
   const [month, setMonth] = useState(
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   );
@@ -515,6 +520,29 @@ export default function MovementsScreen() {
           )
         }
       />
+      {capabilities.features.captureImport ? (
+        <YStack
+          position="absolute"
+          r="$4"
+          b={Math.max(insets.bottom, 16) + 12}
+          width={56}
+          height={56}
+          rounded={999}
+          bg="$primary"
+          items="center"
+          justify="center"
+          shadowColor={themeMode === "dark" ? "#000000" : "#104452"}
+          shadowOffset={{ width: 0, height: 8 }}
+          shadowOpacity={themeMode === "dark" ? 0.28 : 0.14}
+          shadowRadius={20}
+          elevation={4}
+          pressStyle={{ opacity: 0.85 }}
+          onPress={() => router.push("/capture-import")}
+          aria-label={t("capture.action")}
+        >
+          <ImageUp size={24} color="$primaryForeground" />
+        </YStack>
+      ) : null}
       <ReverseTransferDialog
         isPending={reverseTransferMutation.isPending}
         open={Boolean(reverseTransferTarget)}
