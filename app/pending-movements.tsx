@@ -22,6 +22,7 @@ import { Button, Paragraph, XStack, YStack } from "tamagui";
 import { financeApi } from "../src/api/finance";
 import { supabase } from "../src/auth/supabase";
 import { formatMoney } from "../src/api/mappers";
+import { parseDateString } from "../src/finance/dates";
 import type {
   ConfirmPendingInput,
   PendingMovementCard,
@@ -252,7 +253,7 @@ export default function PendingMovementsScreen() {
           type: "expense",
           amount: item.amount,
           currency: item.currency,
-          transactionDate: item.detectedAt.slice(0, 10),
+          transactionDate: item.transactionDate,
           accountId: item.accountSuggestion.id,
           categoryId: null,
           note: item.title,
@@ -278,7 +279,7 @@ export default function PendingMovementsScreen() {
         type: item.type,
         amount: item.amount,
         currency: item.currency,
-        transactionDate: item.detectedAt.slice(0, 10),
+        transactionDate: item.transactionDate,
         accountId: item.accountSuggestion.id,
         categoryId: selectedCategory.id,
         note: item.title,
@@ -560,7 +561,7 @@ function PendingCard({
   const detectedDate = new Intl.DateTimeFormat(i18n.language, {
     day: "2-digit",
     month: "short",
-  }).format(new Date(item.detectedAt));
+  }).format(parseDateString(item.transactionDate) ?? new Date());
   const canQuickConfirm = Boolean(
     item.accountSuggestion &&
     item.type &&

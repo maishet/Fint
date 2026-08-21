@@ -195,6 +195,7 @@ export interface PendingMovementTransferInfo {
 export interface PendingMovementCard {
   id: string
   detectedAt: string
+  transactionDate: string
   title: string
   type: TransactionType | null
   amount: number | null
