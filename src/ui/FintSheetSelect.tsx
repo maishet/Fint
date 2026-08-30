@@ -115,7 +115,7 @@ export function FintSheetSelect({ label, onValueChange, options, placeholder, se
         }}
         snapPointsMode={isLongList ? 'percent' : 'fit'}
         snapPoints={isLongList ? [78] : undefined}
-        dismissOnSnapToBottom
+        disableDrag
         zIndex={110_000}
       >
         <Sheet.Overlay bg="rgba(0,0,0,0.4)" />

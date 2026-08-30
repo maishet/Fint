@@ -53,7 +53,7 @@ export function CategoryPickerSheet({ allowCreate = true, categories, onValueCha
         <Paragraph fontSize="$6">{selected?.icon || '⌄'}</Paragraph>
       </XStack>}
 
-      <Sheet modal open={open} onOpenChange={setOpen} snapPoints={[76]} dismissOnSnapToBottom zIndex={110_000}>
+      <Sheet modal open={open} onOpenChange={setOpen} snapPoints={[76]} disableDrag zIndex={110_000}>
         <Sheet.Overlay bg="rgba(4,18,28,0.58)" />
         <Sheet.Handle bg="$color6" />
         <Sheet.Frame bg="$popover" px="$4" pt="$2" pb={Math.max(insets.bottom, 16)} rounded={18}>
