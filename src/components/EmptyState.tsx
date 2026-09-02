@@ -9,6 +9,9 @@ interface EmptyStateProps {
   actionLabel?: string;
   actionIcon?: ReactElement;
   onAction?: () => void;
+  secondaryActionLabel?: string;
+  secondaryActionIcon?: ReactElement;
+  onSecondaryAction?: () => void;
 }
 
 export function EmptyState({
@@ -18,6 +21,9 @@ export function EmptyState({
   actionLabel,
   actionIcon,
   onAction,
+  secondaryActionLabel,
+  secondaryActionIcon,
+  onSecondaryAction,
 }: EmptyStateProps) {
   return (
     <FintCard items="center" gap="$3" py="$6">
@@ -50,6 +56,15 @@ export function EmptyState({
       {actionLabel && onAction ? (
         <FintButton icon={actionIcon} onPress={onAction}>
           {actionLabel}
+        </FintButton>
+      ) : null}
+      {secondaryActionLabel && onSecondaryAction ? (
+        <FintButton
+          variant="outlined"
+          icon={secondaryActionIcon}
+          onPress={onSecondaryAction}
+        >
+          {secondaryActionLabel}
         </FintButton>
       ) : null}
     </FintCard>

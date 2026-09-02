@@ -148,7 +148,7 @@ export function CreateCategorySheet({
         zIndex={120_000}
       >
         <Sheet.Overlay bg="rgba(0,0,0,0.45)" />
-        <Sheet.Handle bg="$color6" />
+        {}
         <Sheet.Frame bg="$popover" px="$4" pt="$3" pb="$4" rounded={18}>
           <Sheet.ScrollView
             keyboardShouldPersistTaps="handled"

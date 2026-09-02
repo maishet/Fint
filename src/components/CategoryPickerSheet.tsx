@@ -55,7 +55,7 @@ export function CategoryPickerSheet({ allowCreate = true, categories, onValueCha
 
       <Sheet modal open={open} onOpenChange={setOpen} snapPoints={[76]} disableDrag zIndex={110_000}>
         <Sheet.Overlay bg="rgba(4,18,28,0.58)" />
-        <Sheet.Handle bg="$color6" />
+        {}
         <Sheet.Frame bg="$popover" px="$4" pt="$2" pb={Math.max(insets.bottom, 16)} rounded={18}>
           <XStack items="center" justify="space-between" mb="$3">
             <Paragraph color="$color12" fontFamily="$heading" fontSize="$6" fontWeight="600">{t('categories.routeTitle')}</Paragraph>
@@ -91,7 +91,8 @@ export function CategoryPickerSheet({ allowCreate = true, categories, onValueCha
 function CategoryTile({ icon, label, onPress, selected }: { icon: string; label: string; onPress: () => void; selected: boolean }) {
   return (
     <YStack width="30%" minW={0} minH={96} items="center" gap="$2" role="button" onPress={onPress} aria-label={label}>
-      <YStack width={60} height={60} rounded="$8" bg={selected ? '$secondary' : '$muted'} borderColor={selected ? '$primary' : '$borderColor'} borderWidth={1} items="center" justify="center" overflow="visible">
+      {}
+      <YStack width={60} height={60} rounded={30} bg={selected ? '$secondary' : '$muted'} borderColor={selected ? '$primary' : '$borderColor'} borderWidth={1} items="center" justify="center" overflow="visible">
         {icon === '+' ? <Plus size={25} color="$primary" /> : <Text style={{ fontSize: 30, includeFontPadding: false, lineHeight: 36, textAlign: 'center', textAlignVertical: 'center' }}>{icon}</Text>}
       </YStack>
       <Paragraph color={selected ? '$primary' : '$color10'} fontSize="$1" fontWeight={selected ? '800' : '600'} numberOfLines={1} width="100%" text="center">{label}</Paragraph>

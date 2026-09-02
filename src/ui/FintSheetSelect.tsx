@@ -1,9 +1,10 @@
-import { Check, ChevronDown, Search } from '@tamagui/lucide-icons-2'
+import { Check, ChevronDown, Search, X } from '@tamagui/lucide-icons-2'
 import type { ReactNode } from 'react'
 import { useCallback, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Keyboard } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Input, Paragraph, Sheet, XStack, YStack, type XStackProps } from 'tamagui'
+import { Button, Input, Paragraph, Sheet, XStack, YStack, type XStackProps } from 'tamagui'
 import { useSheetBackHandler } from '../hooks/useSheetBackHandler'
 import { haptics } from './haptics'
 
@@ -26,6 +27,7 @@ interface FintSheetSelectProps extends Omit<XStackProps, 'onPress'> {
 }
 
 export function FintSheetSelect({ label, onValueChange, options, placeholder, searchable = false, searchPlaceholder = placeholder, showLabel = true, renderTrigger, value, ...props }: FintSheetSelectProps) {
+  const { t } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState('')
   const insets = useSafeAreaInsets()
@@ -123,9 +125,12 @@ export function FintSheetSelect({ label, onValueChange, options, placeholder, se
         zIndex={110_000}
       >
         <Sheet.Overlay bg="rgba(0,0,0,0.4)" />
-        <Sheet.Handle bg="$color6" />
+        {}
         <Sheet.Frame bg="$popover" gap="$2" px="$4" pt="$2" pb={Math.max(insets.bottom, 16)} rounded={14}>
-          <Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="600" mb="$1">{label}</Paragraph>
+          <XStack items="center" justify="space-between" mb="$1">
+            <Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="600">{label}</Paragraph>
+            <Button circular chromeless size="$3" icon={<X size={20} color="$color11" />} onPress={closeSheet} aria-label={t('actions.cancel')} />
+          </XStack>
           {searchable ? (
             <XStack items="center" gap="$2" bg="$muted" borderColor="$input" borderWidth={1} rounded={14} px="$3">
               <Search size={17} color="$color10" />

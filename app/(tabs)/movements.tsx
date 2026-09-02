@@ -468,7 +468,9 @@ export default function MovementsScreen() {
           paddingTop: 0,
           paddingBottom:
             Math.max(insets.bottom, 24) +
-            (capabilities.features.captureImport ? FLOATING_ACTION_CLEARANCE : 0),
+            (capabilities.features.captureImport && movementItems.length
+              ? FLOATING_ACTION_CLEARANCE
+              : 0),
           flexGrow: movementItems.length ? undefined : 1,
         }}
         ListHeaderComponent={header}
@@ -482,7 +484,25 @@ export default function MovementsScreen() {
               onAction={() => setSearch("")}
             />
           ) : (
-            <DataStateCard message={t("movements.emptyDescription")} />
+            <EmptyState
+              icon={<ArrowLeftRight size={26} color="$primary" />}
+              title={t("movements.emptyTitle")}
+              description={t("movements.emptyDescription")}
+              actionLabel={t("actions.newMovement")}
+              actionIcon={<Plus size={18} />}
+              onAction={() => router.push("/transaction-form")}
+              secondaryActionLabel={
+                capabilities.features.captureImport
+                  ? t("capture.action")
+                  : undefined
+              }
+              secondaryActionIcon={<ImageUp size={18} />}
+              onSecondaryAction={
+                capabilities.features.captureImport
+                  ? () => router.push("/capture-import")
+                  : undefined
+              }
+            />
           )
         }
         ListFooterComponent={
@@ -543,7 +563,7 @@ export default function MovementsScreen() {
           )
         }
       />
-      {capabilities.features.captureImport ? (
+      {capabilities.features.captureImport && movementItems.length ? (
         <YStack
           position="absolute"
           r="$5"

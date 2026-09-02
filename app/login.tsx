@@ -221,7 +221,7 @@ export default function LoginScreen() {
                       unstyled
                       autoCapitalize="words"
                       autoComplete="name"
-                      placeholder={`${t("auth.name")} *`}
+                      placeholder={t("auth.name")}
                       color="$color12"
                       placeholderTextColor="$color9"
                       value={displayName}
@@ -247,7 +247,7 @@ export default function LoginScreen() {
                     autoCapitalize="none"
                     autoComplete="email"
                     keyboardType="email-address"
-                    placeholder={`${t("auth.email")} *`}
+                    placeholder={t("auth.email")}
                     color="$color12"
                     placeholderTextColor="$color9"
                     value={email}
@@ -268,7 +268,7 @@ export default function LoginScreen() {
                     flex={1}
                     unstyled
                     autoComplete="password"
-                    placeholder={`${t("auth.password")} *`}
+                    placeholder={t("auth.password")}
                     color="$color12"
                     placeholderTextColor="$color9"
                     secureTextEntry={!isPasswordVisible}
@@ -308,7 +308,7 @@ export default function LoginScreen() {
                       flex={1}
                       unstyled
                       autoComplete="password-new"
-                      placeholder={`${t("auth.confirmPassword")} *`}
+                      placeholder={t("auth.confirmPassword")}
                       color="$color12"
                       placeholderTextColor="$color9"
                       secureTextEntry={!isPasswordVisible}
