@@ -3,7 +3,7 @@
     <linearGradient id="ocean" x1="90" y1="20" x2="1110" y2="420" gradientUnits="userSpaceOnUse">
       <stop stop-color="#07151D"/>
       <stop offset="0.55" stop-color="#173944"/>
-      <stop offset="1" stop-color="#087F91"/>
+      <stop offset="1" stop-color="#077C86"/>
     </linearGradient>
     <filter id="glow" x="674" y="40" width="476" height="346" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
       <feGaussianBlur stdDeviation="28"/>
@@ -35,14 +35,14 @@
 
     <text x="88" y="188" font-family="Arial, Helvetica, sans-serif" font-size="88" font-weight="700" letter-spacing="-4"><tspan fill="#B9E4E8">My</tspan><tspan dx="18" fill="#FFFFFF">Fint</tspan></text>
     <text x="92" y="239" fill="#A8C0C8" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="400" letter-spacing="0.2">Tu panorama financiero, claro.</text>
-    <rect x="92" y="277" width="56" height="4" rx="2" fill="#087F91"/>
+    <rect x="92" y="277" width="56" height="4" rx="2" fill="#077C86"/>
     <text x="162" y="287" fill="#A8C0C8" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="600" letter-spacing="2.4">OPEN SOURCE PERSONAL FINANCE</text>
 
-    <circle cx="906" cy="221" r="146" fill="#087F91" opacity="0.24" filter="url(#glow)"/>
+    <circle cx="906" cy="221" r="146" fill="#077C86" opacity="0.24" filter="url(#glow)"/>
 
     <!-- Isotipo oficial de My Fint, escalado directamente desde icono-base.svg -->
     <g transform="translate(770 85) scale(2.2666667)">
-      <circle cx="60" cy="60" r="58" fill="#087F91"/>
+      <circle cx="60" cy="60" r="58" fill="#043036"/>
       <ellipse cx="60" cy="78" rx="34" ry="11" fill="#FFFFFF" opacity="0.55"/>
       <ellipse cx="60" cy="62" rx="28" ry="10" fill="#FFFFFF" opacity="0.78"/>
       <ellipse cx="60" cy="47" rx="20" ry="9" fill="#FFFFFF" opacity="1"/>

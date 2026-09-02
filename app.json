@@ -22,7 +22,7 @@
       "package": "com.fint.finanzasmobilev2",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#087F91"
+        "backgroundColor": "#043036"
       }
     },
     "plugins": [
@@ -52,11 +52,11 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#07151D",
+          "backgroundColor": "#043036",
           "ios": {
-            "backgroundColor": "#FFFFFF",
+            "backgroundColor": "#043036",
             "dark": {
-              "backgroundColor": "#07151D"
+              "backgroundColor": "#0A1214"
             }
           }
         }
@@ -67,7 +67,7 @@
         "expo-notifications",
         {
           "icon": "./assets/images/android-icon-monochrome.png",
-          "color": "#087F91"
+          "color": "#077C86"
         }
       ],
       [
