@@ -1,7 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
-  ArrowDownLeft,
+  ArrowDown,
+  ArrowUp,
   ArrowUpRight,
   BarChart3,
   CalendarDays,
@@ -272,72 +273,83 @@ export default function ReportsScreen() {
         void positionQuery.refetch();
         void topTransactionsQuery.refetch();
       }}
-    >
-      <FintCard bg="$heroBackground" borderColor="$heroBorder" gap="$3">
-        <XStack items="center" gap="$3">
-          <SensitiveAmountToggle color="$heroAccent" inverse />
-          <YStack flex={1} minW={0}>
-            <Paragraph
-              color="$heroAccent"
-              fontSize={10}
-              fontWeight="900"
-              letterSpacing={1.2}
-              textTransform="uppercase"
-            >
-              {text.closing}
-            </Paragraph>
-            <Paragraph
-              color="$heroForeground"
-              fontFamily="$heading"
-              fontSize="$6"
-              fontWeight="800"
-            >
-              {text.title}
-            </Paragraph>
-            <Paragraph color="$heroMuted">{text.subtitle}</Paragraph>
-          </YStack>
-          <FintSheetSelect
-            label={text.exportTitle}
-            placeholder={text.exportTitle}
-            options={[
-              {
-                value: "pdf",
-                label: text.exportPdf,
-                icon: <FileText size={19} color="$primary" />,
-              },
-              {
-                value: "xlsx",
-                label: text.exportExcel,
-                icon: <Table2 size={19} color="$primary" />,
-              },
-            ]}
-            onValueChange={(value) => {
-              void exportReport(value as "pdf" | "xlsx");
-            }}
-            renderTrigger={({ onPress }) => (
-              <YStack
-                width={44}
-                height={44}
-                rounded="$9"
-                bg="rgba(93,214,229,0.14)"
-                borderColor="rgba(93,214,229,0.35)"
-                borderWidth={1}
-                items="center"
-                justify="center"
-                opacity={!hasMovements ? 0.45 : 1}
-                onPress={!hasMovements || isExporting ? undefined : onPress}
-                aria-label={text.exportTitle}
+      ground={
+        <YStack gap="$4">
+          <XStack items="flex-start" justify="space-between" gap="$3">
+            <YStack flex={1} minW={0}>
+              <Paragraph
+                color="$heroMuted"
+                fontSize={11}
+                fontWeight="600"
+                letterSpacing={1.4}
+                textTransform="uppercase"
               >
-                {isExporting ? (
-                  <FintSpinner size="small" color="$heroAccent" />
-                ) : (
-                  <Download size={21} color="$heroAccent" />
+                {text.closing}
+              </Paragraph>
+              <Paragraph
+                color="$heroForeground"
+                fontFamily="$heading"
+                fontSize="$7"
+                fontWeight="600"
+                letterSpacing={-0.5}
+                mt="$2"
+              >
+                {text.title}
+              </Paragraph>
+              <Paragraph color="$heroMuted" fontSize="$2" mt="$1">
+                {text.subtitle}
+              </Paragraph>
+            </YStack>
+            <XStack items="center" gap="$2" shrink={0}>
+              <SensitiveAmountToggle color="$heroAccent" inverse />
+              <FintSheetSelect
+                label={text.exportTitle}
+                placeholder={text.exportTitle}
+                options={[
+                  {
+                    value: "pdf",
+                    label: text.exportPdf,
+                    icon: <FileText size={19} color="$primary" />,
+                  },
+                  {
+                    value: "xlsx",
+                    label: text.exportExcel,
+                    icon: <Table2 size={19} color="$primary" />,
+                  },
+                ]}
+                onValueChange={(value) => {
+                  void exportReport(value as "pdf" | "xlsx");
+                }}
+                renderTrigger={({ onPress }) => (
+                  <YStack
+                    width={44}
+                    height={44}
+                    rounded={22}
+                    bg="rgba(246,251,252,0.10)"
+                    borderColor="rgba(246,251,252,0.16)"
+                    borderWidth={1}
+                    items="center"
+                    justify="center"
+                    transition="quick"
+                    pressStyle={{ scale: 0.96, bg: "rgba(246,251,252,0.16)" }}
+                    opacity={!hasMovements ? 0.45 : 1}
+                    onPress={!hasMovements || isExporting ? undefined : onPress}
+                    role="button"
+                    aria-label={text.exportTitle}
+                  >
+                    {isExporting ? (
+                      <FintSpinner size="small" color="$heroAccent" />
+                    ) : (
+                      <Download size={21} color="$heroAccent" />
+                    )}
+                  </YStack>
                 )}
-              </YStack>
-            )}
-          />
-        </XStack>
-      </FintCard>
+              />
+            </XStack>
+          </XStack>
+        </YStack>
+      }
+    >
 
       <FintCard gap="$3">
         <ReportCardHeader
@@ -566,7 +578,7 @@ function ReportCardHeader({
         color="$color12"
         fontFamily="$heading"
         fontSize="$5"
-        fontWeight="800"
+        fontWeight="600"
       >
         {title}
       </Paragraph>
@@ -627,7 +639,7 @@ function StatusCard({
           <Paragraph
             color="$color10"
             fontSize={10}
-            fontWeight="900"
+            fontWeight="600"
             letterSpacing={0.8}
             textTransform="uppercase"
           >
@@ -637,7 +649,7 @@ function StatusCard({
             color="$color12"
             fontFamily="$heading"
             fontSize="$5"
-            fontWeight="800"
+            fontWeight="600"
           >
             {text.statuses[report.summary.status]}
           </Paragraph>
@@ -715,13 +727,13 @@ function Highlight({
       <Paragraph
         color="$color12"
         fontSize="$1"
-        fontWeight="800"
+        fontWeight="600"
         numberOfLines={1}
       >
         {value}
       </Paragraph>
       {amount ? (
-        <Paragraph color="$primary" fontSize="$1" fontWeight="900">
+        <Paragraph color="$primary" fontSize="$1" fontWeight="600">
           {amount}
         </Paragraph>
       ) : null}
@@ -745,7 +757,7 @@ function MetricGrid({
     <YStack gap="$2">
       <XStack gap="$2">
         <Metric
-          icon={<ArrowDownLeft size={17} color="$green10" />}
+          icon={<ArrowUp size={17} color="$green10" />}
           label={text.income}
           value={formatSensitiveAmount(
             report.summary.income,
@@ -753,7 +765,7 @@ function MetricGrid({
           )}
         />
         <Metric
-          icon={<ArrowUpRight size={17} color="$red10" />}
+          icon={<ArrowDown size={17} color="$red10" />}
           label={text.expenses}
           value={formatSensitiveAmount(
             report.summary.expenses,
@@ -817,7 +829,7 @@ function Metric({
       <Paragraph
         color="$color12"
         fontSize="$4"
-        fontWeight="900"
+        fontWeight="600"
         numberOfLines={1}
         adjustsFontSizeToFit
       >
@@ -866,7 +878,7 @@ function SeriesCard({
         <XStack bg="$secondary" rounded="$5" p="$3" items="center" gap="$3">
           <CalendarDays size={18} color="$primary" />
           <YStack flex={1} minW={0}>
-            <Paragraph color="$color12" fontWeight="800">
+            <Paragraph color="$color12" fontWeight="600">
               {formatSeriesPeriod(
                 selected.period,
                 report.period.grouping,
@@ -880,10 +892,10 @@ function SeriesCard({
             </Paragraph>
           </YStack>
           <YStack items="flex-end">
-            <Paragraph color="$green11" fontSize="$1" fontWeight="800">
+            <Paragraph color="$green11" fontSize="$1" fontWeight="600">
               {formatSensitiveAmount(selected.income, report.filters.currency)}
             </Paragraph>
-            <Paragraph color="$red11" fontSize="$1" fontWeight="800">
+            <Paragraph color="$red11" fontSize="$1" fontWeight="600">
               {formatSensitiveAmount(
                 selected.expenses,
                 report.filters.currency,
@@ -916,7 +928,8 @@ function SeriesCard({
                 py="$2"
                 rounded="$4"
                 bg={isSelected ? "$secondary" : "transparent"}
-                pressStyle={{ bg: "$secondary" }}
+                transition="quick"
+                pressStyle={{ bg: "$secondary", scale: 0.99 }}
                 role="button"
                 accessibilityState={{ selected: isSelected }}
                 aria-label={`${formatSeriesPeriod(item.period, report.period.grouping, locale)}. ${text.income}: ${formatSensitiveAmount(item.income, report.filters.currency)}. ${text.expenses}: ${formatSensitiveAmount(item.expenses, report.filters.currency)}. ${text.net}: ${formatSensitiveAmount(item.net, report.filters.currency)}`}
@@ -1001,7 +1014,7 @@ function CategoryCard({
         action={
           <Button chromeless minH={44} px="$2" onPress={onOpenMovements}>
             <XStack items="center" gap="$1">
-              <Paragraph color="$primary" fontWeight="800" fontSize="$2">
+              <Paragraph color="$primary" fontWeight="600" fontSize="$2">
                 {text.viewMovements}
               </Paragraph>
               <ChevronRight size={14} color="$primary" />
@@ -1027,7 +1040,7 @@ function CategoryCard({
               </Paragraph>
             </YStack>
             <YStack flex={1}>
-              <Paragraph color="$color12" fontWeight="800">
+              <Paragraph color="$color12" fontWeight="600">
                 {getCategoryLabel(item.name, t)}
               </Paragraph>
               <Paragraph color="$color10" fontSize="$1">
@@ -1037,7 +1050,7 @@ function CategoryCard({
                   : `${item.changePercentage > 0 ? "+" : ""}${item.changePercentage}% ${text.comparison}`}
               </Paragraph>
             </YStack>
-            <Paragraph color="$color12" fontWeight="900">
+            <Paragraph color="$color12" fontWeight="600">
               {formatSensitiveAmount(item.amount, report.filters.currency)}
             </Paragraph>
           </XStack>
@@ -1077,7 +1090,7 @@ function AccountActivityCard({
               <Landmark size={18} color="$primary" />
             </YStack>
             <YStack flex={1}>
-              <Paragraph color="$color12" fontWeight="800">
+              <Paragraph color="$color12" fontWeight="600">
                 {item.name}
               </Paragraph>
               <Paragraph color="$color10" fontSize="$1" numberOfLines={2}>
@@ -1090,7 +1103,7 @@ function AccountActivityCard({
             </YStack>
             <Paragraph
               color={item.net >= 0 ? "$green10" : "$red10"}
-              fontWeight="900"
+              fontWeight="600"
             >
               {formatSensitiveAmount(item.net, report.filters.currency)}
             </Paragraph>
@@ -1141,17 +1154,17 @@ function CurrentPositionCard({
       {position.accounts.map((item) => (
         <XStack key={item.id} items="center" gap="$3">
           <Landmark size={17} color="$primary" />
-          <Paragraph color="$color12" fontWeight="700" flex={1}>
+          <Paragraph color="$color12" fontWeight="600" flex={1}>
             {item.name}
           </Paragraph>
-          <Paragraph color="$color12" fontWeight="900">
+          <Paragraph color="$color12" fontWeight="600">
             {formatSensitiveAmount(item.balance, item.currency)}
           </Paragraph>
         </XStack>
       ))}
       {position.debts.length ? (
         <>
-          <Paragraph color="$color12" fontWeight="800" mt="$2">
+          <Paragraph color="$color12" fontWeight="600" mt="$2">
             {text.debts}
           </Paragraph>
           {position.debts.map((item) => (
@@ -1161,14 +1174,14 @@ function CurrentPositionCard({
                 color={item.status === "overdue" ? "$red10" : "$primary"}
               />
               <YStack flex={1}>
-                <Paragraph color="$color12" fontWeight="700">
+                <Paragraph color="$color12" fontWeight="600">
                   {item.description}
                 </Paragraph>
                 <Paragraph color="$color10" fontSize="$1">
                   {item.paidPercentage}% {text.progress.toLowerCase()}
                 </Paragraph>
               </YStack>
-              <Paragraph color="$color12" fontWeight="900">
+              <Paragraph color="$color12" fontWeight="600">
                 {formatSensitiveAmount(item.outstanding, item.currency)}
               </Paragraph>
             </XStack>
@@ -1205,7 +1218,7 @@ function PositionMetric({
       <Paragraph
         color={emphasis ? "$primary" : "$color12"}
         fontSize={emphasis ? "$4" : "$3"}
-        fontWeight="900"
+        fontWeight="600"
         numberOfLines={1}
         adjustsFontSizeToFit
       >
@@ -1246,12 +1259,12 @@ function TopTransactionsCard({
               items="center"
               justify="center"
             >
-              <Paragraph color="$primary" fontWeight="900">
+              <Paragraph color="$primary" fontWeight="600">
                 {index + 1}
               </Paragraph>
             </YStack>
             <YStack flex={1}>
-              <Paragraph color="$color12" fontWeight="800">
+              <Paragraph color="$color12" fontWeight="600">
                 {item.category}
               </Paragraph>
               <Paragraph color="$color10" fontSize="$1">
@@ -1260,7 +1273,7 @@ function TopTransactionsCard({
             </YStack>
             <Paragraph
               color={item.type === "income" ? "$green10" : "$red10"}
-              fontWeight="900"
+              fontWeight="600"
             >
               {formatSensitiveAmount(item.amount, currency)}
             </Paragraph>

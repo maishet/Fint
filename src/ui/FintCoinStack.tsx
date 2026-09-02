@@ -7,7 +7,7 @@ export interface FintCoinStackProps {
   showDisc?: boolean;
 }
 
-const DISC_COLOR = "#087F91";
+const DISC_COLOR = "#043036";
 
 const COINS = [
   { cy: 78, opacity: 0.55, rx: 34, ry: 11 },

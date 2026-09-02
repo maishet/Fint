@@ -7,21 +7,29 @@ interface FintCardProps extends CardProps {
 
 export function FintCard({ raised = false, ...props }: FintCardProps) {
   const { themeMode } = useThemeMode();
+  const shadowColor = themeMode === "dark" ? "#000000" : "#043036";
 
   return (
     <Card
+      transition="quick"
       bg="$card"
       borderColor="$borderColor"
       borderWidth={1}
       p="$4"
-      rounded={18}
-      shadowColor={
-        raised ? (themeMode === "dark" ? "#000000" : "#104452") : undefined
+      rounded={20}
+      shadowColor={shadowColor}
+      shadowOffset={{ width: 0, height: raised ? 10 : 3 }}
+      shadowOpacity={
+        raised
+          ? themeMode === "dark"
+            ? 0.32
+            : 0.07
+          : themeMode === "dark"
+            ? 0.24
+            : 0.05
       }
-      shadowOffset={raised ? { width: 0, height: 8 } : undefined}
-      shadowOpacity={raised ? (themeMode === "dark" ? 0.28 : 0.14) : undefined}
-      shadowRadius={raised ? 20 : undefined}
-      elevation={raised ? 4 : 0}
+      shadowRadius={raised ? 24 : 10}
+      elevation={raised ? 4 : 1}
       {...props}
     />
   );

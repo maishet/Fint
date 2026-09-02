@@ -14,7 +14,12 @@ export function useSensitiveMoney() {
     return new Intl.NumberFormat(getAppLocale(i18n.resolvedLanguage), { currency, currencyDisplay: 'code', style: 'currency' }).format(value)
   }
 
+  const formatSensitiveAmountOnly = (value = 0) => {
+    if (!shouldShowAmounts) return hiddenAmount
+    return new Intl.NumberFormat(getAppLocale(i18n.resolvedLanguage), { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
+  }
+
   const sensitiveAmountAccessibilityLabel = shouldShowAmounts ? undefined : t('privacy.amounts.hiddenLabel')
 
-  return { amountsVisible: shouldShowAmounts, formatSensitiveAmount, sensitiveAmountAccessibilityLabel }
+  return { amountsVisible: shouldShowAmounts, formatSensitiveAmount, formatSensitiveAmountOnly, sensitiveAmountAccessibilityLabel }
 }

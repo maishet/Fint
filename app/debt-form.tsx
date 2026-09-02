@@ -224,7 +224,7 @@ export default function DebtFormScreen() {
 }
 
 function ReferenceHint({ action, message, onPress }: { action: string; message: string; onPress: () => void }) {
-  return <YStack bg="$secondary" gap="$2" mt="$2" p="$3" rounded="$5"><Paragraph color="$color12" fontWeight="700">{message}</Paragraph><FintButton size="$3" variant="outlined" onPress={onPress}>{action}</FintButton></YStack>
+  return <YStack bg="$secondary" gap="$2" mt="$2" p="$3" rounded="$5"><Paragraph color="$color12" fontWeight="600">{message}</Paragraph><FintButton size="$3" variant="outlined" onPress={onPress}>{action}</FintButton></YStack>
 }
 
 function frequencyLabel(value: Frequency, t: (key: string) => string) {

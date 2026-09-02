@@ -1,38 +1,22 @@
-import { ArrowDownLeft, ArrowUpRight, ChevronRight, FilePenLine } from '@tamagui/lucide-icons-2'
+import { ArrowDown, ArrowUp, ChevronRight, FilePenLine } from '@tamagui/lucide-icons-2'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Input, Paragraph, XStack, YStack } from 'tamagui'
 import type { TransactionType } from '../api/types'
-import { FintButton, FintCard, FintFormField } from '../ui'
+import { FintFormField } from '../ui'
+import { FintOptionGroup } from './FintOptionGroup'
 
 export function MovementTypeSelector({ onValueChange, value }: { onValueChange: (value: TransactionType) => void; value: TransactionType }) {
   const { t } = useTranslation()
   return (
-    <FintCard p="$1" bg="$muted" rounded="$7">
-      <XStack gap="$1">
-        {(['expense', 'income'] as const).map((option) => {
-          const selected = value === option
-          const income = option === 'income'
-          const accent = income ? '$green9' : '$red9'
-          return (
-            <FintButton
-              key={option}
-              flex={1}
-              minH={56}
-              variant="solid"
-              bg={selected ? income ? '$green2' : '$red2' : 'transparent'}
-              color={selected ? income ? '$green11' : '$red11' : '$color10'}
-              borderColor={selected ? accent : 'transparent'}
-              borderWidth={1}
-              icon={<YStack width={30} height={30} rounded="$10" bg={selected ? accent : '$color4'} items="center" justify="center">{income ? <ArrowDownLeft size={16} color={selected ? 'white' : '$color10'} /> : <ArrowUpRight size={16} color={selected ? 'white' : '$color10'} />}</YStack>}
-              onPress={() => onValueChange(option)}
-            >
-              {t(`forms.${option}`)}
-            </FintButton>
-          )
-        })}
-      </XStack>
-    </FintCard>
+    <FintOptionGroup
+      value={value}
+      onValueChange={onValueChange}
+      options={[
+        { value: 'expense' as const, label: t('forms.expense'), icon: ArrowDown, tone: 'negative' as const },
+        { value: 'income' as const, label: t('forms.income'), icon: ArrowUp, tone: 'positive' as const },
+      ]}
+    />
   )
 }
 
@@ -46,14 +30,14 @@ export function MovementAmountField({ currency, error, helperText, label, onBlur
         gap="$2"
         p="$4"
         bg="$accent1"
-        borderColor={error ? '$red8' : '$accent5'}
+        borderColor={error ? '$red8' : required ? '$accent5' : '$borderColor'}
         borderWidth={1}
         rounded="$7"
       >
         <Paragraph color="$color10" fontSize="$2" fontWeight="600">{fieldLabel}{required ? ' *' : ''}</Paragraph>
         <XStack flex={1} items="center" gap="$3">
           <YStack minW={48} height={48} px="$2" rounded="$10" bg="$accent3" items="center" justify="center" onPress={onCurrencyPress} role={onCurrencyPress ? 'button' : undefined} cursor={onCurrencyPress ? 'pointer' : undefined} pressStyle={onCurrencyPress ? { bg: '$secondary' } : undefined}>
-            <Paragraph color="$primary" fontFamily="$heading" fontSize="$3" fontWeight="900">{currency}</Paragraph>
+            <Paragraph color="$primary" fontFamily="$heading" fontSize="$3" fontWeight="600">{currency}</Paragraph>
           </YStack>
           <Input
             unstyled
@@ -62,7 +46,7 @@ export function MovementAmountField({ currency, error, helperText, label, onBlur
             color="$color12"
             fontFamily="$body"
             fontSize="$9"
-            fontWeight="900"
+            fontWeight="600"
             keyboardType="decimal-pad"
             placeholder="0.00"
             placeholderTextColor="$color7"
@@ -86,7 +70,7 @@ export function FormTextField({ autoCapitalize = 'sentences', error, icon, label
         <YStack width={42} height={42} rounded="$10" bg="$accent2" items="center" justify="center">{icon}</YStack>
         <YStack flex={1} minW={0} gap={2}>
           <Paragraph color="$color10" fontSize="$1" fontWeight="600">{label}{required ? ' *' : ''}</Paragraph>
-          <Input unstyled height={22} minH={22} p={0} m={0} lineHeight={20} color="$color12" fontSize="$3" fontWeight="700" placeholder={placeholder} placeholderTextColor="$color8" value={value} onChangeText={onChangeText} onBlur={onBlur} autoCapitalize={autoCapitalize} maxLength={maxLength} aria-label={label} />
+          <Input unstyled height={22} minH={22} p={0} m={0} lineHeight={20} color="$color12" fontSize="$3" fontWeight="600" placeholder={placeholder} placeholderTextColor="$color8" value={value} onChangeText={onChangeText} onBlur={onBlur} autoCapitalize={autoCapitalize} maxLength={maxLength} aria-label={label} />
         </YStack>
       </XStack>
     </FintFormField>
@@ -128,7 +112,7 @@ export function MovementPickerTrigger({ icon, invalid = false, label, onPress, r
       <YStack width={42} height={42} rounded="$10" bg="$accent2" items="center" justify="center">{icon}</YStack>
       <YStack flex={1} minW={0} gap="$1">
         <Paragraph color="$color10" fontSize="$1" fontWeight="600">{label}{required ? ' *' : ''}</Paragraph>
-        <Paragraph color="$color12" fontSize="$3" fontWeight="800" numberOfLines={1}>{value}</Paragraph>
+        <Paragraph color="$color12" fontSize="$3" fontWeight="600" numberOfLines={1}>{value}</Paragraph>
       </YStack>
       <ChevronRight size={20} color="$color9" />
     </XStack>

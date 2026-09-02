@@ -197,14 +197,8 @@ function RootLayoutNav() {
     <ThemeProvider
       value={themeMode === "dark" ? darkNavigationTheme : lightNavigationTheme}
     >
-      <StatusBar
-        style={themeMode === "dark" ? "light" : "dark"}
-        backgroundColor={
-          themeMode === "dark"
-            ? fintPalette.dark.headerBackground
-            : fintPalette.light.headerBackground
-        }
-      />
+      {}
+      <StatusBar style="light" backgroundColor={fintPalette.light.headerBackground} />
       <YStack flex={1}>
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />

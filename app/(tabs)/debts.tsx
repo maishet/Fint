@@ -21,7 +21,7 @@ import { Screen } from "../../src/components/Screen";
 import { SwipeableRow } from "../../src/components/SwipeableRow";
 import {
   SkeletonGroup,
-  SkeletonHero,
+  SkeletonBlock,
   SkeletonList,
 } from "../../src/components/Skeleton";
 import { formatDateString, parseDateString } from "../../src/finance/dates";
@@ -109,20 +109,22 @@ export default function DebtsScreen() {
         onRefresh={() => {
           void occurrencesQuery.refetch();
         }}
+        ground={
+          !isLoading && !error ? (
+            <DebtHero
+              count={occurrences.length}
+              currency={displayCurrency}
+              nextDueDate={nextDueDebt?.dueDate ?? null}
+              total={totalOutstanding}
+            />
+          ) : (
+            <YStack gap="$2">
+              <SkeletonBlock height={14} width="42%" opacity={0.5} />
+              <SkeletonBlock height={40} width="70%" opacity={0.5} />
+            </YStack>
+          )
+        }
       >
-        {isLoading ? (
-          <SkeletonGroup label={t("states.loading")}>
-            <SkeletonHero />
-          </SkeletonGroup>
-        ) : null}
-        {!isLoading && !error ? (
-          <DebtHero
-            count={occurrences.length}
-            currency={displayCurrency}
-            nextDueDate={nextDueDebt?.dueDate ?? null}
-            total={totalOutstanding}
-          />
-        ) : null}
 
         <XStack items="center" justify="space-between" gap="$3">
           <YStack gap="$1" flex={1}>
@@ -130,7 +132,7 @@ export default function DebtsScreen() {
               color="$color12"
               fontFamily="$heading"
               fontSize="$6"
-              fontWeight="700"
+              fontWeight="600"
             >
               {t("payments.upcoming")}
             </Paragraph>
@@ -180,7 +182,7 @@ export default function DebtsScreen() {
               color="$color12"
               fontFamily="$heading"
               fontSize="$5"
-              fontWeight="700"
+              fontWeight="600"
             >
               {t("payments.emptyTitle")}
             </Paragraph>
@@ -272,7 +274,8 @@ function OccurrenceCard({
       onPress={onEdit}
       role="button"
       cursor="pointer"
-      pressStyle={{ opacity: 0.78 }}
+      transition="quick"
+      pressStyle={{ scale: 0.98, bg: "$secondary" }}
     >
       <XStack items="flex-start" gap="$3">
         <YStack
@@ -293,7 +296,7 @@ function OccurrenceCard({
             color="$color12"
             fontFamily="$heading"
             fontSize="$4"
-            fontWeight="700"
+            fontWeight="600"
             numberOfLines={1}
           >
             {occurrence.title}
@@ -316,7 +319,7 @@ function OccurrenceCard({
                 items="center"
               >
                 <Landmark size={12} color="$primary" />
-                <Paragraph color="$primary" fontSize="$1" fontWeight="700">
+                <Paragraph color="$primary" fontSize="$1" fontWeight="600">
                   {t("payments.autoPayBadge")}
                 </Paragraph>
               </XStack>
@@ -324,7 +327,7 @@ function OccurrenceCard({
           ) : null}
         </YStack>
         <YStack items="flex-end" gap="$1">
-          <Paragraph color="$color12" fontSize="$4" fontWeight="800" shrink={0}>
+          <Paragraph color="$color12" fontSize="$4" fontWeight="600" shrink={0}>
             {formatSensitiveAmount(amount, occurrence.currency)}
           </Paragraph>
           <Paragraph color="$color10" fontSize="$1">
@@ -424,43 +427,51 @@ function DebtHero({
   total: number;
 }) {
   const { t, i18n } = useTranslation();
-  const { formatSensitiveAmount } = useSensitiveMoney();
+  const { formatSensitiveAmountOnly } = useSensitiveMoney();
   const locale = getAppLocale(i18n.resolvedLanguage);
   return (
-    <FintCard bg="$heroBackground" borderColor="$heroBorder" gap="$4" p="$4">
-      <XStack items="center" justify="space-between" gap="$3">
-        <YStack flex={1} minW={0} gap="$1">
+    <YStack gap="$5">
+      <XStack items="flex-end" justify="space-between" gap="$4">
+        <YStack flex={1} minW={0}>
           <Paragraph
             color="$heroMuted"
-            fontFamily="$heading"
-            fontSize="$2"
-            fontWeight="700"
+            fontSize={11}
+            fontWeight="600"
+            letterSpacing={1.4}
             textTransform="uppercase"
           >
             {t("payments.totalPending")}
           </Paragraph>
-          <Paragraph
-            color="$heroForeground"
-            fontFamily="$body"
-            fontSize="$9"
-            fontWeight="800"
-            lineHeight="$9"
-            numberOfLines={1}
-            adjustsFontSizeToFit
-          >
-            {formatSensitiveAmount(total, currency)}
-          </Paragraph>
+          <XStack items="baseline" gap="$2" mt="$2">
+            <Paragraph color="$heroMuted" fontSize="$3" fontWeight="500">
+              {currency}
+            </Paragraph>
+            <Paragraph
+              color="$heroForeground"
+              fontFamily="$body"
+              fontSize={40}
+              fontWeight="600"
+              letterSpacing={-1.2}
+              lineHeight={44}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
+              {formatSensitiveAmountOnly(total)}
+            </Paragraph>
+          </XStack>
         </YStack>
         <SensitiveAmountToggle color="$heroAccent" inverse />
       </XStack>
-      <XStack gap="$4">
+
+      <YStack height={1} bg="rgba(246,251,252,0.13)" />
+
+      <XStack gap="$5">
         <HeroMetric
-          accent="$heroAccent"
           label={t("payments.activePayments")}
           value={String(count)}
         />
+        <YStack width={1} bg="rgba(246,251,252,0.13)" />
         <HeroMetric
-          accent="$destructive"
           label={t("payments.nextDue")}
           value={
             nextDueDate
@@ -469,29 +480,21 @@ function DebtHero({
           }
         />
       </XStack>
-    </FintCard>
+    </YStack>
   );
 }
 
-function HeroMetric({
-  accent,
-  label,
-  value,
-}: {
-  accent: string;
-  label: string;
-  value: string;
-}) {
+function HeroMetric({ label, value }: { label: string; value: string }) {
   return (
-    <YStack flex={1} minW={0} gap="$1">
-      <YStack height={4} rounded="$10" bg={accent as never} />
+    <YStack flex={1} minW={0} gap="$1.5">
       <Paragraph color="$heroMuted" fontSize="$1">
         {label}
       </Paragraph>
       <Paragraph
         color="$heroForeground"
-        fontSize="$3"
-        fontWeight="800"
+        fontSize="$5"
+        fontWeight="600"
+        letterSpacing={-0.3}
         numberOfLines={1}
       >
         {value}

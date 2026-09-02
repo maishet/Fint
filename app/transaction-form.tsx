@@ -1,21 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, CalendarDays, Save, Shapes, WalletCards } from '@tamagui/lucide-icons-2'
+import { ArrowDown, ArrowLeftRight, ArrowUp, CalendarDays, Save, Shapes, WalletCards } from '@tamagui/lucide-icons-2'
 import { useNotify } from '../src/ui/notify'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Paragraph, XStack, YStack } from 'tamagui'
+import { Paragraph, YStack } from 'tamagui'
 import { z } from 'zod'
 import { financeApi } from '../src/api/finance'
 import { Screen } from '../src/components/Screen'
 import { SkeletonForm } from '../src/components/Skeleton'
 import { CategoryPickerSheet } from '../src/components/CategoryPickerSheet'
 import { MovementAmountField, MovementNoteField, MovementPickerTrigger } from '../src/components/MovementFormControls'
+import { FintOptionGroup } from '../src/components/FintOptionGroup'
 import { todayDateString } from '../src/finance/dates'
 import { getValidationMessage, parseDecimalInput, useSubmitValidation } from '../src/forms'
 import { useUnsavedChangesGuard } from '../src/hooks/useUnsavedChangesGuard'
 import { UnsavedChangesDialog } from '../src/components/UnsavedChangesDialog'
-import { FintButton, FintCard, FintDateField, FintFormField, FintSheetSelect, FintSpinner } from '../src/ui'
+import { FintButton, FintDateField, FintFormField, FintSheetSelect, FintSpinner } from '../src/ui'
 
 type MovementKind = 'income' | 'expense' | 'transfer'
 
@@ -198,13 +199,13 @@ export default function TransactionFormScreen() {
 
         {!accountsQuery.isLoading && accounts.length === 0 ? (
           <YStack bg="$secondary" gap="$2" p="$3" rounded="$5">
-            <Paragraph color="$color12" fontWeight="700">{t('movements.noAccounts')}</Paragraph>
+            <Paragraph color="$color12" fontWeight="600">{t('movements.noAccounts')}</Paragraph>
             <FintButton size="$3" variant="outlined" onPress={() => router.push('/account-form')}>{t('actions.newAccount')}</FintButton>
           </YStack>
         ) : null}
         {kind !== 'transfer' && !categoriesQuery.isLoading && categories.length === 0 ? (
           <YStack bg="$secondary" gap="$2" p="$3" rounded="$5">
-            <Paragraph color="$color12" fontWeight="700">{t('movements.noCategories')}</Paragraph>
+            <Paragraph color="$color12" fontWeight="600">{t('movements.noCategories')}</Paragraph>
             <FintButton size="$3" variant="outlined" onPress={() => router.push('/categories')}>{t('categories.newAction')}</FintButton>
           </YStack>
         ) : null}
@@ -225,47 +226,11 @@ export default function TransactionFormScreen() {
 
 function MovementKindSelector({ allowTransfer, onValueChange, value }: { allowTransfer: boolean; onValueChange: (value: MovementKind) => void; value: MovementKind }) {
   const { t } = useTranslation()
-  const options = (allowTransfer ? ['expense', 'income', 'transfer'] : ['expense', 'income']) as MovementKind[]
-  const stacked = options.length > 2
-  return (
-    <FintCard p="$1" bg="$muted" rounded="$7">
-      <XStack gap="$1">
-        {options.map((option) => {
-          const selected = value === option
-          const accent = option === 'income' ? '$green9' : option === 'transfer' ? '$blue9' : '$red9'
-          const selectedBg = option === 'income' ? '$green2' : option === 'transfer' ? '$blue2' : '$red2'
-          const selectedColor = option === 'income' ? '$green11' : option === 'transfer' ? '$blue11' : '$red11'
-          const iconColor = selected ? 'white' : '$color10'
-          const iconNode = option === 'income' ? <ArrowDownLeft size={stacked ? 14 : 16} color={iconColor} /> : option === 'transfer' ? <ArrowLeftRight size={stacked ? 14 : 16} color={iconColor} /> : <ArrowUpRight size={stacked ? 14 : 16} color={iconColor} />
-          const badge = <YStack width={stacked ? 24 : 30} height={stacked ? 24 : 30} rounded="$10" bg={selected ? accent : '$color4'} items="center" justify="center">{iconNode}</YStack>
-          const label = <Paragraph color={selected ? selectedColor : '$color10'} fontSize={stacked ? 12 : 14} fontWeight="700" numberOfLines={2} text="center" lineHeight={stacked ? 14 : undefined}>{t(`forms.${option}`)}</Paragraph>
-          return (
-            <FintButton
-              key={option}
-              flex={1}
-              minH={stacked ? 64 : 56}
-              variant="solid"
-              bg={selected ? selectedBg : 'transparent'}
-              borderColor={selected ? accent : 'transparent'}
-              borderWidth={1}
-              onPress={() => onValueChange(option)}
-            >
-              {stacked ? (
-                <YStack items="center" justify="center" gap="$1" px="$1">
-                  {badge}
-                  {label}
-                </YStack>
-              ) : (
-                <XStack items="center" gap="$2">
-                  {badge}
-                  {label}
-                </XStack>
-              )}
-            </FintButton>
-          )
-        })}
-      </XStack>
-    </FintCard>
-  )
+  const options = [
+    { value: 'expense' as const, label: t('forms.expense'), icon: ArrowDown, tone: 'negative' as const },
+    { value: 'income' as const, label: t('forms.income'), icon: ArrowUp, tone: 'positive' as const },
+    ...(allowTransfer ? [{ value: 'transfer' as const, label: t('forms.transfer'), icon: ArrowLeftRight, tone: 'accent' as const }] : []),
+  ]
+  return <FintOptionGroup value={value} onValueChange={onValueChange} options={options} layout="row" />
 }
 

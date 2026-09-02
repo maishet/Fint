@@ -10,6 +10,7 @@ import { Image, KeyboardAvoidingView, Platform } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { Redirect } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import {
   Button,
   H1,
@@ -25,10 +26,12 @@ import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { useAuth } from "../src/auth/AuthProvider";
 import { getValidationMessage, useSubmitValidation } from "../src/forms";
+import { useThemeMode } from "../src/theme/ThemeMode";
 import { FintButton, FintCard } from "../src/ui";
 
 export default function LoginScreen() {
   const { i18n, t } = useTranslation();
+  const { themeMode } = useThemeMode();
   const { session, signIn, signInWithApple, signInWithGoogle, signUp } =
     useAuth();
   const [email, setEmail] = useState("");
@@ -145,6 +148,7 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={{ flex: 1 }}
     >
+      <StatusBar style={themeMode === "dark" ? "light" : "dark"} />
       <YStack
         flex={1}
         items="center"
@@ -343,7 +347,7 @@ export default function LoginScreen() {
 
             <XStack items="center" gap="$3">
               <Separator flex={1} />
-              <Paragraph color="$color9" fontSize="$2" fontWeight="700">
+              <Paragraph color="$color9" fontSize="$2" fontWeight="600">
                 {t("auth.continueWith")}
               </Paragraph>
               <Separator flex={1} />
@@ -355,7 +359,7 @@ export default function LoginScreen() {
             >
               <XStack items="center" justify="center" gap="$2">
                 <GoogleMark />
-                <Paragraph color="$primary" fontWeight="700">
+                <Paragraph color="$primary" fontWeight="600">
                   {t("auth.google")}
                 </Paragraph>
               </XStack>
@@ -385,7 +389,7 @@ export default function LoginScreen() {
                   validation.resetErrors();
                 }}
               >
-                <Paragraph color="$primary" fontWeight="800">
+                <Paragraph color="$primary" fontWeight="600">
                   {authMode === "login"
                     ? t("auth.registerLink")
                     : t("auth.loginLink")}
@@ -500,7 +504,7 @@ function MessageCard({
       <Paragraph
         color={tone === "error" ? "$red11" : "$green11"}
         fontSize="$3"
-        fontWeight="700"
+        fontWeight="600"
       >
         {message}
       </Paragraph>

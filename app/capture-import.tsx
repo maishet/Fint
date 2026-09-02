@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, ArrowDownLeft, ArrowUpRight, CheckCircle2, Clock, History, Plus, Trash2 } from '@tamagui/lucide-icons-2'
+import { AlertTriangle, ArrowDown, ArrowUp, CheckCircle2, Clock, History, Plus, Trash2 } from '@tamagui/lucide-icons-2'
 import * as ImagePicker from 'expo-image-picker'
 import { Stack, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
@@ -307,7 +307,7 @@ export default function CaptureImportScreen() {
                 <YStack width={56} height={56} rounded="$12" bg={isProcessing ? '$secondary' : '$green2'} items="center" justify="center">
                   {isProcessing ? <FintSpinner color="$primary" /> : <CheckCircle2 size={28} color="$green10" />}
                 </YStack>
-                <Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="800">
+                <Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="600">
                   {isProcessing ? t('capture.summaryWorking') : t('capture.resultTitle')}
                 </Paragraph>
                 <XStack gap="$2" flexWrap="wrap" justify="center">
@@ -368,7 +368,7 @@ export default function CaptureImportScreen() {
 function StatBadge({ color, label, value }: { color: string; label: string; value: number }) {
   return (
     <XStack items="center" gap="$1.5" bg="$muted" rounded="$5" px="$2.5" py="$1.5">
-      <Paragraph color={color as never} fontSize="$3" fontWeight="900">{value}</Paragraph>
+      <Paragraph color={color as never} fontSize="$3" fontWeight="600">{value}</Paragraph>
       <Paragraph color="$color10" fontSize="$1" fontWeight="600">{label}</Paragraph>
     </XStack>
   )
@@ -466,16 +466,16 @@ function CaptureRowCard({
         <XStack items="center" gap="$3">
           <RowIcon bg={bg}>{icon}</RowIcon>
           <YStack flex={1} minW={0} gap="$0.5">
-            <Paragraph numberOfLines={1} color={row.status === 'failed' ? '$red11' : '$color12'} fontWeight="800" fontSize="$3">
+            <Paragraph numberOfLines={1} color={row.status === 'failed' ? '$red11' : '$color12'} fontWeight="600" fontSize="$3">
               {titleText}
             </Paragraph>
             {subtitleText ? <Paragraph numberOfLines={1} color="$color10" fontSize="$1">{subtitleText}</Paragraph> : null}
           </YStack>
           {row.status === 'processing' ? (
-            <Paragraph color="$color9" fontSize="$2" fontWeight="700">{Math.round(progress * 100)}%</Paragraph>
+            <Paragraph color="$color9" fontSize="$2" fontWeight="600">{Math.round(progress * 100)}%</Paragraph>
           ) : amountText || canDelete ? (
             <YStack items="flex-end" gap="$1">
-              {amountText ? <Paragraph color={amountColor as never} fontSize="$3" fontWeight="900">{amountText}</Paragraph> : null}
+              {amountText ? <Paragraph color={amountColor as never} fontSize="$3" fontWeight="600">{amountText}</Paragraph> : null}
               {canDelete ? (
                 <Button
                   circular
@@ -548,7 +548,7 @@ function DirectionOption({
 }: { type: TransactionType; label: string; onPress: () => void; selected: boolean }) {
   const income = type === 'income'
   const accent = income ? '$green9' : '$red9'
-  const Icon = income ? ArrowDownLeft : ArrowUpRight
+  const Icon = income ? ArrowUp : ArrowDown
   return (
     <FintButton
       flex={1}

@@ -131,7 +131,7 @@ export default function ImportTransactionsScreen() {
                 <YStack width={60} height={60} rounded="$12" bg="$green2" items="center" justify="center">
                   <CheckCircle2 size={30} color="$green10" />
                 </YStack>
-                <Paragraph color="$color12" fontFamily="$heading" fontSize="$6" fontWeight="800">{t('import.resultTitle')}</Paragraph>
+                <Paragraph color="$color12" fontFamily="$heading" fontSize="$6" fontWeight="600">{t('import.resultTitle')}</Paragraph>
                 <YStack gap="$2" width="100%">
                   <ResultRow label={t('import.created')} value={result.created} color="$green10" />
                   <ResultRow label={t('import.duplicates')} value={result.duplicates} color="$color10" />
@@ -146,7 +146,7 @@ export default function ImportTransactionsScreen() {
                 <FileSpreadsheet size={26} color="$primary" />
               </YStack>
               <YStack items="center" gap="$1">
-                <Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="700">{t('import.chooseTitle')}</Paragraph>
+                <Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="600">{t('import.chooseTitle')}</Paragraph>
                 <Paragraph color="$color10" fontSize="$2" text="center" maxW={280}>{t('import.chooseHint')}</Paragraph>
               </YStack>
               <FintButton
@@ -163,7 +163,7 @@ export default function ImportTransactionsScreen() {
                 <YStack width={40} height={40} rounded="$9" bg="$accent2" items="center" justify="center">
                   <FileSpreadsheet size={20} color="$primary" />
                 </YStack>
-                <Paragraph flex={1} minW={0} color="$color12" fontWeight="700" numberOfLines={1}>{fileName}</Paragraph>
+                <Paragraph flex={1} minW={0} color="$color12" fontWeight="600" numberOfLines={1}>{fileName}</Paragraph>
                 <XStack role="button" aria-label={t('import.change')} onPress={pickFile} pressStyle={{ opacity: 0.6 }} p="$1.5">
                   {isReading ? <FintSpinner size="small" color="$primary" /> : <RefreshCw size={18} color="$primary" />}
                 </XStack>
@@ -172,7 +172,7 @@ export default function ImportTransactionsScreen() {
               <YStack gap="$2" bg="$accent1" borderColor="$accent4" borderWidth={1} rounded="$6" p="$3">
                 <XStack items="center" gap="$2">
                   <CheckCircle2 size={16} color="$green10" />
-                  <Paragraph color="$color12" fontWeight="800">{t('import.previewNew', { count: parsed.items.length })}</Paragraph>
+                  <Paragraph color="$color12" fontWeight="600">{t('import.previewNew', { count: parsed.items.length })}</Paragraph>
                 </XStack>
                 {parsed.invalid > 0 ? (
                   <XStack items="center" gap="$2">
@@ -197,7 +197,7 @@ export default function ImportTransactionsScreen() {
                   pressStyle={{ opacity: 0.6 }}
                   py="$1"
                 >
-                  <Paragraph color="$primary" fontWeight="700" fontSize="$2">{t('import.adjustColumns')}</Paragraph>
+                  <Paragraph color="$primary" fontWeight="600" fontSize="$2">{t('import.adjustColumns')}</Paragraph>
                   {showMapping ? <ChevronUp size={16} color="$primary" /> : <ChevronDown size={16} color="$primary" />}
                 </XStack>
               )}
@@ -274,7 +274,7 @@ function ResultRow({ color, label, value }: { color: string; label: string; valu
   return (
     <XStack items="center" justify="space-between" bg="$muted" rounded="$5" px="$3" py="$2.5">
       <Paragraph color="$color11" fontWeight="600">{label}</Paragraph>
-      <Paragraph color={color as never} fontSize="$5" fontWeight="900">{value}</Paragraph>
+      <Paragraph color={color as never} fontSize="$5" fontWeight="600">{value}</Paragraph>
     </XStack>
   )
 }

@@ -7,6 +7,7 @@ import {
   WalletCards,
 } from "@tamagui/lucide-icons-2";
 import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, useWindowDimensions } from "react-native";
@@ -18,6 +19,7 @@ import {
   requestAndRegisterPushInstallation,
   type PushPermissionState,
 } from "../src/notifications/pushNotifications";
+import { useThemeMode } from "../src/theme/ThemeMode";
 import { FintButton, FintCard, FintSpinner } from "../src/ui";
 
 type SlideKey =
@@ -36,6 +38,7 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
+  const { themeMode } = useThemeMode();
   const { width } = useWindowDimensions();
   const listRef = useRef<FlatList<SlideKey>>(null);
   const [index, setIndex] = useState(0);
@@ -83,11 +86,12 @@ export default function OnboardingScreen() {
       pt={Math.max(insets.top, 20)}
       pb={Math.max(insets.bottom, 18)}
     >
+      <StatusBar style={themeMode === "dark" ? "light" : "dark"} />
       <XStack px="$5" items="center" justify="space-between">
         <Paragraph
           color="$color9"
           fontSize="$1"
-          fontWeight="800"
+          fontWeight="600"
           textTransform="uppercase"
         >
           My Fint
@@ -258,7 +262,7 @@ function PrivacyPreview() {
         <Paragraph color="$color10" fontSize="$1">
           {t("dashboard.balance")}
         </Paragraph>
-        <Paragraph color="$color12" fontSize="$7" fontWeight="900">
+        <Paragraph color="$color12" fontSize="$7" fontWeight="600">
           ••••••
         </Paragraph>
       </YStack>

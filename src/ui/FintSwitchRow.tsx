@@ -30,7 +30,9 @@ export function FintSwitchRow({
       items="center"
       gap="$3"
       opacity={disabled ? 0.5 : 1}
-      pressStyle={disabled ? undefined : { bg: "$color3" }}
+      bg="transparent"
+      transition="quick"
+      pressStyle={disabled ? undefined : { bg: "$secondary" }}
       role="switch"
       aria-label={label}
       aria-checked={checked}
@@ -42,7 +44,7 @@ export function FintSwitchRow({
         <Paragraph
           color="$color12"
           fontSize="$3"
-          fontWeight="700"
+          fontWeight="600"
           numberOfLines={1}
         >
           {label}
@@ -58,9 +60,10 @@ export function FintSwitchRow({
         disabled={disabled}
         pointerEvents="none"
         size="$3"
-        bg={checked ? "$primary" : "$color6"}
+        bg="$color6"
         borderWidth={1}
         borderColor={checked ? "$primary" : "$color8"}
+        activeStyle={{ backgroundColor: "$primary", borderColor: "$primary" }}
       >
         <Switch.Thumb
           bg={checked ? "white" : "$color11"}

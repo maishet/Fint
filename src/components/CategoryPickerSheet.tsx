@@ -48,7 +48,7 @@ export function CategoryPickerSheet({ allowCreate = true, categories, onValueCha
       >
         <YStack flex={1} minW={0} gap="$1">
           {showLabel ? <Paragraph color="$color10" fontSize="$1">{t('forms.category')}</Paragraph> : null}
-           <Paragraph color="$color12" fontWeight="700" numberOfLines={1}>{selected ? `${selected.icon || suggestedCategoryIcons(selected.name, type)[0]} ${selectedLabel}` : selectedLabel}</Paragraph>
+           <Paragraph color="$color12" fontWeight="600" numberOfLines={1}>{selected ? `${selected.icon || suggestedCategoryIcons(selected.name, type)[0]} ${selectedLabel}` : selectedLabel}</Paragraph>
         </YStack>
         <Paragraph fontSize="$6">{selected?.icon || '⌄'}</Paragraph>
       </XStack>}
@@ -58,7 +58,7 @@ export function CategoryPickerSheet({ allowCreate = true, categories, onValueCha
         <Sheet.Handle bg="$color6" />
         <Sheet.Frame bg="$popover" px="$4" pt="$2" pb={Math.max(insets.bottom, 16)} rounded={18}>
           <XStack items="center" justify="space-between" mb="$3">
-            <Paragraph color="$color12" fontFamily="$heading" fontSize="$6" fontWeight="700">{t('categories.routeTitle')}</Paragraph>
+            <Paragraph color="$color12" fontFamily="$heading" fontSize="$6" fontWeight="600">{t('categories.routeTitle')}</Paragraph>
             <Button circular chromeless size="$3" icon={<X size={20} color="$color11" />} onPress={() => setOpen(false)} aria-label={t('actions.cancel')} />
           </XStack>
           <Sheet.ScrollView showsVerticalScrollIndicator={false}>

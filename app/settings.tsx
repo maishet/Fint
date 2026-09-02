@@ -512,7 +512,7 @@ export default function SettingsScreen() {
         <Paragraph
           color="$color9"
           fontSize="$1"
-          fontWeight="800"
+          fontWeight="600"
           textTransform="uppercase"
         >
           {t("settings.session")}
@@ -584,7 +584,7 @@ function DeleteAccountDialog({
             color="$color12"
             fontFamily="$heading"
             fontSize="$6"
-            fontWeight="800"
+            fontWeight="600"
           >
             {t("settings.deleteAccountTitle")}
           </Dialog.Title>
@@ -594,7 +594,7 @@ function DeleteAccountDialog({
             })}
           </Dialog.Description>
           <YStack gap="$2">
-            <Paragraph color="$color11" fontSize="$2" fontWeight="700">
+            <Paragraph color="$color11" fontSize="$2" fontWeight="600">
               {t("settings.deleteAccountTypeConfirm", {
                 confirmation: requiredConfirmation,
               })}
@@ -619,7 +619,7 @@ function DeleteAccountDialog({
               flex={1}
               bg={canDelete ? "$destructive" : "$muted"}
               color={canDelete ? "$primaryForeground" : "$color8"}
-              fontWeight="800"
+              fontWeight="600"
               disabled={!canDelete || isPending}
               opacity={canDelete ? 1 : 0.58}
               icon={
@@ -683,7 +683,7 @@ function SettingsGroup({
       <Paragraph
         color="$color9"
         fontSize="$1"
-        fontWeight="800"
+        fontWeight="600"
         textTransform="uppercase"
       >
         {title}
@@ -722,7 +722,9 @@ function SettingsRow({
       py="$3"
       items="center"
       gap="$3"
-      pressStyle={{ bg: "$color3" }}
+      bg="transparent"
+      transition="quick"
+      pressStyle={{ bg: "$secondary", scale: 0.99 }}
       onPress={onPress}
     >
       {icon}
@@ -730,7 +732,8 @@ function SettingsRow({
         <Paragraph
           color="$color12"
           fontSize={tall ? "$4" : "$3"}
-          fontWeight="700"
+          fontWeight="600"
+          letterSpacing={-0.2}
           numberOfLines={1}
         >
           {label}

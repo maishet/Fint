@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowDownLeft, ArrowUpRight, CalendarDays, Copy, Pencil, Receipt, Trash2, WalletCards } from '@tamagui/lucide-icons-2'
+import { ArrowDown, ArrowUp, CalendarDays, Copy, Pencil, Receipt, Trash2, WalletCards } from '@tamagui/lucide-icons-2'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -86,18 +86,19 @@ export default function TransactionDetailScreen() {
               <Paragraph fontSize="$8">{emoji}</Paragraph>
             </YStack>
             <YStack items="center" gap="$1">
-              <Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="800" text="center">
+              <Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="600" letterSpacing={-0.3} text="center">
                 {getCategoryLabel(category, t)}
               </Paragraph>
               <XStack items="center" gap="$1.5" bg={isIncome ? '$green2' : '$red2'} px="$2.5" py="$1" rounded="$10">
-                {isIncome ? <ArrowDownLeft size={13} color="$green10" /> : <ArrowUpRight size={13} color="$red10" />}
-                <Paragraph color={isIncome ? '$green11' : '$red11'} fontSize="$1" fontWeight="800">
+                {isIncome ? <ArrowUp size={13} color="$green10" /> : <ArrowDown size={13} color="$red10" />}
+                <Paragraph color={isIncome ? '$green11' : '$red11'} fontSize="$1" fontWeight="600">
                   {t(`forms.${type}`)}
                 </Paragraph>
               </XStack>
             </YStack>
-            <Paragraph color={isIncome ? '$green10' : '$red10'} fontFamily="$body" fontSize="$10" fontWeight="900" letterSpacing={-1}>
-              {isIncome ? '+' : '-'}{formatSensitiveAmount(amount, currency)}
+            <Paragraph color={isIncome ? '$green10' : '$red10'} fontFamily="$body" fontSize="$10" fontWeight="600" letterSpacing={-1.4}>
+              {}
+              {formatSensitiveAmount(amount, currency)}
             </Paragraph>
           </FintCard>
 
@@ -111,7 +112,7 @@ export default function TransactionDetailScreen() {
             <YStack width={44} height={44} rounded="$10" bg="$secondary" items="center" justify="center">
               <Receipt size={20} color="$color10" />
             </YStack>
-            <Paragraph color="$color11" fontWeight="700">{t('transactionDetail.receiptTitle')}</Paragraph>
+            <Paragraph color="$color11" fontWeight="600">{t('transactionDetail.receiptTitle')}</Paragraph>
             <Paragraph color="$color10" fontSize="$2" text="center" maxW={260}>{t('transactionDetail.receiptHint')}</Paragraph>
           </FintCard>
 
@@ -142,12 +143,15 @@ export default function TransactionDetailScreen() {
 
 function DetailRow({ icon, label, value, muted = false, divider = false }: { icon: React.ReactNode; label: string; value: string; muted?: boolean; divider?: boolean }) {
   return (
-    <XStack items="center" gap="$3" p="$3" borderTopColor="$borderColor" borderTopWidth={divider ? 1 : 0}>
-      <YStack width={38} height={38} rounded="$9" bg="$accent2" items="center" justify="center">{icon}</YStack>
-      <YStack flex={1} minW={0} gap={2}>
-        <Paragraph color="$color10" fontSize="$1" fontWeight="600">{label}</Paragraph>
-        <Paragraph color={muted ? '$color9' : '$color12'} fontSize="$3" fontWeight="700" numberOfLines={3}>{value}</Paragraph>
-      </YStack>
-    </XStack>
+    <YStack>
+      {divider ? <YStack height={1} bg="$borderColor" ml={70} /> : null}
+      <XStack items="center" gap="$3" p="$4">
+        <YStack width={38} height={38} rounded={19} bg="$background" items="center" justify="center" shrink={0}>{icon}</YStack>
+        <YStack flex={1} minW={0} gap={2}>
+          <Paragraph color="$color9" fontSize={11}>{label}</Paragraph>
+          <Paragraph color={muted ? '$color9' : '$color12'} fontSize="$3" fontWeight="600" letterSpacing={-0.2} numberOfLines={3}>{value}</Paragraph>
+        </YStack>
+      </XStack>
+    </YStack>
   )
 }

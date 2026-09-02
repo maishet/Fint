@@ -167,82 +167,49 @@ export default function ProfileScreen() {
   };
 
   return (
-    <Screen>
-      <FintCard
-        bg="$heroBackground"
-        borderColor="$heroBorder"
-        gap="$4"
-        items="center"
-        p="$5"
-        overflow="hidden"
-      >
-        <YStack
-          position="absolute"
-          t={-44}
-          l={-36}
-          width={180}
-          height={180}
-          rounded={90}
-          borderColor="rgba(93,214,229,0.08)"
-          borderWidth={1}
-        />
-        <YStack
-          position="absolute"
-          t={24}
-          r={28}
-          width={44}
-          height={44}
-          opacity={0.45}
-        >
-          <XStack flexWrap="wrap" gap={6}>
-            {Array.from({ length: 16 }, (_, index) => (
-              <YStack
-                key={index}
-                width={3}
-                height={3}
-                rounded="$10"
-                bg="rgba(93,214,229,0.36)"
-              />
-            ))}
-          </XStack>
-        </YStack>
-        <YStack
-          width={104}
-          height={104}
-          rounded={52}
-          bg="rgba(93,214,229,0.14)"
-          borderColor="rgba(93,214,229,0.28)"
-          borderWidth={1}
-          items="center"
-          justify="center"
-          overflow="hidden"
-        >
-          {avatarUrl ? (
-            <Image
-              source={{ uri: avatarUrl }}
-              style={{ width: 100, height: 100, borderRadius: 50 }}
-            />
-          ) : (
-            <UserRound size={42} color="$heroAccent" />
-          )}
-        </YStack>
-        <YStack items="center" gap="$1">
-          <Paragraph
-            color="$heroForeground"
-            fontFamily="$heading"
-            fontSize="$7"
-            fontWeight="900"
-            text="center"
-            numberOfLines={1}
-            adjustsFontSizeToFit
+    <Screen
+      ground={
+        <YStack gap="$4" items="center">
+          <YStack
+            width={104}
+            height={104}
+            rounded={52}
+            bg="rgba(246,251,252,0.10)"
+            borderColor="rgba(246,251,252,0.16)"
+            borderWidth={1}
+            items="center"
+            justify="center"
+            overflow="hidden"
           >
-            {shownName}
-          </Paragraph>
-          <Paragraph color="$heroMuted" fontSize="$2" text="center">
-            {t("profile.subtitle")}
-          </Paragraph>
+            {avatarUrl ? (
+              <Image
+                source={{ uri: avatarUrl }}
+                style={{ width: 104, height: 104, borderRadius: 52 }}
+              />
+            ) : (
+              <UserRound size={42} color="$heroAccent" />
+            )}
+          </YStack>
+          <YStack items="center" gap="$1">
+            <Paragraph
+              color="$heroForeground"
+              fontFamily="$heading"
+              fontSize="$7"
+              fontWeight="600"
+              letterSpacing={-0.5}
+              text="center"
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
+              {shownName}
+            </Paragraph>
+            <Paragraph color="$heroMuted" fontSize="$2" text="center">
+              {t("profile.subtitle")}
+            </Paragraph>
+          </YStack>
         </YStack>
-      </FintCard>
+      }
+    >
 
       <FintCard gap="$3">
         <XStack items="center" gap="$3">
@@ -256,11 +223,13 @@ export default function ProfileScreen() {
           >
             <UserRound size={20} color="$primary" />
           </YStack>
+          {/* Titulo de seccion, no accion: en el resto de la app estos van en
+              $color12. En $primary se leian como enlaces. */}
           <Paragraph
-            color="$primary"
+            color="$color12"
             fontFamily="$heading"
             fontSize="$5"
-            fontWeight="800"
+            fontWeight="600"
           >
             {t("profile.section")}
           </Paragraph>
@@ -323,10 +292,10 @@ export default function ProfileScreen() {
             </YStack>
             <YStack flex={1} minW={0}>
               <Paragraph
-                color="$primary"
+                color="$color12"
                 fontFamily="$heading"
                 fontSize="$5"
-                fontWeight="800"
+                fontWeight="600"
               >
                 {t("profile.security")}
               </Paragraph>
@@ -542,7 +511,7 @@ function ProfileInputRow({
             m={0}
             color="$color12"
             fontSize="$4"
-            fontWeight="800"
+            fontWeight="600"
             placeholder={placeholder}
             placeholderTextColor="$color8"
             value={value}
@@ -601,13 +570,13 @@ function ReadOnlyRow({
         <Paragraph
           color="$color12"
           fontSize="$3"
-          fontWeight="800"
+          fontWeight="600"
           numberOfLines={1}
         >
           {value}
         </Paragraph>
       </YStack>
-      {/* <YStack bg="$accent2" rounded="$10" px="$3" py="$1"><Paragraph color="$primary" fontSize="$1" fontWeight="800">{badge}</Paragraph></YStack> */}
+      {/* <YStack bg="$accent2" rounded="$10" px="$3" py="$1"><Paragraph color="$primary" fontSize="$1" fontWeight="600">{badge}</Paragraph></YStack> */}
       <Lock size={20} color="$primary" />
     </XStack>
   );
@@ -667,7 +636,7 @@ function PasswordField({
             m={0}
             color="$color12"
             fontSize="$4"
-            fontWeight="800"
+            fontWeight="600"
             placeholder={placeholder}
             placeholderTextColor="$color8"
             value={value}

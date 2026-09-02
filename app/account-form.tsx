@@ -11,13 +11,14 @@ import { financeApi } from '../src/api/finance'
 import type { AccountType } from '../src/api/types'
 import { DataStateCard } from '../src/components/DataStateCard'
 import { FormTextField, MovementAmountField, MovementPickerTrigger } from '../src/components/MovementFormControls'
+import { FintOptionGroup } from '../src/components/FintOptionGroup'
 import { Screen } from '../src/components/Screen'
 import { SkeletonForm } from '../src/components/Skeleton'
 import { currencyOptions } from '../src/finance/currencies'
 import { getValidationMessage, parseDecimalInput, useSubmitValidation } from '../src/forms'
 import { useUnsavedChangesGuard } from '../src/hooks/useUnsavedChangesGuard'
 import { UnsavedChangesDialog } from '../src/components/UnsavedChangesDialog'
-import { FintButton, FintCard, FintFormField, FintSheetSelect, FintSpinner } from '../src/ui'
+import { FintButton, FintFormField, FintSheetSelect, FintSpinner } from '../src/ui'
 
 export default function AccountFormScreen() {
   const { accountId } = useLocalSearchParams<{ accountId?: string }>()
@@ -114,40 +115,14 @@ export default function AccountFormScreen() {
           <YStack gap="$5" pb="$5">
             <FormTextField label={t('forms.name')} required error={validation.errors.name} icon={<Landmark size={21} color="$primary" />} placeholder={t('accounts.namePlaceholder')} value={name} onChangeText={(value) => { setName(value); validation.clearError('name') }} onBlur={() => validation.validateField('name', accountDetailsSchema.shape.name, name)} autoCapitalize="words" />
 
-            <FintFormField label={t('forms.accountType')} required error={validation.errors.accountType} showLabel={false}>
-              <FintCard width="100%" gap="$3" p="$3" borderColor={validation.errors.accountType ? '$red8' : '$borderColor'}>
-                <Paragraph color="$color10" fontSize="$1" fontWeight="600">{t('forms.accountType')} *</Paragraph>
-                <XStack width="100%" gap="$2" flexWrap="wrap">
-                {accountTypes.map((option) => {
-                  const isSelected = option.value === accountType
-                  const Icon = option.icon
-                  return (
-                    <XStack
-                      key={option.value}
-                      width="48.5%"
-                      minH={52}
-                      items="center"
-                      gap="$2"
-                      px="$3"
-                      py="$2"
-                      rounded={14}
-                      bg={isSelected ? '$accent2' : '$muted'}
-                      borderColor={isSelected ? '$primary' : '$input'}
-                      borderWidth={1}
-                      pressStyle={{ opacity: 0.8 }}
-                      cursor="pointer"
-                      role="button"
-                      onPress={() => { setAccountType(option.value); validation.clearError('accountType') }}
-                      aria-label={option.label}
-                    >
-                      <Icon size={17} color={isSelected ? '$primary' : '$color10'} />
-                      <Paragraph color={isSelected ? '$primary' : '$color12'} fontSize="$1" fontWeight="700" flex={1} numberOfLines={2}>{option.label}</Paragraph>
-                    </XStack>
-                  )
-                })}
-                </XStack>
-              </FintCard>
-            </FintFormField>
+            <FintOptionGroup
+              label={t('forms.accountType')}
+              required
+              error={validation.errors.accountType}
+              options={accountTypes}
+              value={accountType}
+              onValueChange={(next) => { setAccountType(next); validation.clearError('accountType') }}
+            />
 
             {!isEditing ? (
               <MovementAmountField label={t('formLabels.openingBalanceOptional')} required={false} currency={currency} error={validation.errors.openingBalance} value={openingBalance} onChangeText={(value) => { setOpeningBalance(value); validation.clearError('openingBalance') }} onBlur={() => { if (openingBalance.trim()) validation.validateField('openingBalance', accountDetailsSchema.shape.openingBalance, parseDecimalInput(openingBalance)) }} />

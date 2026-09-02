@@ -20,8 +20,8 @@ import { EmptyState } from "../../src/components/EmptyState";
 import { Screen } from "../../src/components/Screen";
 import { SwipeableRow } from "../../src/components/SwipeableRow";
 import {
+  SkeletonBlock,
   SkeletonGroup,
-  SkeletonHero,
   SkeletonList,
 } from "../../src/components/Skeleton";
 import { usePressOnce } from "../../src/hooks/usePressOnce";
@@ -100,15 +100,17 @@ export default function AccountsScreen() {
         onRefresh={() => {
           void accountsQuery.refetch();
         }}
+        ground={
+          !isLoading && !error && accountsQuery.data ? (
+            <AccountsSummary overview={accountsQuery.data} />
+          ) : (
+            <YStack gap="$2">
+              <SkeletonBlock height={14} width="42%" opacity={0.5} />
+              <SkeletonBlock height={40} width="70%" opacity={0.5} />
+            </YStack>
+          )
+        }
       >
-        {isLoading ? (
-          <SkeletonGroup label={t("states.loading")}>
-            <SkeletonHero />
-          </SkeletonGroup>
-        ) : null}
-        {!isLoading && !error && accountsQuery.data ? (
-          <AccountsSummary overview={accountsQuery.data} />
-        ) : null}
         {!isLoading && (accountsQuery.data?.currencies.length ?? 0) > 1 ? (
           <FintSheetSelect
             label={t("forms.currency")}
@@ -128,7 +130,7 @@ export default function AccountsScreen() {
               color="$color12"
               fontFamily="$heading"
               fontSize="$6"
-              fontWeight="700"
+              fontWeight="600"
             >
               {t("accounts.myAccounts")}
             </Paragraph>
@@ -205,45 +207,54 @@ export default function AccountsScreen() {
 
 function AccountsSummary({ overview }: { overview: AccountsOverview }) {
   const { t } = useTranslation();
-  const { formatSensitiveAmount } = useSensitiveMoney();
+  const { formatSensitiveAmount, formatSensitiveAmountOnly } =
+    useSensitiveMoney();
   return (
-    <FintCard bg="$heroBackground" borderColor="$heroBorder" gap="$4" p="$4">
-      <XStack items="center" justify="space-between" gap="$3">
-        <YStack gap="$1" flex={1} minW={0}>
+    <YStack gap="$5">
+      <XStack items="flex-end" justify="space-between" gap="$4">
+        <YStack flex={1} minW={0}>
           <Paragraph
             color="$heroMuted"
-            fontFamily="$heading"
-            fontSize="$2"
-            fontWeight="700"
+            fontSize={11}
+            fontWeight="600"
+            letterSpacing={1.4}
             textTransform="uppercase"
           >
             {t("accounts.consolidatedBalance")}
           </Paragraph>
-          <Paragraph
-            color="$heroForeground"
-            fontFamily="$body"
-            fontSize="$9"
-            fontWeight="800"
-            lineHeight="$9"
-            numberOfLines={1}
-            adjustsFontSizeToFit
-          >
-            {formatSensitiveAmount(overview.totals.netWorth, overview.currency)}
-          </Paragraph>
+          <XStack items="baseline" gap="$2" mt="$2">
+            <Paragraph color="$heroMuted" fontSize="$3" fontWeight="500">
+              {overview.currency}
+            </Paragraph>
+            <Paragraph
+              color="$heroForeground"
+              fontFamily="$body"
+              fontSize={40}
+              fontWeight="600"
+              letterSpacing={-1.2}
+              lineHeight={44}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
+              {formatSensitiveAmountOnly(overview.totals.netWorth)}
+            </Paragraph>
+          </XStack>
         </YStack>
         <SensitiveAmountToggle color="$heroAccent" inverse />
       </XStack>
-      <XStack gap="$4">
+
+      <YStack height={1} bg="rgba(246,251,252,0.13)" />
+
+      <XStack gap="$5">
         <SummaryMetric
-          accent="$heroAccent"
           label={t("accounts.assets")}
           value={formatSensitiveAmount(
             overview.totals.assets,
             overview.currency,
           )}
         />
+        <YStack width={1} bg="rgba(246,251,252,0.13)" />
         <SummaryMetric
-          accent="$destructive"
           label={t("accounts.liabilities")}
           value={formatSensitiveAmount(
             overview.totals.liabilities,
@@ -251,30 +262,22 @@ function AccountsSummary({ overview }: { overview: AccountsOverview }) {
           )}
         />
       </XStack>
-    </FintCard>
+    </YStack>
   );
 }
 
-function SummaryMetric({
-  accent,
-  label,
-  value,
-}: {
-  accent: string;
-  label: string;
-  value: string;
-}) {
+function SummaryMetric({ label, value }: { label: string; value: string }) {
   return (
-    <YStack flex={1} minW={0} gap="$1">
-      <YStack height={4} rounded="$10" bg={accent as never} />
+    <YStack flex={1} minW={0} gap="$1.5">
       <Paragraph color="$heroMuted" fontFamily="$body" fontSize="$1">
         {label}
       </Paragraph>
       <Paragraph
         color="$heroForeground"
         fontFamily="$body"
-        fontSize="$3"
-        fontWeight="800"
+        fontSize="$5"
+        fontWeight="600"
+        letterSpacing={-0.3}
         numberOfLines={1}
       >
         {value}
@@ -318,7 +321,9 @@ function AccountCard({
           rounded="$5"
           cursor="pointer"
           role="button"
-          pressStyle={{ bg: "$secondary" }}
+          bg="transparent"
+          transition="quick"
+          pressStyle={{ bg: "$secondary", scale: 0.99 }}
           onPress={onPress}
           aria-label={t("accounts.editAccessibility", { name: account.name })}
         >
@@ -339,7 +344,7 @@ function AccountCard({
               color="$color12"
               fontFamily="$heading"
               fontSize="$4"
-              fontWeight="700"
+              fontWeight="600"
               numberOfLines={1}
             >
               {account.name}
@@ -351,7 +356,7 @@ function AccountCard({
           <Paragraph
             color={isNegative ? "$red11" : "$color12"}
             fontSize="$4"
-            fontWeight="800"
+            fontWeight="600"
             shrink={0}
           >
             {formatSensitiveAmount(account.balance, account.currency)}

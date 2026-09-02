@@ -5,9 +5,9 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import {
-  ArrowDownLeft,
+  ArrowDown,
+  ArrowUp,
   ArrowLeftRight,
-  ArrowUpRight,
   ChevronRight,
   ImageUp,
   Mail,
@@ -23,7 +23,7 @@ import { useDeferredValue, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Button, Input, Paragraph, XStack, YStack } from "tamagui";
+import { Button, Input, Paragraph, useTheme, XStack, YStack } from "tamagui";
 import { financeApi } from "../../src/api/finance";
 import { formatMoney, normalizeTransaction } from "../../src/api/mappers";
 import type { Transaction } from "../../src/api/types";
@@ -33,7 +33,7 @@ import { EmptyState } from "../../src/components/EmptyState";
 import { SwipeableRow } from "../../src/components/SwipeableRow";
 import {
   SkeletonGroup,
-  SkeletonHero,
+  SkeletonBlock,
   SkeletonList,
 } from "../../src/components/Skeleton";
 import { getCategoryLabel } from "../../src/finance/categoryLabels";
@@ -105,6 +105,7 @@ function monthRange(month: Date) {
     to: isoDate(new Date(month.getFullYear(), month.getMonth() + 1, 1)),
   };
 }
+const FLOATING_ACTION_CLEARANCE = 96
 
 export default function MovementsScreen() {
   const { t, i18n } = useTranslation();
@@ -114,6 +115,7 @@ export default function MovementsScreen() {
   const insets = useSafeAreaInsets();
   const { capabilities } = useCapabilities();
   const { themeMode } = useThemeMode();
+  const theme = useTheme();
   const [month, setMonth] = useState(
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   );
@@ -287,18 +289,30 @@ export default function MovementsScreen() {
   });
 
   const header = (
-    <YStack gap="$4" mb="$4">
-      {movementsQuery.isLoading ? (
-        <SkeletonGroup label={t("states.loading")}>
-          <SkeletonHero />
-        </SkeletonGroup>
-      ) : (
-        <MovementHero
-          currency={currency}
-          expenses={currencySummary?.expenses ?? 0}
-          income={currencySummary?.income ?? 0}
-        />
-      )}
+    <YStack mx={-16} mb="$4">
+      {}
+      <YStack bg="$headerBackground" px="$4" pt="$5" pb="$7">
+        {movementsQuery.isLoading ? (
+          <YStack gap="$2">
+            <SkeletonBlock height={14} width="42%" opacity={0.5} />
+            <SkeletonBlock height={40} width="70%" opacity={0.5} />
+          </YStack>
+        ) : (
+          <MovementHero
+            currency={currency}
+            expenses={currencySummary?.expenses ?? 0}
+            income={currencySummary?.income ?? 0}
+          />
+        )}
+      </YStack>
+      <YStack
+        bg="$background"
+        mt={-26}
+        pt="$5"
+        px={16}
+        gap="$4"
+        style={{ borderTopLeftRadius: 28, borderTopRightRadius: 28 }}
+      >
       {(summary?.byCurrency.length ?? 0) > 1 ? (
         <FintSheetSelect
           label={t("forms.currency")}
@@ -333,7 +347,8 @@ export default function MovementsScreen() {
           p="$3"
           bg={pendingCount ? "$yellow2" : "$muted"}
           role="button"
-          pressStyle={{ opacity: 0.8 }}
+          transition="quick"
+          pressStyle={{ scale: 0.98, opacity: 0.9 }}
           onPress={() => router.push("/pending-movements")}
           aria-label={t("movementUx.pendingCount", { count: pendingCount })}
         >
@@ -350,7 +365,7 @@ export default function MovementsScreen() {
           <YStack flex={1} minW={0} gap="$1">
             <Paragraph
               color={pendingCount ? "$yellow11" : "$color11"}
-              fontWeight="800"
+              fontWeight="600"
             >
               {pendingSummaryQuery.isLoading
                 ? t("movementUx.pendingTitle")
@@ -369,7 +384,7 @@ export default function MovementsScreen() {
             color="$color12"
             fontFamily="$heading"
             fontSize="$6"
-            fontWeight="700"
+            fontWeight="600"
           >
             {t("movementUx.movementCount", { count: summary?.totalCount ?? 0 })}
           </Paragraph>
@@ -405,6 +420,7 @@ export default function MovementsScreen() {
             fontSize="$4"
             placeholderTextColor="$mutedForeground"
             placeholder={t("movementUx.searchPlaceholder")}
+            numberOfLines={1}
             value={search}
             onChangeText={setSearch}
             autoCapitalize="none"
@@ -436,6 +452,7 @@ export default function MovementsScreen() {
           }}
         />
       ) : null}
+      </YStack>
     </YStack>
   );
 
@@ -447,8 +464,11 @@ export default function MovementsScreen() {
           item.kind === "transfer" ? item.transferGroupId : item.movement.id
         }
         contentContainerStyle={{
-          padding: 16,
-          paddingBottom: Math.max(insets.bottom, 24),
+          paddingHorizontal: 16,
+          paddingTop: 0,
+          paddingBottom:
+            Math.max(insets.bottom, 24) +
+            (capabilities.features.captureImport ? FLOATING_ACTION_CLEARANCE : 0),
           flexGrow: movementItems.length ? undefined : 1,
         }}
         ListHeaderComponent={header}
@@ -481,6 +501,9 @@ export default function MovementsScreen() {
             onRefresh={() => {
               void movementsQuery.refetch();
             }}
+            tintColor={theme.headerAccent.val}
+            colors={[theme.headerAccent.val]}
+            progressBackgroundColor={theme.headerBackground.val}
           />
         }
         onEndReached={() => {
@@ -523,20 +546,21 @@ export default function MovementsScreen() {
       {capabilities.features.captureImport ? (
         <YStack
           position="absolute"
-          r="$4"
-          b={Math.max(insets.bottom, 16) + 12}
+          r="$5"
+          b={Math.max(insets.bottom, 16) + 28}
           width={56}
           height={56}
           rounded={999}
           bg="$primary"
           items="center"
           justify="center"
-          shadowColor={themeMode === "dark" ? "#000000" : "#104452"}
+          shadowColor={themeMode === "dark" ? "#000000" : "#043036"}
           shadowOffset={{ width: 0, height: 8 }}
           shadowOpacity={themeMode === "dark" ? 0.28 : 0.14}
           shadowRadius={20}
           elevation={4}
-          pressStyle={{ opacity: 0.85 }}
+          transition="quick"
+          pressStyle={{ scale: 0.94, bg: "$primaryStrong" }}
           onPress={() => router.push("/capture-import")}
           aria-label={t("capture.action")}
         >
@@ -630,16 +654,16 @@ function MovementCard({
             {isStrandedTransfer ? (
               <ArrowLeftRight size={20} color="$primary" />
             ) : isIncome ? (
-              <ArrowDownLeft size={20} color="$green10" />
+              <ArrowUp size={20} color="$green10" />
             ) : (
-              <ArrowUpRight size={20} color="$red10" />
+              <ArrowDown size={20} color="$red10" />
             )}
           </YStack>
           <YStack flex={1} minW={0} gap="$1">
             <Paragraph
               color="$color12"
               fontSize="$3"
-              fontWeight="800"
+              fontWeight="600"
               numberOfLines={1}
             >
               {getCategoryLabel(movement.category, t)}
@@ -662,7 +686,7 @@ function MovementCard({
           <Paragraph
             color={isStrandedTransfer ? "$color11" : isIncome ? "$green10" : "$red10"}
             fontSize="$3"
-            fontWeight="900"
+            fontWeight="600"
           >
             {formatSensitiveAmount(movement.amount, movement.currency)}
           </Paragraph>
@@ -721,7 +745,7 @@ function TransferMovementCard({
           <Paragraph
             color="$color12"
             fontSize="$3"
-            fontWeight="800"
+            fontWeight="600"
             numberOfLines={2}
           >
             {t("movementUx.transferCardTitle", {
@@ -737,7 +761,7 @@ function TransferMovementCard({
           </Paragraph>
         </YStack>
         <YStack items="flex-end" gap="$1">
-          <Paragraph color="$color11" fontSize="$3" fontWeight="900">
+          <Paragraph color="$color11" fontSize="$3" fontWeight="600">
             {formatSensitiveAmount(item.amount, item.currency)}
           </Paragraph>
           <Button chromeless size="$2" onPress={onReverse}>
@@ -847,58 +871,90 @@ function MovementHero({
   income: number;
 }) {
   const { t } = useTranslation();
-  const { formatSensitiveAmount } = useSensitiveMoney();
+  const { formatSensitiveAmount, formatSensitiveAmountOnly } =
+    useSensitiveMoney();
   return (
-    <FintCard bg="$heroBackground" borderColor="$heroBorder" gap="$4" p="$4">
-      <XStack items="center" justify="space-between">
-        <YStack gap="$1">
+    <YStack gap="$5">
+      <XStack items="flex-end" justify="space-between" gap="$4">
+        <YStack flex={1} minW={0}>
           <Paragraph
             color="$heroMuted"
-            fontFamily="$heading"
-            fontSize="$2"
-            fontWeight="700"
+            fontSize={11}
+            fontWeight="600"
+            letterSpacing={1.4}
             textTransform="uppercase"
           >
             {t("movementUx.monthFlow")}
           </Paragraph>
-          <Paragraph color="$heroForeground" fontSize="$8" fontWeight="900">
-            {formatSensitiveAmount(income - expenses, currency)}
-          </Paragraph>
+          <XStack items="baseline" gap="$2" mt="$2">
+            <Paragraph color="$heroMuted" fontSize="$3" fontWeight="500">
+              {currency}
+            </Paragraph>
+            <Paragraph
+              color="$heroForeground"
+              fontFamily="$body"
+              fontSize={40}
+              fontWeight="600"
+              letterSpacing={-1.2}
+              lineHeight={44}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
+              {formatSensitiveAmountOnly(income - expenses)}
+            </Paragraph>
+          </XStack>
         </YStack>
         <SensitiveAmountToggle color="$heroAccent" inverse />
       </XStack>
-      <XStack gap="$3">
+
+      <YStack height={1} bg="rgba(246,251,252,0.13)" />
+
+      <XStack gap="$5">
         <HeroMetric
+          tone="positive"
           label={t("dashboard.totalIncome")}
           value={formatSensitiveAmount(income, currency)}
-          color="$heroAccent"
         />
+        <YStack width={1} bg="rgba(246,251,252,0.13)" />
         <HeroMetric
+          tone="negative"
           label={t("dashboard.totalExpenses")}
           value={formatSensitiveAmount(expenses, currency)}
-          color="$destructive"
         />
       </XStack>
-    </FintCard>
+    </YStack>
   );
 }
 
 function HeroMetric({
-  color,
   label,
+  tone,
   value,
 }: {
-  color: string;
   label: string;
+  tone: "positive" | "negative";
   value: string;
 }) {
+  const Icon = tone === "positive" ? ArrowUp : ArrowDown;
   return (
-    <YStack flex={1} gap="$1">
-      <YStack height={4} rounded="$10" bg={color as never} />
-      <Paragraph color="$heroMuted" fontSize="$1">
-        {label}
-      </Paragraph>
-      <Paragraph color="$heroForeground" fontSize="$3" fontWeight="800">
+    <YStack flex={1} minW={0} gap="$1.5">
+      <XStack items="center" gap="$1.5">
+        <Icon
+          size={13}
+          color={tone === "positive" ? "#8FD9BC" : "#E9A99F"}
+          strokeWidth={2.2}
+        />
+        <Paragraph color="$heroMuted" fontSize="$1">
+          {label}
+        </Paragraph>
+      </XStack>
+      <Paragraph
+        color="$heroForeground"
+        fontSize="$5"
+        fontWeight="600"
+        letterSpacing={-0.3}
+        numberOfLines={1}
+      >
         {value}
       </Paragraph>
     </YStack>

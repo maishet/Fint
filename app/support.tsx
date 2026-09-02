@@ -90,7 +90,33 @@ export default function SupportScreen() {
   };
 
   return (
-    <Screen>
+    <Screen
+      ground={
+        <YStack gap="$4">
+          <XStack gap="$3" items="center">
+            <YStack
+              width={48}
+              height={48}
+              rounded={24}
+              bg="rgba(246,251,252,0.10)"
+              borderColor="rgba(246,251,252,0.16)"
+              borderWidth={1}
+              items="center"
+              justify="center"
+              shrink={0}
+            >
+              <HelpCircle size={24} color="$heroAccent" />
+            </YStack>
+            {}
+            <YStack flex={1} minW={0}>
+              <Paragraph color="$heroForeground" fontSize="$3">
+                {t("support.subtitle")}
+              </Paragraph>
+            </YStack>
+          </XStack>
+        </YStack>
+      }
+    >
       <FintConfirmDialog
         cancelLabel={t("actions.cancel")}
         confirmLabel={t("support.confirmSend")}
@@ -105,33 +131,6 @@ export default function SupportScreen() {
           if (pendingReport) void sendReport(pendingReport);
         }}
       />
-      <FintCard bg="$heroBackground" borderColor="$heroBorder" gap="$3">
-        <XStack gap="$3" items="center">
-          <YStack
-            width={48}
-            height={48}
-            rounded="$10"
-            bg="rgba(93,214,229,0.14)"
-            borderColor="rgba(93,214,229,0.24)"
-            borderWidth={1}
-            items="center"
-            justify="center"
-          >
-            <HelpCircle size={24} color="$heroAccent" />
-          </YStack>
-          <YStack flex={1}>
-            <Paragraph
-              color="$heroForeground"
-              fontFamily="$heading"
-              fontSize="$6"
-              fontWeight="800"
-            >
-              {t("support.title")}
-            </Paragraph>
-            <Paragraph color="$heroMuted">{t("support.subtitle")}</Paragraph>
-          </YStack>
-        </XStack>
-      </FintCard>
       <FintFormField
         label={t("support.category")}
         required
@@ -206,14 +205,14 @@ export default function SupportScreen() {
       <FintCard gap="$2" onPress={() => router.push("/improvements") }>
         <XStack gap="$2" items="center">
           <Lightbulb size={18} color="$primary" />
-          <Paragraph color="$color12" fontWeight="800">
+          <Paragraph color="$color12" fontWeight="600">
             {t("support.improvement")}
           </Paragraph>
         </XStack>
         <Paragraph color="$color10">{t("support.improvementHint")}</Paragraph>
       </FintCard>
       <FintCard gap="$2">
-        <Paragraph color="$color12" fontWeight="800">
+        <Paragraph color="$color12" fontWeight="600">
           {t("support.faq")}
         </Paragraph>
         <Paragraph color="$color10">{t("support.login")}</Paragraph>

@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowDownLeft,
-  ArrowUpRight,
+  ArrowDown,
+  ArrowUp,
   Save,
   Shapes,
   X,
@@ -161,7 +161,7 @@ export function CreateCategorySheet({
                     color="$color12"
                     fontFamily="$heading"
                     fontSize="$7"
-                    fontWeight="700"
+                    fontWeight="600"
                   >
                     {t(isEditing ? "categories.editTitle" : "categories.newTitle")}
                   </Paragraph>
@@ -200,14 +200,14 @@ export function CreateCategorySheet({
                     rounded="$10"
                   >
                     {type === "income" ? (
-                      <ArrowDownLeft size={12} color="$green10" />
+                      <ArrowUp size={12} color="$green10" />
                     ) : (
-                      <ArrowUpRight size={12} color="$red10" />
+                      <ArrowDown size={12} color="$red10" />
                     )}
                     <Paragraph
                       color={type === "income" ? "$green11" : "$red11"}
                       fontSize={10}
-                      fontWeight="800"
+                      fontWeight="600"
                     >
                       {t(`forms.${type}`)}
                     </Paragraph>
@@ -262,14 +262,14 @@ export function CreateCategorySheet({
                   </Text>
                 </YStack>
                 <YStack flex={1} minW={0} gap="$1">
-                  <Paragraph color="$color10" fontSize="$1" fontWeight="700">
+                  <Paragraph color="$color10" fontSize="$1" fontWeight="600">
                     {t("categoryUx.identity")}
                   </Paragraph>
                   <Paragraph
                     color="$color12"
                     fontFamily="$heading"
                     fontSize="$5"
-                    fontWeight="800"
+                    fontWeight="600"
                     numberOfLines={1}
                   >
                     {name.trim() || t("categories.newTitle")}
@@ -277,7 +277,7 @@ export function CreateCategorySheet({
                   <Paragraph
                     color="$primary"
                     fontSize="$1"
-                    fontWeight="700"
+                    fontWeight="600"
                     onPress={() => setEmojiPickerOpen(true)}
                   >
                     {t("categoryUx.changeEmoji")}
@@ -287,7 +287,7 @@ export function CreateCategorySheet({
 
               {name.trim() ? (
                 <YStack gap="$2">
-                  <Paragraph color="$color10" fontSize="$1" fontWeight="700">
+                  <Paragraph color="$color10" fontSize="$1" fontWeight="600">
                     {t("categoryUx.suggestedEmoji")}
                   </Paragraph>
                   <ScrollView

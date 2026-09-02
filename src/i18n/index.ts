@@ -1474,7 +1474,7 @@ i18n.addResourceBundle(
     movementUx: {
       pendingTitle: "Pendientes detectados",
       pendingReviewHint: "Revisa, edita o descarta movimientos detectados.",
-      searchPlaceholder: "Buscar por categoría, nota, cuenta o monto",
+      searchPlaceholder: "Buscar movimientos",
       searchScopeHint: "Buscando en todo tu historial.",
       searchEmptyTitle: "Sin resultados",
       searchEmptyDescription:
@@ -1904,7 +1904,7 @@ i18n.addResourceBundle(
     movementUx: {
       pendingTitle: "Detected pending items",
       pendingReviewHint: "Review, edit, or discard detected transactions.",
-      searchPlaceholder: "Search by category, note, account, or amount",
+      searchPlaceholder: "Search movements",
       searchScopeHint: "Searching your entire history.",
       searchEmptyTitle: "No results",
       searchEmptyDescription:
@@ -2335,7 +2335,7 @@ i18n.addResourceBundle(
     movementUx: {
       pendingTitle: "Pendências detectadas",
       pendingReviewHint: "Revise, edite ou descarte movimentações detectadas.",
-      searchPlaceholder: "Buscar por categoria, nota, conta ou valor",
+      searchPlaceholder: "Buscar movimentações",
       searchScopeHint: "Buscando em todo o seu histórico.",
       searchEmptyTitle: "Sem resultados",
       searchEmptyDescription:

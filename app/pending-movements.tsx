@@ -18,7 +18,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Button, Paragraph, XStack, YStack } from "tamagui";
+import { Button, Paragraph, useTheme, XStack, YStack } from "tamagui";
 import { financeApi } from "../src/api/finance";
 import { supabase } from "../src/auth/supabase";
 import { formatMoney } from "../src/api/mappers";
@@ -53,6 +53,7 @@ export default function PendingMovementsScreen() {
   const toast = useNotify();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [category, setCategory] = useState("");
   const [paymentOccurrenceId, setPaymentOccurrenceId] =
@@ -316,15 +317,8 @@ export default function PendingMovementsScreen() {
               >
                 <Mail size={20} color="$primary" />
               </YStack>
-              <YStack flex={1} gap="$1">
-                <Paragraph
-                  color="$color12"
-                  fontFamily="$heading"
-                  fontSize="$4"
-                  fontWeight="800"
-                >
-                  {t("movementUx.pendingTitle")}
-                </Paragraph>
+              {}
+              <YStack flex={1}>
                 <Paragraph color="$color10" fontSize="$2">
                   {t("movementUx.pendingReviewHint")}
                 </Paragraph>
@@ -365,6 +359,9 @@ export default function PendingMovementsScreen() {
             onRefresh={() => {
               void pendingQuery.refetch();
             }}
+            tintColor={theme.primary.val}
+            colors={[theme.primary.val]}
+            progressBackgroundColor={theme.card.val}
           />
         }
         onEndReached={() => {
@@ -574,7 +571,7 @@ function PendingCard({
     : t("movementUx.reviewRequired");
   const amountLabel =
     item.amount !== null && item.currency
-      ? `${item.type === "income" ? "+" : item.type === "expense" ? "-" : ""}${formatMoney(item.amount, item.currency)}`
+      ? formatMoney(item.amount, item.currency)
       : t("movementUx.reviewRequired");
   const isPayment = paymentOccurrenceId !== NORMAL_MOVEMENT;
   return (
@@ -616,7 +613,7 @@ function PendingCard({
           <Mail size={18} color="$primary" />
         )}
         <YStack flex={1} minW={0} gap="$1">
-          <Paragraph color="$color12" fontWeight="800" numberOfLines={2}>
+          <Paragraph color="$color12" fontWeight="600" numberOfLines={2}>
             {item.title}
           </Paragraph>
           <Paragraph color="$color10" fontSize="$1" numberOfLines={1}>
@@ -632,7 +629,7 @@ function PendingCard({
                 ? "$red10"
                 : "$yellow10"
           }
-          fontWeight="900"
+          fontWeight="600"
         >
           {amountLabel}
         </Paragraph>
@@ -712,7 +709,7 @@ function PendingCard({
             </>
           ) : (
             <YStack bg="$muted" rounded="$5" p="$3" gap="$2">
-              <Paragraph color="$color12" fontWeight="700">
+              <Paragraph color="$color12" fontWeight="600">
                 {t("movementUx.reviewRequired")}
               </Paragraph>
               <Paragraph color="$color10" fontSize="$2">

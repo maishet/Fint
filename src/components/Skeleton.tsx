@@ -71,41 +71,6 @@ export function SkeletonBlock({
   );
 }
 
-export function SkeletonHero() {
-  return (
-    <FintCard bg="$heroBackground" borderColor="$heroBorder" gap="$4" p="$4">
-      <XStack items="center" justify="space-between" gap="$3">
-        <YStack flex={1} gap="$2">
-          <SkeletonBlock bg="rgba(185,215,225,0.32)" height={11} width="42%" />
-          <SkeletonBlock bg="rgba(244,251,253,0.42)" height={35} width="72%" />
-        </YStack>
-        <SkeletonBlock
-          bg="rgba(93,214,229,0.18)"
-          borderColor="rgba(93,214,229,0.24)"
-          borderWidth={1}
-          height={48}
-          rounded="$10"
-          width={48}
-        />
-      </XStack>
-      <XStack gap="$4">
-        <HeroMetricSkeleton />
-        <HeroMetricSkeleton />
-      </XStack>
-    </FintCard>
-  );
-}
-
-function HeroMetricSkeleton() {
-  return (
-    <YStack flex={1} gap="$1">
-      <SkeletonBlock bg="rgba(93,214,229,0.32)" height={4} />
-      <SkeletonBlock bg="rgba(185,215,225,0.28)" height={9} width="58%" />
-      <SkeletonBlock bg="rgba(244,251,253,0.38)" height={16} width="76%" />
-    </YStack>
-  );
-}
-
 export function SkeletonList({ grouped = false, rows = 3 }: SkeletonListProps) {
   const content = Array.from({ length: rows }, (_, index) => (
     <YStack key={index}>

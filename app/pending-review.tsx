@@ -459,7 +459,7 @@ export default function PendingReviewScreen() {
                     color="$color12"
                     fontFamily="$heading"
                     fontSize="$5"
-                    fontWeight="800"
+                    fontWeight="600"
                     lineHeight="$6"
                   >
                     {detail.title}
@@ -720,7 +720,7 @@ function TransferScenario1Summary({
             color="$color12"
             fontFamily="$heading"
             fontSize="$4"
-            fontWeight="800"
+            fontWeight="600"
           >
             {t("movementUx.transferCardTitle", {
               origin: origin.accountName,
@@ -758,7 +758,7 @@ function TransferScenario1Summary({
             onPress={onEdit}
             aria-label={t("actions.edit")}
           >
-            <Paragraph color="$color10" fontSize="$2" fontWeight="700">
+            <Paragraph color="$color10" fontSize="$2" fontWeight="600">
               {t("actions.edit")}
             </Paragraph>
           </Button>
@@ -769,7 +769,7 @@ function TransferScenario1Summary({
             onPress={onDiscard}
             aria-label={t("movementUx.discardShort")}
           >
-            <Paragraph color="$red10" fontSize="$2" fontWeight="700">
+            <Paragraph color="$red10" fontSize="$2" fontWeight="600">
               {t("movementUx.discardShort")}
             </Paragraph>
           </Button>
@@ -933,7 +933,7 @@ function TransferScenario2Summary({
             color="$color12"
             fontFamily="$heading"
             fontSize="$4"
-            fontWeight="800"
+            fontWeight="600"
           >
             {title}
           </Paragraph>
@@ -971,7 +971,7 @@ function TransferScenario2Summary({
             onPress={onEdit}
             aria-label={t("actions.edit")}
           >
-            <Paragraph color="$color10" fontSize="$2" fontWeight="700">
+            <Paragraph color="$color10" fontSize="$2" fontWeight="600">
               {t("actions.edit")}
             </Paragraph>
           </Button>
@@ -982,7 +982,7 @@ function TransferScenario2Summary({
             onPress={onDiscard}
             aria-label={t("movementUx.discardShort")}
           >
-            <Paragraph color="$red10" fontSize="$2" fontWeight="700">
+            <Paragraph color="$red10" fontSize="$2" fontWeight="600">
               {t("movementUx.discardShort")}
             </Paragraph>
           </Button>
@@ -1020,7 +1020,7 @@ function TransferScenario3Summary({
             color="$color12"
             fontFamily="$heading"
             fontSize="$4"
-            fontWeight="800"
+            fontWeight="600"
           >
             {t("movementUx.transferUnknownTitle")}
           </Paragraph>
@@ -1047,7 +1047,7 @@ function TransferScenario3Summary({
           onPress={onRegisterManually}
           aria-label={t("movementUx.transferRegisterManually")}
         >
-          <Paragraph color="$color10" fontSize="$2" fontWeight="700">
+          <Paragraph color="$color10" fontSize="$2" fontWeight="600">
             {t("movementUx.transferRegisterManually")}
           </Paragraph>
         </Button>

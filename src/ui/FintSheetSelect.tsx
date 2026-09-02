@@ -51,13 +51,15 @@ export function FintSheetSelect({ label, onValueChange, options, placeholder, se
         items="center"
         justify="space-between"
         gap="$3"
+        minH={48}
         px="$3"
         py="$3"
-        rounded="$5"
+        rounded={14}
         bg={isSelected ? '$secondary' : 'transparent'}
         borderColor={isSelected ? '$primary' : 'transparent'}
         borderWidth={1}
-        pressStyle={{ bg: '$secondary' }}
+        transition="quick"
+        pressStyle={{ bg: '$secondary', scale: 0.99 }}
         cursor="pointer"
         role="button"
         onPress={() => {
@@ -85,12 +87,14 @@ export function FintSheetSelect({ label, onValueChange, options, placeholder, se
           items="center"
           justify="space-between"
           gap="$3"
+          minH={52}
           bg="$muted"
           borderColor="$input"
           borderWidth={1}
           rounded={14}
           p="$3"
-          pressStyle={{ bg: '$secondary', borderColor: '$ring' }}
+          transition="quick"
+          pressStyle={{ bg: '$secondary', borderColor: '$ring', scale: 0.99 }}
           cursor="pointer"
           role="button"
           onPress={() => setIsOpen(true)}
@@ -99,7 +103,7 @@ export function FintSheetSelect({ label, onValueChange, options, placeholder, se
         >
           <YStack flex={1} minW={0} gap="$1">
             {showLabel ? <Paragraph color="$color10" fontSize="$1">{label}</Paragraph> : null}
-            <Paragraph color="$color12" fontWeight="700" numberOfLines={1}>{selectedLabel}</Paragraph>
+            <Paragraph color="$color12" fontWeight="600" numberOfLines={1}>{selectedLabel}</Paragraph>
           </YStack>
           <ChevronDown size={18} color="$color10" />
         </XStack>
@@ -121,7 +125,7 @@ export function FintSheetSelect({ label, onValueChange, options, placeholder, se
         <Sheet.Overlay bg="rgba(0,0,0,0.4)" />
         <Sheet.Handle bg="$color6" />
         <Sheet.Frame bg="$popover" gap="$2" px="$4" pt="$2" pb={Math.max(insets.bottom, 16)} rounded={14}>
-          <Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="700" mb="$1">{label}</Paragraph>
+          <Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="600" mb="$1">{label}</Paragraph>
           {searchable ? (
             <XStack items="center" gap="$2" bg="$muted" borderColor="$input" borderWidth={1} rounded={14} px="$3">
               <Search size={17} color="$color10" />

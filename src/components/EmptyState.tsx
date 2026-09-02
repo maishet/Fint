@@ -36,7 +36,7 @@ export function EmptyState({
           color="$color12"
           fontFamily="$heading"
           fontSize="$5"
-          fontWeight="700"
+          fontWeight="600"
           text="center"
         >
           {title}

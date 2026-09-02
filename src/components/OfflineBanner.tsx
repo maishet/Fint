@@ -27,7 +27,7 @@ export function OfflineBanner() {
       pb={insets.bottom + 8}
     >
       <WifiOff size={15} color="$color1" />
-      <Paragraph color="$color1" fontSize="$2" fontWeight="700">
+      <Paragraph color="$color1" fontSize="$2" fontWeight="600">
         {t('network.offlineBanner')}
       </Paragraph>
     </XStack>

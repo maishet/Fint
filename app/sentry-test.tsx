@@ -27,7 +27,7 @@ export default function SentryTestScreen() {
     <YStack flex={1} bg="$background" justify="center" p="$5">
       <FintCard gap="$4">
         <YStack gap="$2">
-          <Paragraph color="$color12" fontFamily="$heading" fontSize="$6" fontWeight="800">Sentry validation</Paragraph>
+          <Paragraph color="$color12" fontFamily="$heading" fontSize="$6" fontWeight="600">Sentry validation</Paragraph>
           <Paragraph color="$color10">Esta pantalla solo debe habilitarse en preview para validar sanitizacion y source maps.</Paragraph>
         </YStack>
         <FintButton onPress={sendControlledEvent}>Enviar evento controlado</FintButton>

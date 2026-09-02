@@ -37,8 +37,6 @@ export function AppHeader({ showGreeting = false, title }: AppHeaderProps) {
     >
       <XStack
         bg="$headerBackground"
-        borderBottomColor="$headerBorder"
-        borderBottomWidth={1}
         px="$4"
         py="$3"
         items="center"
@@ -47,76 +45,75 @@ export function AppHeader({ showGreeting = false, title }: AppHeaderProps) {
       >
         <XStack items="center" gap="$3" flex={1} minW={0}>
           <YStack
-            width={38}
-            height={38}
-            rounded="$8"
+            width={34}
+            height={34}
+            rounded={17}
             overflow="hidden"
-            bg="$accent9"
+            shrink={0}
           >
             <Image
               source={require("../../assets/images/icon.png")}
-              style={{ width: 38, height: 38 }}
+              style={{ width: 34, height: 34 }}
               resizeMode="cover"
             />
           </YStack>
-          <YStack flex={1} minW={0}>
-            <Paragraph color="$headerMuted" fontSize="$1" fontWeight="800">
-              My Fint
-            </Paragraph>
-            <Paragraph
-              color="$headerForeground"
-              fontFamily="$heading"
-              fontSize="$5"
-              fontWeight="800"
-              lineHeight="$5"
-              numberOfLines={1}
-            >
-              {heading}
-            </Paragraph>
-          </YStack>
+          <Paragraph
+            flex={1}
+            minW={0}
+            color="$headerForeground"
+            fontFamily="$heading"
+            fontSize="$5"
+            fontWeight="600"
+            letterSpacing={-0.2}
+            lineHeight="$5"
+            numberOfLines={1}
+          >
+            {heading}
+          </Paragraph>
         </XStack>
 
-        <XStack items="center" gap="$2">
-          <YStack
-            width={40}
-            height={40}
-            rounded={999}
-            overflow="hidden"
-            bg="$headerBackground"
-            borderColor="$headerAccent"
-            borderWidth={1}
-            items="center"
-            justify="center"
-            pressStyle={{ opacity: 0.78 }}
-            onPress={() => router.push("/settings")}
-            aria-label={t("header.menuTitle")}
-          >
-            {avatarUrl ? (
-              <Image
-                source={{ uri: avatarUrl }}
-                style={{ width: 40, height: 40, borderRadius: 999 }}
-                resizeMode="cover"
-                accessibilityLabel={displayName ?? undefined}
-              />
-            ) : (
-              <Text
-                style={{
-                  color: theme.headerAccent.val,
-                  fontFamily: "InterBold",
-                  fontSize: 16,
-                  fontWeight: "700",
-                  includeFontPadding: false,
-                  lineHeight: 40,
-                  textAlign: "center",
-                  textAlignVertical: "center",
-                  width: 40,
-                }}
-              >
-                {initial}
-              </Text>
-            )}
-          </YStack>
-        </XStack>
+        <YStack
+          width={44}
+          height={44}
+          rounded={22}
+          overflow="hidden"
+          bg="rgba(246,251,252,0.10)"
+          borderColor="rgba(246,251,252,0.16)"
+          borderWidth={1}
+          items="center"
+          justify="center"
+          shrink={0}
+          transition="quick"
+          pressStyle={{ scale: 0.96, bg: "rgba(246,251,252,0.16)" }}
+          onPress={() => router.push("/settings")}
+          role="button"
+          aria-label={t("header.menuTitle")}
+        >
+          {avatarUrl ? (
+            <Image
+              source={{ uri: avatarUrl }}
+              style={{ width: 44, height: 44, borderRadius: 22 }}
+              resizeMode="cover"
+              accessibilityLabel={displayName ?? undefined}
+            />
+          ) : (
+            <Text
+              style={{
+                color: theme.headerAccent.val,
+                fontFamily: "InterSemiBold",
+                fontSize: 15,
+                fontWeight: "600",
+                includeFontPadding: false,
+                lineHeight: 44,
+                textAlign: "center",
+                textAlignVertical: "center",
+                width: 44,
+              }}
+            >
+              {initial}
+            </Text>
+          )}
+        </YStack>
       </XStack>
     </SafeAreaView>
   );

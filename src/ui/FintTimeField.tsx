@@ -69,7 +69,7 @@ export function FintTimeField({
           >
             {title ? (
               <XStack justify="center">
-                <Paragraph color="$color12" fontWeight="800" fontSize="$5">
+                <Paragraph color="$color12" fontWeight="600" fontSize="$5">
                   {title}
                 </Paragraph>
               </XStack>

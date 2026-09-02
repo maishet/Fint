@@ -177,7 +177,7 @@ export function FintDateField({
               ) : null}
               <Paragraph
                 color={value ? "$color12" : "$mutedForeground"}
-                fontWeight="700"
+                fontWeight="600"
                 numberOfLines={1}
               >
                 {value ? formatDateString(value, locale) : placeholder}

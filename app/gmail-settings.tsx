@@ -91,51 +91,49 @@ export default function GmailSettingsScreen() {
     <Screen
       isRefreshing={sourcesQuery.isRefetching}
       onRefresh={() => sourcesQuery.refetch()}
-    >
-      <FintCard bg="$heroBackground" borderColor="$heroBorder" gap="$3">
-        <XStack items="center" gap="$3">
-          <YStack
-            width={48}
-            height={48}
-            rounded="$10"
-            bg="rgba(93,214,229,0.14)"
-            borderColor="rgba(93,214,229,0.24)"
-            borderWidth={1}
-            items="center"
-            justify="center"
-          >
-            <Mail size={24} color="$heroAccent" />
-          </YStack>
-          <YStack flex={1}>
-            <Paragraph
-              color="$heroForeground"
-              fontFamily="$heading"
-              fontSize="$6"
-              fontWeight="800"
+      ground={
+        <YStack gap="$4">
+          <XStack items="center" gap="$3">
+            <YStack
+              width={48}
+              height={48}
+              rounded={24}
+              bg="rgba(246,251,252,0.10)"
+              borderColor="rgba(246,251,252,0.16)"
+              borderWidth={1}
+              items="center"
+              justify="center"
+              shrink={0}
             >
-              {t("gmail.title")}
-            </Paragraph>
-            <Paragraph color="$heroMuted">{t("gmail.description")}</Paragraph>
-          </YStack>
-        </XStack>
-        <FintButton
-          disabled={
-            connectMutation.isPending ||
-            visibleSources.filter((source) => source.status === "active")
-              .length >= 3
-          }
-          icon={
-            connectMutation.isPending ? (
-              <FintSpinner color="$primaryForeground" />
-            ) : (
-              <Plus size={18} />
-            )
-          }
-          onPress={connect}
-        >
-          {t("gmail.connect")}
-        </FintButton>
-      </FintCard>
+              <Mail size={24} color="$heroAccent" />
+            </YStack>
+            {}
+            <YStack flex={1} minW={0}>
+              <Paragraph color="$heroForeground" fontSize="$3">
+                {t("gmail.description")}
+              </Paragraph>
+            </YStack>
+          </XStack>
+        </YStack>
+      }
+    >
+      <FintButton
+        disabled={
+          connectMutation.isPending ||
+          visibleSources.filter((source) => source.status === "active")
+            .length >= 3
+        }
+        icon={
+          connectMutation.isPending ? (
+            <FintSpinner color="$primaryForeground" />
+          ) : (
+            <Plus size={18} />
+          )
+        }
+        onPress={connect}
+      >
+        {t("gmail.connect")}
+      </FintButton>
       {sourcesQuery.isLoading ? (
         <GmailSourcesSkeleton label={t("states.loading")} />
       ) : null}
@@ -290,7 +288,7 @@ function GmailSourceCard({
             <Mail size={20} color="$primary" />
           </YStack>
           <YStack flex={1}>
-            <Paragraph color="$color12" fontWeight="800">
+            <Paragraph color="$color12" fontWeight="600">
               {source.emailAddress}
             </Paragraph>
             <Paragraph color="$color10" fontSize="$1">
@@ -311,7 +309,7 @@ function GmailSourceCard({
             p="$3"
             gap="$2"
           >
-            <Paragraph color="$red11" fontWeight="700">
+            <Paragraph color="$red11" fontWeight="600">
               {t("gmail.reconnectRequired")}
             </Paragraph>
             <FintButton

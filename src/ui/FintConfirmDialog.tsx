@@ -52,7 +52,7 @@ export function FintConfirmDialog({
               color="$color12"
               fontFamily="$heading"
               fontSize="$6"
-              fontWeight="700"
+              fontWeight="600"
             >
               {title}
             </Dialog.Title>
@@ -76,7 +76,7 @@ export function FintConfirmDialog({
               flex={1}
               bg={destructive ? "$destructive" : "$primary"}
               color="$primaryForeground"
-              fontWeight="700"
+              fontWeight="600"
               disabled={isPending}
               icon={isPending ? <FintSpinner color="$primaryForeground" /> : icon}
               onPress={() => {

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowDownLeft, ArrowUpRight, Plus, Shapes, Trash2 } from '@tamagui/lucide-icons-2'
+import { ArrowDown, ArrowUp, Plus, Shapes, Trash2 } from '@tamagui/lucide-icons-2'
 import { useNotify } from '../src/ui/notify'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -60,7 +60,7 @@ export default function CategoriesScreen() {
       <Screen isRefreshing={categoriesQuery.isRefetching} onRefresh={() => categoriesQuery.refetch()}>
         <XStack items="center" justify="space-between" gap="$3">
           <YStack gap="$1" flex={1}>
-            <Paragraph color="$color12" fontFamily="$heading" fontSize="$7" fontWeight="700">{t('categories.title')}</Paragraph>
+            <Paragraph color="$color12" fontFamily="$heading" fontSize="$7" fontWeight="600">{t('categories.title')}</Paragraph>
             <Paragraph color="$color10">{t('categories.subtitle')}</Paragraph>
           </YStack>
           <FintButton circular width={44} height={44} icon={<Plus size={20} />} onPress={openCreate} aria-label={t('categories.newTitle')} />
@@ -109,10 +109,10 @@ export default function CategoriesScreen() {
                       <YStack width={42} height={42} rounded="$9" bg="$secondary" items="center" justify="center">
                         <Paragraph fontSize="$5">{category.icon || suggestedCategoryIcons(category.name, category.type)[0]}</Paragraph>
                       </YStack>
-                      <Paragraph color="$color12" fontSize="$3" fontWeight="700" flex={1} numberOfLines={1}>{getCategoryLabel(category.name, t)}</Paragraph>
+                      <Paragraph color="$color12" fontSize="$3" fontWeight="600" flex={1} numberOfLines={1}>{getCategoryLabel(category.name, t)}</Paragraph>
                       <XStack items="center" gap="$1" bg={category.type === 'income' ? '$green2' : '$red2'} px="$2" py="$1" rounded="$10">
-                        {category.type === 'income' ? <ArrowDownLeft size={12} color="$green10" /> : <ArrowUpRight size={12} color="$red10" />}
-                        <Paragraph color={category.type === 'income' ? '$green11' : '$red11'} fontSize={10} fontWeight="800">{t(`forms.${category.type}`)}</Paragraph>
+                        {category.type === 'income' ? <ArrowUp size={12} color="$green10" /> : <ArrowDown size={12} color="$red10" />}
+                        <Paragraph color={category.type === 'income' ? '$green11' : '$red11'} fontSize={10} fontWeight="600">{t(`forms.${category.type}`)}</Paragraph>
                       </XStack>
                     </XStack>
                     <Button

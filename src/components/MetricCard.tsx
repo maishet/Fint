@@ -12,7 +12,7 @@ export function MetricCard({ label, value }: MetricCardProps) {
       <Paragraph color="$color10" fontSize="$3" fontWeight="600">
         {label}
       </Paragraph>
-      <Paragraph color="$color12" fontSize="$7" fontWeight="700" lineHeight="$7">
+      <Paragraph color="$color12" fontSize="$7" fontWeight="600" lineHeight="$7">
         {value}
       </Paragraph>
     </FintCard>

@@ -27,6 +27,7 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: theme.tabBackground.val,
           borderTopColor: theme.tabBorder.val,
+          borderTopWidth: 1,
         },
         tabBarLabelStyle: {
           fontFamily: "InterSemiBold",
