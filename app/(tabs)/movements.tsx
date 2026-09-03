@@ -37,6 +37,7 @@ import {
   SkeletonList,
 } from "../../src/components/Skeleton";
 import { getCategoryLabel } from "../../src/finance/categoryLabels";
+import { getCurrencySymbol } from "../../src/finance/currencies";
 import {
   FintButton,
   FintCard,
@@ -916,7 +917,7 @@ function MovementHero({
           </Paragraph>
           <XStack items="baseline" gap="$2" mt="$2">
             <Paragraph color="$heroMuted" fontSize="$3" fontWeight="500">
-              {currency}
+              {getCurrencySymbol(currency)}
             </Paragraph>
             <Paragraph
               color="$heroForeground"

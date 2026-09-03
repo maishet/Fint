@@ -24,6 +24,7 @@ import {
   SkeletonBlock,
   SkeletonList,
 } from "../../src/components/Skeleton";
+import { getCurrencySymbol } from "../../src/finance/currencies";
 import { formatDateString, parseDateString } from "../../src/finance/dates";
 import { usePressOnce } from "../../src/hooks/usePressOnce";
 import {
@@ -444,7 +445,7 @@ function DebtHero({
           </Paragraph>
           <XStack items="baseline" gap="$2" mt="$2">
             <Paragraph color="$heroMuted" fontSize="$3" fontWeight="500">
-              {currency}
+              {getCurrencySymbol(currency)}
             </Paragraph>
             <Paragraph
               color="$heroForeground"

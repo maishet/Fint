@@ -593,6 +593,7 @@ export default function PendingReviewScreen() {
                     showLabel={false}
                     placeholder={t("movements.selectDate")}
                     value={transactionDate}
+                    maxDate={todayDateString()}
                     onValueChange={(value) => {
                       setTransactionDate(value);
                       validation.clearError("transactionDate");

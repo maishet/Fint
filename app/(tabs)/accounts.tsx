@@ -24,6 +24,7 @@ import {
   SkeletonGroup,
   SkeletonList,
 } from "../../src/components/Skeleton";
+import { getCurrencySymbol } from "../../src/finance/currencies";
 import { usePressOnce } from "../../src/hooks/usePressOnce";
 import {
   FintButton,
@@ -224,7 +225,7 @@ function AccountsSummary({ overview }: { overview: AccountsOverview }) {
           </Paragraph>
           <XStack items="baseline" gap="$2" mt="$2">
             <Paragraph color="$heroMuted" fontSize="$3" fontWeight="500">
-              {overview.currency}
+              {getCurrencySymbol(overview.currency)}
             </Paragraph>
             <Paragraph
               color="$heroForeground"

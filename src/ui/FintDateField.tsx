@@ -2,6 +2,7 @@ import { CalendarDays, ChevronDown } from "@tamagui/lucide-icons-2";
 import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Text, TouchableOpacity } from "react-native";
 import { Calendar, LocaleConfig, type DateData } from "react-native-calendars";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -100,8 +101,78 @@ LocaleConfig.locales.pt = {
   today: "Hoje",
 };
 
+interface CalendarDayTheme {
+  dayTextColor?: string;
+  selectedDayBackgroundColor?: string;
+  selectedDayTextColor?: string;
+  todayTextColor?: string;
+}
+
+function CalendarDay({
+  accessibilityLabel,
+  children,
+  date,
+  marking,
+  onPress,
+  state,
+  theme: calendarTheme,
+}: {
+  accessibilityLabel?: string;
+  children?: ReactNode;
+  date?: DateData;
+  marking?: { disabled?: boolean; disableTouchEvent?: boolean; selected?: boolean };
+  onPress?: (date: DateData) => void;
+  state?: string;
+  theme?: CalendarDayTheme;
+}) {
+  const isSelected = marking?.selected ?? state === "selected";
+  const isDisabled = marking?.disabled ?? state === "disabled";
+  const isToday = state === "today";
+
+  return (
+    <TouchableOpacity
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole={isDisabled ? undefined : "button"}
+      accessibilityState={{ disabled: isDisabled }}
+      activeOpacity={isDisabled ? 1 : 0.5}
+      disabled={isDisabled}
+      onPress={() => {
+        if (date) onPress?.(date);
+      }}
+      style={{
+        alignItems: "center",
+        justifyContent: "center",
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: isSelected
+          ? calendarTheme?.selectedDayBackgroundColor
+          : "transparent",
+      }}
+    >
+      <Text
+        allowFontScaling={false}
+        style={{
+          fontFamily: "InterRegular",
+          fontSize: 14,
+          fontWeight: isToday && !isSelected ? "700" : "400",
+          opacity: isDisabled ? 0.32 : 1,
+          color: isSelected
+            ? calendarTheme?.selectedDayTextColor
+            : isToday
+              ? calendarTheme?.todayTextColor
+              : calendarTheme?.dayTextColor,
+        }}
+      >
+        {children}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
 interface FintDateFieldProps extends Omit<XStackProps, "onPress"> {
   label: string;
+  maxDate?: string;
   minDate?: string;
   onValueChange: (value: string) => void;
   placeholder: string;
@@ -115,6 +186,7 @@ interface FintDateFieldProps extends Omit<XStackProps, "onPress"> {
 
 export function FintDateField({
   label,
+  maxDate,
   minDate,
   onValueChange,
   placeholder,
@@ -208,6 +280,8 @@ export function FintDateField({
           <Calendar
             current={value || undefined}
             minDate={minDate}
+            maxDate={maxDate}
+            dayComponent={CalendarDay}
             onDayPress={selectDate}
             markedDates={
               value
@@ -223,7 +297,6 @@ export function FintDateField({
               selectedDayTextColor: theme.primaryForeground.val,
               todayTextColor: theme.primary.val,
               dayTextColor: theme.color12.val,
-              textDisabledColor: theme.color7.val,
               monthTextColor: theme.color12.val,
               arrowColor: theme.primary.val,
               textMonthFontFamily: "InterBold",

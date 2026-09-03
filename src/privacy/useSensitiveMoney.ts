@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { getCurrencySymbol } from '../finance/currencies'
 import { getAppLocale } from '../i18n'
 import { useSensitiveAmounts } from './SensitiveAmountsProvider'
 
@@ -11,7 +12,8 @@ export function useSensitiveMoney() {
 
   const formatSensitiveAmount = (value = 0, currency = 'PEN') => {
     if (!shouldShowAmounts) return hiddenAmount
-    return new Intl.NumberFormat(getAppLocale(i18n.resolvedLanguage), { currency, currencyDisplay: 'code', style: 'currency' }).format(value)
+    const amount = new Intl.NumberFormat(getAppLocale(i18n.resolvedLanguage), { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
+    return `${getCurrencySymbol(currency)} ${amount}`
   }
 
   const formatSensitiveAmountOnly = (value = 0) => {

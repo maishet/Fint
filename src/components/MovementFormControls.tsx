@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Input, Paragraph, XStack, YStack, type InputProps } from 'tamagui'
 import type { TransactionType } from '../api/types'
+import { getCurrencySymbol } from '../finance/currencies'
 import { FintFormField } from '../ui'
 import { FintOptionGroup } from './FintOptionGroup'
 
@@ -36,8 +37,8 @@ export function MovementAmountField({ currency, error, helperText, label, onBlur
       >
         <Paragraph color="$color10" fontSize="$2" fontWeight="600">{fieldLabel}{required ? ' *' : ''}</Paragraph>
         <XStack flex={1} items="center" gap="$3">
-          <YStack minW={48} height={48} px="$2" rounded="$10" bg="$accent3" items="center" justify="center" onPress={onCurrencyPress} role={onCurrencyPress ? 'button' : undefined} cursor={onCurrencyPress ? 'pointer' : undefined} pressStyle={onCurrencyPress ? { bg: '$secondary' } : undefined}>
-            <Paragraph color="$primary" fontFamily="$heading" fontSize="$3" fontWeight="600">{currency}</Paragraph>
+          <YStack minW={48} height={48} px="$2" rounded="$10" bg="$accent3" items="center" justify="center" onPress={onCurrencyPress} role={onCurrencyPress ? 'button' : undefined} cursor={onCurrencyPress ? 'pointer' : undefined} pressStyle={onCurrencyPress ? { bg: '$secondary' } : undefined} aria-label={currency}>
+            <Paragraph color="$primary" fontFamily="$heading" fontSize="$3" fontWeight="600">{getCurrencySymbol(currency)}</Paragraph>
           </YStack>
           <Input
             unstyled

@@ -193,7 +193,7 @@ export default function TransactionFormScreen() {
         )}
 
         <FintFormField label={t('movements.date')} required error={validation.errors.transactionDate} showLabel={false}>
-          <FintDateField label={t('movements.date')} showLabel={false} placeholder={t('movements.selectDate')} value={transactionDate} onValueChange={(value) => { setTransactionDate(value); validation.clearError('transactionDate') }} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<CalendarDays size={21} color="$primary" />} invalid={Boolean(validation.errors.transactionDate)} label={t('movements.date')} required onPress={onPress} value={selectedLabel} />} />
+          <FintDateField label={t('movements.date')} showLabel={false} placeholder={t('movements.selectDate')} value={transactionDate} maxDate={todayDateString()} onValueChange={(value) => { setTransactionDate(value); validation.clearError('transactionDate') }} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<CalendarDays size={21} color="$primary" />} invalid={Boolean(validation.errors.transactionDate)} label={t('movements.date')} required onPress={onPress} value={selectedLabel} />} />
         </FintFormField>
         <MovementNoteField label={t('movementUx.noteOptional')} placeholder={t('movementUx.notePlaceholder')} value={note} onChangeText={setNote} />
 

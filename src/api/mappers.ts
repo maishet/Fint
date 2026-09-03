@@ -1,8 +1,10 @@
+import { getCurrencySymbol } from '../finance/currencies'
 import { getAppLocale } from '../i18n'
 import type { Account, DashboardSummary, Summary, Transaction } from './types'
 
 export function formatMoney(value = 0, currency = 'PEN', locale = getAppLocale()) {
-  return new Intl.NumberFormat(locale, { currency, currencyDisplay: 'code', style: 'currency' }).format(value)
+  const amount = new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
+  return `${getCurrencySymbol(currency)} ${amount}`
 }
 
 export function normalizeSummary(summary?: Summary): DashboardSummary {

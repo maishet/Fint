@@ -42,6 +42,7 @@ import {
   SkeletonSection,
 } from "../../src/components/Skeleton";
 import { getCategoryLabel } from "../../src/finance/categoryLabels";
+import { getCurrencySymbol } from "../../src/finance/currencies";
 import { getAppLocale } from "../../src/i18n";
 import { FintButton, FintCard, FintSheetSelect } from "../../src/ui";
 import { haptics } from "../../src/ui/haptics";
@@ -224,7 +225,7 @@ function DashboardGround({
               </Paragraph>
               <XStack items="baseline" gap="$2" mt="$2">
                 <Paragraph color="$heroMuted" fontSize="$3" fontWeight="500">
-                  {currency}
+                  {getCurrencySymbol(currency)}
                 </Paragraph>
                 <Paragraph
                   color="$heroForeground"
