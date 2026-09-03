@@ -6,7 +6,12 @@ import {
   UserRound,
 } from "@tamagui/lucide-icons-2";
 import { useEffect, useRef, useState } from "react";
-import { Image, KeyboardAvoidingView, Platform } from "react-native";
+import {
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  useWindowDimensions,
+} from "react-native";
 import Svg, { Path } from "react-native-svg";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { Redirect } from "expo-router";
@@ -15,8 +20,8 @@ import {
   Button,
   H1,
   H2,
-  Input,
   Paragraph,
+  ScrollView,
   Separator,
   XStack,
   YStack,
@@ -27,7 +32,8 @@ import { z } from "zod";
 import { useAuth } from "../src/auth/AuthProvider";
 import { getValidationMessage, useSubmitValidation } from "../src/forms";
 import { useThemeMode } from "../src/theme/ThemeMode";
-import { FintButton, FintCard } from "../src/ui";
+import { FormTextField } from "../src/components/MovementFormControls";
+import { FintButton } from "../src/ui";
 
 export default function LoginScreen() {
   const { i18n, t } = useTranslation();
@@ -43,6 +49,8 @@ export default function LoginScreen() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [groundHeight, setGroundHeight] = useState(0);
+  const { height: windowHeight } = useWindowDimensions();
   const validation = useSubmitValidation<
     "confirmPassword" | "displayName" | "email" | "password"
   >();
@@ -148,54 +156,78 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={{ flex: 1 }}
     >
-      <StatusBar style={themeMode === "dark" ? "light" : "dark"} />
-      <YStack
+      <StatusBar style="light" />
+      {/* Mismo sistema que el resto de la app: el bloque de marca va a sangre
+          sobre el suelo y el formulario sube como una hoja. Antes esta era la
+          unica pantalla sin suelo, siendo la primera que ve alguien. */}
+      <ScrollView
         flex={1}
-        items="center"
-        justify="center"
-        gap="$4"
-        p="$5"
-        bg="$background"
+        bg="$headerBackground"
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <YStack width="100%" maxW={360} items="center" gap="$4">
-          <YStack items="center" gap="$3">
-            <YStack
-              width={72}
-              height={72}
-              rounded="$10"
-              bg="$accent10"
-              items="center"
-              justify="center"
-              overflow="hidden"
-            >
-              <Image
-                source={require("../assets/images/icon.png")}
-                style={{ width: 72, height: 72 }}
-                resizeMode="cover"
-              />
-            </YStack>
-            <YStack items="center" gap="$2">
-              <H1
-                color="$color12"
-                fontFamily="$heading"
-                size="$8"
-                text="center"
-                maxW={330}
-              >
-                {t("auth.headline")}
-              </H1>
-              <Paragraph
-                color="$color10"
-                text="center"
-                maxW={300}
-                lineHeight="$5"
-              >
-                {t("auth.intro")}
-              </Paragraph>
-            </YStack>
+        <YStack
+          bg="$headerBackground"
+          items="center"
+          gap="$3"
+          px="$5"
+          pt="$7"
+          pb="$8"
+          onLayout={(event) => setGroundHeight(event.nativeEvent.layout.height)}
+        >
+          {/* El isotipo comparte color con el suelo, asi que sin este circulo
+              -el mismo que usan los heroes de Gmail y Soporte- las piedras
+              quedaban flotando sueltas sobre el fondo. */}
+          <YStack
+            width={84}
+            height={84}
+            rounded={42}
+            bg="rgba(246,251,252,0.10)"
+            borderColor="rgba(246,251,252,0.16)"
+            borderWidth={1}
+            items="center"
+            justify="center"
+          >
+            <Image
+              source={require("../assets/images/icon.png")}
+              style={{ width: 72, height: 72, borderRadius: 36 }}
+              resizeMode="cover"
+            />
           </YStack>
+          <YStack items="center" gap="$2">
+            <H1
+              color="$heroForeground"
+              fontFamily="$heading"
+              size="$8"
+              text="center"
+              maxW={330}
+            >
+              {t("auth.headline")}
+            </H1>
+            <Paragraph
+              color="$heroMuted"
+              text="center"
+              maxW={300}
+              lineHeight="$5"
+            >
+              {t("auth.intro")}
+            </Paragraph>
+          </YStack>
+        </YStack>
 
-          <FintCard width="100%" gap="$4" p="$5">
+        <YStack
+          // La hoja llega hasta abajo aunque el formulario sea corto; si no,
+          // asoma el suelo bajo el ultimo boton.
+          minH={Math.max(0, windowHeight - groundHeight + 26)}
+          bg="$background"
+          mt={-26}
+          pt="$6"
+          px="$5"
+          pb="$8"
+          items="center"
+          style={{ borderTopLeftRadius: 28, borderTopRightRadius: 28 }}
+        >
+          <YStack width="100%" maxW={360} gap="$4">
             <YStack items="center" gap="$1">
               <H2 color="$color12" fontFamily="$heading" size="$7">
                 {authMode === "login"
@@ -211,73 +243,48 @@ export default function LoginScreen() {
 
             <YStack gap="$3">
               {authMode === "register" ? (
-                <YStack gap="$1.5">
-                  <AuthField
-                    error={validation.errors.displayName}
-                    icon={<UserRound size={18} color="$color9" />}
-                  >
-                    <Input
-                      flex={1}
-                      unstyled
-                      autoCapitalize="words"
-                      autoComplete="name"
-                      placeholder={t("auth.name")}
-                      color="$color12"
-                      placeholderTextColor="$color9"
-                      value={displayName}
-                      onChangeText={(value) => {
-                        setDisplayName(value);
-                        validation.clearError("displayName");
-                      }}
-                    />
-                  </AuthField>
-                  <AuthValidationMessage
-                    message={validation.errors.displayName}
-                  />
-                </YStack>
+                <FormTextField
+                  label={t("auth.name")}
+                  placeholder={t("auth.namePlaceholder")}
+                  icon={<UserRound size={21} color="$primary" />}
+                  error={validation.errors.displayName}
+                  autoCapitalize="words"
+                  autoComplete="name"
+                  value={displayName}
+                  onChangeText={(value) => {
+                    setDisplayName(value);
+                    validation.clearError("displayName");
+                  }}
+                />
               ) : null}
-              <YStack gap="$1.5">
-                <AuthField
-                  error={validation.errors.email}
-                  icon={<Mail size={18} color="$color9" />}
-                >
-                  <Input
-                    flex={1}
-                    unstyled
-                    autoCapitalize="none"
-                    autoComplete="email"
-                    keyboardType="email-address"
-                    placeholder={t("auth.email")}
-                    color="$color12"
-                    placeholderTextColor="$color9"
-                    value={email}
-                    onChangeText={(value) => {
-                      setEmail(value);
-                      validation.clearError("email");
-                    }}
-                  />
-                </AuthField>
-                <AuthValidationMessage message={validation.errors.email} />
-              </YStack>
-              <YStack gap="$1.5">
-                <AuthField
-                  error={validation.errors.password}
-                  icon={<LockKeyhole size={18} color="$color9" />}
-                >
-                  <Input
-                    flex={1}
-                    unstyled
-                    autoComplete="password"
-                    placeholder={t("auth.password")}
-                    color="$color12"
-                    placeholderTextColor="$color9"
-                    secureTextEntry={!isPasswordVisible}
-                    value={password}
-                    onChangeText={(value) => {
-                      setPassword(value);
-                      validation.clearError("password", "confirmPassword");
-                    }}
-                  />
+              <FormTextField
+                label={t("auth.email")}
+                placeholder={t("auth.emailPlaceholder")}
+                icon={<Mail size={21} color="$primary" />}
+                error={validation.errors.email}
+                autoCapitalize="none"
+                autoComplete="email"
+                keyboardType="email-address"
+                value={email}
+                onChangeText={(value) => {
+                  setEmail(value);
+                  validation.clearError("email");
+                }}
+              />
+              <FormTextField
+                label={t("auth.password")}
+                placeholder={t("auth.passwordPlaceholder")}
+                icon={<LockKeyhole size={21} color="$primary" />}
+                error={validation.errors.password}
+                autoCapitalize="none"
+                autoComplete="password"
+                secureTextEntry={!isPasswordVisible}
+                value={password}
+                onChangeText={(value) => {
+                  setPassword(value);
+                  validation.clearError("password", "confirmPassword");
+                }}
+                trailing={
                   <Button
                     chromeless
                     circular
@@ -295,34 +302,23 @@ export default function LoginScreen() {
                       <Eye size={18} color="$color9" />
                     )}
                   </Button>
-                </AuthField>
-                <AuthValidationMessage message={validation.errors.password} />
-              </YStack>
+                }
+              />
               {authMode === "register" ? (
-                <YStack gap="$1.5">
-                  <AuthField
-                    error={validation.errors.confirmPassword}
-                    icon={<LockKeyhole size={18} color="$color9" />}
-                  >
-                    <Input
-                      flex={1}
-                      unstyled
-                      autoComplete="password-new"
-                      placeholder={t("auth.confirmPassword")}
-                      color="$color12"
-                      placeholderTextColor="$color9"
-                      secureTextEntry={!isPasswordVisible}
-                      value={confirmPassword}
-                      onChangeText={(value) => {
-                        setConfirmPassword(value);
-                        validation.clearError("confirmPassword");
-                      }}
-                    />
-                  </AuthField>
-                  <AuthValidationMessage
-                    message={validation.errors.confirmPassword}
-                  />
-                </YStack>
+                <FormTextField
+                  label={t("auth.confirmPassword")}
+                  placeholder={t("auth.confirmPasswordPlaceholder")}
+                  icon={<LockKeyhole size={21} color="$primary" />}
+                  error={validation.errors.confirmPassword}
+                  autoCapitalize="none"
+                  autoComplete="password-new"
+                  secureTextEntry={!isPasswordVisible}
+                  value={confirmPassword}
+                  onChangeText={(value) => {
+                    setConfirmPassword(value);
+                    validation.clearError("confirmPassword");
+                  }}
+                />
               ) : null}
             </YStack>
 
@@ -396,9 +392,9 @@ export default function LoginScreen() {
                 </Paragraph>
               </Button>
             </XStack>
-          </FintCard>
+          </YStack>
         </YStack>
-      </YStack>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -448,33 +444,6 @@ function AppleSignInButton({
         if (!disabled) onPress();
       }}
     />
-  );
-}
-
-function AuthField({
-  children,
-  error,
-  icon,
-}: {
-  children: React.ReactNode;
-  error?: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <XStack
-      items="center"
-      gap="$3"
-      bg="$muted"
-      borderColor={error ? "$red8" : "$color5"}
-      borderWidth={1}
-      minH={48}
-      px="$3"
-      rounded="$5"
-      focusStyle={{ borderColor: error ? "$red8" : "$accent8" }}
-    >
-      {icon}
-      {children}
-    </XStack>
   );
 }
 

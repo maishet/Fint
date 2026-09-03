@@ -10,7 +10,7 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FlatList, useWindowDimensions } from "react-native";
+import { FlatList, Image, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, H1, Paragraph, XStack, YStack } from "tamagui";
 import { financeApi } from "../src/api/finance";
@@ -19,7 +19,6 @@ import {
   requestAndRegisterPushInstallation,
   type PushPermissionState,
 } from "../src/notifications/pushNotifications";
-import { useThemeMode } from "../src/theme/ThemeMode";
 import { FintButton, FintCard, FintSpinner } from "../src/ui";
 
 type SlideKey =
@@ -38,7 +37,6 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
-  const { themeMode } = useThemeMode();
   const { width } = useWindowDimensions();
   const listRef = useRef<FlatList<SlideKey>>(null);
   const [index, setIndex] = useState(0);
@@ -80,30 +78,54 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <YStack
-      flex={1}
-      bg="$background"
-      pt={Math.max(insets.top, 20)}
-      pb={Math.max(insets.bottom, 18)}
-    >
-      <StatusBar style={themeMode === "dark" ? "light" : "dark"} />
-      <XStack px="$5" items="center" justify="space-between">
-        <Paragraph
-          color="$color9"
-          fontSize="$1"
-          fontWeight="600"
-          textTransform="uppercase"
-        >
-          My Fint
-        </Paragraph>
+    <YStack flex={1} bg="$headerBackground" pt={Math.max(insets.top, 20)}>
+      <StatusBar style="light" />
+      <XStack px="$5" pb="$5" items="center" justify="space-between">
+        <XStack items="center" gap="$3" flex={1} minW={0}>
+          <YStack
+            width={36}
+            height={36}
+            rounded={18}
+            bg="rgba(246,251,252,0.10)"
+            borderColor="rgba(246,251,252,0.16)"
+            borderWidth={1}
+            items="center"
+            justify="center"
+            overflow="hidden"
+          >
+            <Image
+              source={require("../assets/images/icon.png")}
+              style={{ width: 36, height: 36 }}
+              resizeMode="cover"
+            />
+          </YStack>
+          <Paragraph
+            color="$heroForeground"
+            fontFamily="$heading"
+            fontSize="$4"
+            fontWeight="600"
+          >
+            {t("auth.title")}
+          </Paragraph>
+        </XStack>
         <Button
           chromeless
           onPress={() => completeMutation.mutate()}
           disabled={completeMutation.isPending}
         >
-          {t("onboarding.skip")}
+          {}
+          <Paragraph color="$heroMuted" fontWeight="600">
+            {t("onboarding.skip")}
+          </Paragraph>
         </Button>
       </XStack>
+
+      <YStack
+        flex={1}
+        bg="$background"
+        pb={Math.max(insets.bottom, 18)}
+        style={{ borderTopLeftRadius: 28, borderTopRightRadius: 28 }}
+      >
 
       <FlatList
         ref={listRef}
@@ -161,6 +183,7 @@ export default function OnboardingScreen() {
             {t("onboarding.completeError")}
           </Paragraph>
         ) : null}
+        </YStack>
       </YStack>
     </YStack>
   );
@@ -195,7 +218,7 @@ function OnboardingSlide({
   }) as string[];
 
   return (
-    <YStack width={width} px="$5" py="$6" gap="$5" justify="center">
+    <YStack width={width} px="$5" pt="$5" pb="$6" gap="$5" justify="flex-start">
       <FintCard bg="$accent1" borderColor="$accent4" p="$5" gap="$5">
         <YStack
           width={72}

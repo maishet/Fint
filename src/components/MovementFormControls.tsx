@@ -1,7 +1,7 @@
 import { ArrowDown, ArrowUp, ChevronRight, FilePenLine } from '@tamagui/lucide-icons-2'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Input, Paragraph, XStack, YStack } from 'tamagui'
+import { Input, Paragraph, XStack, YStack, type InputProps } from 'tamagui'
 import type { TransactionType } from '../api/types'
 import { FintFormField } from '../ui'
 import { FintOptionGroup } from './FintOptionGroup'
@@ -63,15 +63,16 @@ export function MovementAmountField({ currency, error, helperText, label, onBlur
   )
 }
 
-export function FormTextField({ autoCapitalize = 'sentences', error, icon, label, maxLength, onBlur, onChangeText, placeholder, required = false, value }: { autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters'; error?: string; icon: ReactNode; label: string; maxLength?: number; onBlur?: () => void; onChangeText: (value: string) => void; placeholder: string; required?: boolean; value: string }) {
+export function FormTextField({ autoCapitalize = 'sentences', autoComplete, error, icon, keyboardType, label, maxLength, onBlur, onChangeText, placeholder, required = false, secureTextEntry, trailing, value }: { autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters'; autoComplete?: InputProps['autoComplete']; error?: string; icon: ReactNode; keyboardType?: InputProps['keyboardType']; label: string; maxLength?: number; onBlur?: () => void; onChangeText: (value: string) => void; placeholder: string; required?: boolean; secureTextEntry?: boolean; /** Control al final de la fila: el ojo de mostrar contrasena, por ejemplo. */ trailing?: ReactNode; value: string }) {
   return (
     <FintFormField label={label} required={required} error={error} showLabel={false}>
       <XStack minH={68} items="center" gap="$3" bg="$card" borderColor={error ? '$red8' : '$borderColor'} borderWidth={1} rounded="$6" px="$3">
         <YStack width={42} height={42} rounded="$10" bg="$accent2" items="center" justify="center">{icon}</YStack>
         <YStack flex={1} minW={0} gap={2}>
           <Paragraph color="$color10" fontSize="$1" fontWeight="600">{label}{required ? ' *' : ''}</Paragraph>
-          <Input unstyled height={22} minH={22} p={0} m={0} lineHeight={20} color="$color12" fontSize="$3" fontWeight="600" placeholder={placeholder} placeholderTextColor="$color8" value={value} onChangeText={onChangeText} onBlur={onBlur} autoCapitalize={autoCapitalize} maxLength={maxLength} aria-label={label} />
+          <Input unstyled height={22} minH={22} p={0} m={0} lineHeight={20} color="$color12" fontSize="$3" fontWeight="600" placeholder={placeholder} placeholderTextColor="$color8" value={value} onChangeText={onChangeText} onBlur={onBlur} autoCapitalize={autoCapitalize} autoComplete={autoComplete} keyboardType={keyboardType} secureTextEntry={secureTextEntry} maxLength={maxLength} aria-label={label} />
         </YStack>
+        {trailing}
       </XStack>
     </FintFormField>
   )

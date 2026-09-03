@@ -46,7 +46,7 @@ export function Screen({ ground, isRefreshing = false, onRefresh, onScroll, scro
           {ground}
         </YStack>
         <YStack
-          minH={Math.max(0, windowHeight - groundHeight)}
+          minH={Math.max(0, windowHeight - groundHeight + SHEET_OVERLAP)}
           bg="$background"
           mt={-SHEET_OVERLAP}
           pt="$5"
