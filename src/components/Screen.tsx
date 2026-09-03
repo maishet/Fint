@@ -1,6 +1,9 @@
-import { type ReactNode, useState } from 'react'
+import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs'
+import { type ReactNode, useContext, useState } from 'react'
 import { RefreshControl, useWindowDimensions, type ScrollViewProps } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ScrollView, useTheme, YStack, type YStackProps } from 'tamagui'
+import { floatingTabBarHeight } from './FintTabBar'
 
 interface ScreenProps extends Omit<YStackProps, 'onScroll'> {
   ground?: ReactNode
@@ -16,6 +19,9 @@ export function Screen({ ground, isRefreshing = false, onRefresh, onScroll, scro
   const { height: windowHeight } = useWindowDimensions()
   const [groundHeight, setGroundHeight] = useState(0)
   const theme = useTheme()
+  const insets = useSafeAreaInsets()
+  const isInTabs = useContext(BottomTabBarHeightContext) !== undefined
+  const tabBarHeight = isInTabs ? floatingTabBarHeight(insets.bottom) : 0
 
   const refreshControl = onRefresh ? (
     <RefreshControl
@@ -51,8 +57,10 @@ export function Screen({ ground, isRefreshing = false, onRefresh, onScroll, scro
           mt={-SHEET_OVERLAP}
           pt="$5"
           px="$4"
-          pb="$8"
+          pb={tabBarHeight ? tabBarHeight + 16 : "$8"}
           gap="$4"
+          borderTopWidth={1}
+          borderTopColor="rgba(246,251,252,0.22)"
           style={{ borderTopLeftRadius: 28, borderTopRightRadius: 28 }}
           {...props}
         />
@@ -69,7 +77,7 @@ export function Screen({ ground, isRefreshing = false, onRefresh, onScroll, scro
       refreshControl={refreshControl}
     >
       {}
-      <YStack gap="$4" px="$4" pt="$5" pb="$8" {...props} />
+      <YStack gap="$4" px="$4" pt="$5" pb={tabBarHeight ? tabBarHeight + 16 : "$8"} {...props} />
     </ScrollView>
   )
 }

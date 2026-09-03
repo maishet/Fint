@@ -9,7 +9,7 @@ import {
   Wallet,
 } from "@tamagui/lucide-icons-2";
 import { AppHeader } from "../../src/components/AppHeader";
-import { haptics } from "../../src/ui/haptics";
+import { FintTabBar } from "../../src/components/FintTabBar";
 
 export default function TabLayout() {
   const { t } = useTranslation();
@@ -17,22 +17,12 @@ export default function TabLayout() {
 
   return (
     <Tabs
-      screenListeners={{
-        tabPress: () => haptics.select(),
-      }}
+      // La barra flotante la dibuja FintTabBar; el haptico lo da ella al tocar.
+      tabBar={(props) => <FintTabBar {...props} />}
       screenOptions={{
         tabBarActiveTintColor: theme.tabActive.val,
         tabBarInactiveTintColor: theme.tabInactive.val,
         headerShown: true,
-        tabBarStyle: {
-          backgroundColor: theme.tabBackground.val,
-          borderTopColor: theme.tabBorder.val,
-          borderTopWidth: 1,
-        },
-        tabBarLabelStyle: {
-          fontFamily: "InterSemiBold",
-          fontSize: 11,
-        },
         headerStyle: {
           backgroundColor: theme.background.val,
           borderBottomColor: theme.borderColor.val,
@@ -45,7 +35,7 @@ export default function TabLayout() {
         options={{
           title: t("tabs.dashboard"),
           header: () => <AppHeader title={t("tabs.dashboard")} showGreeting />,
-          tabBarIcon: ({ color }) => <Home color={color as any} />,
+          tabBarIcon: ({ color, size }) => <Home color={color as any} size={size} />,
         }}
       />
       <Tabs.Screen
@@ -53,7 +43,7 @@ export default function TabLayout() {
         options={{
           title: t("tabs.accounts"),
           header: () => <AppHeader title={t("tabs.accounts")} />,
-          tabBarIcon: ({ color }) => <Wallet color={color as any} />,
+          tabBarIcon: ({ color, size }) => <Wallet color={color as any} size={size} />,
         }}
       />
       <Tabs.Screen
@@ -61,7 +51,7 @@ export default function TabLayout() {
         options={{
           title: t("tabs.payments"),
           header: () => <AppHeader title={t("tabs.payments")} />,
-          tabBarIcon: ({ color }) => <CreditCard color={color as any} />,
+          tabBarIcon: ({ color, size }) => <CreditCard color={color as any} size={size} />,
         }}
       />
       <Tabs.Screen
@@ -69,7 +59,7 @@ export default function TabLayout() {
         options={{
           title: t("tabs.movements"),
           header: () => <AppHeader title={t("tabs.movements")} />,
-          tabBarIcon: ({ color }) => <ArrowLeftRight color={color as any} />,
+          tabBarIcon: ({ color, size }) => <ArrowLeftRight color={color as any} size={size} />,
         }}
       />
       <Tabs.Screen
@@ -77,7 +67,7 @@ export default function TabLayout() {
         options={{
           title: t("tabs.reports"),
           header: () => <AppHeader title={t("tabs.reports")} />,
-          tabBarIcon: ({ color }) => <BarChart3 color={color as any} />,
+          tabBarIcon: ({ color, size }) => <BarChart3 color={color as any} size={size} />,
         }}
       />
     </Tabs>

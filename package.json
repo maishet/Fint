@@ -41,6 +41,7 @@
     "expo-apple-authentication": "~55.0.16",
     "expo-application": "~55.0.17",
     "expo-auth-session": "~55.0.17",
+    "expo-blur": "~55.0.18",
     "expo-build-properties": "~55.0.16",
     "expo-constants": "~55.0.17",
     "expo-dev-client": "~55.0.37",

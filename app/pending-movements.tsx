@@ -571,7 +571,7 @@ function PendingCard({
     : t("movementUx.reviewRequired");
   const amountLabel =
     item.amount !== null && item.currency
-      ? formatMoney(item.amount, item.currency)
+      ? `${item.type === "income" ? "+" : item.type === "expense" ? "−" : ""}${formatMoney(item.amount, item.currency)}`
       : t("movementUx.reviewRequired");
   const isPayment = paymentOccurrenceId !== NORMAL_MOVEMENT;
   return (

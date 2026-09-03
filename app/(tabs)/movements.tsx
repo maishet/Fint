@@ -44,6 +44,7 @@ import {
   FintSheetSelect,
   FintSpinner,
 } from "../../src/ui";
+import { floatingTabBarHeight } from "../../src/components/FintTabBar";
 import { useSensitiveMoney } from "../../src/privacy/useSensitiveMoney";
 import { SensitiveAmountToggle } from "../../src/privacy/SensitiveAmountToggle";
 import { useCapabilities } from "../../src/api/capabilities";
@@ -466,8 +467,11 @@ export default function MovementsScreen() {
         contentContainerStyle={{
           paddingHorizontal: 16,
           paddingTop: 0,
+          // La barra de pestanas flota encima: se le reserva su alto, mas el
+          // del boton flotante cuando lo hay.
           paddingBottom:
-            Math.max(insets.bottom, 24) +
+            floatingTabBarHeight(insets.bottom) +
+            16 +
             (capabilities.features.captureImport && movementItems.length
               ? FLOATING_ACTION_CLEARANCE
               : 0),
@@ -567,7 +571,7 @@ export default function MovementsScreen() {
         <YStack
           position="absolute"
           r="$5"
-          b={Math.max(insets.bottom, 16) + 28}
+          b={floatingTabBarHeight(insets.bottom) + 12}
           width={56}
           height={56}
           rounded={999}
@@ -631,7 +635,7 @@ function MovementCard({
   onReverse: () => void;
 }) {
   const { t } = useTranslation();
-  const { formatSensitiveAmount } = useSensitiveMoney();
+  const { formatSignedAmount } = useSensitiveMoney();
   const isIncome = movement.type === "income";
   const isStrandedTransfer = movement.type === "transfer";
   const isPayment = Boolean(movement.paymentOccurrenceId);
@@ -708,7 +712,11 @@ function MovementCard({
             fontSize="$3"
             fontWeight="600"
           >
-            {formatSensitiveAmount(movement.amount, movement.currency)}
+            {formatSignedAmount(
+              movement.amount,
+              movement.currency,
+              isStrandedTransfer ? "neutral" : isIncome ? "income" : "expense",
+            )}
           </Paragraph>
           {isPayment && movement.paymentOccurrencePaymentId ? (
             <Button chromeless size="$2" onPress={onReverse}>

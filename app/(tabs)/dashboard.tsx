@@ -229,10 +229,10 @@ function DashboardGround({
                 <Paragraph
                   color="$heroForeground"
                   fontFamily="$body"
-                  fontSize={40}
+                  fontSize={44}
                   fontWeight="600"
-                  letterSpacing={-1.2}
-                  lineHeight={44}
+                  letterSpacing={-1.4}
+                  lineHeight={46}
                   numberOfLines={1}
                   adjustsFontSizeToFit
                 >
@@ -1118,7 +1118,7 @@ function RecentMovements({
 }) {
   const { t } = useTranslation();
   const router = useRouter();
-  const { formatSensitiveAmount } = useSensitiveMoney();
+  const { formatSignedAmount } = useSensitiveMoney();
 
   return (
     <YStack gap="$3">
@@ -1217,9 +1217,10 @@ function RecentMovements({
                   fontWeight="600"
                   shrink={0}
                 >
-                  {formatSensitiveAmount(
+                  {formatSignedAmount(
                     transaction.amount,
                     transaction.currency,
+                    isIncome ? "income" : "expense",
                   )}
                 </Paragraph>
               </XStack>

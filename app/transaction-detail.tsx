@@ -30,7 +30,7 @@ export default function TransactionDetailScreen() {
   const toast = useNotify()
   const queryClient = useQueryClient()
   const params = useLocalSearchParams<DetailParams>()
-  const { formatSensitiveAmount } = useSensitiveMoney()
+  const { formatSignedAmount } = useSensitiveMoney()
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const id = params.id ?? ''
@@ -97,8 +97,7 @@ export default function TransactionDetailScreen() {
               </XStack>
             </YStack>
             <Paragraph color={isIncome ? '$green10' : '$red10'} fontFamily="$body" fontSize="$10" fontWeight="600" letterSpacing={-1.4}>
-              {}
-              {formatSensitiveAmount(amount, currency)}
+              {formatSignedAmount(amount, currency, isIncome ? 'income' : 'expense')}
             </Paragraph>
           </FintCard>
 

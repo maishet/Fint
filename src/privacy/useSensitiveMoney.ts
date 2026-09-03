@@ -19,7 +19,13 @@ export function useSensitiveMoney() {
     return new Intl.NumberFormat(getAppLocale(i18n.resolvedLanguage), { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
   }
 
+  const formatSignedAmount = (value = 0, currency = 'PEN', direction: 'income' | 'expense' | 'neutral' = 'neutral') => {
+    const formatted = formatSensitiveAmount(value, currency)
+    if (!shouldShowAmounts || direction === 'neutral') return formatted
+    return `${direction === 'income' ? '+' : '−'}${formatted}`
+  }
+
   const sensitiveAmountAccessibilityLabel = shouldShowAmounts ? undefined : t('privacy.amounts.hiddenLabel')
 
-  return { amountsVisible: shouldShowAmounts, formatSensitiveAmount, formatSensitiveAmountOnly, sensitiveAmountAccessibilityLabel }
+  return { amountsVisible: shouldShowAmounts, formatSensitiveAmount, formatSensitiveAmountOnly, formatSignedAmount, sensitiveAmountAccessibilityLabel }
 }
