@@ -121,11 +121,11 @@ export function FintSheetSelect({ label, onValueChange, options, placeholder, se
         }}
         snapPointsMode={isLongList ? 'percent' : 'fit'}
         snapPoints={isLongList ? [78] : undefined}
-        disableDrag
+        dismissOnSnapToBottom
         zIndex={110_000}
       >
         <Sheet.Overlay bg="rgba(0,0,0,0.4)" />
-        {}
+        <Sheet.Handle bg="$color6" />
         <Sheet.Frame bg="$popover" gap="$2" px="$4" pt="$2" pb={Math.max(insets.bottom, 16)} rounded={14}>
           <XStack items="center" justify="space-between" mb="$1">
             <Paragraph color="$color12" fontFamily="$heading" fontSize="$5" fontWeight="600">{label}</Paragraph>

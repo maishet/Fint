@@ -75,7 +75,7 @@ export function OccurrencePaymentSheet({ accounts, occurrence, onOpenChange, ope
   useSheetBackHandler(open, closeSheet)
 
   return (
-    <Sheet modal open={open} onOpenChange={(next) => !mutation.isPending && onOpenChange(next)} snapPoints={[76]} moveOnKeyboardChange zIndex={100_000}>
+    <Sheet modal open={open} onOpenChange={(next) => !mutation.isPending && onOpenChange(next)} snapPoints={[76]} dismissOnSnapToBottom moveOnKeyboardChange zIndex={100_000}>
       <Sheet.Overlay bg="rgba(4,18,28,0.64)" />
       <Sheet.Handle bg="$color5" />
       <Sheet.Frame bg="$popover" px="$4" pt="$4" pb={Math.max(insets.bottom, 16)} rounded={18}>
