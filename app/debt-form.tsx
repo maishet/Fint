@@ -133,7 +133,7 @@ export default function DebtFormScreen() {
       return
     }
     const payload = validation.validate(schema, { title, amount: parseDecimalInput(amount), categoryId, startDate })
-    if (autoPayEnabled && !autoPayAccountId) {
+    if (autoPayEnabled && (!autoPayAccountId || !autoPayAccounts.some((account) => account.id === autoPayAccountId))) {
       validation.setError('autoPayAccountId', t('payments.autoPayAccountRequired'))
       return
     }
@@ -213,7 +213,7 @@ export default function DebtFormScreen() {
             ) : null}
 
             <YStack gap="$2">
-              <FintButton width="100%" minH={52} disabled={mutation.isPending} icon={mutation.isPending ? <FintSpinner color="$primaryForeground" /> : <Save size={18} />} onPress={submit}>{mutation.isPending ? t('payments.saving') : isEditing ? t('accounts.update') : t('payments.createRecurring')}</FintButton>
+              <FintButton width="100%" minH={52} disabled={mutation.isPending || (autoPayEnabled && autoPayAccountsQuery.isPending)} icon={mutation.isPending ? <FintSpinner color="$primaryForeground" /> : <Save size={18} />} onPress={submit}>{mutation.isPending ? t('payments.saving') : isEditing ? t('accounts.update') : t('payments.createRecurring')}</FintButton>
               <FintButton width="100%" minH={48} variant="outlined" disabled={mutation.isPending} onPress={() => router.back()}>{t('actions.cancel')}</FintButton>
             </YStack>
           </YStack>
