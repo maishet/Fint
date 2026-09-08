@@ -5,6 +5,7 @@
 
   <p>
     <a href="https://github.com/maishet/Fint/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-2f89b8?style=flat-square" alt="Apache License 2.0" /></a>
+    <a href="https://myfint.app"><img src="https://img.shields.io/badge/web-myfint.app-2f89b8?style=flat-square" alt="myfint.app" /></a>
     <a href="https://expo.dev"><img src="https://img.shields.io/badge/Expo-SDK%2055-000020?style=flat-square&logo=expo&logoColor=white" alt="Expo SDK 55" /></a>
     <a href="https://reactnative.dev"><img src="https://img.shields.io/badge/React%20Native-0.83-20232a?style=flat-square&logo=react&logoColor=61dafb" alt="React Native 0.83" /></a>
     <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/TypeScript-5.9-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript 5.9" /></a>
@@ -35,12 +36,14 @@ My Fint ayuda a construir una vision completa de las finanzas personales desde e
 - **Control financiero:** ingresos, gastos, transferencias, cuentas, categorias y deudas.
 - **Reportes accionables:** filtros temporales, comparaciones, evolucion, posicion actual y movimientos destacados.
 - **Exportacion portable:** documentos PDF y archivos Excel generados directamente en el dispositivo.
+- **Importacion con IA:** sube o comparte una constancia (Yape, Plin, transferencia bancaria) desde la galeria y un worker de Cloudflare Workers AI extrae monto, banco y fecha para tu revision.
 - **Gmail opcional:** deteccion de movimientos pendientes con filtros definidos por el usuario y confirmacion obligatoria.
 - **Acceso seguro:** sesiones administradas con Supabase Auth, con Google OAuth y Sign in with Apple en iOS.
 - **Experiencia localizada:** interfaz disponible en espanol, ingles y portugues.
 - **Tema adaptable:** modos claro y oscuro con un sistema visual ocean-blue.
 - **Notificaciones push:** recordatorios de pagos proximos y avisos de movimientos pendientes detectados.
 - **Privacidad visual:** oculta montos sensibles en pantalla con un control rapido, util en espacios compartidos.
+- **Centro de mejoras:** tablero de sugerencias integrado (Featurebase) para reportar ideas y errores sin salir de la app.
 
 > [!IMPORTANT]
 > My Fint es una herramienta de organizacion financiera personal. No ofrece asesoramiento financiero, bancario, tributario ni de inversion.
@@ -56,9 +59,11 @@ flowchart LR
     C --> F[Financial report DTO]
     F --> A
     A --> G[PDF and Excel exports]
+    A -->|Imagen de constancia| H[Cloudflare Workers AI]
+    H -->|Datos extraidos| A
 ```
 
-La aplicacion movil mantiene la presentacion y las interacciones en Expo. La API privada concentra las reglas de negocio y entrega un DTO canonico que alimenta la vista de reportes y sus exportaciones.
+La aplicacion movil mantiene la presentacion y las interacciones en Expo. La API privada concentra las reglas de negocio y entrega un DTO canonico que alimenta la vista de reportes y sus exportaciones. Un worker de Cloudflare independiente procesa las constancias fotografiadas o compartidas y responde con los datos ya estructurados.
 
 ### Stack principal
 
@@ -68,6 +73,7 @@ La aplicacion movil mantiene la presentacion y las interacciones en Expo. La API
 | UI | Tamagui 2, React Native SVG, Reanimated |
 | Datos | TanStack Query, Zod, API HTTP privada |
 | Identidad | Supabase Auth, Google OAuth, Sign in with Apple, Secure Store |
+| IA | Cloudflare Workers AI (Llama 4 Scout) para extraer datos de constancias fotografiadas |
 | Idiomas | i18next, espanol, ingles y portugues |
 | Observabilidad | Sentry con sanitizacion de datos sensibles |
 | Entrega | EAS Build, Android App Bundle y APK interno, IPA de iOS |
@@ -79,14 +85,17 @@ app/                  Rutas y pantallas de Expo Router
 src/analytics/        Definicion de eventos permitidos para analitica
 src/api/              Cliente HTTP, contratos y mappers
 src/auth/             Sesion, autenticacion y rutas iniciales
+src/capture/          Importacion de constancias con IA y cola de imagenes compartidas
 src/components/       Componentes reutilizables del producto
 src/finance/          Reglas financieras, reportes y exportaciones
 src/forms/            Validacion y utilidades de formularios
+src/hooks/            Hooks compartidos de UI
 src/i18n/             Configuracion y traducciones
 src/monitoring/       Sanitizacion de datos sensibles para Sentry
 src/notifications/    Registro y copy de notificaciones push
 src/privacy/          Ocultar y mostrar montos sensibles en pantalla
 src/providers/        Composicion de providers de la aplicacion
+src/shared/           Utilidades compartidas entre modulos
 src/support/          Diagnosticos adjuntos a los reportes de soporte
 src/theme/            Tema, tipografia y preferencias visuales
 src/ui/               Primitivas del sistema de interfaz
@@ -115,6 +124,7 @@ Crea `.env` a partir de [`.env.example`](.env.example):
 
 ```env
 EXPO_PUBLIC_API_URL=https://api.example.com
+EXPO_PUBLIC_VISION_WORKER_URL=https://fint-ai-worker.your-subdomain.workers.dev
 EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 EXPO_PUBLIC_PRIVACY_POLICY_URL=https://your-domain.com/privacy
@@ -128,6 +138,9 @@ que devuelve el control a la app tras el consentimiento de Google. Sin ese valor
 `bun run build:production:ios` falla de forma explicita en lugar de generar un IPA con el login roto.
 
 Configura `finanzasmobilev2://auth/callback` como URL de redireccionamiento en Supabase Auth.
+
+> [!NOTE]
+> `.env.example` incluye tambien variables opcionales para el tablero de mejoras (Featurebase) y el reporte de errores (Sentry). La app funciona sin ellas: la importacion con IA se desactiva si falta `EXPO_PUBLIC_VISION_WORKER_URL` y Sentry queda apagado si falta `EXPO_PUBLIC_SENTRY_DSN`.
 
 > [!CAUTION]
 > Las variables `EXPO_PUBLIC_*` se incluyen en el cliente. Nunca guardes en ellas service-role keys, tokens privados ni secretos de servidor.
