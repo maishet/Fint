@@ -21,6 +21,8 @@ import {
   MovementPickerTrigger,
 } from "../src/components/MovementFormControls";
 import { getValidationMessage, useSubmitValidation } from "../src/forms";
+import { useUnsavedChangesGuard } from "../src/hooks/useUnsavedChangesGuard";
+import { UnsavedChangesDialog } from "../src/components/UnsavedChangesDialog";
 import {
   FintButton,
   FintCard,
@@ -48,6 +50,12 @@ export default function SupportScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingReport, setPendingReport] = useState<SupportReportPayload | null>(null);
   const validation = useSubmitValidation<"category" | "description">();
+  // La categoría trae valor por defecto, así que sola no cuenta como cambio:
+  // lo que se pierde al salir es lo escrito. Al enviarse, los campos se vacían
+  // y el guard se apaga solo, sin necesidad de `bypass`.
+  const guard = useUnsavedChangesGuard(
+    description.trim() !== "" || steps.trim() !== "",
+  );
 
   const submit = async () => {
     const schema = z.object({
@@ -117,6 +125,11 @@ export default function SupportScreen() {
         </YStack>
       }
     >
+      <UnsavedChangesDialog
+        open={guard.open}
+        onCancel={guard.onCancel}
+        onConfirm={guard.onConfirm}
+      />
       <FintConfirmDialog
         cancelLabel={t("actions.cancel")}
         confirmLabel={t("support.confirmSend")}
@@ -183,25 +196,15 @@ export default function SupportScreen() {
         value={steps}
         onChangeText={setSteps}
       />
-      <YStack gap="$2">
-        <FintButton
-          width="100%"
-          minH={52}
-          icon={<Send size={17} />}
-          disabled={isSubmitting}
-          onPress={submit}
-        >
-          {isSubmitting ? t("support.submitting") : t("support.submit")}
-        </FintButton>
-        <FintButton
-          width="100%"
-          minH={48}
-          variant="outlined"
-          onPress={() => router.back()}
-        >
-          {t("actions.cancel")}
-        </FintButton>
-      </YStack>
+      <FintButton
+        width="100%"
+        minH={52}
+        icon={<Send size={17} />}
+        disabled={isSubmitting}
+        onPress={submit}
+      >
+        {isSubmitting ? t("support.submitting") : t("support.submit")}
+      </FintButton>
       <FintCard gap="$2" onPress={() => router.push("/improvements") }>
         <XStack gap="$2" items="center">
           <Lightbulb size={18} color="$primary" />

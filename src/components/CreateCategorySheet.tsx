@@ -380,15 +380,6 @@ export function CreateCategorySheet({
                     ? t(isEditing ? "categories.updating" : "categories.creating")
                     : t(isEditing ? "categories.update" : "categories.create")}
                 </FintButton>
-                <FintButton
-                  width="100%"
-                  minH={48}
-                  variant="outlined"
-                  disabled={mutation.isPending}
-                  onPress={() => handleOpenChange(false)}
-                >
-                  {t("actions.cancel")}
-                </FintButton>
               </YStack>
             </YStack>
           </Sheet.ScrollView>
