@@ -6,12 +6,8 @@ import {
   UserRound,
 } from "@tamagui/lucide-icons-2";
 import { useEffect, useRef, useState } from "react";
-import {
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  useWindowDimensions,
-} from "react-native";
+import { Image, Platform, useWindowDimensions } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import Svg, { Path } from "react-native-svg";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { Redirect } from "expo-router";
@@ -21,10 +17,10 @@ import {
   H1,
   H2,
   Paragraph,
-  ScrollView,
   Separator,
   XStack,
   YStack,
+  useTheme,
   useThemeName,
 } from "tamagui";
 import { useTranslation } from "react-i18next";
@@ -51,6 +47,7 @@ export default function LoginScreen() {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [groundHeight, setGroundHeight] = useState(0);
   const { height: windowHeight } = useWindowDimensions();
+  const theme = useTheme();
   const validation = useSubmitValidation<
     "confirmPassword" | "displayName" | "email" | "password"
   >();
@@ -152,17 +149,16 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={{ flex: 1 }}
-    >
+    <YStack flex={1}>
       <StatusBar style="light" />
       {/* Mismo sistema que el resto de la app: el bloque de marca va a sangre
           sobre el suelo y el formulario sube como una hoja. Antes esta era la
           unica pantalla sin suelo, siendo la primera que ve alguien. */}
-      <ScrollView
-        flex={1}
-        bg="$headerBackground"
+      {/* En edge-to-edge la ventana no se encoge al abrir el teclado, asi que
+          el desplazamiento hasta el campo enfocado lo hace esta vista. */}
+      <KeyboardAwareScrollView
+        bottomOffset={24}
+        style={{ flex: 1, backgroundColor: theme.headerBackground.val }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -394,8 +390,8 @@ export default function LoginScreen() {
             </XStack>
           </YStack>
         </YStack>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
+    </YStack>
   );
 }
 

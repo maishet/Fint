@@ -13,6 +13,7 @@ import { useFonts } from "expo-font";
 import { SplashScreen, Stack, useRouter } from "expo-router";
 import { useShareIntent } from "expo-share-intent";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import * as Sentry from "@sentry/react-native";
 import { AppProviders } from "../src/providers/AppProviders";
 import { useAuth } from "../src/auth/AuthProvider";
@@ -128,9 +129,15 @@ function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <Providers>
-        <RootLayoutNav />
-      </Providers>
+      {/* Con edge-to-edge la ventana ya no se encoge al abrir el teclado, así
+          que el alto lo mide este proveedor. Las dos banderas le dicen que la
+          app dibuja bajo las barras del sistema: sin ellas descuenta la barra
+          de navegación y el teclado tapa el último renglón. */}
+      <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
+        <Providers>
+          <RootLayoutNav />
+        </Providers>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }
