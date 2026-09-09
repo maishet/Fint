@@ -4,13 +4,15 @@ import { useNotify } from '../src/ui/notify'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Paragraph, YStack } from 'tamagui'
+import { Input, Paragraph, YStack } from 'tamagui'
 import { z } from 'zod'
 import { financeApi } from '../src/api/finance'
 import type { PaymentRule } from '../src/api/types'
 import { CategoryPickerSheet } from '../src/components/CategoryPickerSheet'
 import { DataStateCard } from '../src/components/DataStateCard'
-import { FormTextField, MovementAmountField, MovementPickerTrigger } from '../src/components/MovementFormControls'
+import { MovementAmountField, MovementPickerTrigger } from '../src/components/MovementFormControls'
+import { FintListGroup, FintListRow } from '../src/components/FintListGroup'
+import { useAccountPickerOptions } from '../src/finance/useAccountPickerOptions'
 import { Screen } from '../src/components/Screen'
 import { SkeletonForm } from '../src/components/Skeleton'
 import { currencyOptions } from '../src/finance/currencies'
@@ -140,6 +142,9 @@ export default function DebtFormScreen() {
     if (payload) mutation.mutate(payload)
   }
 
+  // El grupo se tiñe una vez y los mensajes van debajo.
+  const toAccountOption = useAccountPickerOptions()
+  const fieldErrors = [validation.errors.startDate, validation.errors.categoryId].filter((message): message is string => Boolean(message))
   const isLoading = categoriesQuery.isLoading || rulesQuery.isLoading || optionsQuery.isLoading
   const error = categoriesQuery.error ?? rulesQuery.error ?? optionsQuery.error
 
@@ -147,13 +152,46 @@ export default function DebtFormScreen() {
     <>
       <UnsavedChangesDialog open={guard.open} onCancel={guard.onCancel} onConfirm={guard.onConfirm} />
       <Stack.Screen options={{ title: t(isEditing ? 'payments.editRecurring' : 'payments.newRecurring') }} />
-      <Screen>
+      <Screen
+        footer={!isLoading && !error && (!isEditing || currentRule) ? (
+          <FintButton width="100%" minH={52} disabled={mutation.isPending || (autoPayEnabled && autoPayAccountsQuery.isPending)} icon={mutation.isPending ? <FintSpinner color="$primaryForeground" /> : <Save size={18} />} onPress={submit}>{mutation.isPending ? t('payments.saving') : isEditing ? t('accounts.update') : t('payments.createRecurring')}</FintButton>
+        ) : undefined}
+      >
         {isLoading ? <SkeletonForm label={t('states.loading')} fieldCount={4} /> : null}
         {error ? <DataStateCard message={error instanceof Error ? error.message : t('states.error')} /> : null}
         {!isLoading && !error && isEditing && !currentRule ? <DataStateCard message={t('payments.notFound')} /> : null}
         {!isLoading && !error && (!isEditing || currentRule) ? (
           <YStack gap="$5" pb="$5">
-            <FormTextField label={t('forms.name')} required error={validation.errors.title} icon={<FileText size={21} color="$primary" />} placeholder={t('payments.titlePlaceholder')} value={title} onChangeText={(value) => { setTitle(value); validation.clearError('title') }} onBlur={() => validation.validateField('title', schema.shape.title, title)} />
+            <YStack gap="$2">
+              <FintListGroup invalid={Boolean(validation.errors.title)}>
+                <FintListRow
+                  icon={<FileText size={22} color="$primary" />}
+                  label={t('forms.name')}
+                  required
+                  valueSlot={
+                    <Input
+                      unstyled
+                      width="100%"
+                      height={22}
+                      minH={22}
+                      p={0}
+                      m={0}
+                      color="$color12"
+                      fontFamily="$body"
+                      fontSize="$3"
+                      fontWeight="600"
+                      placeholder={t('payments.titlePlaceholder')}
+                      placeholderTextColor="$color10"
+                      value={title}
+                      onChangeText={(value) => { setTitle(value); validation.clearError('title') }}
+                      onBlur={() => validation.validateField('title', schema.shape.title, title)}
+                      aria-label={t('forms.name')}
+                    />
+                  }
+                />
+              </FintListGroup>
+              {validation.errors.title ? <Paragraph color="$red10" fontSize="$1" fontWeight="600" px="$1">{validation.errors.title}</Paragraph> : null}
+            </YStack>
 
             {isEditing ? (
               <MovementAmountField currency={currency} error={validation.errors.amount} helperText={t('payments.amountEditLocked')} value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} onBlur={() => { if (amount.trim()) validation.validateField('amount', schema.shape.amount, parseDecimalInput(amount)) }} />
@@ -161,16 +199,20 @@ export default function DebtFormScreen() {
               <FintSheetSelect label={t('forms.currency')} showLabel={false} placeholder={t('forms.select')} searchable searchPlaceholder={t('accounts.searchCurrency')} value={selectedCurrency} onValueChange={setSelectedCurrency} options={currencyOptions} renderTrigger={({ onPress }) => <MovementAmountField currency={currency} error={validation.errors.amount} helperText={t('payments.currencyChangeHint')} value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} onBlur={() => { if (amount.trim()) validation.validateField('amount', schema.shape.amount, parseDecimalInput(amount)) }} onCurrencyPress={onPress} />} />
             )}
 
-            <FintFormField label={t('payments.frequency')} showLabel={false}>
-              <FintSheetSelect label={t('payments.frequency')} showLabel={false} placeholder={t('payments.selectFrequency')} value={frequency} onValueChange={(value) => setFrequency(value as Frequency)} options={(['weekly', 'biweekly', 'monthly', 'yearly'] as const).map((item) => ({ value: item, label: frequencyLabel(item, t) }))} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<Repeat size={21} color="$primary" />} label={t('payments.frequency')} required onPress={onPress} value={selectedLabel} />} />
-            </FintFormField>
+            {/* Frecuencia, primera fecha y categoría comparten un solo grupo. */}
+            <YStack gap="$2">
+              <FintListGroup invalid={fieldErrors.length > 0}>
+                <FintSheetSelect label={t('payments.frequency')} showLabel={false} placeholder={t('payments.selectFrequency')} value={frequency} onValueChange={(value) => setFrequency(value as Frequency)} options={(['weekly', 'biweekly', 'monthly', 'yearly'] as const).map((item) => ({ value: item, label: frequencyLabel(item, t) }))} renderTrigger={({ onPress, selectedLabel }) => <FintListRow icon={<Repeat size={22} color="$primary" />} label={t('payments.frequency')} required onPress={onPress} value={selectedLabel} />} />
 
-            <FintFormField label={t('payments.firstDate')} required error={validation.errors.startDate} showLabel={false}><FintDateField label={t('payments.firstDate')} showLabel={false} placeholder={t('payments.selectDate')} value={startDate} onValueChange={(value) => { setStartDate(value); validation.clearError('startDate') }} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<CalendarDays size={21} color="$primary" />} invalid={Boolean(validation.errors.startDate)} label={t('payments.firstDate')} required onPress={onPress} value={selectedLabel} />} /></FintFormField>
+                <FintDateField label={t('payments.firstDate')} showLabel={false} placeholder={t('payments.selectDate')} value={startDate} onValueChange={(value) => { setStartDate(value); validation.clearError('startDate') }} renderTrigger={({ onPress, selectedLabel }) => <FintListRow icon={<CalendarDays size={22} color="$primary" />} label={t('payments.firstDate')} required onPress={onPress} value={selectedLabel} />} />
 
-            <FintFormField label={t('forms.category')} required error={validation.errors.categoryId} showLabel={false}>
-              <CategoryPickerSheet categories={categories} showLabel={false} type="expense" value={selectedCategory?.name ?? ''} onValueChange={(name) => { setCategoryId(categories.find((category) => category.name === name)?.id ?? ''); validation.clearError('categoryId') }} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<Shapes size={21} color="$primary" />} invalid={Boolean(validation.errors.categoryId)} label={t('forms.category')} required onPress={onPress} value={selectedLabel} />} />
+                <CategoryPickerSheet categories={categories} showLabel={false} type="expense" value={selectedCategory?.name ?? ''} onValueChange={(name) => { setCategoryId(categories.find((category) => category.name === name)?.id ?? ''); validation.clearError('categoryId') }} renderTrigger={({ onPress, selectedLabel }) => <FintListRow icon={<Shapes size={22} color="$primary" />} label={t('forms.category')} required onPress={onPress} value={selectedLabel} />} />
+              </FintListGroup>
+              {fieldErrors.map((message) => (
+                <Paragraph key={message} color="$red10" fontSize="$1" fontWeight="600" px="$1">{message}</Paragraph>
+              ))}
               {categories.length === 0 ? <ReferenceHint message={t('payments.categoryRequiredHint')} action={t('payments.createCategory')} onPress={() => router.push('/categories')} /> : null}
-            </FintFormField>
+            </YStack>
 
             {autoPayAvailable ? (
               <YStack bg="$secondary" rounded="$5" gap="$2" py="$1">
@@ -193,10 +235,10 @@ export default function DebtFormScreen() {
                           placeholder={t('movements.selectAccount')}
                           value={autoPayAccountId}
                           onValueChange={(value) => { setAutoPayAccountId(value); validation.clearError('autoPayAccountId') }}
-                          options={autoPayAccounts.map((account) => ({ value: account.id, label: `${account.name} · ${account.currency}` }))}
+                          options={autoPayAccounts.map((account) => toAccountOption(account))}
                           renderTrigger={({ onPress, selectedLabel }) => (
                             <MovementPickerTrigger
-                              icon={<WalletCards size={21} color="$primary" />}
+                              icon={<WalletCards size={22} color="$primary" />}
                               invalid={Boolean(validation.errors.autoPayAccountId)}
                               label={t('payments.autoPayAccount')}
                               required
@@ -212,10 +254,6 @@ export default function DebtFormScreen() {
               </YStack>
             ) : null}
 
-            <YStack gap="$2">
-              <FintButton width="100%" minH={52} disabled={mutation.isPending || (autoPayEnabled && autoPayAccountsQuery.isPending)} icon={mutation.isPending ? <FintSpinner color="$primaryForeground" /> : <Save size={18} />} onPress={submit}>{mutation.isPending ? t('payments.saving') : isEditing ? t('accounts.update') : t('payments.createRecurring')}</FintButton>
-              <FintButton width="100%" minH={48} variant="outlined" disabled={mutation.isPending} onPress={() => router.back()}>{t('actions.cancel')}</FintButton>
-            </YStack>
           </YStack>
         ) : null}
       </Screen>

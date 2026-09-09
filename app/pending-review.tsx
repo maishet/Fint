@@ -31,6 +31,11 @@ import {
   MovementPickerTrigger,
   MovementTypeSelector,
 } from "../src/components/MovementFormControls";
+import { useAccountPickerOptions } from "../src/finance/useAccountPickerOptions";
+import {
+  normalMovementOption,
+  useOccurrencePickerOptions,
+} from "../src/finance/useOccurrencePickerOptions";
 import { Screen } from "../src/components/Screen";
 import { SkeletonForm } from "../src/components/Skeleton";
 import { todayDateString } from "../src/finance/dates";
@@ -67,6 +72,8 @@ function transferScenario(
 }
 
 export default function PendingReviewScreen() {
+  const toAccountOption = useAccountPickerOptions();
+  const toOccurrenceOption = useOccurrencePickerOptions();
   const router = useRouter();
   const { i18n, t } = useTranslation();
   const toast = useNotify();
@@ -496,13 +503,10 @@ export default function PendingReviewScreen() {
                         setAccountId(value);
                         validation.clearError("accountId");
                       }}
-                      options={accounts.map((item) => ({
-                        value: item.id,
-                        label: `${item.name} · ${item.currency}`,
-                      }))}
+                      options={accounts.map((item) => toAccountOption(item))}
                       renderTrigger={({ onPress, selectedLabel }) => (
                         <MovementPickerTrigger
-                          icon={<WalletCards size={21} color="$primary" />}
+                          icon={<WalletCards size={22} color="$primary" />}
                           invalid={Boolean(validation.errors.accountId)}
                           label={t("forms.account")}
                           required
@@ -527,18 +531,12 @@ export default function PendingReviewScreen() {
                           validation.clearError("categoryId");
                         }}
                         options={[
-                          {
-                            value: NORMAL_MOVEMENT,
-                            label: t("movementUx.normalMovement"),
-                          },
-                          ...paymentOccurrences.map((occurrence) => ({
-                            value: occurrence.id,
-                            label: `${occurrence.title} · ${formatMoney(occurrence.remainingAmount ?? 0, occurrence.currency)}`,
-                          })),
+                          normalMovementOption(NORMAL_MOVEMENT, t("movementUx.normalMovement")),
+                          ...paymentOccurrences.map(toOccurrenceOption),
                         ]}
                         renderTrigger={({ onPress, selectedLabel }) => (
                           <MovementPickerTrigger
-                            icon={<CalendarClock size={21} color="$primary" />}
+                            icon={<CalendarClock size={22} color="$primary" />}
                             label={t("movementUx.applyToPayment")}
                             onPress={onPress}
                             value={selectedLabel}
@@ -565,7 +563,7 @@ export default function PendingReviewScreen() {
                         }}
                         renderTrigger={({ onPress, selectedLabel }) => (
                           <MovementPickerTrigger
-                            icon={<Shapes size={21} color="$primary" />}
+                            icon={<Shapes size={22} color="$primary" />}
                             invalid={Boolean(validation.errors.categoryId)}
                             label={t("forms.category")}
                             required
@@ -600,7 +598,7 @@ export default function PendingReviewScreen() {
                     }}
                     renderTrigger={({ onPress, selectedLabel }) => (
                       <MovementPickerTrigger
-                        icon={<CalendarDays size={21} color="$primary" />}
+                        icon={<CalendarDays size={22} color="$primary" />}
                         invalid={Boolean(validation.errors.transactionDate)}
                         label={t("movements.date")}
                         required
@@ -800,6 +798,7 @@ function TransferScenario1Editor({
   originAccountId: string;
 }) {
   const { t } = useTranslation();
+  const toAccountOption = useAccountPickerOptions();
   const canConfirm =
     Boolean(originAccountId) &&
     Boolean(destinationAccountId) &&
@@ -818,10 +817,10 @@ function TransferScenario1Editor({
           onValueChange={onOriginChange}
           options={accounts
             .filter((account) => account.id !== destinationAccountId)
-            .map((item) => ({ value: item.id, label: `${item.name} · ${item.currency}` }))}
+            .map((item) => toAccountOption(item))}
           renderTrigger={({ onPress, selectedLabel }) => (
             <MovementPickerTrigger
-              icon={<WalletCards size={21} color="$primary" />}
+              icon={<WalletCards size={22} color="$primary" />}
               label={t("movementUx.transferPickOrigin")}
               required
               onPress={onPress}
@@ -839,10 +838,10 @@ function TransferScenario1Editor({
           onValueChange={onDestinationChange}
           options={accounts
             .filter((account) => account.id !== originAccountId)
-            .map((item) => ({ value: item.id, label: `${item.name} · ${item.currency}` }))}
+            .map((item) => toAccountOption(item))}
           renderTrigger={({ onPress, selectedLabel }) => (
             <MovementPickerTrigger
-              icon={<WalletCards size={21} color="$primary" />}
+              icon={<WalletCards size={22} color="$primary" />}
               label={t("movementUx.transferPickDestination")}
               required
               onPress={onPress}

@@ -92,6 +92,7 @@ export const ptTranslation = {
     mapTitle: "Associe as colunas",
     mapHint: "Escolha qual coluna do arquivo corresponde a cada campo.",
     unmapped: "Não associada",
+    sampleValue: "Ex.: {{value}}",
     column: "Coluna",
     adjustColumns: "Ajustar colunas",
     fields: {
@@ -265,6 +266,8 @@ export const ptTranslation = {
     editTitle: "Editar conta",
     editSubtitle: "Atualize o nome, tipo ou moeda da conta.",
     namePlaceholder: "Ex.: Conta principal",
+    openingBalanceHint:
+      "Opcional. Se deixar em zero, o saldo vai se formando com seus lançamentos.",
     searchCurrency: "Buscar por código ou moeda",
     duplicateName: "Já existe outra conta com esse nome.",
     create: "Adicionar conta",

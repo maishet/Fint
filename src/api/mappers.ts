@@ -25,11 +25,17 @@ export function normalizeSummary(summary?: Summary): DashboardSummary {
 }
 
 export function normalizeAccount(account: Account): Account {
-  return {
-    ...account,
-    balance: Number(account.balance) || 0,
-    currency: account.currency || 'PEN',
-  }
+  const currency = account.currency || 'PEN'
+  const balance = Number(account.balance) || 0
+  // Si el backend aún no manda líneas por moneda, se deriva una desde el saldo
+  // legacy: la UI ya lee `balances` y no habrá que tocarla cuando lleguen N.
+  const balances = Array.isArray(account.balances) && account.balances.length > 0
+    ? account.balances.map((line) => ({
+        currency: line.currency || currency,
+        balance: Number(line.balance) || 0,
+      }))
+    : [{ currency, balance }]
+  return { ...account, balance, currency, balances }
 }
 
 export function normalizeTransaction(transaction: Transaction): Transaction {

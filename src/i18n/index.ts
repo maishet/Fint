@@ -104,6 +104,7 @@ const resources = {
         mapTitle: "Asocia las columnas",
         mapHint: "Elige qué columna de tu archivo corresponde a cada campo.",
         unmapped: "Sin asociar",
+        sampleValue: "Ej.: {{value}}",
         column: "Columna",
         adjustColumns: "Ajustar columnas",
         fields: {
@@ -277,6 +278,8 @@ const resources = {
         editTitle: "Editar cuenta",
         editSubtitle: "Actualiza el nombre, tipo o moneda de tu cuenta.",
         namePlaceholder: "Ej.: Cuenta principal",
+        openingBalanceHint:
+          "Opcional. Si lo dejas en cero, el saldo se irá formando con tus movimientos.",
         searchCurrency: "Buscar por código o moneda",
         duplicateName: "Ya existe otra cuenta con ese nombre.",
         create: "Agregar cuenta",
@@ -693,6 +696,7 @@ const resources = {
         mapTitle: "Map the columns",
         mapHint: "Choose which column in your file maps to each field.",
         unmapped: "Not mapped",
+        sampleValue: "E.g. {{value}}",
         column: "Column",
         adjustColumns: "Adjust columns",
         fields: {
@@ -866,6 +870,8 @@ const resources = {
         editTitle: "Edit account",
         editSubtitle: "Update the name, type, or currency of your account.",
         namePlaceholder: "E.g. Main account",
+        openingBalanceHint:
+          "Optional. If you leave it at zero, the balance builds up from your transactions.",
         searchCurrency: "Search by code or currency",
         duplicateName: "Another account already uses that name.",
         create: "Add account",
@@ -1599,6 +1605,7 @@ i18n.addResourceBundle(
       paymentDate: "Fecha de pago",
       paymentAccount: "Cuenta de pago",
       noAccountsForCurrency: "No hay cuentas disponibles para esta moneda.",
+      maxAmountHint: "Máximo: {{amount}}, el saldo pendiente",
       note: "Nota",
       noteOptionalPlaceholder: "Nota opcional",
       registering: "Registrando...",
@@ -2027,6 +2034,7 @@ i18n.addResourceBundle(
       paymentDate: "Payment date",
       paymentAccount: "Payment account",
       noAccountsForCurrency: "No accounts are available for this currency.",
+      maxAmountHint: "Maximum: {{amount}}, the remaining balance",
       note: "Note",
       noteOptionalPlaceholder: "Optional note",
       registering: "Recording...",
@@ -2459,6 +2467,7 @@ i18n.addResourceBundle(
       paymentDate: "Data do pagamento",
       paymentAccount: "Conta de pagamento",
       noAccountsForCurrency: "Não há contas disponíveis para esta moeda.",
+      maxAmountHint: "Máximo: {{amount}}, o saldo pendente",
       note: "Observação",
       noteOptionalPlaceholder: "Observação opcional",
       registering: "Registrando...",

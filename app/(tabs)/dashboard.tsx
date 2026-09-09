@@ -35,6 +35,10 @@ import type { Transaction } from "../../src/api/types";
 import { DataStateCard } from "../../src/components/DataStateCard";
 import { Screen } from "../../src/components/Screen";
 import {
+  allAccountsOption,
+  useAccountPickerOptions,
+} from "../../src/finance/useAccountPickerOptions";
+import {
   SkeletonBlock,
   SkeletonContentCard,
   SkeletonGroup,
@@ -930,6 +934,7 @@ function ExpenseCategoryCard({
   slices: CategorySlice[];
 }) {
   const { t } = useTranslation();
+  const toAccountOption = useAccountPickerOptions();
   const { formatSensitiveAmount } = useSensitiveMoney();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const total = slices.reduce((sum, slice) => sum + slice.amount, 0);
@@ -950,11 +955,8 @@ function ExpenseCategoryCard({
           placeholder={t("dashboard.allAccounts")}
           value={selectedAccountId}
           options={[
-            { value: ALL_ACCOUNTS, label: t("dashboard.allAccounts") },
-            ...accounts.map((account) => ({
-              value: account.id,
-              label: account.name,
-            })),
+            allAccountsOption(ALL_ACCOUNTS, t("dashboard.allAccounts")),
+            ...accounts.map((account) => toAccountOption(account)),
           ]}
           onValueChange={onAccountChange}
         />

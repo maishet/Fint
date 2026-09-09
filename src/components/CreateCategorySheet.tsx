@@ -10,7 +10,7 @@ import { useNotify } from "../ui/notify";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, Text } from "react-native";
-import { Button, Paragraph, Sheet, XStack, YStack } from "tamagui";
+import { Button, Input, Paragraph, Sheet, XStack, YStack } from "tamagui";
 import EmojiPicker, { es, en, pt, type EmojiType } from "rn-emoji-keyboard";
 import { z } from "zod";
 import { ApiRequestError } from "../api/client";
@@ -21,7 +21,7 @@ import type {
   CreateCategoryResult,
   TransactionType,
 } from "../api/types";
-import { FormTextField, MovementTypeSelector } from "./MovementFormControls";
+import { MovementTypeSelector } from "./MovementFormControls";
 import { suggestedCategoryIcons } from "../finance/categoryIcons";
 import { getValidationMessage, useSubmitValidation } from "../forms";
 import { useThemeMode } from "../theme/ThemeMode";
@@ -227,122 +227,135 @@ export function CreateCategorySheet({
                 />
               )}
 
-              <XStack
-                bg="$muted"
-                borderColor="$borderColor"
-                borderWidth={1}
-                rounded="$7"
-                p="$3"
-                gap="$3"
-                items="center"
-              >
-                <YStack
-                  width={66}
-                  height={66}
-                  rounded="$10"
-                  bg="$secondary"
-                  borderColor="$primary"
-                  borderWidth={1}
-                  items="center"
-                  justify="center"
-                  role="button"
-                  onPress={() => setEmojiPickerOpen(true)}
-                  aria-label={t("categoryUx.changeEmoji")}
+              {/*
+                Las sugerencias van ARRIBA y siempre visibles: con nombre vacío
+                caen a las de su tipo, así que la tarjeta no salta de sitio al
+                escribir la primera letra.
+              */}
+              <YStack gap="$2">
+                <Paragraph color="$color10" fontSize="$1" fontWeight="600">
+                  {t("categoryUx.suggestedEmoji")}
+                </Paragraph>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 8, paddingRight: 4 }}
                 >
-                  <Text
-                    style={{
-                      fontSize: 36,
-                      includeFontPadding: false,
-                      lineHeight: 46,
-                      textAlign: "center",
-                      textAlignVertical: "center",
-                    }}
-                  >
-                    {icon}
-                  </Text>
-                </YStack>
-                <YStack flex={1} minW={0} gap="$1">
-                  <Paragraph color="$color10" fontSize="$1" fontWeight="600">
-                    {t("categoryUx.identity")}
-                  </Paragraph>
-                  <Paragraph
-                    color="$color12"
-                    fontFamily="$heading"
-                    fontSize="$5"
-                    fontWeight="600"
-                    numberOfLines={1}
-                  >
-                    {name.trim() || t("categories.newTitle")}
-                  </Paragraph>
-                  <Paragraph
-                    color="$primary"
-                    fontSize="$1"
-                    fontWeight="600"
-                    onPress={() => setEmojiPickerOpen(true)}
-                  >
-                    {t("categoryUx.changeEmoji")}
-                  </Paragraph>
-                </YStack>
-              </XStack>
-
-              {name.trim() ? (
-                <YStack gap="$2">
-                  <Paragraph color="$color10" fontSize="$1" fontWeight="600">
-                    {t("categoryUx.suggestedEmoji")}
-                  </Paragraph>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ gap: 8, paddingRight: 4 }}
-                  >
-                    {suggestedCategoryIcons(name, type).map((option) => (
-                      <Button
-                        key={option}
-                        width={48}
-                        height={48}
-                        p={0}
-                        rounded="$10"
-                        bg={icon === option ? "$secondary" : "$muted"}
-                        borderColor={
-                          icon === option ? "$primary" : "$borderColor"
-                        }
-                        borderWidth={1}
-                        onPress={() => {
-                          setIcon(option);
-                          setIconChanged(true);
+                  {suggestedCategoryIcons(name, type).map((option) => (
+                    <Button
+                      key={option}
+                      width={48}
+                      height={48}
+                      p={0}
+                      rounded="$10"
+                      bg={icon === option ? "$secondary" : "$muted"}
+                      borderColor={icon === option ? "$primary" : "$borderColor"}
+                      borderWidth={1}
+                      onPress={() => {
+                        setIcon(option);
+                        setIconChanged(true);
+                      }}
+                      aria-label={option}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 24,
+                          includeFontPadding: false,
+                          lineHeight: 30,
+                          textAlign: "center",
+                          textAlignVertical: "center",
                         }}
                       >
-                        <Text
-                          style={{
-                            fontSize: 24,
-                            includeFontPadding: false,
-                            lineHeight: 30,
-                            textAlign: "center",
-                            textAlignVertical: "center",
-                          }}
-                        >
-                          {option}
-                        </Text>
-                      </Button>
-                    ))}
-                  </ScrollView>
-                </YStack>
-              ) : null}
+                        {option}
+                      </Text>
+                    </Button>
+                  ))}
+                </ScrollView>
+              </YStack>
 
-              <FormTextField
-                label={t("forms.name")}
-                required
-                error={validation.errors.name}
-                icon={<Shapes size={21} color="$primary" />}
-                placeholder={t("categories.namePlaceholder")}
-                value={name}
-                onChangeText={(value) => {
-                  setName(value);
-                  validation.clearError("name");
-                  if (!iconChanged)
-                    setIcon(suggestedCategoryIcons(value, type)[0] ?? icon);
-                }}
-              />
+              {/*
+                El nombre grande de la tarjeta ES el campo. Antes era texto
+                muerto con el input de verdad más abajo: se tocaba el texto y no
+                pasaba nada.
+              */}
+              <YStack gap="$2">
+                <XStack
+                  bg="$muted"
+                  borderColor={validation.errors.name ? "$red8" : "$borderColor"}
+                  borderWidth={1}
+                  rounded="$7"
+                  p="$3"
+                  gap="$3"
+                  items="center"
+                >
+                  <YStack
+                    width={66}
+                    height={66}
+                    rounded="$10"
+                    bg="$secondary"
+                    borderColor="$primary"
+                    borderWidth={1}
+                    items="center"
+                    justify="center"
+                    role="button"
+                    onPress={() => setEmojiPickerOpen(true)}
+                    aria-label={t("categoryUx.changeEmoji")}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 36,
+                        includeFontPadding: false,
+                        lineHeight: 46,
+                        textAlign: "center",
+                        textAlignVertical: "center",
+                      }}
+                    >
+                      {icon}
+                    </Text>
+                  </YStack>
+                  <YStack flex={1} minW={0} gap="$1">
+                    <Paragraph color="$color10" fontSize="$1" fontWeight="600">
+                      {t("forms.name")} *
+                    </Paragraph>
+                    <Input
+                      unstyled
+                      width="100%"
+                      height={24}
+                      minH={24}
+                      p={0}
+                      m={0}
+                      color="$color12"
+                      fontFamily="$heading"
+                      fontSize="$5"
+                      fontWeight="600"
+                      placeholder={t("categories.namePlaceholder")}
+                      placeholderTextColor="$color8"
+                      value={name}
+                      onChangeText={(value) => {
+                        setName(value);
+                        validation.clearError("name");
+                        if (!iconChanged)
+                          setIcon(suggestedCategoryIcons(value, type)[0] ?? icon);
+                      }}
+                      aria-label={t("forms.name")}
+                    />
+                    <Paragraph
+                      color="$primary"
+                      fontSize="$1"
+                      fontWeight="600"
+                      onPress={() => setEmojiPickerOpen(true)}
+                    >
+                      {t("categoryUx.changeEmoji")}
+                    </Paragraph>
+                  </YStack>
+                </XStack>
+                {validation.errors.name ? (
+                  <Paragraph color="$red10" fontSize="$1" fontWeight="600" px="$1">
+                    {validation.errors.name}
+                  </Paragraph>
+                ) : null}
+              </YStack>
+
               {errorMessage ? (
                 <Paragraph color="$red10">{errorMessage}</Paragraph>
               ) : null}

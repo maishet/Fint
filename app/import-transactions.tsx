@@ -1,16 +1,16 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, FileSpreadsheet, FileUp, RefreshCw, Upload } from '@tamagui/lucide-icons-2'
+import { AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, Coins, FileSpreadsheet, FileUp, Minus, RefreshCw, Upload } from '@tamagui/lucide-icons-2'
 import * as DocumentPicker from 'expo-document-picker'
 import { File } from 'expo-file-system'
 import { Stack, useRouter } from 'expo-router'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Paragraph, XStack, YStack } from 'tamagui'
 import * as XLSX from 'xlsx'
 import { financeApi } from '../src/api/finance'
 import type { ImportTransactionsResult } from '../src/api/types'
 import { Screen } from '../src/components/Screen'
-import { MovementPickerTrigger } from '../src/components/MovementFormControls'
+import { FintListGroup, FintListRow } from '../src/components/FintListGroup'
 import { currencyOptions } from '../src/finance/currencies'
 import {
   buildImportItems,
@@ -115,9 +115,32 @@ export default function ImportTransactionsScreen() {
     onError: (error) => toast.error(t('import.error'), { message: error instanceof Error ? error.message : undefined }),
   })
 
+  const columnBadge = (children: ReactNode) => (
+    <YStack width={34} height={34} rounded="$10" bg="$secondary" items="center" justify="center">
+      {children}
+    </YStack>
+  )
+  // El nombre de la cabecera no siempre dice qué hay dentro ("col_3", "Importe
+  // 2"). Un valor real del archivo lo resuelve de un vistazo.
   const columnOptions = [
-    { value: NONE, label: t('import.unmapped') },
-    ...headers.map((header, index) => ({ value: String(index), label: header || `${t('import.column')} ${index + 1}` })),
+    {
+      value: NONE,
+      label: t('import.unmapped'),
+      icon: columnBadge(<Minus size={17} color="$color10" />),
+    },
+    ...headers.map((header, index) => {
+      const sample = dataRows.find((row) => row[index]?.trim())?.[index]?.trim()
+      return {
+        value: String(index),
+        label: header || `${t('import.column')} ${index + 1}`,
+        detail: sample ? t('import.sampleValue', { value: sample.slice(0, 40) }) : undefined,
+        icon: columnBadge(
+          <Paragraph color="$primary" fontFamily="$heading" fontSize="$2" fontWeight="600">
+            {index + 1}
+          </Paragraph>,
+        ),
+      }
+    }),
   ]
 
   return (
@@ -203,54 +226,47 @@ export default function ImportTransactionsScreen() {
               )}
 
               {showMapping ? (
-                <YStack gap="$2.5">
+                <FintListGroup>
+                  {/* Una columna por campo: apiladas sueltas eran ocho marcos seguidos. */}
                   {IMPORT_FIELDS.map((field) => (
-                    <FintFormField
+                    <FintSheetSelect
                       key={field}
                       label={t(`import.fields.${field}`)}
-                      required={REQUIRED_IMPORT_FIELDS.includes(field)}
                       showLabel={false}
-                    >
-                      <FintSheetSelect
-                        label={t(`import.fields.${field}`)}
-                        showLabel={false}
-                        placeholder={t('import.unmapped')}
-                        value={String(mapping[field] ?? NONE)}
-                        options={columnOptions}
-                        onValueChange={(value) => setFieldColumn(field, value)}
-                        renderTrigger={({ onPress, selectedLabel }) => (
-                          <MovementPickerTrigger
-                            icon={<FileSpreadsheet size={20} color="$primary" />}
-                            label={t(`import.fields.${field}`)}
-                            required={REQUIRED_IMPORT_FIELDS.includes(field)}
-                            onPress={onPress}
-                            value={selectedLabel}
-                          />
-                        )}
-                      />
-                    </FintFormField>
-                  ))}
-                  <FintFormField label={t('import.fallbackCurrency')} showLabel={false}>
-                    <FintSheetSelect
-                      label={t('import.fallbackCurrency')}
-                      showLabel={false}
-                      placeholder={t('import.fallbackCurrency')}
-                      value={fallbackCurrency}
-                      options={currencyOptions}
-                      searchable
-                      searchPlaceholder={t('accounts.searchCurrency')}
-                      onValueChange={setFallbackCurrency}
+                      placeholder={t('import.unmapped')}
+                      value={String(mapping[field] ?? NONE)}
+                      options={columnOptions}
+                      onValueChange={(value) => setFieldColumn(field, value)}
                       renderTrigger={({ onPress, selectedLabel }) => (
-                        <MovementPickerTrigger
-                          icon={<FileSpreadsheet size={20} color="$primary" />}
-                          label={t('import.fallbackCurrency')}
+                        <FintListRow
+                          icon={<FileSpreadsheet size={22} color="$primary" />}
+                          label={t(`import.fields.${field}`)}
+                          required={REQUIRED_IMPORT_FIELDS.includes(field)}
                           onPress={onPress}
                           value={selectedLabel}
                         />
                       )}
                     />
-                  </FintFormField>
-                </YStack>
+                  ))}
+                  <FintSheetSelect
+                    label={t('import.fallbackCurrency')}
+                    showLabel={false}
+                    placeholder={t('import.fallbackCurrency')}
+                    value={fallbackCurrency}
+                    options={currencyOptions}
+                    searchable
+                    searchPlaceholder={t('accounts.searchCurrency')}
+                    onValueChange={setFallbackCurrency}
+                    renderTrigger={({ onPress, selectedLabel }) => (
+                      <FintListRow
+                        icon={<Coins size={22} color="$primary" />}
+                        label={t('import.fallbackCurrency')}
+                        onPress={onPress}
+                        value={selectedLabel}
+                      />
+                    )}
+                  />
+                </FintListGroup>
               ) : null}
 
               <FintButton

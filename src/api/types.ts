@@ -70,12 +70,23 @@ export type MovementKind = TransactionType | 'transfer'
 
 export type AccountType = 'cash' | 'credit_card' | 'checking_account' | 'savings_account'
 
+export interface AccountBalance {
+  currency: string
+  balance: number
+}
+
 export interface Account {
   id: string
   name: string
   accountType: AccountType | string
+  /** Moneda principal. Para tarjetas multi-moneda es la de la línea primaria. */
   currency: string
   balance: number
+  /**
+   * Saldo por moneda. Hoy el backend manda una sola línea y `normalizeAccount`
+   * la deriva de `currency`/`balance`; las tarjetas llevarán N (sprint 4, 2.3).
+   */
+  balances?: AccountBalance[]
 }
 
 export interface Transaction {
@@ -181,6 +192,13 @@ export interface AccountOption {
   id: string
   name: string
   currency: string
+  /**
+   * Los manda `/accounts/options` para que el selector pinte icono y saldo.
+   * Opcionales a propósito: si la app corre contra una API anterior, el
+   * selector cae a nombre + moneda en vez de romperse.
+   */
+  accountType?: string | null
+  balance?: number | null
 }
 
 export type TransferAccountMatch = { accountId: string; accountName: string } | null

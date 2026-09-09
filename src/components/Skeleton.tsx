@@ -238,19 +238,17 @@ export function SkeletonForm({
           </XStack>
         </FintCard>
       ) : null}
-      <YStack gap={8}>
-        <SkeletonBlock height={52} rounded="$6" />
-        <SkeletonBlock height={48} rounded="$6" />
-      </YStack>
+      <SkeletonBlock height={52} rounded="$6" />
     </SkeletonGroup>
   );
 }
 
+/** Mide lo que mide la fila real: 64 px, glifo de 22, sin insignia. */
 function FormFieldSkeleton() {
   return (
-    <FintCard minH={68} p="$3">
+    <FintCard minH={64} justify="center" px={14} py="$2">
       <XStack items="center" gap="$3">
-        <SkeletonBlock height={42} rounded="$10" width={42} />
+        <SkeletonBlock height={22} rounded="$4" width={22} />
         <YStack flex={1} gap="$2">
           <SkeletonBlock height={9} width="28%" />
           <SkeletonBlock height={15} width="62%" />

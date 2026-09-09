@@ -41,6 +41,10 @@ import type {
 import { DataStateCard } from "../../src/components/DataStateCard";
 import { Screen } from "../../src/components/Screen";
 import {
+  allAccountsOption,
+  useAccountPickerOptions,
+} from "../../src/finance/useAccountPickerOptions";
+import {
   SkeletonBlock,
   SkeletonContentCard,
   SkeletonGroup,
@@ -146,6 +150,7 @@ function getReportText(t: TFunction): ReportText {
 }
 
 export default function ReportsScreen() {
+  const toAccountOption = useAccountPickerOptions();
   const { i18n, t } = useTranslation();
   const language = (
     i18n.resolvedLanguage === "en" || i18n.resolvedLanguage === "pt"
@@ -374,11 +379,8 @@ export default function ReportsScreen() {
             placeholder={text.account}
             value={accountId}
             options={[
-              { value: ALL_ACCOUNTS, label: text.allAccounts },
-              ...(optionsQuery.data?.accounts ?? []).map((item) => ({
-                value: item.id,
-                label: item.name,
-              })),
+              allAccountsOption(ALL_ACCOUNTS, text.allAccounts),
+              ...(optionsQuery.data?.accounts ?? []).map((item) => toAccountOption(item)),
             ]}
             onValueChange={(value) => {
               setAccountId(value);

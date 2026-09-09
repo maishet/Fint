@@ -58,6 +58,23 @@ export function parseDecimalInput(value: string) {
   return Number(value.trim().replace(',', '.'))
 }
 
+export const AMOUNT_MAX_DECIMALS = 4
+
+/**
+ * Limpia lo que se teclea (o se pega) en un campo de monto: sólo dígitos, un
+ * único separador decimal y como mucho cuatro decimales. Se aplica al escribir,
+ * así que el campo nunca llega a mostrar algo que luego el backend rechace.
+ */
+export function sanitizeAmountInput(value: string, maxDecimals = AMOUNT_MAX_DECIMALS) {
+  const cleaned = value.replace(/[^\d.,]/g, '')
+  const separatorIndex = cleaned.search(/[.,]/)
+  if (separatorIndex === -1) return cleaned
+  const whole = cleaned.slice(0, separatorIndex)
+  const separator = cleaned[separatorIndex]
+  const decimals = cleaned.slice(separatorIndex + 1).replace(/[.,]/g, '').slice(0, maxDecimals)
+  return `${whole}${separator}${decimals}`
+}
+
 export function useSubmitValidation<TField extends string>() {
   const [errors, setErrors] = useState<Partial<Record<TField, string>>>({})
 

@@ -30,6 +30,10 @@ import type {
 import { CategoryPickerSheet } from "../src/components/CategoryPickerSheet";
 import { DataStateCard } from "../src/components/DataStateCard";
 import { MovementPickerTrigger } from "../src/components/MovementFormControls";
+import {
+  normalMovementOption,
+  useOccurrencePickerOptions,
+} from "../src/finance/useOccurrencePickerOptions";
 import { SkeletonGroup, SkeletonList } from "../src/components/Skeleton";
 import { SwipeableRow } from "../src/components/SwipeableRow";
 import { getValidationMessage } from "../src/forms";
@@ -555,6 +559,7 @@ function PendingCard({
   selectionMode: boolean;
 }) {
   const { t, i18n } = useTranslation();
+  const toOccurrenceOption = useOccurrencePickerOptions();
   const detectedDate = new Intl.DateTimeFormat(i18n.language, {
     day: "2-digit",
     month: "short",
@@ -655,18 +660,12 @@ function PendingCard({
                     value={paymentOccurrenceId}
                     onValueChange={onPaymentOccurrenceChange}
                     options={[
-                      {
-                        value: NORMAL_MOVEMENT,
-                        label: t("movementUx.normalMovement"),
-                      },
-                      ...paymentOccurrences.map((occurrence) => ({
-                        value: occurrence.id,
-                        label: `${occurrence.title} · ${formatMoney(occurrence.remainingAmount ?? 0, occurrence.currency)}`,
-                      })),
+                      normalMovementOption(NORMAL_MOVEMENT, t("movementUx.normalMovement")),
+                      ...paymentOccurrences.map(toOccurrenceOption),
                     ]}
                     renderTrigger={({ onPress, selectedLabel }) => (
                       <MovementPickerTrigger
-                        icon={<CalendarClock size={20} color="$primary" />}
+                        icon={<CalendarClock size={22} color="$primary" />}
                         label={t("movementUx.applyToPayment")}
                         onPress={onPress}
                         value={selectedLabel}
@@ -690,7 +689,7 @@ function PendingCard({
                     onValueChange={onCategoryChange}
                     renderTrigger={({ onPress, selectedLabel }) => (
                       <MovementPickerTrigger
-                        icon={<Shapes size={20} color="$primary" />}
+                        icon={<Shapes size={22} color="$primary" />}
                         invalid={Boolean(categoryError)}
                         label={t("forms.category")}
                         required

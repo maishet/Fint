@@ -1,5 +1,5 @@
 import type { ComponentProps } from "react";
-import { Button, Dialog, XStack, YStack } from "tamagui";
+import { Button, Dialog, YStack } from "tamagui";
 import { FintSpinner } from "./FintSpinner";
 import { haptics } from "./haptics";
 
@@ -34,7 +34,8 @@ export function FintConfirmDialog({
       open={open}
       onOpenChange={(nextOpen) => !nextOpen && !isPending && onCancel()}
     >
-      <Dialog.Portal>
+      {/* Sin esto el diálogo se ancla abajo y tapa el campo que estabas usando. */}
+      <Dialog.Portal items="center" justify="center">
         <Dialog.Overlay bg="rgba(4,18,28,0.68)" />
         <Dialog.Content
           bordered
@@ -60,20 +61,16 @@ export function FintConfirmDialog({
               {description}
             </Dialog.Description>
           </YStack>
-          <XStack gap="$3">
+          {/*
+            En fila, media caja no da para etiquetas como "Seguir editando" y el
+            botón las recortaba. Apiladas caben enteras en cualquier idioma y a
+            cualquier tamaño de fuente del sistema.
+          */}
+          <YStack gap="$2">
             <Button
-              flex={1}
-              chromeless
-              disabled={isPending}
-              onPress={() => {
-                haptics.tap();
-                onCancel();
-              }}
-            >
-              {cancelLabel}
-            </Button>
-            <Button
-              flex={1}
+              width="100%"
+              minH={50}
+              rounded={14}
               bg={destructive ? "$destructive" : "$primary"}
               color="$primaryForeground"
               fontWeight="600"
@@ -86,7 +83,21 @@ export function FintConfirmDialog({
             >
               {isPending ? (pendingLabel ?? confirmLabel) : confirmLabel}
             </Button>
-          </XStack>
+            <Button
+              width="100%"
+              minH={46}
+              rounded={14}
+              chromeless
+              color="$color11"
+              disabled={isPending}
+              onPress={() => {
+                haptics.tap();
+                onCancel();
+              }}
+            >
+              {cancelLabel}
+            </Button>
+          </YStack>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog>

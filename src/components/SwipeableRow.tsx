@@ -17,6 +17,7 @@ export function SwipeableRow({
   actionIcon,
   actionColor = '$red9',
   actionLabel,
+  actionRounded = 18,
   enabled = true,
 }: {
   children: ReactNode
@@ -24,6 +25,8 @@ export function SwipeableRow({
   actionIcon: ReactNode
   actionColor?: string
   actionLabel: string
+  /** 0 cuando la fila vive dentro de un grupo que ya recorta las esquinas. */
+  actionRounded?: number
   enabled?: boolean
 }) {
   const swipeableRef = useRef<SwipeableMethods>(null)
@@ -45,7 +48,7 @@ export function SwipeableRow({
         <YStack
           flex={1}
           bg={actionColor as never}
-          rounded={18}
+          rounded={actionRounded}
           items="flex-end"
           justify="center"
           pr="$5"

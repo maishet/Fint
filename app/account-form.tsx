@@ -4,21 +4,21 @@ import { useNotify } from '../src/ui/notify'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Paragraph, XStack, YStack } from 'tamagui'
+import { Input, Paragraph, XStack, YStack } from 'tamagui'
 import { z } from 'zod'
 import { ApiRequestError } from '../src/api/client'
 import { financeApi } from '../src/api/finance'
 import type { AccountType } from '../src/api/types'
 import { DataStateCard } from '../src/components/DataStateCard'
-import { FormTextField, MovementAmountField, MovementPickerTrigger } from '../src/components/MovementFormControls'
 import { FintOptionGroup } from '../src/components/FintOptionGroup'
+import { FintListFootnote, FintListGroup, FintListRow } from '../src/components/FintListGroup'
 import { Screen } from '../src/components/Screen'
 import { SkeletonForm } from '../src/components/Skeleton'
-import { currencyOptions } from '../src/finance/currencies'
-import { getValidationMessage, parseDecimalInput, useSubmitValidation } from '../src/forms'
+import { currencyOptions, getCurrencySymbol } from '../src/finance/currencies'
+import { getValidationMessage, parseDecimalInput, sanitizeAmountInput, useSubmitValidation } from '../src/forms'
 import { useUnsavedChangesGuard } from '../src/hooks/useUnsavedChangesGuard'
 import { UnsavedChangesDialog } from '../src/components/UnsavedChangesDialog'
-import { FintButton, FintFormField, FintSheetSelect, FintSpinner } from '../src/ui'
+import { FintButton, FintSheetSelect, FintSpinner } from '../src/ui'
 
 export default function AccountFormScreen() {
   const { accountId } = useLocalSearchParams<{ accountId?: string }>()
@@ -106,14 +106,50 @@ export default function AccountFormScreen() {
     <>
       <UnsavedChangesDialog open={guard.open} onCancel={guard.onCancel} onConfirm={guard.onConfirm} />
       <Stack.Screen options={{ title: t(isEditing ? 'accounts.editTitle' : 'accounts.newTitle') }} />
-      <Screen>
+      <Screen
+        footer={!isLoading && !accountsQuery.error && !notFound ? (
+          <FintButton width="100%" minH={52} disabled={mutation.isPending} icon={mutation.isPending ? <FintSpinner size="small" color="$primaryForeground" /> : isEditing ? <Save size={18} /> : <Landmark size={18} />} onPress={submit}>
+            {mutation.isPending ? t(isEditing ? 'accounts.updating' : 'accounts.creating') : t(isEditing ? 'accounts.update' : 'accounts.create')}
+          </FintButton>
+        ) : undefined}
+      >
         {isLoading ? <SkeletonForm label={t('states.loading')} fieldCount={1} showAmount={false} showChoiceGrid showNote={false} /> : null}
         {accountsQuery.error ? <DataStateCard message={accountsQuery.error instanceof Error ? accountsQuery.error.message : t('states.error')} /> : null}
         {notFound ? <DataStateCard message={t('states.accountNotFound')} /> : null}
 
         {!isLoading && !accountsQuery.error && !notFound ? (
           <YStack gap="$5" pb="$5">
-            <FormTextField label={t('forms.name')} required error={validation.errors.name} icon={<Landmark size={21} color="$primary" />} placeholder={t('accounts.namePlaceholder')} value={name} onChangeText={(value) => { setName(value); validation.clearError('name') }} onBlur={() => validation.validateField('name', accountDetailsSchema.shape.name, name)} autoCapitalize="words" />
+            <YStack gap="$2">
+              <FintListGroup invalid={Boolean(validation.errors.name)}>
+                <FintListRow
+                  icon={<Landmark size={22} color="$primary" />}
+                  label={t('forms.name')}
+                  required
+                  valueSlot={
+                    <Input
+                      unstyled
+                      width="100%"
+                      height={22}
+                      minH={22}
+                      p={0}
+                      m={0}
+                      color="$color12"
+                      fontFamily="$body"
+                      fontSize="$3"
+                      fontWeight="600"
+                      placeholder={t('accounts.namePlaceholder')}
+                      placeholderTextColor="$color10"
+                      value={name}
+                      onChangeText={(value) => { setName(value); validation.clearError('name') }}
+                      onBlur={() => validation.validateField('name', accountDetailsSchema.shape.name, name)}
+                      autoCapitalize="words"
+                      aria-label={t('forms.name')}
+                    />
+                  }
+                />
+              </FintListGroup>
+              {validation.errors.name ? <Paragraph color="$red10" fontSize="$1" fontWeight="600" px="$1">{validation.errors.name}</Paragraph> : null}
+            </YStack>
 
             <FintOptionGroup
               label={t('forms.accountType')}
@@ -124,20 +160,52 @@ export default function AccountFormScreen() {
               onValueChange={(next) => { setAccountType(next); validation.clearError('accountType') }}
             />
 
-            {!isEditing ? (
-              <MovementAmountField label={t('formLabels.openingBalanceOptional')} required={false} currency={currency} error={validation.errors.openingBalance} value={openingBalance} onChangeText={(value) => { setOpeningBalance(value); validation.clearError('openingBalance') }} onBlur={() => { if (openingBalance.trim()) validation.validateField('openingBalance', accountDetailsSchema.shape.openingBalance, parseDecimalInput(openingBalance)) }} />
-            ) : null}
+            {/*
+              El saldo inicial es opcional: no merece el campo grande del monto,
+              y va junto a la moneda porque se leen a la vez.
+            */}
+            <YStack gap="$2">
+              <FintListGroup invalid={Boolean(validation.errors.currency || validation.errors.openingBalance)}>
+                <FintSheetSelect label={t('forms.currency')} showLabel={false} value={currency} options={currencyOptions} placeholder={t('forms.select')} searchable searchPlaceholder={t('accounts.searchCurrency')} onValueChange={(value) => { setCurrency(value); validation.clearError('currency') }} renderTrigger={({ onPress, selectedLabel }) => <FintListRow icon={<Coins size={22} color="$primary" />} label={t('forms.currency')} required onPress={onPress} value={selectedLabel} />} />
 
-            <FintFormField label={t('forms.currency')} required error={validation.errors.currency} showLabel={false}><FintSheetSelect label={t('forms.currency')} showLabel={false} value={currency} options={currencyOptions} placeholder={t('forms.select')} searchable searchPlaceholder={t('accounts.searchCurrency')} onValueChange={(value) => { setCurrency(value); validation.clearError('currency') }} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<Coins size={21} color="$primary" />} invalid={Boolean(validation.errors.currency)} label={t('forms.currency')} required onPress={onPress} value={selectedLabel} />} /></FintFormField>
+                {!isEditing ? (
+                  <FintListRow
+                    icon={<Wallet size={22} color="$primary" />}
+                    label={t('forms.openingBalance')}
+                    valueSlot={
+                      <XStack items="center" gap="$2">
+                        <Paragraph color="$color10" fontSize="$2" fontWeight="600">{getCurrencySymbol(currency)}</Paragraph>
+                        <Input
+                          unstyled
+                          flex={1}
+                          minW={0}
+                          height={22}
+                          minH={22}
+                          p={0}
+                          m={0}
+                          color="$color12"
+                          fontFamily="$body"
+                          fontSize="$3"
+                          fontWeight="600"
+                          keyboardType="decimal-pad"
+                          placeholder="0.00"
+                          placeholderTextColor="$color10"
+                          value={openingBalance}
+                          onChangeText={(value) => { setOpeningBalance(sanitizeAmountInput(value)); validation.clearError('openingBalance') }}
+                          onBlur={() => { if (openingBalance.trim()) validation.validateField('openingBalance', accountDetailsSchema.shape.openingBalance, parseDecimalInput(openingBalance)) }}
+                          aria-label={t('forms.openingBalance')}
+                        />
+                      </XStack>
+                    }
+                  />
+                ) : null}
+              </FintListGroup>
+              {validation.errors.currency ? <Paragraph color="$red10" fontSize="$1" fontWeight="600" px="$1">{validation.errors.currency}</Paragraph> : null}
+              {validation.errors.openingBalance ? <Paragraph color="$red10" fontSize="$1" fontWeight="600" px="$1">{validation.errors.openingBalance}</Paragraph> : null}
+              {!isEditing ? <FintListFootnote>{t('accounts.openingBalanceHint')}</FintListFootnote> : null}
+            </YStack>
 
             {errorMessage ? <XStack bg="$red2" borderColor="$red6" borderWidth={1} rounded="$5" p="$3"><Paragraph color="$red11" fontSize="$2">{errorMessage}</Paragraph></XStack> : null}
-
-            <YStack gap="$2">
-              <FintButton width="100%" minH={52} disabled={mutation.isPending} icon={mutation.isPending ? <FintSpinner size="small" color="$primaryForeground" /> : isEditing ? <Save size={18} /> : <Landmark size={18} />} onPress={submit}>
-                {mutation.isPending ? t(isEditing ? 'accounts.updating' : 'accounts.creating') : t(isEditing ? 'accounts.update' : 'accounts.create')}
-              </FintButton>
-              <FintButton width="100%" minH={48} variant="outlined" disabled={mutation.isPending} onPress={() => router.back()}>{t('actions.cancel')}</FintButton>
-            </YStack>
           </YStack>
         ) : null}
       </Screen>

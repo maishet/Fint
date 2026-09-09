@@ -11,6 +11,12 @@ import { haptics } from './haptics'
 export interface FintSelectOption {
   icon?: ReactNode
   label: string
+  /** Segundo renglon: el saldo de la cuenta, el tipo, lo que distinga la opcion. */
+  detail?: string
+  /** A la derecha, antes del check: la moneda, por ejemplo. */
+  meta?: string
+  /** Lo que se lee en el disparador cuando esta opcion esta elegida, si difiere. */
+  triggerLabel?: string
   value: string
 }
 
@@ -31,11 +37,12 @@ export function FintSheetSelect({ label, onValueChange, options, placeholder, se
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState('')
   const insets = useSafeAreaInsets()
-  const selectedLabel = options.find((option) => option.value === value)?.label ?? placeholder
+  const selectedOption = options.find((option) => option.value === value)
+  const selectedLabel = selectedOption ? (selectedOption.triggerLabel ?? selectedOption.label) : placeholder
   const filteredOptions = useMemo(() => {
     const query = search.trim().toLocaleLowerCase()
     if (!query) return options
-    return options.filter((option) => `${option.value} ${option.label}`.toLocaleLowerCase().includes(query))
+    return options.filter((option) => `${option.value} ${option.label} ${option.detail ?? ''}`.toLocaleLowerCase().includes(query))
   }, [options, search])
   const isLongList = searchable || options.length > 8
   const closeSheet = useCallback(() => {
@@ -53,7 +60,7 @@ export function FintSheetSelect({ label, onValueChange, options, placeholder, se
         items="center"
         justify="space-between"
         gap="$3"
-        minH={48}
+        minH={option.detail ? 60 : 48}
         px="$3"
         py="$3"
         rounded={14}
@@ -75,8 +82,12 @@ export function FintSheetSelect({ label, onValueChange, options, placeholder, se
       >
         <XStack items="center" gap="$3" flex={1} minW={0}>
           {option.icon}
-          <Paragraph color={isSelected ? '$primary' : '$color12'} fontWeight={isSelected ? '700' : '600'} numberOfLines={1}>{option.label}</Paragraph>
+          <YStack flex={1} minW={0} gap={2}>
+            <Paragraph color={isSelected ? '$primary' : '$color12'} fontWeight={isSelected ? '700' : '600'} numberOfLines={1}>{option.label}</Paragraph>
+            {option.detail ? <Paragraph color="$color10" fontSize="$1" numberOfLines={1}>{option.detail}</Paragraph> : null}
+          </YStack>
         </XStack>
+        {option.meta ? <Paragraph color="$color10" fontSize="$1" fontWeight="600" shrink={0}>{option.meta}</Paragraph> : null}
         {isSelected ? <Check size={18} color="$primary" /> : null}
       </XStack>
     )

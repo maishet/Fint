@@ -7,16 +7,18 @@ import { useTranslation } from 'react-i18next'
 import { Paragraph, YStack } from 'tamagui'
 import { z } from 'zod'
 import { financeApi } from '../src/api/finance'
+import { useAccountPickerOptions } from '../src/finance/useAccountPickerOptions'
 import { Screen } from '../src/components/Screen'
 import { SkeletonForm } from '../src/components/Skeleton'
 import { CategoryPickerSheet } from '../src/components/CategoryPickerSheet'
-import { MovementAmountField, MovementNoteField, MovementPickerTrigger } from '../src/components/MovementFormControls'
+import { MovementAmountField, MovementNoteField } from '../src/components/MovementFormControls'
+import { FintListGroup, FintListRow } from '../src/components/FintListGroup'
 import { FintOptionGroup } from '../src/components/FintOptionGroup'
 import { todayDateString } from '../src/finance/dates'
 import { getValidationMessage, parseDecimalInput, useSubmitValidation } from '../src/forms'
 import { useUnsavedChangesGuard } from '../src/hooks/useUnsavedChangesGuard'
 import { UnsavedChangesDialog } from '../src/components/UnsavedChangesDialog'
-import { FintButton, FintDateField, FintFormField, FintSheetSelect, FintSpinner } from '../src/ui'
+import { FintButton, FintDateField, FintSheetSelect, FintSpinner } from '../src/ui'
 
 type MovementKind = 'income' | 'expense' | 'transfer'
 
@@ -151,8 +153,15 @@ export default function TransactionFormScreen() {
     if (payload) mutation.mutate(payload)
   }
 
+  const toAccountOption = useAccountPickerOptions()
+
   const isReferenceLoading = accountsQuery.isLoading || (kind !== 'transfer' && categoriesQuery.isLoading)
   const isPending = mutation.isPending || transferMutation.isPending
+  // Los campos comparten un grupo: el borde se tiñe una vez y los mensajes van debajo.
+  const fieldErrors = (kind === 'transfer'
+    ? [validation.errors.originAccountId, validation.errors.destinationAccountId, validation.errors.transactionDate]
+    : [validation.errors.account, validation.errors.category, validation.errors.transactionDate]
+  ).filter((message): message is string => Boolean(message))
   const screenTitle = isEditing
     ? 'movementUx.editTitle'
     : kind === 'income'
@@ -165,36 +174,47 @@ export default function TransactionFormScreen() {
     <>
     <UnsavedChangesDialog open={guard.open} onCancel={guard.onCancel} onConfirm={guard.onConfirm} />
     <Stack.Screen options={{ title: t(screenTitle) }} />
-    <Screen>
+    {/*
+      Una sola acción, fija abajo. "Cancelar" sale: el atrás de la cabecera ya
+      está y `useUnsavedChangesGuard` sigue protegiendo la salida.
+    */}
+    <Screen
+      footer={
+        <FintButton width="100%" minH={52} disabled={isPending || isReferenceLoading} icon={isPending ? <FintSpinner color="$primaryForeground" /> : <Save size={18} />} onPress={submit}>
+          {isPending ? t(isEditing ? 'movementUx.updating' : 'movements.creating') : isEditing ? t('actions.save') : t(kind === 'income' ? 'movementUx.registerIncome' : kind === 'transfer' ? 'movementUx.registerTransfer' : 'movementUx.registerExpense')}
+        </FintButton>
+      }
+    >
       {isReferenceLoading ? <SkeletonForm label={t('movements.loadingReferences')} showSegment segmentCount={isEditing ? 2 : 3} fieldCount={3} /> : <YStack gap="$5" pb="$5">
         <MovementKindSelector value={kind} onValueChange={(value) => { setKind(value); setErrorMessage(null); validation.clearError('category', 'account', 'originAccountId', 'destinationAccountId') }} allowTransfer={!isEditing} />
 
         <MovementAmountField currency={kind === 'transfer' ? (selectedOriginAccount?.currency ?? 'PEN') : (selectedAccount?.currency ?? 'PEN')} error={validation.errors.amount} value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} onBlur={() => { if (amount.trim()) validation.validateField('amount', transactionSchema.shape.amount, parseDecimalInput(amount)) }} />
 
-        {kind === 'transfer' ? (
-          <>
-            <FintFormField label={t('movementUx.transferPickOrigin')} required error={validation.errors.originAccountId} showLabel={false}>
-              <FintSheetSelect label={t('movementUx.transferPickOrigin')} showLabel={false} placeholder={t('movements.selectAccount')} value={originAccountId} onValueChange={(value) => { setOriginAccountId(value); validation.clearError('originAccountId') }} options={accounts.filter((item) => item.id !== destinationAccountId).map((item) => ({ value: item.id, label: `${item.name} · ${item.currency}` }))} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<WalletCards size={21} color="$primary" />} invalid={Boolean(validation.errors.originAccountId)} label={t('movementUx.transferPickOrigin')} required onPress={onPress} value={selectedLabel} />} />
-            </FintFormField>
-            <FintFormField label={t('movementUx.transferPickDestination')} required error={validation.errors.destinationAccountId} showLabel={false}>
-              <FintSheetSelect label={t('movementUx.transferPickDestination')} showLabel={false} placeholder={t('movements.selectAccount')} value={destinationAccountId} onValueChange={(value) => { setDestinationAccountId(value); validation.clearError('destinationAccountId') }} options={accounts.filter((item) => item.id !== originAccountId).map((item) => ({ value: item.id, label: `${item.name} · ${item.currency}` }))} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<WalletCards size={21} color="$primary" />} invalid={Boolean(validation.errors.destinationAccountId)} label={t('movementUx.transferPickDestination')} required onPress={onPress} value={selectedLabel} />} />
-            </FintFormField>
-          </>
-        ) : (
-          <>
-            <FintFormField label={t('forms.account')} required error={validation.errors.account} showLabel={false}>
-              <FintSheetSelect label={t('forms.account')} showLabel={false} placeholder={t('movements.selectAccount')} value={account} onValueChange={(value) => { setAccount(value); validation.clearError('account') }} options={accounts.map((item) => ({ value: item.name, label: `${item.name} · ${item.currency}` }))} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<WalletCards size={21} color="$primary" />} invalid={Boolean(validation.errors.account)} label={t('forms.account')} required onPress={onPress} value={selectedLabel} />} />
-            </FintFormField>
+        {/*
+          Cuenta, categoría y fecha comparten un solo grupo con filete: eran
+          tres tarjetas de 68 px con la misma jerarquía que el monto.
+        */}
+        <YStack gap="$2">
+          <FintListGroup invalid={fieldErrors.length > 0}>
+            {kind === 'transfer' ? (
+              <FintSheetSelect label={t('movementUx.transferPickOrigin')} showLabel={false} placeholder={t('movements.selectAccount')} value={originAccountId} onValueChange={(value) => { setOriginAccountId(value); validation.clearError('originAccountId') }} options={accounts.filter((item) => item.id !== destinationAccountId).map((item) => toAccountOption(item, true))} renderTrigger={({ onPress, selectedLabel }) => <FintListRow icon={<WalletCards size={22} color="$primary" />} label={t('movementUx.transferPickOrigin')} required onPress={onPress} value={selectedLabel} />} />
+            ) : (
+              <FintSheetSelect label={t('forms.account')} showLabel={false} placeholder={t('movements.selectAccount')} value={account} onValueChange={(value) => { setAccount(value); validation.clearError('account') }} options={accounts.map((item) => toAccountOption(item, false))} renderTrigger={({ onPress, selectedLabel }) => <FintListRow icon={<WalletCards size={22} color="$primary" />} label={t('forms.account')} required onPress={onPress} value={selectedLabel} />} />
+            )}
 
-            <FintFormField label={t('forms.category')} required error={validation.errors.category} showLabel={false}>
-              <CategoryPickerSheet categories={categories} showLabel={false} type={kind} value={category} onValueChange={(value) => { setCategory(value); validation.clearError('category') }} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<Shapes size={21} color="$primary" />} invalid={Boolean(validation.errors.category)} label={t('forms.category')} required onPress={onPress} value={selectedLabel} />} />
-            </FintFormField>
-          </>
-        )}
+            {kind === 'transfer' ? (
+              <FintSheetSelect label={t('movementUx.transferPickDestination')} showLabel={false} placeholder={t('movements.selectAccount')} value={destinationAccountId} onValueChange={(value) => { setDestinationAccountId(value); validation.clearError('destinationAccountId') }} options={accounts.filter((item) => item.id !== originAccountId).map((item) => toAccountOption(item, true))} renderTrigger={({ onPress, selectedLabel }) => <FintListRow icon={<WalletCards size={22} color="$primary" />} label={t('movementUx.transferPickDestination')} required onPress={onPress} value={selectedLabel} />} />
+            ) : (
+              <CategoryPickerSheet categories={categories} showLabel={false} type={kind} value={category} onValueChange={(value) => { setCategory(value); validation.clearError('category') }} renderTrigger={({ onPress, selectedLabel }) => <FintListRow icon={<Shapes size={22} color="$primary" />} label={t('forms.category')} required onPress={onPress} value={selectedLabel} />} />
+            )}
 
-        <FintFormField label={t('movements.date')} required error={validation.errors.transactionDate} showLabel={false}>
-          <FintDateField label={t('movements.date')} showLabel={false} placeholder={t('movements.selectDate')} value={transactionDate} maxDate={todayDateString()} onValueChange={(value) => { setTransactionDate(value); validation.clearError('transactionDate') }} renderTrigger={({ onPress, selectedLabel }) => <MovementPickerTrigger icon={<CalendarDays size={21} color="$primary" />} invalid={Boolean(validation.errors.transactionDate)} label={t('movements.date')} required onPress={onPress} value={selectedLabel} />} />
-        </FintFormField>
+            <FintDateField label={t('movements.date')} showLabel={false} placeholder={t('movements.selectDate')} value={transactionDate} maxDate={todayDateString()} onValueChange={(value) => { setTransactionDate(value); validation.clearError('transactionDate') }} renderTrigger={({ onPress, selectedLabel }) => <FintListRow icon={<CalendarDays size={22} color="$primary" />} label={t('movements.date')} required onPress={onPress} value={selectedLabel} />} />
+          </FintListGroup>
+          {fieldErrors.map((message) => (
+            <Paragraph key={message} color="$red10" fontSize="$1" fontWeight="600" px="$1">{message}</Paragraph>
+          ))}
+        </YStack>
+
         <MovementNoteField label={t('movementUx.noteOptional')} placeholder={t('movementUx.notePlaceholder')} value={note} onChangeText={setNote} />
 
         {!accountsQuery.isLoading && accounts.length === 0 ? (
@@ -211,13 +231,6 @@ export default function TransactionFormScreen() {
         ) : null}
         {accountsQuery.error || categoriesQuery.error ? <Paragraph color="$red10">{t('movements.referencesError')}</Paragraph> : null}
         {errorMessage ? <Paragraph color="$red10">{errorMessage}</Paragraph> : null}
-
-        <YStack gap="$2">
-          <FintButton width="100%" minH={52} disabled={isPending || isReferenceLoading} icon={isPending ? <FintSpinner color="$primaryForeground" /> : <Save size={18} />} onPress={submit}>
-            {isPending ? t(isEditing ? 'movementUx.updating' : 'movements.creating') : isEditing ? t('actions.save') : t(kind === 'income' ? 'movementUx.registerIncome' : kind === 'transfer' ? 'movementUx.registerTransfer' : 'movementUx.registerExpense')}
-          </FintButton>
-          <FintButton width="100%" minH={48} variant="outlined" disabled={isPending} onPress={() => router.back()}>{t('actions.cancel')}</FintButton>
-        </YStack>
       </YStack>}
     </Screen>
     </>

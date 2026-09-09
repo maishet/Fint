@@ -152,7 +152,7 @@ export default function SupportScreen() {
           }}
           renderTrigger={({ onPress, selectedLabel }) => (
             <MovementPickerTrigger
-              icon={<Tags size={21} color="$primary" />}
+              icon={<Tags size={22} color="$primary" />}
               invalid={Boolean(validation.errors.category)}
               label={t("support.category")}
               required
