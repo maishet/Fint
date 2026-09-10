@@ -1,4 +1,5 @@
 import "../tamagui.generated.css";
+import { setupGestureHandler } from "@tamagui/native/setup-gesture-handler";
 
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -43,6 +44,8 @@ export {
 export const unstable_settings = {
   initialRouteName: "index",
 };
+
+setupGestureHandler({ sheet: true, pressEvents: false });
 
 SplashScreen.preventAutoHideAsync();
 

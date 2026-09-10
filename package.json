@@ -1,10 +1,10 @@
 {
   "name": "finanzas-mobilev2",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "Apache-2.0",
   "main": "expo-router/entry",
   "scripts": {
-    "postinstall": "node scripts/patch-expo-router.mjs && node scripts/patch-tamagui-sheet.mjs",
+    "postinstall": "node scripts/patch-expo-router.mjs",
     "generate:emoji-index": "bun run scripts/generate-emoji-index.ts",
     "upgrade:tamagui": "bunx npm-check-updates -u '*tamagui*' '@tamagui/*' && bun install",
     "start": "bunx expo start -c",
@@ -31,6 +31,7 @@
     "@tamagui/colors": "^2.7.7",
     "@tamagui/config": "^2.7.7",
     "@tamagui/lucide-icons-2": "^2.7.7",
+    "@tamagui/native": "2.7.7",
     "@tamagui/themes": "^2.7.7",
     "@tanstack/react-query": "^5.101.2",
     "@tanstack/react-query-persist-client": "^5.90.12",

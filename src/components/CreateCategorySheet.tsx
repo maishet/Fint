@@ -387,12 +387,14 @@ export function CreateCategorySheet({
       </Sheet>
       <EmojiPicker
         open={emojiPickerOpen}
+        defaultHeight={500}
         onClose={() => setEmojiPickerOpen(false)}
         onEmojiSelected={(emoji: EmojiType) => {
           setIcon(emoji.emoji);
           setIconChanged(true);
           setEmojiPickerOpen(false);
         }}
+        emojiSize={30}
         translation={
           i18n.resolvedLanguage === "en"
             ? en
@@ -415,19 +417,13 @@ export function CreateCategorySheet({
             container: palette.surface,
             containerActive: palette.subtle,
           },
-          search: {
-            background: palette.subtle,
-            text: palette.text,
-            placeholder: palette.muted,
-            icon: palette.muted,
-          },
           customButton: {
             icon: palette.primary,
             iconPressed: palette.text,
             background: palette.subtle,
             backgroundPressed: palette.elevated,
           },
-          emoji: { selected: palette.elevated },
+          emoji: { selected: palette.elevated }
         }}
       />
     </>
