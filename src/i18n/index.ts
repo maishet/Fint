@@ -1596,6 +1596,7 @@ i18n.addResourceBundle(
       transferPickOrigin: "Cuenta de origen",
       transferPickDestination: "Cuenta de destino",
       transferConfirmAction: "Confirmar transferencia",
+      transferNotATransfer: "¿No es una transferencia? Registrar como movimiento normal",
       transferManualFallbackHint:
         "Revisa los datos y confirma este pendiente como un movimiento normal.",
       reverseTransfer: "Revertir transferencia",
@@ -2037,6 +2038,7 @@ i18n.addResourceBundle(
       transferPickOrigin: "Origin account",
       transferPickDestination: "Destination account",
       transferConfirmAction: "Confirm transfer",
+      transferNotATransfer: "Not a transfer? Register it as a normal transaction",
       transferManualFallbackHint:
         "Review the details and confirm this pending item as a regular transaction.",
       reverseTransfer: "Reverse transfer",
@@ -2478,6 +2480,7 @@ i18n.addResourceBundle(
       transferPickOrigin: "Conta de origem",
       transferPickDestination: "Conta de destino",
       transferConfirmAction: "Confirmar transferência",
+      transferNotATransfer: "Não é uma transferência? Registrar como movimento normal",
       transferManualFallbackHint:
         "Revise os dados e confirme esta pendência como uma movimentação normal.",
       reverseTransfer: "Reverter transferência",

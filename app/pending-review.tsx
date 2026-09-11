@@ -95,12 +95,15 @@ export default function PendingReviewScreen() {
   const [note, setNote] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [discardOpen, setDiscardOpen] = useState(false);
-  // Scenario 1: reveals a compact origin/destination account editor instead of the full form.
+  // "Editar" (any scenario) reveals a compact origin/destination account editor instead of the
+  // full form -- even when we couldn't match one or both sides by name, the user can still pick
+  // both real accounts here and confirm it as a proper transfer.
   const [transferEditOpen, setTransferEditOpen] = useState(false);
   const [transferOriginAccountId, setTransferOriginAccountId] = useState("");
   const [transferDestinationAccountId, setTransferDestinationAccountId] =
     useState("");
-  // Scenarios 2 and 3: "Editar" / "Es mío, registrar manualmente" fall back to the full form.
+  // Escape hatch from the transfer editor: "esto no es una transferencia" falls back to the full
+  // single-account form (normal expense/income).
   const [manualFallbackOpen, setManualFallbackOpen] = useState(false);
   const [missingBalanceCurrency, setMissingBalanceCurrency] = useState<string | null>(null);
   const validation = useSubmitValidation<PendingField>();
@@ -118,7 +121,7 @@ export default function PendingReviewScreen() {
   const transferCurrencyAccountsQuery = useQuery({
     queryKey: ["account-options", detail?.currency ?? null],
     queryFn: () => financeApi.listAccountOptions({ currency: detail!.currency! }),
-    enabled: scenario === 1 && Boolean(detail?.currency),  });
+    enabled: Boolean(detail?.transfer) && Boolean(detail?.currency),  });
   const categoriesQuery = useQuery({
     queryKey: ["categories", type],
     queryFn: () => financeApi.listCategories(type),
@@ -365,14 +368,26 @@ export default function PendingReviewScreen() {
 
   const showFullForm =
     !detail?.transfer || scenario === null || manualFallbackOpen;
+  const showTransferEditor =
+    Boolean(detail?.transfer) &&
+    scenario !== null &&
+    transferEditOpen &&
+    !manualFallbackOpen;
   const showScenario1Summary =
-    Boolean(detail?.transfer) && scenario === 1 && !transferEditOpen;
-  const showScenario1Editor =
-    Boolean(detail?.transfer) && scenario === 1 && transferEditOpen;
+    Boolean(detail?.transfer) &&
+    scenario === 1 &&
+    !transferEditOpen &&
+    !manualFallbackOpen;
   const showScenario2Summary =
-    Boolean(detail?.transfer) && scenario === 2 && !manualFallbackOpen;
+    Boolean(detail?.transfer) &&
+    scenario === 2 &&
+    !transferEditOpen &&
+    !manualFallbackOpen;
   const showScenario3Summary =
-    Boolean(detail?.transfer) && scenario === 3 && !manualFallbackOpen;
+    Boolean(detail?.transfer) &&
+    scenario === 3 &&
+    !transferEditOpen &&
+    !manualFallbackOpen;
 
   return (
     <>
@@ -422,11 +437,11 @@ export default function PendingReviewScreen() {
               />
             ) : null}
 
-            {showScenario1Editor && transferCurrencyAccountsQuery.isLoading ? (
+            {showTransferEditor && transferCurrencyAccountsQuery.isLoading ? (
               <SkeletonForm label={t("states.loading")} fieldCount={2} />
             ) : null}
-            {showScenario1Editor && !transferCurrencyAccountsQuery.isLoading ? (
-              <TransferScenario1Editor
+            {showTransferEditor && !transferCurrencyAccountsQuery.isLoading ? (
+              <TransferAccountsEditor
                 accounts={transferCurrencyAccountsQuery.data ?? []}
                 originAccountId={transferOriginAccountId}
                 destinationAccountId={transferDestinationAccountId}
@@ -440,6 +455,10 @@ export default function PendingReviewScreen() {
                     destinationAccountId: transferDestinationAccountId,
                   })
                 }
+                onFallbackToManual={() => {
+                  setTransferEditOpen(false);
+                  setManualFallbackOpen(true);
+                }}
               />
             ) : null}
 
@@ -449,7 +468,7 @@ export default function PendingReviewScreen() {
                 transfer={detail.transfer}
                 isPending={isPending}
                 onConfirm={(input) => quickSideConfirmMutation.mutate(input)}
-                onEdit={() => setManualFallbackOpen(true)}
+                onEdit={() => setTransferEditOpen(true)}
                 onDiscard={() => setDiscardOpen(true)}
               />
             ) : null}
@@ -458,7 +477,7 @@ export default function PendingReviewScreen() {
               <TransferScenario3Summary
                 isPending={isPending}
                 onDiscard={() => setDiscardOpen(true)}
-                onRegisterManually={() => setManualFallbackOpen(true)}
+                onRegisterManually={() => setTransferEditOpen(true)}
               />
             ) : null}
 
@@ -676,7 +695,7 @@ export default function PendingReviewScreen() {
                       ? t("movements.creating")
                       : t("movementUx.confirmPending")}
                   </FintButton>
-                  {detail.transfer && (scenario === 2 || scenario === 3) ? (
+                  {detail.transfer && scenario !== null ? (
                     <FintButton
                       width="100%"
                       minH={44}
@@ -830,42 +849,40 @@ function TransferScenario1Summary({
         >
           {t("movementUx.confirmPending")}
         </FintButton>
-        <XStack justify="center" gap="$4">
-          <Button
-            chromeless
-            size="$2"
-            disabled={isPending}
-            onPress={onEdit}
-            aria-label={t("actions.edit")}
-          >
-            <Paragraph color="$color10" fontSize="$2" fontWeight="600">
-              {t("actions.edit")}
-            </Paragraph>
-          </Button>
-          <Button
-            chromeless
-            size="$2"
-            disabled={isPending}
-            onPress={onDiscard}
-            aria-label={t("movementUx.discardShort")}
-          >
-            <Paragraph color="$red10" fontSize="$2" fontWeight="600">
-              {t("movementUx.discardShort")}
-            </Paragraph>
-          </Button>
-        </XStack>
+        <FintButton
+          width="100%"
+          minH={44}
+          variant="outlined"
+          disabled={isPending}
+          onPress={onEdit}
+        >
+          {t("actions.edit")}
+        </FintButton>
+        <FintButton
+          width="100%"
+          minH={48}
+          variant="outlined"
+          color="$red10"
+          borderColor="$red6"
+          disabled={isPending}
+          icon={<Trash2 size={16} />}
+          onPress={onDiscard}
+        >
+          {t("movementUx.discardShort")}
+        </FintButton>
       </YStack>
     </FintCard>
   );
 }
 
-function TransferScenario1Editor({
+function TransferAccountsEditor({
   accounts,
   destinationAccountId,
   isPending,
   onCancel,
   onConfirm,
   onDestinationChange,
+  onFallbackToManual,
   onOriginChange,
   originAccountId,
 }: {
@@ -875,6 +892,7 @@ function TransferScenario1Editor({
   onCancel: () => void;
   onConfirm: () => void;
   onDestinationChange: (value: string) => void;
+  onFallbackToManual: () => void;
   onOriginChange: (value: string) => void;
   originAccountId: string;
 }) {
@@ -953,6 +971,18 @@ function TransferScenario1Editor({
           {t("actions.cancel")}
         </FintButton>
       </YStack>
+      <XStack justify="center">
+        <Button
+          chromeless
+          size="$2"
+          disabled={isPending}
+          onPress={onFallbackToManual}
+        >
+          <Paragraph color="$color10" fontSize="$2" fontWeight="600">
+            {t("movementUx.transferNotATransfer")}
+          </Paragraph>
+        </Button>
+      </XStack>
     </FintCard>
   );
 }
@@ -1044,30 +1074,27 @@ function TransferScenario2Summary({
         >
           {t("movementUx.confirmPending")}
         </FintButton>
-        <XStack justify="center" gap="$4">
-          <Button
-            chromeless
-            size="$2"
-            disabled={isPending}
-            onPress={onEdit}
-            aria-label={t("actions.edit")}
-          >
-            <Paragraph color="$color10" fontSize="$2" fontWeight="600">
-              {t("actions.edit")}
-            </Paragraph>
-          </Button>
-          <Button
-            chromeless
-            size="$2"
-            disabled={isPending}
-            onPress={onDiscard}
-            aria-label={t("movementUx.discardShort")}
-          >
-            <Paragraph color="$red10" fontSize="$2" fontWeight="600">
-              {t("movementUx.discardShort")}
-            </Paragraph>
-          </Button>
-        </XStack>
+        <FintButton
+          width="100%"
+          minH={44}
+          variant="outlined"
+          disabled={isPending}
+          onPress={onEdit}
+        >
+          {t("actions.edit")}
+        </FintButton>
+        <FintButton
+          width="100%"
+          minH={48}
+          variant="outlined"
+          color="$red10"
+          borderColor="$red6"
+          disabled={isPending}
+          icon={<Trash2 size={16} />}
+          onPress={onDiscard}
+        >
+          {t("movementUx.discardShort")}
+        </FintButton>
       </YStack>
     </FintCard>
   );
@@ -1121,17 +1148,15 @@ function TransferScenario3Summary({
         >
           {t("movementUx.discardShort")}
         </FintButton>
-        <Button
-          chromeless
-          size="$3"
+        <FintButton
+          width="100%"
+          minH={44}
+          variant="outlined"
           disabled={isPending}
           onPress={onRegisterManually}
-          aria-label={t("movementUx.transferRegisterManually")}
         >
-          <Paragraph color="$color10" fontSize="$2" fontWeight="600">
-            {t("movementUx.transferRegisterManually")}
-          </Paragraph>
-        </Button>
+          {t("movementUx.transferRegisterManually")}
+        </FintButton>
       </YStack>
     </FintCard>
   );
