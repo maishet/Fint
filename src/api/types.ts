@@ -127,6 +127,8 @@ export interface PaymentOccurrence {
   temporalStatus: 'upcoming' | 'due_today' | 'overdue'
   cardAccount: string | null
   autoPayEnabled: boolean
+  paidAt: string | null
+  paidAccount: string | null
 }
 
 export interface PaymentRule {

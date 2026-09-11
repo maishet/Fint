@@ -1147,6 +1147,7 @@ async function invalidatePendingAndFinance(
     queryClient.invalidateQueries({ queryKey: ["summary"] }),
     queryClient.invalidateQueries({ queryKey: ["accounts"] }),
     queryClient.invalidateQueries({ queryKey: ["reports"] }),
+    queryClient.invalidateQueries({ queryKey: ["payment-occurrences"] }),
   ]);
 }
 

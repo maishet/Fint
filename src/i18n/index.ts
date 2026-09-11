@@ -2590,6 +2590,78 @@ i18n.addResourceBundle(
   true,
 );
 
+i18n.addResourceBundle(
+  "es",
+  "translation",
+  {
+    payments: {
+      tabPending: "Pendientes",
+      tabHistory: "Historial",
+      periodsPending_one: "{{count}} pago pendiente",
+      periodsPending_other: "{{count}} pagos pendientes",
+      historyTitle: "Historial de pagos",
+      historyEmptyTitle: "Aún no registras pagos",
+      historyEmptyDescription:
+        "Los pagos que confirmes aparecerán aquí, agrupados por mes.",
+      paidThisMonth: "Pagado este mes",
+      paymentsLogged: "Pagos registrados",
+      lastPayment: "Último pago",
+      paidOnWithAccount: "Pagado el {{date}} · {{account}}",
+      paidOn: "Pagado el {{date}}",
+    },
+  },
+  true,
+  true,
+);
+
+i18n.addResourceBundle(
+  "en",
+  "translation",
+  {
+    payments: {
+      tabPending: "Upcoming",
+      tabHistory: "History",
+      periodsPending_one: "{{count}} payment pending",
+      periodsPending_other: "{{count}} payments pending",
+      historyTitle: "Payment history",
+      historyEmptyTitle: "No payments yet",
+      historyEmptyDescription:
+        "Payments you confirm will show up here, grouped by month.",
+      paidThisMonth: "Paid this month",
+      paymentsLogged: "Payments logged",
+      lastPayment: "Last payment",
+      paidOnWithAccount: "Paid on {{date}} · {{account}}",
+      paidOn: "Paid on {{date}}",
+    },
+  },
+  true,
+  true,
+);
+
+i18n.addResourceBundle(
+  "pt",
+  "translation",
+  {
+    payments: {
+      tabPending: "Pendentes",
+      tabHistory: "Histórico",
+      periodsPending_one: "{{count}} pagamento pendente",
+      periodsPending_other: "{{count}} pagamentos pendentes",
+      historyTitle: "Histórico de pagamentos",
+      historyEmptyTitle: "Você ainda não registrou pagamentos",
+      historyEmptyDescription:
+        "Os pagamentos confirmados aparecerão aqui, agrupados por mês.",
+      paidThisMonth: "Pago este mês",
+      paymentsLogged: "Pagamentos registrados",
+      lastPayment: "Último pagamento",
+      paidOnWithAccount: "Pago em {{date}} · {{account}}",
+      paidOn: "Pago em {{date}}",
+    },
+  },
+  true,
+  true,
+);
+
 i18n.on("languageChanged", setStoredCurrentLanguage);
 setStoredCurrentLanguage(i18n.resolvedLanguage ?? i18n.language);
 

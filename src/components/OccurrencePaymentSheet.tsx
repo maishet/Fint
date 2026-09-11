@@ -46,12 +46,18 @@ export function OccurrencePaymentSheet({ accounts, occurrence, onOpenChange, ope
   useEffect(() => {
     if (!open || !occurrence) return
     setAmount(String(occurrence.remainingAmount ?? 0))
-    setAccountId(eligibleAccounts[0]?.id ?? '')
+    setAccountId('')
     setTransactionDate(todayDateString())
     setNote('')
     setErrorMessage(null)
     validation.resetErrors()
   }, [occurrence, open, validation.resetErrors])
+
+  useEffect(() => {
+    if (!open || accountId) return
+    const first = eligibleAccounts[0]?.id
+    if (first) setAccountId(first)
+  }, [open, accountId, eligibleAccounts])
 
   const mutation = useMutation({
     mutationFn: async (payload: z.infer<typeof paymentSchema>) => {
