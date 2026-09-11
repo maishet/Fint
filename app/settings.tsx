@@ -370,7 +370,7 @@ export default function SettingsScreen() {
         />
       </SettingsGroup>
 
-      <SettingsGroup title={t("settings.dataSection")}>
+      {/* <SettingsGroup title={t("settings.dataSection")}>
         {capabilities.features.captureImport ? (
           <SettingsRow
             icon={<ImageUp size={19} color="$primary" />}
@@ -391,7 +391,7 @@ export default function SettingsScreen() {
           detail={t("settings.export.hint")}
           onPress={() => setExportDialogOpen(true)}
         />
-      </SettingsGroup>
+      </SettingsGroup> */}
 
       <SettingsGroup title={t("settings.notificationsSection")}>
         <FintSwitchRow
