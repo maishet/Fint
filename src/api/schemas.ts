@@ -15,12 +15,18 @@ export const TransactionSchema = z.object({
   transferDirection: z.enum(['origin', 'destination']).nullable().optional(),
 })
 
+export const AccountBalanceLineSchema = z.object({
+  currency: z.string(),
+  balance: z.number(),
+})
+
 export const AccountSchema = z.object({
   id: z.string(),
   name: z.string(),
   accountType: z.string(),
   currency: z.string(),
   balance: z.number(),
+  balances: z.array(AccountBalanceLineSchema).optional(),
 })
 
 export const TransactionListSchema = z.array(TransactionSchema)

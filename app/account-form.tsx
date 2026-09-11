@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Building2, Coins, CreditCard, Landmark, PiggyBank, Save, Wallet } from '@tamagui/lucide-icons-2'
+import { Building2, Coins, CreditCard, Landmark, PiggyBank, Plus, Save, Trash2, Wallet, X } from '@tamagui/lucide-icons-2'
 import { useNotify } from '../src/ui/notify'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Input, Paragraph, XStack, YStack } from 'tamagui'
+import { Button, Input, Paragraph, XStack, YStack } from 'tamagui'
 import { z } from 'zod'
 import { ApiRequestError } from '../src/api/client'
+import { useCapabilities } from '../src/api/capabilities'
 import { financeApi } from '../src/api/finance'
 import type { AccountType } from '../src/api/types'
 import { DataStateCard } from '../src/components/DataStateCard'
@@ -18,7 +19,8 @@ import { currencyOptions, getCurrencySymbol } from '../src/finance/currencies'
 import { getValidationMessage, parseDecimalInput, sanitizeAmountInput, useSubmitValidation } from '../src/forms'
 import { useUnsavedChangesGuard } from '../src/hooks/useUnsavedChangesGuard'
 import { UnsavedChangesDialog } from '../src/components/UnsavedChangesDialog'
-import { FintButton, FintSheetSelect, FintSpinner } from '../src/ui'
+import { useSensitiveMoney } from '../src/privacy/useSensitiveMoney'
+import { FintButton, FintConfirmDialog, FintSheetSelect, FintSpinner } from '../src/ui'
 
 export default function AccountFormScreen() {
   const { accountId } = useLocalSearchParams<{ accountId?: string }>()
@@ -27,6 +29,7 @@ export default function AccountFormScreen() {
   const router = useRouter()
   const toast = useNotify()
   const queryClient = useQueryClient()
+  const { capabilities } = useCapabilities()
   const accountsQuery = useQuery({ queryKey: ['accounts', 'detail', accountId], queryFn: ({ signal }) => financeApi.getAccount(accountId!, signal), enabled: isEditing })
   const account = accountsQuery.data
   const [name, setName] = useState('')
@@ -36,9 +39,13 @@ export default function AccountFormScreen() {
   const [initializedAccountId, setInitializedAccountId] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
+  const [newBalanceCurrency, setNewBalanceCurrency] = useState('')
+  const [newBalanceOpening, setNewBalanceOpening] = useState('')
+  const [disableBalanceTarget, setDisableBalanceTarget] = useState<{ currency: string } | null>(null)
+  const { formatSensitiveAmount } = useSensitiveMoney()
   const isDirty = !saved && (isEditing
     ? Boolean(account) && (name !== account!.name || accountType !== account!.accountType || currency !== account!.currency)
-    : name !== '' || openingBalance !== '' || accountType !== 'cash' || currency !== 'PEN')
+    : name !== '' || openingBalance !== '' || accountType !== 'cash' || currency !== 'PEN' || newBalanceCurrency !== '')
   const guard = useUnsavedChangesGuard(isDirty)
   const validation = useSubmitValidation<'accountType' | 'currency' | 'name' | 'openingBalance'>()
   const requiredMessage = getValidationMessage(t, i18n.resolvedLanguage, 'required')
@@ -67,10 +74,22 @@ export default function AccountFormScreen() {
   const mutation = useMutation({
     mutationFn: async (payload: z.infer<typeof accountDetailsSchema>) => {
       const details = { name: payload.name, accountType: payload.accountType, currency: payload.currency }
-      if (accountId) return financeApi.updateAccount(accountId, details)
-      return financeApi.createAccount({ ...details, openingBalance: payload.openingBalance })
+      if (accountId) return { ...(await financeApi.updateAccount(accountId, details)), secondCurrencyFailed: false }
+      const created = await financeApi.createAccount({ ...details, openingBalance: payload.openingBalance })
+      let secondCurrencyFailed = false
+      if (payload.accountType === 'credit_card' && newBalanceCurrency) {
+        try {
+          await financeApi.enableAccountBalance(created.id, {
+            currency: newBalanceCurrency,
+            openingBalance: newBalanceOpening.trim() ? parseDecimalInput(newBalanceOpening) : 0,
+          })
+        } catch {
+          secondCurrencyFailed = true
+        }
+      }
+      return { ...created, secondCurrencyFailed }
     },
-    onSuccess: async () => {
+    onSuccess: async (result) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['accounts'] }),
         queryClient.invalidateQueries({ queryKey: ['summary'] }),
@@ -82,6 +101,9 @@ export default function AccountFormScreen() {
         preset: 'success',
         duration: 3500,
       })
+      if (result.secondCurrencyFailed) {
+        toast.show(t('accounts.secondCurrencyFailedToast'), { message: t('accounts.secondCurrencyFailedMessage'), preset: 'error', duration: 4500 })
+      }
       setSaved(true)
       guard.bypass(() => router.back())
     },
@@ -98,6 +120,45 @@ export default function AccountFormScreen() {
     })
     if (payload) mutation.mutate(payload)
   }
+
+  const invalidateBalances = () => Promise.all([
+    queryClient.invalidateQueries({ queryKey: ['accounts'] }),
+    queryClient.invalidateQueries({ queryKey: ['account-options'] }),
+    queryClient.invalidateQueries({ queryKey: ['summary'] }),
+  ])
+
+  const enableBalanceMutation = useMutation({
+    mutationFn: (payload: { currency: string; openingBalance: number }) => financeApi.enableAccountBalance(accountId!, payload),
+    onSuccess: async () => {
+      await invalidateBalances()
+      setNewBalanceCurrency('')
+      setNewBalanceOpening('')
+      toast.show(t('accounts.balanceEnabledToast'), { message: t('accounts.balanceEnabledMessage'), preset: 'success', duration: 3000 })
+    },
+    onError: (error) => toast.show(t('accounts.enableBalanceError'), {
+      message: error instanceof ApiRequestError && error.code === 'balance_already_active' ? t('accounts.balanceAlreadyActive') : error instanceof Error ? error.message : t('states.error'),
+      preset: 'error',
+      duration: 4500,
+    }),
+  })
+
+  const disableBalanceMutation = useMutation({
+    mutationFn: (targetCurrency: string) => financeApi.disableAccountBalance(accountId!, targetCurrency),
+    onSuccess: async () => {
+      await invalidateBalances()
+      setDisableBalanceTarget(null)
+      toast.show(t('accounts.balanceDisabledToast'), { message: t('accounts.balanceDisabledMessage'), preset: 'success', duration: 3000 })
+    },
+    onError: (error) => {
+      setDisableBalanceTarget(null)
+      toast.show(t('accounts.disableBalanceError'), { message: error instanceof Error ? error.message : t('states.error'), preset: 'error', duration: 4500 })
+    },
+  })
+
+  const activeBalanceCurrencies = new Set(isEditing ? (account?.balances ?? []).map((line) => line.currency) : [currency])
+  const availableCurrencyOptions = currencyOptions.filter((option) => !activeBalanceCurrencies.has(option.value))
+  const canManageBalances = accountType === 'credit_card' && (isEditing ? Boolean(account) : true)
+  const canAddBalance = canManageBalances && capabilities.features.accountCurrencyBalances && activeBalanceCurrencies.size < 2
 
   const isLoading = isEditing && accountsQuery.isLoading
   const notFound = isEditing && !accountsQuery.isLoading && !accountsQuery.error && !account
@@ -151,14 +212,16 @@ export default function AccountFormScreen() {
               {validation.errors.name ? <Paragraph color="$red10" fontSize="$1" fontWeight="600" px="$1">{validation.errors.name}</Paragraph> : null}
             </YStack>
 
-            <FintOptionGroup
-              label={t('forms.accountType')}
-              required
-              error={validation.errors.accountType}
-              options={accountTypes}
-              value={accountType}
-              onValueChange={(next) => { setAccountType(next); validation.clearError('accountType') }}
-            />
+            <YStack gap="$2">
+              <FintOptionGroup
+                label={t('forms.accountType')}
+                required
+                error={validation.errors.accountType}
+                options={accountTypes}
+                value={accountType}
+                onValueChange={(next) => { setAccountType(next); validation.clearError('accountType') }}
+              />
+            </YStack>
 
             {/*
               El saldo inicial es opcional: no merece el campo grande del monto,
@@ -199,16 +262,224 @@ export default function AccountFormScreen() {
                     }
                   />
                 ) : null}
+
+                {/* Segunda moneda al crear una tarjeta: el mismo disparador abre el sheet de
+                    una vez -- sin un toque intermedio solo para revelar el selector. */}
+                {!isEditing && canAddBalance ? (
+                  <>
+                    <FintSheetSelect
+                      label={t('accounts.secondCurrencyLabel')}
+                      showLabel={false}
+                      value={newBalanceCurrency}
+                      options={availableCurrencyOptions}
+                      placeholder={t('forms.select')}
+                      searchable
+                      searchPlaceholder={t('accounts.searchCurrency')}
+                      onValueChange={setNewBalanceCurrency}
+                      renderTrigger={({ onPress, selectedLabel }) => (
+                        newBalanceCurrency ? (
+                          <FintListRow
+                            icon={<Coins size={22} color="$primary" />}
+                            label={t('accounts.secondCurrencyLabel')}
+                            onPress={onPress}
+                            value={selectedLabel}
+                            trailing={
+                              <Button
+                                circular
+                                chromeless
+                                size="$2"
+                                icon={<X size={16} color="$color8" />}
+                                pressStyle={{ bg: '$color4' }}
+                                onPress={() => { setNewBalanceCurrency(''); setNewBalanceOpening('') }}
+                                aria-label={t('actions.cancel')}
+                              />
+                            }
+                          />
+                        ) : (
+                          <FintListRow icon={<Plus size={22} color="$primary" />} label={t('accounts.addSecondCurrencyAtCreation')} onPress={onPress} />
+                        )
+                      )}
+                    />
+                    {newBalanceCurrency ? (
+                      <FintListRow
+                        icon={<Wallet size={22} color="$primary" />}
+                        label={t('forms.openingBalance')}
+                        valueSlot={
+                          <XStack items="center" gap="$2">
+                            <Paragraph color="$color10" fontSize="$2" fontWeight="600">{getCurrencySymbol(newBalanceCurrency)}</Paragraph>
+                            <Input
+                              unstyled
+                              flex={1}
+                              minW={0}
+                              height={22}
+                              minH={22}
+                              p={0}
+                              m={0}
+                              color="$color12"
+                              fontFamily="$body"
+                              fontSize="$3"
+                              fontWeight="600"
+                              keyboardType="decimal-pad"
+                              placeholder="0.00"
+                              placeholderTextColor="$color10"
+                              value={newBalanceOpening}
+                              onChangeText={(value) => setNewBalanceOpening(sanitizeAmountInput(value))}
+                              aria-label={t('forms.openingBalance')}
+                            />
+                          </XStack>
+                        }
+                      />
+                    ) : null}
+                  </>
+                ) : null}
               </FintListGroup>
               {validation.errors.currency ? <Paragraph color="$red10" fontSize="$1" fontWeight="600" px="$1">{validation.errors.currency}</Paragraph> : null}
               {validation.errors.openingBalance ? <Paragraph color="$red10" fontSize="$1" fontWeight="600" px="$1">{validation.errors.openingBalance}</Paragraph> : null}
               {!isEditing ? <FintListFootnote>{t('accounts.openingBalanceHint')}</FintListFootnote> : null}
             </YStack>
 
+            {/*
+              Cada moneda lleva su propio saldo independiente -- Fint no las convierte
+              ni las suma. Solo aplica a tarjetas de crédito ya creadas: el resto de
+              tipos de cuenta se queda mono-moneda siempre, como en un banco real.
+            */}
+            {isEditing && account && canManageBalances ? (
+              <YStack gap="$2">
+                <FintListGroup>
+                  {(account.balances ?? [{ currency: account.currency, balance: account.balance }]).map((line) => {
+                    const isPrimary = line.currency === account.currency
+                    return (
+                      <FintListRow
+                        key={line.currency}
+                        icon={<Coins size={22} color="$primary" />}
+                        label={isPrimary ? t('accounts.primaryBalanceBadge') : line.currency}
+                        value={formatSensitiveAmount(line.balance, line.currency)}
+                        trailing={isPrimary ? undefined : (
+                          <Button
+                            circular
+                            chromeless
+                            size="$2"
+                            disabled={disableBalanceMutation.isPending}
+                            icon={<Trash2 size={18} color="$color8" />}
+                            pressStyle={{ bg: '$color4' }}
+                            onPress={() => setDisableBalanceTarget({ currency: line.currency })}
+                            aria-label={t('accounts.disableBalanceAccessibility', { currency: line.currency })}
+                          />
+                        )}
+                      />
+                    )
+                  })}
+                  {/* Habilitar una moneda nueva es la única acción con capability -- leer y
+                      desactivar saldos existentes nunca se gatean (fase 5, salida gradual).
+                      También se oculta al llegar a 2 monedas activas: el máximo por tarjeta. */}
+                  {canAddBalance ? (
+                    <>
+                      <FintSheetSelect
+                        label={t('accounts.secondCurrencyLabel')}
+                        showLabel={false}
+                        value={newBalanceCurrency}
+                        options={availableCurrencyOptions}
+                        placeholder={t('forms.select')}
+                        searchable
+                        searchPlaceholder={t('accounts.searchCurrency')}
+                        onValueChange={setNewBalanceCurrency}
+                        renderTrigger={({ onPress, selectedLabel }) => (
+                          newBalanceCurrency ? (
+                            <FintListRow
+                              icon={<Coins size={22} color="$primary" />}
+                              label={t('accounts.secondCurrencyLabel')}
+                              onPress={onPress}
+                              value={selectedLabel}
+                              trailing={
+                                <Button
+                                  circular
+                                  chromeless
+                                  size="$2"
+                                  disabled={enableBalanceMutation.isPending}
+                                  icon={<X size={16} color="$color8" />}
+                                  pressStyle={{ bg: '$color4' }}
+                                  onPress={() => { setNewBalanceCurrency(''); setNewBalanceOpening('') }}
+                                  aria-label={t('actions.cancel')}
+                                />
+                              }
+                            />
+                          ) : (
+                            <FintListRow icon={<Plus size={22} color="$primary" />} label={t('accounts.addBalance')} onPress={onPress} />
+                          )
+                        )}
+                      />
+                      {newBalanceCurrency ? (
+                        <>
+                          <FintListRow
+                            icon={<Wallet size={22} color="$primary" />}
+                            label={t('forms.openingBalance')}
+                            valueSlot={
+                              <XStack items="center" gap="$2">
+                                <Paragraph color="$color10" fontSize="$2" fontWeight="600">{getCurrencySymbol(newBalanceCurrency)}</Paragraph>
+                                <Input
+                                  unstyled
+                                  flex={1}
+                                  minW={0}
+                                  height={22}
+                                  minH={22}
+                                  p={0}
+                                  m={0}
+                                  color="$color12"
+                                  fontFamily="$body"
+                                  fontSize="$3"
+                                  fontWeight="600"
+                                  keyboardType="decimal-pad"
+                                  placeholder="0.00"
+                                  placeholderTextColor="$color10"
+                                  value={newBalanceOpening}
+                                  onChangeText={(value) => setNewBalanceOpening(sanitizeAmountInput(value))}
+                                  aria-label={t('forms.openingBalance')}
+                                />
+                              </XStack>
+                            }
+                          />
+                          <XStack p="$3">
+                            <FintButton
+                              flex={1}
+                              disabled={!newBalanceCurrency || enableBalanceMutation.isPending}
+                              icon={enableBalanceMutation.isPending ? <FintSpinner size="small" color="$primaryForeground" /> : undefined}
+                              onPress={() => enableBalanceMutation.mutate({ currency: newBalanceCurrency, openingBalance: newBalanceOpening.trim() ? parseDecimalInput(newBalanceOpening) : 0 })}
+                            >
+                              {enableBalanceMutation.isPending ? t('accounts.enablingBalance') : t('accounts.enableBalanceAction')}
+                            </FintButton>
+                          </XStack>
+                        </>
+                      ) : null}
+                    </>
+                  ) : null}
+                </FintListGroup>
+                <FintListFootnote>
+                  {!capabilities.features.accountCurrencyBalances && activeBalanceCurrencies.size < 2
+                    ? t('accounts.balancesDisabledHint')
+                    : activeBalanceCurrencies.size >= 2
+                      ? t('accounts.balancesMaxReachedHint')
+                      : t('accounts.balancesHint')}
+                </FintListFootnote>
+              </YStack>
+            ) : null}
+
             {errorMessage ? <XStack bg="$red2" borderColor="$red6" borderWidth={1} rounded="$5" p="$3"><Paragraph color="$red11" fontSize="$2">{errorMessage}</Paragraph></XStack> : null}
           </YStack>
         ) : null}
       </Screen>
+      <FintConfirmDialog
+        open={Boolean(disableBalanceTarget)}
+        isPending={disableBalanceMutation.isPending}
+        title={t('accounts.disableBalanceTitle')}
+        description={t('accounts.disableBalanceDescription', { currency: disableBalanceTarget?.currency ?? '' })}
+        cancelLabel={t('actions.cancel')}
+        confirmLabel={t('accounts.disableBalanceConfirm')}
+        pendingLabel={t('accounts.disablingBalance')}
+        destructive
+        icon={<Trash2 size={17} color="$primaryForeground" />}
+        onCancel={() => setDisableBalanceTarget(null)}
+        onConfirm={() => disableBalanceMutation.mutate(disableBalanceTarget!.currency)}
+      />
     </>
   )
 }

@@ -268,6 +268,11 @@ export const ptTranslation = {
     namePlaceholder: "Ex.: Conta principal",
     openingBalanceHint:
       "Opcional. Se deixar em zero, o saldo vai se formando com seus lançamentos.",
+    addSecondCurrencyAtCreation: "Adicionar outra moeda",
+    secondCurrencyLabel: "Segunda moeda",
+    secondCurrencyFailedToast: "Não conseguimos habilitar a segunda moeda",
+    secondCurrencyFailedMessage:
+      "Sua conta foi criada normalmente. Tente adicionar a segunda moeda novamente em Editar conta.",
     searchCurrency: "Buscar por código ou moeda",
     duplicateName: "Já existe outra conta com esse nome.",
     create: "Adicionar conta",
@@ -288,6 +293,29 @@ export const ptTranslation = {
     deletedToast: "Conta excluída",
     deletedMessage: "A conta ficou inativa e o histórico foi mantido.",
     deleteError: "Não foi possível excluir a conta",
+    primaryBalanceBadge: "Principal",
+    balancesHint:
+      "Cada moeda mantém seu próprio saldo independente. O Fint nunca as converte nem as soma.",
+    balancesDisabledHint:
+      "Habilitar moedas novas está temporariamente desativado. Seus saldos existentes continuam disponíveis.",
+    balancesMaxReachedHint:
+      "Este cartão já tem o máximo de 2 moedas. Desative uma para habilitar outra.",
+    addBalance: "Habilitar outra moeda",
+    enableBalanceAction: "Habilitar",
+    enablingBalance: "Habilitando...",
+    balanceEnabledToast: "Saldo habilitado",
+    balanceEnabledMessage: "Agora você pode registrar lançamentos nessa moeda.",
+    enableBalanceError: "Não foi possível habilitar o saldo",
+    balanceAlreadyActive: "Essa moeda já tem um saldo ativo nesta conta.",
+    disableBalanceAccessibility: "Desativar saldo em {{currency}}",
+    disableBalanceTitle: "Desativar este saldo?",
+    disableBalanceDescription:
+      "O saldo em {{currency}} deixará de estar disponível para novos lançamentos. O histórico é mantido.",
+    disableBalanceConfirm: "Desativar",
+    disablingBalance: "Desativando...",
+    balanceDisabledToast: "Saldo desativado",
+    balanceDisabledMessage: "Ele não aparecerá mais disponível para novos lançamentos.",
+    disableBalanceError: "Não foi possível desativar o saldo",
   },
   categories: {
     routeTitle: "Categorias",

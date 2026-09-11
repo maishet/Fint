@@ -49,6 +49,23 @@ test('does not report when the response matches its schema', async () => {
   expect(captureMessage).not.toHaveBeenCalled()
 })
 
+test('accepts the multi-currency balances line without reporting a mismatch', async () => {
+  const account = {
+    id: ACCOUNT_ID,
+    name: 'AMEX',
+    accountType: 'credit_card',
+    currency: 'PEN',
+    balance: -1240,
+    balances: [{ currency: 'PEN', balance: -1240 }, { currency: 'USD', balance: -320 }],
+  }
+  fetchMock.mockResolvedValueOnce(respond(account))
+
+  const result = await financeApi.getAccount(ACCOUNT_ID)
+
+  expect(result).toEqual(account)
+  expect(captureMessage).not.toHaveBeenCalled()
+})
+
 test('reports a schema mismatch to Sentry but still returns the raw data', async () => {
   // `balance` llega como string: el contrato cambió y debemos detectarlo.
   const malformed = { id: ACCOUNT_ID, name: 'Efectivo', accountType: 'cash', currency: 'PEN', balance: '125.5' }

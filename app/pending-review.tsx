@@ -4,6 +4,7 @@ import {
   CalendarClock,
   CalendarDays,
   Check,
+  Coins,
   Save,
   Shapes,
   Trash2,
@@ -15,6 +16,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Paragraph, XStack, YStack } from "tamagui";
 import { z } from "zod";
+import { useCapabilities } from "../src/api/capabilities";
 import { financeApi } from "../src/api/finance";
 import { formatMoney } from "../src/api/mappers";
 import type {
@@ -31,6 +33,7 @@ import {
   MovementPickerTrigger,
   MovementTypeSelector,
 } from "../src/components/MovementFormControls";
+import { balanceCurrencies } from "../src/finance/accountBalances";
 import { useAccountPickerOptions } from "../src/finance/useAccountPickerOptions";
 import {
   normalMovementOption,
@@ -74,6 +77,7 @@ function transferScenario(
 export default function PendingReviewScreen() {
   const toAccountOption = useAccountPickerOptions();
   const toOccurrenceOption = useOccurrencePickerOptions();
+  const { capabilities } = useCapabilities();
   const router = useRouter();
   const { i18n, t } = useTranslation();
   const toast = useNotify();
@@ -98,6 +102,7 @@ export default function PendingReviewScreen() {
     useState("");
   // Scenarios 2 and 3: "Editar" / "Es mío, registrar manualmente" fall back to the full form.
   const [manualFallbackOpen, setManualFallbackOpen] = useState(false);
+  const [missingBalanceCurrency, setMissingBalanceCurrency] = useState<string | null>(null);
   const validation = useSubmitValidation<PendingField>();
 
   const detailQuery = useQuery({
@@ -107,9 +112,13 @@ export default function PendingReviewScreen() {
   const detail = detailQuery.data;
   const scenario = transferScenario(detail);
   const accountsQuery = useQuery({
-    queryKey: ["account-options"],
-    queryFn: () => financeApi.listAccountOptions(),
+    queryKey: ["account-options", detail?.currency ?? null],
+    queryFn: () => financeApi.listAccountOptions(detail?.currency ? { currency: detail.currency } : undefined),
     enabled: Boolean(detailQuery.data),  });
+  const transferCurrencyAccountsQuery = useQuery({
+    queryKey: ["account-options", detail?.currency ?? null],
+    queryFn: () => financeApi.listAccountOptions({ currency: detail!.currency! }),
+    enabled: scenario === 1 && Boolean(detail?.currency),  });
   const categoriesQuery = useQuery({
     queryKey: ["categories", type],
     queryFn: () => financeApi.listCategories(type),
@@ -302,8 +311,27 @@ export default function PendingReviewScreen() {
       ),
   });
 
+  const enableBalanceMutation = useMutation({
+    mutationFn: (input: { accountId: string; currency: string }) =>
+      financeApi.enableAccountBalance(input.accountId, { currency: input.currency, openingBalance: 0 }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["account-options"] });
+      setMissingBalanceCurrency(null);
+      toast.show(t("accounts.balanceEnabledToast"), {
+        message: t("movementUx.balanceEnabledRetryHint"),
+        preset: "success",
+        duration: 4000,
+      });
+    },
+    onError: (error) =>
+      setErrorMessage(
+        error instanceof Error ? error.message : t("states.error"),
+      ),
+  });
+
   const submit = () => {
     setErrorMessage(null);
+    setMissingBalanceCurrency(null);
     const payload = validation.validate(schema, {
       amount: parseDecimalInput(amount),
       transactionDate,
@@ -321,15 +349,9 @@ export default function PendingReviewScreen() {
     if (
       !selectedOccurrence &&
       detail?.currency &&
-      detail.currency !== selectedAccount.currency
+      !balanceCurrencies(selectedAccount).includes(detail.currency)
     ) {
-      toast.show(t("movements.currencyMismatchTitle"), {
-        preset: "error",
-        message: t("movements.currencyMismatch", {
-          detected: detail.currency,
-          account: selectedAccount.currency,
-        }),
-      });
+      setMissingBalanceCurrency(detail.currency);
       return;
     }
     confirmMutation.mutate({ ...payload, currency: movementCurrency });
@@ -400,12 +422,12 @@ export default function PendingReviewScreen() {
               />
             ) : null}
 
-            {showScenario1Editor && accountsQuery.isLoading ? (
+            {showScenario1Editor && transferCurrencyAccountsQuery.isLoading ? (
               <SkeletonForm label={t("states.loading")} fieldCount={2} />
             ) : null}
-            {showScenario1Editor && !accountsQuery.isLoading ? (
+            {showScenario1Editor && !transferCurrencyAccountsQuery.isLoading ? (
               <TransferScenario1Editor
-                accounts={accounts}
+                accounts={transferCurrencyAccountsQuery.data ?? []}
                 originAccountId={transferOriginAccountId}
                 destinationAccountId={transferDestinationAccountId}
                 onOriginChange={setTransferOriginAccountId}
@@ -502,6 +524,7 @@ export default function PendingReviewScreen() {
                       onValueChange={(value) => {
                         setAccountId(value);
                         validation.clearError("accountId");
+                        setMissingBalanceCurrency(null);
                       }}
                       options={accounts.map((item) => toAccountOption(item))}
                       renderTrigger={({ onPress, selectedLabel }) => (
@@ -516,6 +539,20 @@ export default function PendingReviewScreen() {
                       )}
                     />
                   </FintFormField>
+                  {missingBalanceCurrency && selectedAccount ? (
+                    <MissingBalanceCard
+                      currency={missingBalanceCurrency}
+                      canEnable={
+                        capabilities.features.accountCurrencyBalances &&
+                        selectedAccount.accountType === "credit_card" &&
+                        balanceCurrencies(selectedAccount).length < 2
+                      }
+                      isPending={enableBalanceMutation.isPending}
+                      onEnable={() =>
+                        enableBalanceMutation.mutate({ accountId: selectedAccount.id, currency: missingBalanceCurrency })
+                      }
+                    />
+                  ) : null}
                   {type === "expense" && paymentOccurrences.length ? (
                     <FintFormField
                       label={t("movementUx.applyToPayment")}
@@ -675,6 +712,50 @@ export default function PendingReviewScreen() {
         onConfirm={() => discardMutation.mutate()}
       />
     </>
+  );
+}
+
+function MissingBalanceCard({
+  canEnable,
+  currency,
+  isPending,
+  onEnable,
+}: {
+  canEnable: boolean;
+  currency: string;
+  isPending: boolean;
+  onEnable: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <FintCard bg="$secondary" gap="$3" p="$3">
+      <XStack items="center" gap="$3">
+        <YStack width={36} height={36} rounded="$10" bg="$card" items="center" justify="center">
+          <Coins size={17} color="$primary" />
+        </YStack>
+        <YStack flex={1} minW={0} gap="$1">
+          <Paragraph color="$color12" fontFamily="$heading" fontSize="$3" fontWeight="600">
+            {t("movementUx.missingBalanceTitle", { currency })}
+          </Paragraph>
+          <Paragraph color="$color10" fontSize="$1">
+            {/* Solo una tarjeta de crédito puede habilitar una segunda moneda -- para el
+                resto de tipos de cuenta la única salida es elegir otra cuenta arriba. */}
+            {canEnable ? t("movementUx.missingBalanceDescription", { currency }) : t("movementUx.missingBalanceOtherAccountOnly", { currency })}
+          </Paragraph>
+        </YStack>
+      </XStack>
+      {canEnable ? (
+        <FintButton
+          size="$3"
+          variant="outlined"
+          disabled={isPending}
+          icon={isPending ? <FintSpinner size="small" color="$primary" /> : <Check size={16} />}
+          onPress={onEnable}
+        >
+          {isPending ? t("accounts.enablingBalance") : t("movementUx.enableBalanceForCurrency", { currency })}
+        </FintButton>
+      ) : null}
+    </FintCard>
   );
 }
 

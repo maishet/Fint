@@ -10,6 +10,7 @@ export const disabledCapabilities: AppCapabilities = {
     pushPaymentReminders: false,
     autoPayPayments: false,
     captureImport: false,
+    accountCurrencyBalances: false,
   },
 }
 

@@ -3,8 +3,9 @@ import * as SecureStore from "expo-secure-store";
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { ptTranslation } from "./pt";
+import { setStoredCurrentLanguage, type AppLanguage } from "./current-language";
 
-export type AppLanguage = "es" | "en" | "pt";
+export type { AppLanguage };
 
 const languageStorageKey = "fint-language";
 
@@ -280,6 +281,11 @@ const resources = {
         namePlaceholder: "Ej.: Cuenta principal",
         openingBalanceHint:
           "Opcional. Si lo dejas en cero, el saldo se irá formando con tus movimientos.",
+        addSecondCurrencyAtCreation: "Agregar otra moneda",
+        secondCurrencyLabel: "Segunda moneda",
+        secondCurrencyFailedToast: "No pudimos habilitar la segunda moneda",
+        secondCurrencyFailedMessage:
+          "Tu cuenta se creó igual. Intenta agregar la segunda moneda otra vez desde Editar cuenta.",
         searchCurrency: "Buscar por código o moneda",
         duplicateName: "Ya existe otra cuenta con ese nombre.",
         create: "Agregar cuenta",
@@ -300,6 +306,29 @@ const resources = {
         deletedToast: "Cuenta eliminada",
         deletedMessage: "La cuenta quedó inactiva y su historial se conservó.",
         deleteError: "No pudimos eliminar la cuenta",
+        primaryBalanceBadge: "Principal",
+        balancesHint:
+          "Cada moneda lleva su propio saldo independiente. Fint no las convierte ni las suma.",
+        balancesDisabledHint:
+          "Habilitar monedas nuevas está desactivado temporalmente. Tus saldos existentes siguen disponibles.",
+        balancesMaxReachedHint:
+          "Esta tarjeta ya tiene el máximo de 2 monedas. Desactiva una para habilitar otra.",
+        addBalance: "Habilitar otra moneda",
+        enableBalanceAction: "Habilitar",
+        enablingBalance: "Habilitando...",
+        balanceEnabledToast: "Saldo habilitado",
+        balanceEnabledMessage: "Ya puedes registrar movimientos en esa moneda.",
+        enableBalanceError: "No pudimos habilitar el saldo",
+        balanceAlreadyActive: "Esa moneda ya tiene un saldo activo en esta cuenta.",
+        disableBalanceAccessibility: "Desactivar saldo en {{currency}}",
+        disableBalanceTitle: "¿Desactivar este saldo?",
+        disableBalanceDescription:
+          "El saldo en {{currency}} dejará de estar disponible para nuevos movimientos. Su historial se conserva.",
+        disableBalanceConfirm: "Desactivar",
+        disablingBalance: "Desactivando...",
+        balanceDisabledToast: "Saldo desactivado",
+        balanceDisabledMessage: "Ya no aparecerá disponible para nuevos movimientos.",
+        disableBalanceError: "No pudimos desactivar el saldo",
       },
       categories: {
         routeTitle: "Categorías",
@@ -872,6 +901,11 @@ const resources = {
         namePlaceholder: "E.g. Main account",
         openingBalanceHint:
           "Optional. If you leave it at zero, the balance builds up from your transactions.",
+        addSecondCurrencyAtCreation: "Add another currency",
+        secondCurrencyLabel: "Second currency",
+        secondCurrencyFailedToast: "Couldn't enable the second currency",
+        secondCurrencyFailedMessage:
+          "Your account was still created. Try adding the second currency again from Edit account.",
         searchCurrency: "Search by code or currency",
         duplicateName: "Another account already uses that name.",
         create: "Add account",
@@ -893,6 +927,29 @@ const resources = {
         deletedMessage:
           "The account is now inactive and its history was preserved.",
         deleteError: "Could not delete the account",
+        primaryBalanceBadge: "Primary",
+        balancesHint:
+          "Each currency keeps its own independent balance. Fint never converts or adds them together.",
+        balancesDisabledHint:
+          "Enabling new currencies is temporarily disabled. Your existing balances are still available.",
+        balancesMaxReachedHint:
+          "This card already has the maximum of 2 currencies. Disable one to enable another.",
+        addBalance: "Enable another currency",
+        enableBalanceAction: "Enable",
+        enablingBalance: "Enabling...",
+        balanceEnabledToast: "Balance enabled",
+        balanceEnabledMessage: "You can now record transactions in that currency.",
+        enableBalanceError: "Could not enable the balance",
+        balanceAlreadyActive: "That currency already has an active balance on this account.",
+        disableBalanceAccessibility: "Disable the {{currency}} balance",
+        disableBalanceTitle: "Disable this balance?",
+        disableBalanceDescription:
+          "The {{currency}} balance will no longer be available for new transactions. Its history is preserved.",
+        disableBalanceConfirm: "Disable",
+        disablingBalance: "Disabling...",
+        balanceDisabledToast: "Balance disabled",
+        balanceDisabledMessage: "It will no longer be available for new transactions.",
+        disableBalanceError: "Could not disable the balance",
       },
       categories: {
         routeTitle: "Categories",
@@ -1544,6 +1601,16 @@ i18n.addResourceBundle(
       reverseTransfer: "Revertir transferencia",
       reverseTransferDescription:
         "Se anulará la transferencia y se restaurará el saldo de ambas cuentas.",
+      whichBalance: "¿Qué saldo?",
+      transferNoSharedCurrency:
+        "Estas cuentas no comparten ninguna moneda en común: elige otro origen o destino, o habilita el saldo que falta.",
+      missingBalanceTitle: "Esta cuenta no tiene saldo en {{currency}}",
+      missingBalanceDescription:
+        "Elige otra cuenta que sí lo tenga, o habilita un saldo en {{currency}} para esta.",
+      missingBalanceOtherAccountOnly:
+        "Solo las tarjetas de crédito pueden llevar una segunda moneda. Elige otra cuenta que ya tenga saldo en {{currency}}.",
+      enableBalanceForCurrency: "Habilitar saldo en {{currency}}",
+      balanceEnabledRetryHint: "Ya puedes confirmar el pendiente de nuevo.",
     },
     payments: {
       upcoming: "Próximos pagos",
@@ -1975,6 +2042,16 @@ i18n.addResourceBundle(
       reverseTransfer: "Reverse transfer",
       reverseTransferDescription:
         "The transfer will be voided and both account balances will be restored.",
+      whichBalance: "Which balance?",
+      transferNoSharedCurrency:
+        "These accounts don't share a currency: pick a different origin or destination, or enable the missing balance.",
+      missingBalanceTitle: "This account has no {{currency}} balance",
+      missingBalanceDescription:
+        "Pick a different account that already has one, or enable a {{currency}} balance for this one.",
+      missingBalanceOtherAccountOnly:
+        "Only credit card accounts can carry a second currency. Pick a different account that already has a {{currency}} balance.",
+      enableBalanceForCurrency: "Enable {{currency}} balance",
+      balanceEnabledRetryHint: "You can confirm the pending item again now.",
     },
     payments: {
       upcoming: "Upcoming payments",
@@ -2406,6 +2483,16 @@ i18n.addResourceBundle(
       reverseTransfer: "Reverter transferência",
       reverseTransferDescription:
         "A transferência será anulada e o saldo das duas contas será restaurado.",
+      whichBalance: "Qual saldo?",
+      transferNoSharedCurrency:
+        "Essas contas não compartilham nenhuma moeda em comum: escolha outra origem ou destino, ou habilite o saldo que falta.",
+      missingBalanceTitle: "Esta conta não tem saldo em {{currency}}",
+      missingBalanceDescription:
+        "Escolha outra conta que já tenha, ou habilite um saldo em {{currency}} para esta.",
+      missingBalanceOtherAccountOnly:
+        "Somente cartões de crédito podem ter uma segunda moeda. Escolha outra conta que já tenha saldo em {{currency}}.",
+      enableBalanceForCurrency: "Habilitar saldo em {{currency}}",
+      balanceEnabledRetryHint: "Agora você já pode confirmar a pendência novamente.",
     },
     payments: {
       upcoming: "Próximos pagamentos",
@@ -2502,6 +2589,9 @@ i18n.addResourceBundle(
   true,
   true,
 );
+
+i18n.on("languageChanged", setStoredCurrentLanguage);
+setStoredCurrentLanguage(i18n.resolvedLanguage ?? i18n.language);
 
 export async function loadStoredLanguage() {
   const value = await SecureStore.getItemAsync(languageStorageKey);

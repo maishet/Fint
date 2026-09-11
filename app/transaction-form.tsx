@@ -1,12 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowDown, ArrowLeftRight, ArrowUp, CalendarDays, Save, Shapes, WalletCards } from '@tamagui/lucide-icons-2'
+import { ArrowDown, ArrowLeftRight, ArrowUp, CalendarDays, Coins, Save, Shapes, WalletCards } from '@tamagui/lucide-icons-2'
 import { useNotify } from '../src/ui/notify'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Paragraph, YStack } from 'tamagui'
 import { z } from 'zod'
 import { financeApi } from '../src/api/finance'
+import { balanceCurrencies } from '../src/finance/accountBalances'
+import { currencyOptions } from '../src/finance/currencies'
 import { useAccountPickerOptions } from '../src/finance/useAccountPickerOptions'
 import { Screen } from '../src/components/Screen'
 import { SkeletonForm } from '../src/components/Skeleton'
@@ -34,8 +36,10 @@ export default function TransactionFormScreen() {
   const [amount, setAmount] = useState(params.amount ?? '')
   const [category, setCategory] = useState(params.category ?? '')
   const [account, setAccount] = useState(params.account ?? '')
+  const [movementCurrency, setMovementCurrency] = useState('')
   const [originAccountId, setOriginAccountId] = useState('')
   const [destinationAccountId, setDestinationAccountId] = useState('')
+  const [transferCurrency, setTransferCurrency] = useState('')
   const [note, setNote] = useState(params.note ?? '')
   const [transactionDate, setTransactionDate] = useState(() => params.date ?? todayDateString())
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -54,6 +58,15 @@ export default function TransactionFormScreen() {
   const categories = categoriesQuery.data ?? []
   const selectedAccount = accounts.find((item) => item.name === account)
   const selectedOriginAccount = accounts.find((item) => item.id === originAccountId)
+  const selectedDestinationAccount = accounts.find((item) => item.id === destinationAccountId)
+  const movementCurrencyOptions = useMemo(() => (selectedAccount ? balanceCurrencies(selectedAccount) : []), [selectedAccount])
+  const transferCommonCurrencies = useMemo(() => {
+    if (!selectedOriginAccount || !selectedDestinationAccount) return []
+    const destinationCurrencies = new Set(balanceCurrencies(selectedDestinationAccount))
+    return balanceCurrencies(selectedOriginAccount).filter((code) => destinationCurrencies.has(code))
+  }, [selectedOriginAccount, selectedDestinationAccount])
+  const effectiveMovementCurrency = movementCurrencyOptions.includes(movementCurrency) ? movementCurrency : (selectedAccount?.currency ?? 'PEN')
+  const effectiveTransferCurrency = transferCommonCurrencies.includes(transferCurrency) ? transferCurrency : (transferCommonCurrencies[0] ?? '')
   const requiredMessage = getValidationMessage(t, i18n.resolvedLanguage, 'required')
   const amountMessage = getValidationMessage(t, i18n.resolvedLanguage, 'amount')
   const transactionSchema = z.object({
@@ -82,9 +95,7 @@ export default function TransactionFormScreen() {
 
   const mutation = useMutation({
     mutationFn: async (validated: z.infer<typeof transactionSchema>) => {
-      const accountCurrency = accounts.find((item) => item.name === validated.account)?.currency
-      if (!accountCurrency) throw new Error(t('movements.referencesError'))
-      const payload = { ...validated, currency: accountCurrency }
+      const payload = { ...validated, currency: effectiveMovementCurrency }
       if (params.id) return financeApi.updateTransaction(params.id, { ...payload, transactionDate })
       return financeApi.createTransaction(payload)
     },
@@ -104,13 +115,11 @@ export default function TransactionFormScreen() {
 
   const transferMutation = useMutation({
     mutationFn: async (validated: z.infer<typeof transferSchema>) => {
-      const originCurrency = accounts.find((item) => item.id === validated.originAccountId)?.currency
-      if (!originCurrency) throw new Error(t('movements.referencesError'))
       return financeApi.createTransfer({
         originAccountId: validated.originAccountId,
         destinationAccountId: validated.destinationAccountId,
         amount: validated.amount,
-        currency: originCurrency,
+        currency: effectiveTransferCurrency,
         transactionDate: validated.transactionDate,
         note: validated.note?.trim() || null,
       })
@@ -139,7 +148,12 @@ export default function TransactionFormScreen() {
         note: note.trim() || undefined,
         transactionDate,
       })
-      if (payload) transferMutation.mutate(payload)
+      if (!payload) return
+      if (!effectiveTransferCurrency) {
+        setErrorMessage(t('movementUx.transferNoSharedCurrency'))
+        return
+      }
+      transferMutation.mutate(payload)
       return
     }
     const payload = validation.validate(transactionSchema, {
@@ -188,7 +202,7 @@ export default function TransactionFormScreen() {
       {isReferenceLoading ? <SkeletonForm label={t('movements.loadingReferences')} showSegment segmentCount={isEditing ? 2 : 3} fieldCount={3} /> : <YStack gap="$5" pb="$5">
         <MovementKindSelector value={kind} onValueChange={(value) => { setKind(value); setErrorMessage(null); validation.clearError('category', 'account', 'originAccountId', 'destinationAccountId') }} allowTransfer={!isEditing} />
 
-        <MovementAmountField currency={kind === 'transfer' ? (selectedOriginAccount?.currency ?? 'PEN') : (selectedAccount?.currency ?? 'PEN')} error={validation.errors.amount} value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} onBlur={() => { if (amount.trim()) validation.validateField('amount', transactionSchema.shape.amount, parseDecimalInput(amount)) }} />
+        <MovementAmountField currency={kind === 'transfer' ? (effectiveTransferCurrency || 'PEN') : effectiveMovementCurrency} error={validation.errors.amount} value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} onBlur={() => { if (amount.trim()) validation.validateField('amount', transactionSchema.shape.amount, parseDecimalInput(amount)) }} />
 
         {/*
           Cuenta, categoría y fecha comparten un solo grupo con filete: eran
@@ -202,17 +216,33 @@ export default function TransactionFormScreen() {
               <FintSheetSelect label={t('forms.account')} showLabel={false} placeholder={t('movements.selectAccount')} value={account} onValueChange={(value) => { setAccount(value); validation.clearError('account') }} options={accounts.map((item) => toAccountOption(item, false))} renderTrigger={({ onPress, selectedLabel }) => <FintListRow icon={<WalletCards size={22} color="$primary" />} label={t('forms.account')} required onPress={onPress} value={selectedLabel} />} />
             )}
 
+            {/*
+              Solo aparece si la cuenta lleva más de un saldo -- la mayoría de
+              cuentas tiene uno solo y no necesita elegir nada.
+            */}
+            {kind !== 'transfer' && movementCurrencyOptions.length > 1 ? (
+              <FintSheetSelect label={t('forms.currency')} showLabel={false} placeholder={t('forms.select')} value={effectiveMovementCurrency} options={currencyOptions.filter((option) => movementCurrencyOptions.includes(option.value))} onValueChange={setMovementCurrency} renderTrigger={({ onPress, selectedLabel }) => <FintListRow icon={<Coins size={22} color="$primary" />} label={t('movementUx.whichBalance')} onPress={onPress} value={selectedLabel} />} />
+            ) : null}
+
             {kind === 'transfer' ? (
               <FintSheetSelect label={t('movementUx.transferPickDestination')} showLabel={false} placeholder={t('movements.selectAccount')} value={destinationAccountId} onValueChange={(value) => { setDestinationAccountId(value); validation.clearError('destinationAccountId') }} options={accounts.filter((item) => item.id !== originAccountId).map((item) => toAccountOption(item, true))} renderTrigger={({ onPress, selectedLabel }) => <FintListRow icon={<WalletCards size={22} color="$primary" />} label={t('movementUx.transferPickDestination')} required onPress={onPress} value={selectedLabel} />} />
             ) : (
               <CategoryPickerSheet categories={categories} showLabel={false} type={kind} value={category} onValueChange={(value) => { setCategory(value); validation.clearError('category') }} renderTrigger={({ onPress, selectedLabel }) => <FintListRow icon={<Shapes size={22} color="$primary" />} label={t('forms.category')} required onPress={onPress} value={selectedLabel} />} />
             )}
 
+            {/* La transferencia solo puede ir entre saldos que comparten moneda -- se elige cuál si hay más de una en común. */}
+            {kind === 'transfer' && transferCommonCurrencies.length > 1 ? (
+              <FintSheetSelect label={t('forms.currency')} showLabel={false} placeholder={t('forms.select')} value={effectiveTransferCurrency} options={currencyOptions.filter((option) => transferCommonCurrencies.includes(option.value))} onValueChange={setTransferCurrency} renderTrigger={({ onPress, selectedLabel }) => <FintListRow icon={<Coins size={22} color="$primary" />} label={t('movementUx.whichBalance')} onPress={onPress} value={selectedLabel} />} />
+            ) : null}
+
             <FintDateField label={t('movements.date')} showLabel={false} placeholder={t('movements.selectDate')} value={transactionDate} maxDate={todayDateString()} onValueChange={(value) => { setTransactionDate(value); validation.clearError('transactionDate') }} renderTrigger={({ onPress, selectedLabel }) => <FintListRow icon={<CalendarDays size={22} color="$primary" />} label={t('movements.date')} required onPress={onPress} value={selectedLabel} />} />
           </FintListGroup>
           {fieldErrors.map((message) => (
             <Paragraph key={message} color="$red10" fontSize="$1" fontWeight="600" px="$1">{message}</Paragraph>
           ))}
+          {kind === 'transfer' && originAccountId && destinationAccountId && transferCommonCurrencies.length === 0 ? (
+            <Paragraph color="$red10" fontSize="$1" fontWeight="600" px="$1">{t('movementUx.transferNoSharedCurrency')}</Paragraph>
+          ) : null}
         </YStack>
 
         <MovementNoteField label={t('movementUx.noteOptional')} placeholder={t('movementUx.notePlaceholder')} value={note} onChangeText={setNote} />

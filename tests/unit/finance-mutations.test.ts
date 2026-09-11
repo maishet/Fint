@@ -51,6 +51,16 @@ test('sends account create, update, and deactivation mutations with their expect
   expectRequest('/api/accounts/account-1', 'DELETE')
 })
 
+test('sends account balance enable and disable mutations with their expected contracts', async () => {
+  fetchMock.mockResolvedValueOnce(respond({ accountId: 'account-1', currency: 'USD', balance: 0 }))
+  await financeApi.enableAccountBalance('account-1', { currency: 'USD', openingBalance: 0 })
+  expectRequest('/api/accounts/account-1/balances', 'POST', { currency: 'USD', openingBalance: 0 })
+
+  fetchMock.mockResolvedValueOnce(respond({ accountId: 'account-1', currency: 'USD' }))
+  await financeApi.disableAccountBalance('account-1', 'USD')
+  expectRequest('/api/accounts/account-1/balances/USD', 'DELETE')
+})
+
 test('sends transaction create, update, and delete mutations with the selected account currency', async () => {
   const input = { type: 'expense' as const, amount: 42.5, category: 'Comida', account: 'Efectivo', currency: 'PEN', transactionDate: '2026-08-03', note: 'Mercado' }
 

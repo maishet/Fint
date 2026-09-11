@@ -55,6 +55,7 @@ export interface AppCapabilities {
     pushPaymentReminders: boolean
     autoPayPayments: boolean
     captureImport: boolean
+    accountCurrencyBalances: boolean
   }
   jobs?: {
     paymentOccurrencesGenerate: boolean
@@ -79,13 +80,8 @@ export interface Account {
   id: string
   name: string
   accountType: AccountType | string
-  /** Moneda principal. Para tarjetas multi-moneda es la de la línea primaria. */
   currency: string
   balance: number
-  /**
-   * Saldo por moneda. Hoy el backend manda una sola línea y `normalizeAccount`
-   * la deriva de `currency`/`balance`; las tarjetas llevarán N (sprint 4, 2.3).
-   */
   balances?: AccountBalance[]
 }
 
@@ -192,13 +188,9 @@ export interface AccountOption {
   id: string
   name: string
   currency: string
-  /**
-   * Los manda `/accounts/options` para que el selector pinte icono y saldo.
-   * Opcionales a propósito: si la app corre contra una API anterior, el
-   * selector cae a nombre + moneda en vez de romperse.
-   */
   accountType?: string | null
   balance?: number | null
+  balances?: AccountBalance[]
 }
 
 export type TransferAccountMatch = { accountId: string; accountName: string } | null
@@ -442,6 +434,22 @@ export interface UpdateAccountInput {
 
 export interface AccountMutationResult {
   id: string
+}
+
+export interface EnableAccountBalanceInput {
+  currency: string
+  openingBalance: number
+}
+
+export interface EnableAccountBalanceResult {
+  accountId: string
+  currency: string
+  balance: number
+}
+
+export interface DisableAccountBalanceResult {
+  accountId: string
+  currency: string
 }
 
 export interface CreateCategoryInput {
