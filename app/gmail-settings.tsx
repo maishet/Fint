@@ -1,5 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Mail, Plus, RefreshCw, Save, Trash2 } from "@tamagui/lucide-icons-2";
+import {
+  AlertTriangle,
+  Mail,
+  Plus,
+  RefreshCw,
+  Save,
+  Trash2,
+} from "@tamagui/lucide-icons-2";
 import { useNotify } from "../src/ui/notify";
 import {
   GoogleSignin,
@@ -84,7 +91,10 @@ export default function GmailSettingsScreen() {
   });
   const connect = () => connectMutation.mutate();
   const visibleSources = (sourcesQuery.data ?? []).filter(
-    (source) => source.status === "active" || source.status === "error",
+    (source) =>
+      source.status === "active" ||
+      source.status === "error" ||
+      source.status === "needs_senders",
   );
 
   return (
@@ -323,6 +333,26 @@ function GmailSourceCard({
             </FintButton>
           </YStack>
         ) : null}
+        {source.status === "needs_senders" ? (
+          <YStack
+            bg="$yellow2"
+            borderColor="$yellow6"
+            borderWidth={1}
+            rounded="$5"
+            p="$3"
+            gap="$2"
+          >
+            <XStack gap="$2" items="center">
+              <AlertTriangle size={16} color="$yellow10" />
+              <Paragraph color="$yellow11" fontWeight="600" flex={1}>
+                {t("gmail.needsSendersTitle")}
+              </Paragraph>
+            </XStack>
+            <Paragraph color="$yellow11" fontSize="$1">
+              {t("gmail.needsSendersDescription")}
+            </Paragraph>
+          </YStack>
+        ) : null}
         <FintFormField
           label={t("gmail.senders")}
           error={validation.errors.senders}
@@ -345,31 +375,41 @@ function GmailSourceCard({
             }}
           />
         </FintFormField>
-        <XStack gap="$2">
+        {source.status === "needs_senders" ? (
           <FintButton
-            flex={1}
-            variant="outlined"
-            disabled={pending || source.status === "error"}
-            icon={
-              syncMutation.isPending ? (
-                <FintSpinner size="small" color="$primary" />
-              ) : (
-                <RefreshCw size={16} />
-              )
-            }
-            onPress={() => syncMutation.mutate()}
-          >
-            {syncMutation.isPending ? t("gmail.syncing") : t("gmail.sync")}
-          </FintButton>
-          <FintButton
-            flex={1}
-            disabled={pending || source.status === "error"}
+            disabled={pending}
             icon={<Save size={16} />}
             onPress={saveFilters}
           >
-            {t("actions.save")}
+            {t("gmail.activate")}
           </FintButton>
-        </XStack>
+        ) : (
+          <XStack gap="$2">
+            <FintButton
+              flex={1}
+              variant="outlined"
+              disabled={pending || source.status === "error"}
+              icon={
+                syncMutation.isPending ? (
+                  <FintSpinner size="small" color="$primary" />
+                ) : (
+                  <RefreshCw size={16} />
+                )
+              }
+              onPress={() => syncMutation.mutate()}
+            >
+              {syncMutation.isPending ? t("gmail.syncing") : t("gmail.sync")}
+            </FintButton>
+            <FintButton
+              flex={1}
+              disabled={pending || source.status === "error"}
+              icon={<Save size={16} />}
+              onPress={saveFilters}
+            >
+              {t("actions.save")}
+            </FintButton>
+          </XStack>
+        )}
         {saveErrorMessage ? (
           <Paragraph color="$red10">{saveErrorMessage}</Paragraph>
         ) : null}

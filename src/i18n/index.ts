@@ -1543,6 +1543,10 @@ i18n.addResourceBundle(
     gmail: {
       disconnectConfirm:
         "La cuenta de Gmail se desconectará. Tus movimientos confirmados se conservarán.",
+      needsSendersTitle: "Falta activar esta cuenta",
+      needsSendersDescription:
+        "Agrega al menos un remitente y guarda para activarla. Mientras tanto no se lee ni sincroniza ningún correo.",
+      activate: "Guardar y activar",
     },
     movementUx: {
       pendingTitle: "Pendientes detectados",
@@ -1985,6 +1989,10 @@ i18n.addResourceBundle(
     gmail: {
       disconnectConfirm:
         "The Gmail account will be disconnected. Your confirmed transactions will be preserved.",
+      needsSendersTitle: "This account still needs to be activated",
+      needsSendersDescription:
+        "Add at least one sender and save to activate it. Until then, no email is read or synced.",
+      activate: "Save and activate",
     },
     movementUx: {
       pendingTitle: "Detected pending items",
@@ -2428,6 +2436,10 @@ i18n.addResourceBundle(
     gmail: {
       disconnectConfirm:
         "A conta Gmail será desconectada. Suas movimentações confirmadas serão preservadas.",
+      needsSendersTitle: "Falta ativar esta conta",
+      needsSendersDescription:
+        "Adicione ao menos um remetente e salve para ativá-la. Até lá, nenhum e-mail é lido ou sincronizado.",
+      activate: "Salvar e ativar",
     },
     movementUx: {
       pendingTitle: "Pendências detectadas",
