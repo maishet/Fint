@@ -110,7 +110,8 @@ export default function DebtFormScreen() {
     mutationFn: async (payload: z.infer<typeof schema>) => {
       const autoPay = { autoPayEnabled, autoPayAccountId: autoPayEnabled ? autoPayAccountId : null }
       if (ruleId) {
-        return financeApi.updatePaymentRule(ruleId, { title: payload.title, frequency, fixedAmount: payload.amount, categoryId: payload.categoryId, startDate: payload.startDate, ...autoPay })
+        const amountChanged = currentRule?.fixedAmount !== payload.amount
+        return financeApi.updatePaymentRule(ruleId, { title: payload.title, frequency, ...(amountChanged ? { fixedAmount: payload.amount } : {}), categoryId: payload.categoryId, startDate: payload.startDate, ...autoPay })
       }
       return financeApi.createPaymentRule({ kind: 'fixed_payment', title: payload.title, frequency, currency, fixedAmount: payload.amount, categoryId: payload.categoryId, timezone, startDate: payload.startDate, ...autoPay })
     },
