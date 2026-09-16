@@ -23,7 +23,7 @@ export function MovementTypeSelector({ onValueChange, value }: { onValueChange: 
   )
 }
 
-export function MovementAmountField({ currency, error, helperText, label, onBlur, onChangeText, onCurrencyPress, required = true, value }: { currency: string; error?: string; helperText?: string; label?: string; onBlur?: () => void; onChangeText: (value: string) => void; onCurrencyPress?: () => void; required?: boolean; value: string }) {
+export function MovementAmountField({ currency, disabled = false, error, helperText, label, onBlur, onChangeText, onCurrencyPress, required = true, value }: { currency: string; disabled?: boolean; error?: string; helperText?: string; label?: string; onBlur?: () => void; onChangeText: (value: string) => void; onCurrencyPress?: () => void; required?: boolean; value: string }) {
   const { t } = useTranslation()
   const fieldLabel = label ?? t('forms.amount')
   // Centrado y con tamano fijo, un monto largo se recorta por los DOS lados y el
@@ -40,13 +40,14 @@ export function MovementAmountField({ currency, error, helperText, label, onBlur
         gap="$2"
         p="$4"
         bg="$card"
+        opacity={disabled ? 0.6 : 1}
         borderColor={error ? '$red8' : required ? '$accent5' : '$borderColor'}
         borderWidth={1}
         rounded="$7"
       >
         <Paragraph color="$color10" fontSize="$2" fontWeight="600">{fieldLabel}{required ? ' *' : ''}</Paragraph>
         <XStack flex={1} items="center" gap="$3">
-          <YStack minW={48} height={48} px="$2" rounded="$10" bg="$secondary" items="center" justify="center" onPress={onCurrencyPress} role={onCurrencyPress ? 'button' : undefined} cursor={onCurrencyPress ? 'pointer' : undefined} pressStyle={onCurrencyPress ? { bg: '$elevated' } : undefined} aria-label={currency}>
+          <YStack minW={48} height={48} px="$2" rounded="$10" bg="$secondary" items="center" justify="center" onPress={disabled ? undefined : onCurrencyPress} role={onCurrencyPress ? 'button' : undefined} cursor={onCurrencyPress && !disabled ? 'pointer' : undefined} pressStyle={onCurrencyPress && !disabled ? { bg: '$elevated' } : undefined} aria-label={currency}>
             <Paragraph color="$primary" fontFamily="$heading" fontSize="$3" fontWeight="600">{getCurrencySymbol(currency)}</Paragraph>
           </YStack>
           <Input
@@ -66,6 +67,7 @@ export function MovementAmountField({ currency, error, helperText, label, onBlur
             placeholder="0.00"
             placeholderTextColor="$color7"
             textAlign="center"
+            disabled={disabled}
             value={value}
             onChangeText={(next) => onChangeText(sanitizeAmountInput(next))}
             onBlur={onBlur}

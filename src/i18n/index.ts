@@ -1724,6 +1724,8 @@ i18n.addResourceBundle(
       confirmPayment: "Confirmar pago",
       amountEditLocked:
         "La moneda no se puede cambiar al editar un pago recurrente para mantener consistentes sus vencimientos y pagos.",
+      amountLockedPayments:
+        "El monto no se puede editar porque este pago recurrente ya tiene pagos registrados.",
       currencyChangeHint: "Toca la moneda del monto para cambiarla.",
       configureAmount: "Configura monto",
       configureAmountAction: "Configurar monto",
@@ -2196,6 +2198,8 @@ i18n.addResourceBundle(
       confirmPayment: "Confirm payment",
       amountEditLocked:
         "The currency cannot be changed while editing a recurring payment to keep scheduled payments and recorded payments consistent.",
+      amountLockedPayments:
+        "The amount can't be edited because this recurring payment already has payments recorded.",
       currencyChangeHint: "Tap the amount currency to change it.",
       configureAmount: "Configure amount",
       configureAmountAction: "Configure amount",
@@ -2672,6 +2676,8 @@ i18n.addResourceBundle(
       confirmPayment: "Confirmar pagamento",
       amountEditLocked:
         "A moeda não pode ser alterada ao editar um pagamento recorrente para manter pagamentos programados e pagamentos registrados consistentes.",
+      amountLockedPayments:
+        "O valor não pode ser editado porque este pagamento recorrente já tem pagamentos registrados.",
       currencyChangeHint: "Toque na moeda do valor para alterá-la.",
       configureAmount: "Configure o valor",
       configureAmountAction: "Configurar valor",

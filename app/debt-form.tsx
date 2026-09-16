@@ -42,9 +42,11 @@ export default function DebtFormScreen() {
   const categoriesQuery = useQuery({ queryKey: ['categories', 'expense'], queryFn: () => financeApi.listCategories('expense') })
   const rulesQuery = useQuery({ queryKey: ['payment-rules'], queryFn: financeApi.listPaymentRules })
   const optionsQuery = useQuery({ queryKey: ['finance-options'], queryFn: financeApi.getFinanceOptions })
+  const paidOccurrencesQuery = useQuery({ queryKey: ['payment-occurrences', 'paid'], queryFn: () => financeApi.listPaymentOccurrences({ status: 'paid' }), enabled: isEditing })
   const categories = categoriesQuery.data ?? []
   const rules = rulesQuery.data ?? []
   const currentRule = rules.find((rule) => rule.id === ruleId)
+  const hasRegisteredPayments = isEditing && (paidOccurrencesQuery.data ?? []).some((occurrence) => occurrence.ruleId === ruleId)
   const [title, setTitle] = useState('')
   const [amount, setAmount] = useState('')
   const [selectedCurrency, setSelectedCurrency] = useState('PEN')
@@ -195,7 +197,7 @@ export default function DebtFormScreen() {
             </YStack>
 
             {isEditing ? (
-              <MovementAmountField currency={currency} error={validation.errors.amount} helperText={t('payments.amountEditLocked')} value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} onBlur={() => { if (amount.trim()) validation.validateField('amount', schema.shape.amount, parseDecimalInput(amount)) }} />
+              <MovementAmountField currency={currency} disabled={hasRegisteredPayments} error={validation.errors.amount} helperText={t(hasRegisteredPayments ? 'payments.amountLockedPayments' : 'payments.amountEditLocked')} value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} onBlur={() => { if (amount.trim()) validation.validateField('amount', schema.shape.amount, parseDecimalInput(amount)) }} />
             ) : (
               <FintSheetSelect label={t('forms.currency')} showLabel={false} placeholder={t('forms.select')} searchable searchPlaceholder={t('accounts.searchCurrency')} value={selectedCurrency} onValueChange={setSelectedCurrency} options={currencyOptions} renderTrigger={({ onPress }) => <MovementAmountField currency={currency} error={validation.errors.amount} helperText={t('payments.currencyChangeHint')} value={amount} onChangeText={(value) => { setAmount(value); validation.clearError('amount') }} onBlur={() => { if (amount.trim()) validation.validateField('amount', schema.shape.amount, parseDecimalInput(amount)) }} onCurrencyPress={onPress} />} />
             )}
