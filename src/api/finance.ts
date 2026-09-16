@@ -1,5 +1,6 @@
 import { apiRequest } from './client'
 import { randomId } from '../shared/id'
+import type { FrequentLocation } from '../location/captureLocation'
 import {
   AccountListSchema,
   AccountSchema,
@@ -101,6 +102,7 @@ export const financeApi = {
   enableAccountBalance: (accountId: string, input: EnableAccountBalanceInput) => apiRequest<EnableAccountBalanceResult>(`/api/accounts/${accountId}/balances`, { method: 'POST', body: JSON.stringify(input) }),
   disableAccountBalance: (accountId: string, currency: string) => apiRequest<DisableAccountBalanceResult>(`/api/accounts/${accountId}/balances/${currency}`, { method: 'DELETE' }),
   getSummary: () => apiRequest<Summary>('/api/summary'),
+  getFrequentLocations: () => apiRequest<{ locations: FrequentLocation[] }>('/api/locations/frequent').then((res) => res.locations),
   getFinanceOptions: () => apiRequest<{ baseCurrency: string }>('/api/finance/options'),
   getAccountsOverview: (currency?: string, signal?: AbortSignal) => apiRequest<AccountsOverview>(`/api/accounts/overview${toQuery({ currency })}`, { signal }, { schema: AccountsOverviewSchema }),
   getDashboardOverview: (currency?: string, signal?: AbortSignal) => apiRequest<DashboardOverview>(`/api/dashboard/overview${toQuery({ currency })}`, { signal }, { schema: DashboardOverviewSchema }),

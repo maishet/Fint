@@ -16,6 +16,10 @@ module.exports = ({ config }) => ({
   android: {
     ...appJson.expo.android,
     googleServicesFile: process.env.GOOGLE_SERVICES_JSON || './google-services.json',
+    config: {
+      ...appJson.expo.android.config,
+      googleMaps: { apiKey: process.env.GOOGLE_MAPS_ANDROID_API_KEY || '' },
+    },
   },
   plugins: appJson.expo.plugins.map((plugin) =>
     plugin === '@react-native-google-signin/google-signin' && iosUrlScheme

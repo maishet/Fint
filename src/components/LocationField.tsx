@@ -1,7 +1,10 @@
 import { MapPin, Search, X } from '@tamagui/lucide-icons-2'
+import { useQuery } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ScrollView } from 'react-native'
 import { Button, Paragraph, XStack, YStack } from 'tamagui'
+import { financeApi } from '../api/finance'
 import {
   describeLocation,
   getLocationPermissionState,
@@ -14,6 +17,10 @@ import { FintButton, FintCard, FintSpinner } from '../ui'
 import { FintListGroup, FintListRow } from './FintListGroup'
 import { LocationEditSheet } from './LocationEditSheet'
 import { MiniMap } from './MiniMap'
+
+function placeName(formattedAddress: string | null) {
+  return formattedAddress?.split(', ')[0] || null
+}
 
 export function LocationField({
   onChange,
@@ -31,6 +38,7 @@ export function LocationField({
   const [isResolvingAddress, setIsResolvingAddress] = useState(false)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const autoTriedRef = useRef(false)
+  const frequentQuery = useQuery({ queryKey: ['frequent-locations'], queryFn: financeApi.getFrequentLocations, staleTime: 5 * 60_000 })
 
   const capture = async () => {
     setIsCapturing(true)
@@ -77,6 +85,45 @@ export function LocationField({
     />
   )
 
+  const recentsRow = frequentQuery.data?.length ? (
+    <YStack gap="$1.5">
+      <Paragraph color="$color10" fontSize="$1" fontWeight="600" px="$1">
+        {t('location.recent')}
+      </Paragraph>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <XStack gap="$2" px="$1">
+          {frequentQuery.data.map((place) => (
+            <XStack
+              key={`${place.latitude}-${place.longitude}`}
+              items="center"
+              gap="$1.5"
+              bg="$muted"
+              borderColor="$borderColor"
+              borderWidth={1}
+              rounded={999}
+              px="$3"
+              py="$2"
+              cursor="pointer"
+              role="button"
+              pressStyle={{ bg: '$secondary' }}
+              onPress={() => onChange({ latitude: place.latitude, longitude: place.longitude, formattedAddress: place.formattedAddress })}
+            >
+              <MapPin size={13} color="$primary" />
+              <Paragraph color="$color12" fontSize="$2" fontWeight="600" numberOfLines={1}>
+                {placeName(place.formattedAddress) ?? t('location.coordinatesOnly')}
+              </Paragraph>
+              {place.usageCount > 1 ? (
+                <Paragraph color="$color9" fontSize="$1" fontWeight="600">
+                  · {place.usageCount}
+                </Paragraph>
+              ) : null}
+            </XStack>
+          ))}
+        </XStack>
+      </ScrollView>
+    </YStack>
+  ) : null
+
   if (value) {
     return (
       <YStack gap="$2">
@@ -109,6 +156,7 @@ export function LocationField({
           accessibilityLabel={t('location.mapAccessibility')}
           onExpand={() => setIsSheetOpen(true)}
         />
+        {recentsRow}
         {sheet}
       </YStack>
     )
@@ -118,12 +166,13 @@ export function LocationField({
 
   if (permission === 'denied') {
     return (
-      <>
+      <YStack gap="$2">
         <FintListGroup>
           <FintListRow icon={<Search size={22} color="$primary" />} label={t('location.searchPlaceholder')} onPress={() => setIsSheetOpen(true)} />
         </FintListGroup>
+        {recentsRow}
         {sheet}
-      </>
+      </YStack>
     )
   }
 
@@ -174,6 +223,7 @@ export function LocationField({
           </>
         )}
       </FintListGroup>
+      {recentsRow}
       {sheet}
     </YStack>
   )
