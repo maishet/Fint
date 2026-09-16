@@ -7,6 +7,8 @@ import { useTranslation } from 'react-i18next'
 import { Paragraph, YStack } from 'tamagui'
 import { z } from 'zod'
 import { financeApi } from '../src/api/finance'
+import { LocationField } from '../src/components/LocationField'
+import type { CapturedLocation } from '../src/location/captureLocation'
 import { balanceCurrencies } from '../src/finance/accountBalances'
 import { currencyOptions } from '../src/finance/currencies'
 import { useAccountPickerOptions } from '../src/finance/useAccountPickerOptions'
@@ -27,7 +29,7 @@ type MovementKind = 'income' | 'expense' | 'transfer'
 export default function TransactionFormScreen() {
   const router = useRouter()
   const { i18n, t } = useTranslation()
-  const params = useLocalSearchParams<{ id?: string; type?: 'income' | 'expense' | 'transfer'; amount?: string; category?: string; account?: string; note?: string; date?: string }>()
+  const params = useLocalSearchParams<{ id?: string; type?: 'income' | 'expense' | 'transfer'; amount?: string; category?: string; account?: string; note?: string; date?: string; latitude?: string; longitude?: string; formattedAddress?: string }>()
   const toast = useNotify()
   const queryClient = useQueryClient()
   const isEditing = Boolean(params.id)
@@ -41,6 +43,11 @@ export default function TransactionFormScreen() {
   const [destinationAccountId, setDestinationAccountId] = useState('')
   const [transferCurrency, setTransferCurrency] = useState('')
   const [note, setNote] = useState(params.note ?? '')
+  const [location, setLocation] = useState<CapturedLocation | null>(() =>
+    params.latitude && params.longitude
+      ? { latitude: Number(params.latitude), longitude: Number(params.longitude), formattedAddress: params.formattedAddress || null }
+      : null,
+  )
   const [transactionDate, setTransactionDate] = useState(() => params.date ?? todayDateString())
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const isDirty = !saved && (
@@ -95,7 +102,11 @@ export default function TransactionFormScreen() {
 
   const mutation = useMutation({
     mutationFn: async (validated: z.infer<typeof transactionSchema>) => {
-      const payload = { ...validated, currency: effectiveMovementCurrency }
+      const payload = {
+        ...validated,
+        currency: effectiveMovementCurrency,
+        ...(location ? { latitude: location.latitude, longitude: location.longitude, formattedAddress: location.formattedAddress ?? undefined } : {}),
+      }
       if (params.id) return financeApi.updateTransaction(params.id, { ...payload, transactionDate })
       return financeApi.createTransaction(payload)
     },
@@ -246,6 +257,8 @@ export default function TransactionFormScreen() {
         </YStack>
 
         <MovementNoteField label={t('movementUx.noteOptional')} placeholder={t('movementUx.notePlaceholder')} value={note} onChangeText={setNote} />
+
+        {kind !== 'transfer' ? <LocationField value={location} onChange={setLocation} autoCapture={!isEditing} /> : null}
 
         {!accountsQuery.isLoading && accounts.length === 0 ? (
           <YStack bg="$secondary" gap="$2" p="$3" rounded="$5">

@@ -87,6 +87,12 @@
         }
       ],
       [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "My Fint usa tu ubicación solo cuando eliges agregarla a un movimiento, para guardar dónde ocurrió."
+        }
+      ],
+      [
         "expo-share-intent",
         {
           "androidIntentFilters": ["image/*"],

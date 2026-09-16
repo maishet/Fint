@@ -12,6 +12,7 @@ import { ThemeModeContext, type ThemePreference } from '../theme/ThemeMode'
 import { FintToaster } from '../ui/FintToaster'
 import { SensitiveAmountsProvider } from '../privacy/SensitiveAmountsProvider'
 import { DailyRemindersProvider } from '../notifications/DailyRemindersProvider'
+import { LocationPreferenceProvider } from '../location/LocationPreferenceProvider'
 import { fileSystemPersister } from './queryPersister'
 import { setupOnlineManager } from './networkStatus'
 
@@ -81,7 +82,7 @@ export function AppProviders({ children, ...rest }: Omit<TamaguiProviderProps, '
               },
             }}
           >
-            <AuthProvider><SensitiveAmountsProvider><DailyRemindersProvider>{children}</DailyRemindersProvider></SensitiveAmountsProvider></AuthProvider>
+            <AuthProvider><SensitiveAmountsProvider><DailyRemindersProvider><LocationPreferenceProvider>{children}</LocationPreferenceProvider></DailyRemindersProvider></SensitiveAmountsProvider></AuthProvider>
           </PersistQueryClientProvider>
           <FintToaster />
         </Theme>

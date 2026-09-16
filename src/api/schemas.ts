@@ -13,6 +13,9 @@ export const TransactionSchema = z.object({
   paymentOccurrencePaymentId: z.string().nullable().optional(),
   transferGroupId: z.string().nullable().optional(),
   transferDirection: z.enum(['origin', 'destination']).nullable().optional(),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
+  formattedAddress: z.string().nullable().optional(),
 })
 
 export const AccountBalanceLineSchema = z.object({
@@ -27,6 +30,7 @@ export const AccountSchema = z.object({
   currency: z.string(),
   balance: z.number(),
   balances: z.array(AccountBalanceLineSchema).optional(),
+  emailMatchKeywords: z.array(z.string()).optional(),
 })
 
 export const TransactionListSchema = z.array(TransactionSchema)

@@ -1,10 +1,13 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowDown, ArrowUp, CalendarDays, Copy, Pencil, Receipt, Trash2, WalletCards } from '@tamagui/lucide-icons-2'
+import { ArrowDown, ArrowUp, CalendarDays, ChevronRight, Copy, MapPin, Pencil, Receipt, Trash2, WalletCards } from '@tamagui/lucide-icons-2'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Paragraph, XStack, YStack } from 'tamagui'
 import { financeApi } from '../src/api/finance'
+import type { CapturedLocation } from '../src/location/captureLocation'
+import { LocationEditSheet } from '../src/components/LocationEditSheet'
+import { MiniMap } from '../src/components/MiniMap'
 import { Screen } from '../src/components/Screen'
 import { getCategoryLabel } from '../src/finance/categoryLabels'
 import { suggestedCategoryIcons } from '../src/finance/categoryIcons'
@@ -22,6 +25,9 @@ type DetailParams = {
   account?: string
   note?: string
   date?: string
+  latitude?: string
+  longitude?: string
+  formattedAddress?: string
 }
 
 export default function TransactionDetailScreen() {
@@ -32,6 +38,7 @@ export default function TransactionDetailScreen() {
   const params = useLocalSearchParams<DetailParams>()
   const { formatSignedAmount } = useSensitiveMoney()
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false)
 
   const id = params.id ?? ''
   const type = params.type === 'income' ? 'income' : 'expense'
@@ -42,6 +49,13 @@ export default function TransactionDetailScreen() {
   const account = params.account ?? ''
   const note = params.note ?? ''
   const date = (params.date ?? '').slice(0, 10)
+  const [location, setLocation] = useState<CapturedLocation | null>(() =>
+    params.latitude && params.longitude
+      ? { latitude: Number(params.latitude), longitude: Number(params.longitude), formattedAddress: params.formattedAddress || null }
+      : null,
+  )
+  const { latitude, longitude, formattedAddress } = location ?? { latitude: null, longitude: null, formattedAddress: null }
+  const hasLocation = latitude !== null && longitude !== null
   const emoji = suggestedCategoryIcons(category, type)[0] ?? (isIncome ? '💰' : '🧾')
   const dateLabel = date
     ? new Intl.DateTimeFormat(getAppLocale(i18n.resolvedLanguage), { day: '2-digit', month: 'long', year: 'numeric' }).format(new Date(`${date}T00:00:00`))
@@ -63,10 +77,29 @@ export default function TransactionDetailScreen() {
     onError: () => toast.error(t('movementUx.deleteError')),
   })
 
+  const updateLocationMutation = useMutation({
+    mutationFn: (next: CapturedLocation | null) =>
+      financeApi.updateTransaction(id, {
+        type, amount, currency, category, account,
+        note: note || undefined,
+        transactionDate: date,
+        ...(next ? { latitude: next.latitude, longitude: next.longitude, formattedAddress: next.formattedAddress ?? undefined } : {}),
+      }),
+    onSuccess: async (_, next) => {
+      setLocation(next)
+      await queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      toast.success(t('movementUx.updatedToast'), { message: t('movementUx.updatedMessage') })
+    },
+    onError: () => toast.error(t('states.error')),
+  })
+
   const goEdit = () =>
     router.push({
       pathname: '/transaction-form',
-      params: { id, type, amount: String(amount), category, account, note, date },
+      params: {
+        id, type, amount: String(amount), category, account, note, date,
+        ...(hasLocation ? { latitude: String(latitude), longitude: String(longitude), formattedAddress: formattedAddress ?? '' } : {}),
+      },
     })
 
   const goDuplicate = () =>
@@ -105,7 +138,20 @@ export default function TransactionDetailScreen() {
             <DetailRow icon={<WalletCards size={19} color="$primary" />} label={t('forms.account')} value={account || '—'} />
             <DetailRow icon={<CalendarDays size={19} color="$primary" />} label={t('movements.date')} value={dateLabel} divider />
             <DetailRow icon={<Pencil size={19} color="$primary" />} label={t('movementUx.noteOptional')} value={note || t('transactionDetail.noNote')} muted={!note} divider />
+            <DetailRow
+              icon={<MapPin size={19} color="$primary" />}
+              label={hasLocation ? t('location.addedLabel') : t('location.addLabel')}
+              value={hasLocation ? (formattedAddress ?? t('location.coordinatesOnly')) : t('location.tapToAdd')}
+              muted={!hasLocation}
+              divider
+              onPress={() => setIsLocationSheetOpen(true)}
+              trailing={<ChevronRight size={18} color="$color9" />}
+            />
           </FintCard>
+
+          {hasLocation ? (
+            <MiniMap latitude={latitude!} longitude={longitude!} height={160} rounded={18} accessibilityLabel={t('location.mapAccessibility')} />
+          ) : null}
 
           <FintCard items="center" gap="$2" py="$4" borderStyle="dashed">
             <YStack width={44} height={44} rounded="$10" bg="$secondary" items="center" justify="center">
@@ -136,20 +182,28 @@ export default function TransactionDetailScreen() {
         onCancel={() => setConfirmDelete(false)}
         onConfirm={() => deleteMutation.mutate()}
       />
+
+      <LocationEditSheet
+        open={isLocationSheetOpen}
+        onOpenChange={setIsLocationSheetOpen}
+        value={location}
+        onSave={(next) => updateLocationMutation.mutate(next)}
+      />
     </>
   )
 }
 
-function DetailRow({ icon, label, value, muted = false, divider = false }: { icon: React.ReactNode; label: string; value: string; muted?: boolean; divider?: boolean }) {
+function DetailRow({ icon, label, value, muted = false, divider = false, onPress, trailing }: { icon: React.ReactNode; label: string; value: string; muted?: boolean; divider?: boolean; onPress?: () => void; trailing?: React.ReactNode }) {
   return (
     <YStack>
       {divider ? <YStack height={1} bg="$borderColor" ml={70} /> : null}
-      <XStack items="center" gap="$3" p="$4">
+      <XStack items="center" gap="$3" p="$4" cursor={onPress ? 'pointer' : undefined} role={onPress ? 'button' : undefined} pressStyle={onPress ? { bg: '$secondary' } : undefined} onPress={onPress}>
         <YStack width={38} height={38} rounded={19} bg="$background" items="center" justify="center" shrink={0}>{icon}</YStack>
         <YStack flex={1} minW={0} gap={2}>
           <Paragraph color="$color9" fontSize={11}>{label}</Paragraph>
           <Paragraph color={muted ? '$color9' : '$color12'} fontSize="$3" fontWeight="600" letterSpacing={-0.2} numberOfLines={3}>{value}</Paragraph>
         </YStack>
+        {trailing}
       </XStack>
     </YStack>
   )

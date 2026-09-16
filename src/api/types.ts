@@ -83,6 +83,7 @@ export interface Account {
   currency: string
   balance: number
   balances?: AccountBalance[]
+  emailMatchKeywords?: string[]
 }
 
 export interface Transaction {
@@ -98,6 +99,9 @@ export interface Transaction {
   paymentOccurrencePaymentId?: string | null
   transferGroupId?: string | null
   transferDirection?: 'origin' | 'destination' | null
+  latitude?: number | null
+  longitude?: number | null
+  formattedAddress?: string | null
 }
 
 export interface Category {
@@ -420,6 +424,7 @@ export interface CreateAccountInput {
   accountType: AccountType
   currency: string
   openingBalance: number
+  emailMatchKeywords?: string[]
 }
 
 export interface CreateAccountResult {
@@ -432,6 +437,7 @@ export interface UpdateAccountInput {
   name?: string
   accountType?: AccountType
   currency?: string
+  emailMatchKeywords?: string[]
 }
 
 export interface AccountMutationResult {
@@ -484,6 +490,9 @@ export interface CreateTransactionInput {
   account: string
   note?: string
   transactionDate?: string
+  latitude?: number
+  longitude?: number
+  formattedAddress?: string
 }
 
 export interface CreateTransactionResult {
@@ -532,6 +541,9 @@ export type ConfirmPendingInput =
       accountId: string
       categoryId?: string
       note?: string | null
+      latitude?: number
+      longitude?: number
+      formattedAddress?: string
     }
   | {
       mode: 'payment'
@@ -545,6 +557,9 @@ export type ConfirmPendingInput =
       categoryId?: string | null
       note?: string | null
       originInstallationId?: string | null
+      latitude?: number
+      longitude?: number
+      formattedAddress?: string
     }
 
 export interface PushInstallationInput {

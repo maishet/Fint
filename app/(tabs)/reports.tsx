@@ -63,7 +63,8 @@ import {
   type ReportPeriodPreset,
 } from "../../src/finance/reports";
 import { getAppLocale, type AppLanguage } from "../../src/i18n";
-import { FintCard, FintSheetSelect, FintSpinner } from "../../src/ui";
+import { FintCard, FintDateField, FintSheetSelect, FintSpinner } from "../../src/ui";
+import { ReportOverflowFootnote } from "../../src/components/ReportOverflowFootnote";
 import { useSensitiveMoney } from "../../src/privacy/useSensitiveMoney";
 import { SensitiveAmountToggle } from "../../src/privacy/SensitiveAmountToggle";
 
@@ -82,6 +83,10 @@ const REPORT_TEXT_KEYS = [
   "previousMonth",
   "last3Months",
   "last6Months",
+  "customRange",
+  "fromDate",
+  "toDate",
+  "customRangeHint",
   "updated",
   "mixed",
   "loading",
@@ -162,11 +167,22 @@ export default function ReportsScreen() {
   const queryClient = useQueryClient();
   const toast = useNotify();
   const router = useRouter();
-  const [preset, setPreset] = useState<ReportPeriodPreset>("currentMonth");
+  const [preset, setPreset] = useState<ReportPeriodPreset | "custom">(
+    "currentMonth",
+  );
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
   const [accountId, setAccountId] = useState(ALL_ACCOUNTS);
   const [currency, setCurrency] = useState("");
   const [isExporting, setIsExporting] = useState(false);
-  const range = getPresetRange(preset);
+  const hasCustomRange = Boolean(customFrom && customTo);
+  const isCustomRangeIncomplete = preset === "custom" && !hasCustomRange;
+  const range =
+    preset === "custom"
+      ? hasCustomRange
+        ? { from: customFrom, to: customTo }
+        : getPresetRange("currentMonth")
+      : getPresetRange(preset);
   const reportFilters = {
     ...range,
     grouping:
@@ -183,7 +199,9 @@ export default function ReportsScreen() {
   const periodQuery = useQuery({
     queryKey: ["reports", "financial", "period", reportFilters],
     queryFn: ({ signal }) =>
-      financeApi.getFinancialReportPeriod(reportFilters, signal),  });
+      financeApi.getFinancialReportPeriod(reportFilters, signal),
+    enabled: !isCustomRangeIncomplete,
+  });
   const selectedCurrency =
     currency ||
     periodQuery.data?.filters.currency ||
@@ -216,11 +234,11 @@ export default function ReportsScreen() {
           ...range,
           ...(accountId !== ALL_ACCOUNTS ? { accountId } : {}),
           currency: selectedCurrency,
-          limit: 10,
+          limit: 5,
         },
         signal,
       ),
-    enabled: Boolean(selectedCurrency),  });
+    enabled: Boolean(selectedCurrency) && !isCustomRangeIncomplete,  });
   const reportError = optionsQuery.error ?? periodQuery.error;
   const report = periodQuery.data;
   const hasMovements = Boolean(report?.summary.transactionCount);
@@ -370,9 +388,39 @@ export default function ReportsScreen() {
             { value: "previousMonth", label: text.previousMonth },
             { value: "last3Months", label: text.last3Months },
             { value: "last6Months", label: text.last6Months },
+            { value: "custom", label: text.customRange },
           ]}
-          onValueChange={(value) => setPreset(value as ReportPeriodPreset)}
+          onValueChange={(value) =>
+            setPreset(value as ReportPeriodPreset | "custom")
+          }
         />
+        {preset === "custom" ? (
+          <XStack gap="$3">
+            <YStack flex={1}>
+              <FintDateField
+                label={text.fromDate}
+                placeholder={text.fromDate}
+                value={customFrom}
+                maxDate={customTo || undefined}
+                onValueChange={setCustomFrom}
+              />
+            </YStack>
+            <YStack flex={1}>
+              <FintDateField
+                label={text.toDate}
+                placeholder={text.toDate}
+                value={customTo}
+                minDate={customFrom || undefined}
+                onValueChange={setCustomTo}
+              />
+            </YStack>
+          </XStack>
+        ) : null}
+        {isCustomRangeIncomplete ? (
+          <Paragraph color="$color10" fontSize="$1" px="$1">
+            {text.customRangeHint}
+          </Paragraph>
+        ) : null}
         <YStack gap="$3">
           <FintSheetSelect
             label={text.account}
@@ -435,6 +483,7 @@ export default function ReportsScreen() {
           text={text}
           locale={locale}
           onOpenMovements={() => router.push("/(tabs)/movements")}
+          onExport={() => void exportReport("pdf")}
           onRetryPosition={() => {
             void positionQuery.refetch();
           }}
@@ -449,6 +498,7 @@ export default function ReportsScreen() {
 
 function ReportContent({
   locale,
+  onExport,
   onOpenMovements,
   onRetryPosition,
   onRetryTopTransactions,
@@ -462,6 +512,7 @@ function ReportContent({
   topTransactionsLoading,
 }: {
   locale: string;
+  onExport: () => void;
   onOpenMovements: () => void;
   onRetryPosition: () => void;
   onRetryTopTransactions: () => void;
@@ -486,8 +537,9 @@ function ReportContent({
         text={text}
         t={t}
         onOpenMovements={onOpenMovements}
+        onExport={onExport}
       />
-      <AccountActivityCard report={report} text={text} />
+      <AccountActivityCard report={report} text={text} onExport={onExport} />
       <YStack minH={position ? undefined : 220}>
         {positionLoading ? (
           <SkeletonGroup label={text.loading}>
@@ -502,6 +554,7 @@ function ReportContent({
             position={position}
             currency={report.filters.currency}
             text={text}
+            onExport={onExport}
           />
         ) : null}
       </YStack>
@@ -996,18 +1049,23 @@ function Legend({ color, label }: { color: string; label: string }) {
   );
 }
 
+const REPORT_TOP_N = 3;
+
 function CategoryCard({
+  onExport,
   onOpenMovements,
   report,
   t,
   text,
 }: {
+  onExport: () => void;
   onOpenMovements: () => void;
   report: FinancialReportPeriod;
   t: TFunction;
   text: ReportText;
 }) {
   const { formatSensitiveAmount } = useSensitiveMoney();
+  const categories = report.categories.slice(0, REPORT_TOP_N);
   return (
     <FintCard gap="$3">
       <ReportCardHeader
@@ -1027,7 +1085,7 @@ function CategoryCard({
       {report.categories.length === 0 ? (
         <WidgetEmpty message={text.noData} />
       ) : (
-        report.categories.map((item) => (
+        categories.map((item) => (
           <XStack key={item.name} items="center" gap="$3">
             <YStack
               width={38}
@@ -1058,18 +1116,29 @@ function CategoryCard({
           </XStack>
         ))
       )}
+      <ReportOverflowFootnote
+        remainingCount={report.categories.length - REPORT_TOP_N}
+        onPress={onExport}
+        label={t("reports.seeAllInExport", {
+          count: report.categories.length - REPORT_TOP_N,
+        })}
+      />
     </FintCard>
   );
 }
 
 function AccountActivityCard({
+  onExport,
   report,
   text,
 }: {
+  onExport: () => void;
   report: FinancialReportPeriod;
   text: ReportText;
 }) {
+  const { t } = useTranslation();
   const { formatSensitiveAmount } = useSensitiveMoney();
+  const accountActivity = report.accountActivity.slice(0, REPORT_TOP_N);
   return (
     <FintCard gap="$3">
       <ReportCardHeader
@@ -1079,7 +1148,7 @@ function AccountActivityCard({
       {report.accountActivity.length === 0 ? (
         <WidgetEmpty message={text.noData} />
       ) : (
-        report.accountActivity.map((item) => (
+        accountActivity.map((item) => (
           <XStack key={item.id} items="center" gap="$3">
             <YStack
               width={38}
@@ -1112,20 +1181,34 @@ function AccountActivityCard({
           </XStack>
         ))
       )}
+      <ReportOverflowFootnote
+        remainingCount={report.accountActivity.length - REPORT_TOP_N}
+        onPress={onExport}
+        label={t("reports.seeAllInExport", {
+          count: report.accountActivity.length - REPORT_TOP_N,
+        })}
+      />
     </FintCard>
   );
 }
 
 function CurrentPositionCard({
   currency,
+  onExport,
   position,
   text,
 }: {
   currency: string;
+  onExport: () => void;
   position: FinancialReportPosition;
   text: ReportText;
 }) {
+  const { t } = useTranslation();
   const { formatSensitiveAmount } = useSensitiveMoney();
+  const topAccounts = [...position.accounts]
+    .sort((a, b) => b.balance - a.balance)
+    .slice(0, REPORT_TOP_N);
+  const topDebts = position.debts.slice(0, REPORT_TOP_N);
   return (
     <FintCard gap="$3">
       <ReportCardHeader
@@ -1153,7 +1236,7 @@ function CurrentPositionCard({
       {position.accounts.length === 0 && position.debts.length === 0 ? (
         <WidgetEmpty message={text.noData} />
       ) : null}
-      {position.accounts.map((item) => (
+      {topAccounts.map((item) => (
         <XStack key={item.id} items="center" gap="$3">
           <Landmark size={17} color="$primary" />
           <Paragraph color="$color12" fontWeight="600" flex={1}>
@@ -1169,7 +1252,7 @@ function CurrentPositionCard({
           <Paragraph color="$color12" fontWeight="600" mt="$2">
             {text.debts}
           </Paragraph>
-          {position.debts.map((item) => (
+          {topDebts.map((item) => (
             <XStack key={item.id} items="center" gap="$3">
               <CreditCard
                 size={17}
@@ -1190,6 +1273,18 @@ function CurrentPositionCard({
           ))}
         </>
       ) : null}
+      <ReportOverflowFootnote
+        remainingCount={
+          position.accounts.length - topAccounts.length +
+          (position.debts.length - topDebts.length)
+        }
+        onPress={onExport}
+        label={t("reports.seeAllInExport", {
+          count:
+            position.accounts.length - topAccounts.length +
+            (position.debts.length - topDebts.length),
+        })}
+      />
     </FintCard>
   );
 }

@@ -560,6 +560,13 @@ export default function MovementsScreen() {
                     account: item.movement.account,
                     note: item.movement.note ?? "",
                     date: item.movement.date,
+                    ...(item.movement.latitude != null && item.movement.longitude != null
+                      ? {
+                          latitude: String(item.movement.latitude),
+                          longitude: String(item.movement.longitude),
+                          formattedAddress: item.movement.formattedAddress ?? "",
+                        }
+                      : {}),
                   },
                 })
               }

@@ -15,6 +15,7 @@ import {
   Landmark,
   LogOut,
   Mail,
+  MapPin,
   MonitorSmartphone,
   Moon,
   Bell,
@@ -68,6 +69,7 @@ import {
 } from "../src/notifications/pushNotifications";
 import { useSensitiveAmounts } from "../src/privacy/SensitiveAmountsProvider";
 import { useDailyReminders } from "../src/notifications/DailyRemindersProvider";
+import { useLocationPreference } from "../src/location/LocationPreferenceProvider";
 
 export default function SettingsScreen() {
   const { i18n, t } = useTranslation();
@@ -80,6 +82,7 @@ export default function SettingsScreen() {
   const notify = useNotify();
   const { themeMode, themePreference, setThemePreference } = useThemeMode();
   const { amountsVisible, toggleAmountsVisibility } = useSensitiveAmounts();
+  const { enabled: locationCaptureEnabled, setEnabled: setLocationCaptureEnabled } = useLocationPreference();
   const {
     enabled: dailyRemindersEnabled,
     setEnabled: setDailyRemindersEnabled,
@@ -351,6 +354,13 @@ export default function SettingsScreen() {
           }
           checked={!amountsVisible}
           onCheckedChange={toggleAmountsVisibility}
+        />
+        <FintSwitchRow
+          icon={<MapPin size={19} color="$primary" />}
+          label={t("settings.locationCapture")}
+          detail={t("settings.locationCaptureDetail")}
+          checked={locationCaptureEnabled}
+          onCheckedChange={setLocationCaptureEnabled}
         />
         <SettingsRow
           icon={<Landmark size={19} color="$primary" />}

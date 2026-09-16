@@ -27,6 +27,8 @@ import type {
 } from "../src/api/types";
 import { CategoryPickerSheet } from "../src/components/CategoryPickerSheet";
 import { DataStateCard } from "../src/components/DataStateCard";
+import { LocationField } from "../src/components/LocationField";
+import type { CapturedLocation } from "../src/location/captureLocation";
 import {
   MovementAmountField,
   MovementNoteField,
@@ -93,6 +95,7 @@ export default function PendingReviewScreen() {
   const [paymentOccurrenceId, setPaymentOccurrenceId] =
     useState(NORMAL_MOVEMENT);
   const [note, setNote] = useState("");
+  const [location, setLocation] = useState<CapturedLocation | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [discardOpen, setDiscardOpen] = useState(false);
   // "Editar" (any scenario) reveals a compact origin/destination account editor instead of the
@@ -216,6 +219,9 @@ export default function PendingReviewScreen() {
       const current = detailQuery.data;
       if (!current) throw new Error(t("states.error"));
       const originInstallationId = await getInstallationId();
+      const locationFields = location
+        ? { latitude: location.latitude, longitude: location.longitude, formattedAddress: location.formattedAddress ?? undefined }
+        : {};
       if (selectedOccurrence)
         return financeApi.confirmPendingMovement(pendingId, {
           mode: "payment",
@@ -229,6 +235,7 @@ export default function PendingReviewScreen() {
           categoryId: null,
           note: note.trim() || null,
           originInstallationId,
+          ...locationFields,
         });
       return financeApi.confirmPendingMovement(pendingId, {
         mode: "transaction",
@@ -237,6 +244,7 @@ export default function PendingReviewScreen() {
         ...payload,
         categoryId: payload.categoryId!,
         note: note.trim() || null,
+        ...locationFields,
       });
     },
     onSuccess: invalidateAndClose,
@@ -670,6 +678,15 @@ export default function PendingReviewScreen() {
                   value={note}
                   onChangeText={setNote}
                 />
+
+                {/*
+                  Confirmar un pendiente no ocurre en el momento de la
+                  compra -- el usuario puede estar revisándolo horas después,
+                  ya en otro lugar. Auto-capturar el GPS actual daría una
+                  ubicación incorrecta (p. ej. su casa), así que acá la
+                  ubicación es explícita: buscarla o agregarla a mano.
+                */}
+                <LocationField value={location} onChange={setLocation} autoCapture={false} />
 
                 {accountsQuery.error || categoriesQuery.error ? (
                   <Paragraph color="$red10">

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Building2, Coins, CreditCard, Landmark, PiggyBank, Plus, Save, Trash2, Wallet, X } from '@tamagui/lucide-icons-2'
+import { Building2, Coins, CreditCard, Landmark, PiggyBank, Plus, Save, Tag, Trash2, Wallet, X } from '@tamagui/lucide-icons-2'
 import { useNotify } from '../src/ui/notify'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { Button, Input, Paragraph, XStack, YStack } from 'tamagui'
 import { z } from 'zod'
 import { ApiRequestError } from '../src/api/client'
+import { ChipInput } from '../src/components/ChipInput'
 import { useCapabilities } from '../src/api/capabilities'
 import { financeApi } from '../src/api/finance'
 import type { AccountType } from '../src/api/types'
@@ -36,6 +37,7 @@ export default function AccountFormScreen() {
   const [accountType, setAccountType] = useState<AccountType>('cash')
   const [currency, setCurrency] = useState('PEN')
   const [openingBalance, setOpeningBalance] = useState('')
+  const [emailMatchKeywords, setEmailMatchKeywords] = useState<string[]>([])
   const [initializedAccountId, setInitializedAccountId] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
@@ -44,8 +46,8 @@ export default function AccountFormScreen() {
   const [disableBalanceTarget, setDisableBalanceTarget] = useState<{ currency: string } | null>(null)
   const { formatSensitiveAmount } = useSensitiveMoney()
   const isDirty = !saved && (isEditing
-    ? Boolean(account) && (name !== account!.name || accountType !== account!.accountType || currency !== account!.currency)
-    : name !== '' || openingBalance !== '' || accountType !== 'cash' || currency !== 'PEN' || newBalanceCurrency !== '')
+    ? Boolean(account) && (name !== account!.name || accountType !== account!.accountType || currency !== account!.currency || !sameKeywords(emailMatchKeywords, account!.emailMatchKeywords ?? []))
+    : name !== '' || openingBalance !== '' || accountType !== 'cash' || currency !== 'PEN' || newBalanceCurrency !== '' || emailMatchKeywords.length > 0)
   const guard = useUnsavedChangesGuard(isDirty)
   const validation = useSubmitValidation<'accountType' | 'currency' | 'name' | 'openingBalance'>()
   const requiredMessage = getValidationMessage(t, i18n.resolvedLanguage, 'required')
@@ -68,12 +70,13 @@ export default function AccountFormScreen() {
     setName(account.name)
     setAccountType(isAccountType(account.accountType) ? account.accountType : 'cash')
     setCurrency(account.currency)
+    setEmailMatchKeywords(account.emailMatchKeywords ?? [])
     setInitializedAccountId(account.id)
   }, [account, initializedAccountId])
 
   const mutation = useMutation({
     mutationFn: async (payload: z.infer<typeof accountDetailsSchema>) => {
-      const details = { name: payload.name, accountType: payload.accountType, currency: payload.currency }
+      const details = { name: payload.name, accountType: payload.accountType, currency: payload.currency, emailMatchKeywords }
       if (accountId) return { ...(await financeApi.updateAccount(accountId, details)), secondCurrencyFailed: false }
       const created = await financeApi.createAccount({ ...details, openingBalance: payload.openingBalance })
       let secondCurrencyFailed = false
@@ -210,6 +213,24 @@ export default function AccountFormScreen() {
                 />
               </FintListGroup>
               {validation.errors.name ? <Paragraph color="$red10" fontSize="$1" fontWeight="600" px="$1">{validation.errors.name}</Paragraph> : null}
+            </YStack>
+
+            <YStack gap="$2.5">
+              <XStack items="center" gap="$2" px="$1">
+                <Tag size={15} color="$primary" />
+                <Paragraph color="$color10" fontSize="$1" fontWeight="700" textTransform="uppercase" letterSpacing={0.4}>
+                  {t('accounts.emailKeywordsLabel')}
+                </Paragraph>
+              </XStack>
+              <ChipInput
+                value={emailMatchKeywords}
+                onChange={setEmailMatchKeywords}
+                placeholder={t('accounts.emailKeywordsPlaceholder')}
+                addLabel={t('accounts.emailKeywordsAddLabel')}
+                ariaLabel={t('accounts.emailKeywordsLabel')}
+                removeAriaLabel={(keyword) => t('accounts.emailKeywordsRemoveAccessibility', { keyword })}
+              />
+              <FintListFootnote>{t('accounts.emailKeywordsHint')}</FintListFootnote>
             </YStack>
 
             <YStack gap="$2">
@@ -486,4 +507,8 @@ export default function AccountFormScreen() {
 
 function isAccountType(value?: string): value is AccountType {
   return value === 'cash' || value === 'credit_card' || value === 'checking_account' || value === 'savings_account'
+}
+
+function sameKeywords(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((keyword, index) => keyword === b[index])
 }
