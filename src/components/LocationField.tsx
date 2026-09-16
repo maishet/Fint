@@ -97,23 +97,25 @@ export function LocationField({
               key={`${place.latitude}-${place.longitude}`}
               items="center"
               gap="$1.5"
-              bg="$muted"
-              borderColor="$borderColor"
-              borderWidth={1}
-              rounded={999}
-              px="$3"
+              bg="$primary"
+              rounded="$10"
+              pl="$3"
+              pr="$3.5"
               py="$2"
+              shadowOpacity={0.18}
+              shadowRadius={6}
+              shadowOffset={{ width: 0, height: 3 }}
               cursor="pointer"
               role="button"
-              pressStyle={{ bg: '$secondary' }}
+              pressStyle={{ bg: '$primaryStrong' }}
               onPress={() => onChange({ latitude: place.latitude, longitude: place.longitude, formattedAddress: place.formattedAddress })}
             >
-              <MapPin size={13} color="$primary" />
-              <Paragraph color="$color12" fontSize="$2" fontWeight="600" numberOfLines={1}>
+              <MapPin size={13} color="$primaryForeground" />
+              <Paragraph color="$primaryForeground" fontSize="$2" fontWeight="700" numberOfLines={1}>
                 {placeName(place.formattedAddress) ?? t('location.coordinatesOnly')}
               </Paragraph>
               {place.usageCount > 1 ? (
-                <Paragraph color="$color9" fontSize="$1" fontWeight="600">
+                <Paragraph color="$primaryForeground" opacity={0.75} fontSize="$1" fontWeight="700">
                   · {place.usageCount}
                 </Paragraph>
               ) : null}
