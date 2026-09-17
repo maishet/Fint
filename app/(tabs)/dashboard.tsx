@@ -1179,6 +1179,13 @@ function RecentMovements({
                             account: transaction.account,
                             note: transaction.note ?? "",
                             date: transaction.date,
+                            ...(transaction.latitude != null && transaction.longitude != null
+                              ? {
+                                  latitude: String(transaction.latitude),
+                                  longitude: String(transaction.longitude),
+                                  formattedAddress: transaction.formattedAddress ?? "",
+                                }
+                              : {}),
                           },
                         })
                     : undefined
