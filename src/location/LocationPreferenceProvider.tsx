@@ -14,25 +14,25 @@ export function LocationPreferenceProvider({ children }: { children: React.React
   const { session } = useAuth()
   const userId = session?.user.id ?? null
   const [isHydrated, setIsHydrated] = useState(false)
-  const [enabled, setEnabledState] = useState(true)
+  const [enabled, setEnabledState] = useState(false)
 
   useEffect(() => {
     let active = true
     setIsHydrated(false)
     if (!userId) {
-      setEnabledState(true)
+      setEnabledState(false)
       setIsHydrated(true)
       return () => { active = false }
     }
     getStoredLocationCaptureEnabled(userId)
       .then((stored) => {
         if (!active) return
-        setEnabledState(stored ?? true)
+        setEnabledState(stored ?? false)
         setIsHydrated(true)
       })
       .catch(() => {
         if (!active) return
-        setEnabledState(true)
+        setEnabledState(false)
         setIsHydrated(true)
       })
     return () => { active = false }

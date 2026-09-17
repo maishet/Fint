@@ -1,6 +1,6 @@
 import { MapPin, Search, X } from '@tamagui/lucide-icons-2'
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ScrollView } from 'react-native'
 import { Button, Paragraph, XStack, YStack } from 'tamagui'
@@ -25,11 +25,9 @@ function placeName(formattedAddress: string | null) {
 export function LocationField({
   onChange,
   value,
-  autoCapture = true,
 }: {
   onChange: (next: CapturedLocation | null) => void
   value: CapturedLocation | null
-  autoCapture?: boolean
 }) {
   const { t } = useTranslation()
   const { enabled: locationCaptureEnabled, isHydrated } = useLocationPreference()
@@ -37,7 +35,6 @@ export function LocationField({
   const [isCapturing, setIsCapturing] = useState(false)
   const [isResolvingAddress, setIsResolvingAddress] = useState(false)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
-  const autoTriedRef = useRef(false)
   const frequentQuery = useQuery({ queryKey: ['frequent-locations'], queryFn: financeApi.getFrequentLocations, staleTime: 5 * 60_000 })
 
   const capture = async () => {
@@ -55,15 +52,10 @@ export function LocationField({
     void getLocationPermissionState().then((state) => {
       if (cancelled) return
       setPermission(state)
-      if (autoCapture && state === 'granted' && !value && !autoTriedRef.current) {
-        autoTriedRef.current = true
-        void capture()
-      }
     })
     return () => {
       cancelled = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isHydrated, locationCaptureEnabled])
 
   if (!isHydrated || !locationCaptureEnabled) return null
@@ -207,9 +199,8 @@ export function LocationField({
     )
   }
 
-  // permission === 'granted' pero sin valor: capturando en segundo plano, o
-  // (si autoCapture es false, o la captura automática falló) quedan la fila
-  // manual y la búsqueda para resolverlo a mano.
+  // permission === 'granted' pero sin valor: quedan la fila manual y la
+  // búsqueda para que el usuario resuelva la ubicación a mano.
   return (
     <YStack gap="$2">
       <FintListGroup>

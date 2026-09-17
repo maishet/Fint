@@ -679,14 +679,7 @@ export default function PendingReviewScreen() {
                   onChangeText={setNote}
                 />
 
-                {/*
-                  Confirmar un pendiente no ocurre en el momento de la
-                  compra -- el usuario puede estar revisándolo horas después,
-                  ya en otro lugar. Auto-capturar el GPS actual daría una
-                  ubicación incorrecta (p. ej. su casa), así que acá la
-                  ubicación es explícita: buscarla o agregarla a mano.
-                */}
-                <LocationField value={location} onChange={setLocation} autoCapture={false} />
+                <LocationField value={location} onChange={setLocation} />
 
                 {accountsQuery.error || categoriesQuery.error ? (
                   <Paragraph color="$red10">

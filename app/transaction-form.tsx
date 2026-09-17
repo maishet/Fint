@@ -258,7 +258,7 @@ export default function TransactionFormScreen() {
 
         <MovementNoteField label={t('movementUx.noteOptional')} placeholder={t('movementUx.notePlaceholder')} value={note} onChangeText={setNote} />
 
-        {kind !== 'transfer' ? <LocationField value={location} onChange={setLocation} autoCapture={!isEditing} /> : null}
+        {kind !== 'transfer' ? <LocationField value={location} onChange={setLocation} /> : null}
 
         {!accountsQuery.isLoading && accounts.length === 0 ? (
           <YStack bg="$secondary" gap="$2" p="$3" rounded="$5">
