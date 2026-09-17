@@ -61,7 +61,7 @@ import {
 } from "../src/ui";
 import { exportBackupXlsx } from "../src/finance/backup-export";
 import {
-  getPushPermissionState,
+  refreshPushRegistration,
   registerPushInstallation,
   requestAndRegisterPushInstallation,
   unregisterPushInstallation,
@@ -95,6 +95,7 @@ export default function SettingsScreen() {
   const diagnostics = getSupportDiagnostics();
   const [pushState, setPushState] =
     useState<PushPermissionState>("undetermined");
+  const [pushSyncing, setPushSyncing] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
@@ -109,17 +110,20 @@ export default function SettingsScreen() {
   const shareApp = () => {
     void Share.share({ message: t("settings.shareMessage"), url: "https://myfint.app" });
   };
-  useEffect(() => {
-    getPushPermissionState()
+  const syncPushState = () => {
+    setPushSyncing(true);
+    refreshPushRegistration()
       .then(setPushState)
-      .catch(() => setPushState("unsupported"));
-  }, []);
+      .catch(() => setPushState("unsupported"))
+      .finally(() => setPushSyncing(false));
+  };
+  useEffect(syncPushState, []);
   useEffect(() => {
+    // Completes registration automatically when we resume from the device Settings screen:
+    // the OS permission may have just been granted there, but nothing else triggers the
+    // token/installation upsert on return, which used to leave the toggle looking "stuck" off.
     const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "active")
-        getPushPermissionState()
-          .then(setPushState)
-          .catch(() => setPushState("unsupported"));
+      if (state === "active") syncPushState();
     });
     return () => subscription.remove();
   }, []);
@@ -137,6 +141,7 @@ export default function SettingsScreen() {
       await Linking.openSettings();
       return;
     }
+    setPushSyncing(true);
     try {
       const nextState = await requestAndRegisterPushInstallation();
       setPushState(nextState);
@@ -152,6 +157,8 @@ export default function SettingsScreen() {
             ? error.message
             : t("settings.notificationsError"),
       });
+    } finally {
+      setPushSyncing(false);
     }
   };
   const exportMutation = useMutation({
@@ -408,7 +415,7 @@ export default function SettingsScreen() {
           icon={<Bell size={19} color="$primary" />}
           label={t("settings.notifications")}
           checked={pushState === "granted"}
-          disabled={pushState === "unsupported"}
+          disabled={pushState === "unsupported" || pushSyncing}
           onCheckedChange={(next) => {
             void handleNotificationsToggle(next);
           }}

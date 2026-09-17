@@ -32,6 +32,17 @@ export async function getPushPermissionState(): Promise<PushPermissionState> {
   return permissions.status === 'denied' ? 'denied' : 'undetermined'
 }
 
+export async function refreshPushRegistration(): Promise<PushPermissionState> {
+  if (!Device.isDevice) return 'unsupported'
+  const Notifications = await loadNotifications()
+  if (!Notifications) return 'unsupported'
+  const permissions = await Notifications.getPermissionsAsync()
+  if (!permissions.granted) return permissions.status === 'denied' ? 'denied' : 'undetermined'
+  const alreadyRegistered = (await SecureStore.getItemAsync(installationRegisteredKey)) === 'true'
+  if (alreadyRegistered) return 'granted'
+  return (await registerPushInstallation().catch(() => null)) ? 'granted' : 'undetermined'
+}
+
 export async function requestAndRegisterPushInstallation() {
   const state = await getPushPermissionState()
   if (state === 'unsupported') return state

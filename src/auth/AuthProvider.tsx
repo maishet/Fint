@@ -6,7 +6,7 @@ import * as AppleAuthentication from 'expo-apple-authentication'
 import { AppState } from 'react-native'
 import { supabase } from './supabase'
 import { GOOGLE_SIGNIN_BASE_CONFIG } from './googleSignIn'
-import { registerPushInstallation, unregisterPushInstallation } from '../notifications/pushNotifications'
+import { requestAndRegisterPushInstallation, unregisterPushInstallation } from '../notifications/pushNotifications'
 
 GoogleSignin.configure(GOOGLE_SIGNIN_BASE_CONFIG)
 
@@ -70,8 +70,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => {
+    // Fires both when a persisted session loads on app launch and right after a fresh
+    // sign-in, since both update `session`. Covers accounts whose onboarding (and therefore
+    // the notification permission prompt) already ran on a different install.
     if (!session) return
-    registerPushInstallation().catch((error) => console.warn('[My Fint Push] automatic register failed', error instanceof Error ? error.message : String(error)))
+    requestAndRegisterPushInstallation().catch((error) => console.warn('[My Fint Push] automatic register failed', error instanceof Error ? error.message : String(error)))
   }, [session])
 
   const value = useMemo<AuthContextValue>(
