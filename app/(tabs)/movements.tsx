@@ -381,7 +381,6 @@ export default function MovementsScreen() {
         </XStack>
       </FintCard>
       ) : null}
-      </FintCard>
       <XStack items="center" justify="space-between" gap="$3">
         <YStack gap="$1">
           <Paragraph
