@@ -1,5 +1,13 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { AccessibilityInfo, Animated } from "react-native";
+import { useEffect, useState, type ReactNode } from "react";
+import { AccessibilityInfo, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import { Clock } from "@tamagui/lucide-icons-2";
 import { Paragraph, XStack, YStack } from "tamagui";
@@ -13,6 +21,9 @@ interface ComingSoonCardProps {
 }
 
 const CARD_RADIUS = 24;
+// Mucho mas grande que cualquier tarjeta real: al girar, siempre cubre por
+// completo el marco de 2px sin dejar huecos en las esquinas.
+const SWEEP_SIZE = 640;
 
 export function ComingSoonCard({
   icon,
@@ -22,7 +33,7 @@ export function ComingSoonCard({
 }: ComingSoonCardProps) {
   const { t } = useTranslation();
   const [isReduceMotionEnabled, setIsReduceMotionEnabled] = useState(false);
-  const pulse = useRef(new Animated.Value(0)).current;
+  const rotation = useSharedValue(0);
 
   useEffect(() => {
     let isActive = true;
@@ -41,42 +52,56 @@ export function ComingSoonCard({
 
   useEffect(() => {
     if (isReduceMotionEnabled) {
-      pulse.setValue(0);
+      rotation.value = 0;
       return;
     }
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, {
-          toValue: 1,
-          duration: 1100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulse, {
-          toValue: 0,
-          duration: 1100,
-          useNativeDriver: true,
-        }),
-      ]),
+    rotation.value = withRepeat(
+      withTiming(360, { duration: 3200, easing: Easing.linear }),
+      -1,
+      false,
     );
-    animation.start();
-    return () => animation.stop();
-  }, [isReduceMotionEnabled, pulse]);
+  }, [isReduceMotionEnabled, rotation]);
+
+  const sweepStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}deg` }],
+  }));
 
   const iconSize = compact ? 38 : 44;
-  const scale = pulse.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 1.012],
-  });
 
   return (
-    <Animated.View style={{ transform: [{ scale }] }}>
-      <FintCard
-        borderStyle="dashed"
-        borderColor="rgba(7,124,134,0.35)"
-        borderWidth={1.5}
-        rounded={CARD_RADIUS}
-        p={compact ? "$3" : "$4"}
+    <View
+      style={{ borderRadius: CARD_RADIUS + 2, padding: 2, overflow: "hidden" }}
+    >
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          {
+            position: "absolute",
+            width: SWEEP_SIZE,
+            height: SWEEP_SIZE,
+            top: "50%",
+            left: "50%",
+            marginLeft: -SWEEP_SIZE / 2,
+            marginTop: -SWEEP_SIZE / 2,
+          },
+          sweepStyle,
+        ]}
       >
+        <LinearGradient
+          colors={[
+            "rgba(7,124,134,0)",
+            "rgba(100,206,208,0.95)",
+            "rgba(7,124,134,0.85)",
+            "rgba(7,124,134,0)",
+            "rgba(7,124,134,0)",
+          ]}
+          locations={[0, 0.15, 0.3, 0.55, 1]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={{ flex: 1 }}
+        />
+      </Animated.View>
+      <FintCard borderWidth={0} rounded={CARD_RADIUS} p={compact ? "$3" : "$4"}>
         <XStack gap="$3" items="flex-start">
           <YStack
             width={iconSize}
@@ -123,20 +148,6 @@ export function ComingSoonCard({
           </YStack>
         </XStack>
       </FintCard>
-      <Animated.View
-        pointerEvents="none"
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          borderRadius: CARD_RADIUS,
-          borderWidth: 1.5,
-          borderColor: "rgba(7,124,134,0.9)",
-          opacity: pulse,
-        }}
-      />
-    </Animated.View>
+    </View>
   );
 }
