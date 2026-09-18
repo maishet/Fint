@@ -2,9 +2,9 @@ import { ChevronRight } from "@tamagui/lucide-icons-2";
 import { Button, Paragraph, XStack } from "tamagui";
 
 /**
- * Fila "Ver las N restantes en el export" para las cards de Reportes que
- * ahora solo muestran el top-N -- el detalle completo sigue existiendo, pero
- * únicamente en el PDF/XLSX exportado, no en el tab.
+ * Fila "Ver las N restantes" para las cards de Reportes que solo muestran el
+ * top-N -- el detalle completo iba en el PDF/XLSX exportado; mientras exportar
+ * esté oculto (rama de lanzamiento), el tap solo avisa que está por venir.
  */
 export function ReportOverflowFootnote({
   remainingCount,

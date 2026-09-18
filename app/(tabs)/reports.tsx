@@ -8,9 +8,8 @@ import {
   CalendarDays,
   ChevronRight,
   CreditCard,
-  Download,
-  FileText,
   Landmark,
+  Lock,
   Percent,
   PiggyBank,
   Table2,
@@ -18,7 +17,6 @@ import {
   WalletCards,
 } from "@tamagui/lucide-icons-2";
 import { useNotify } from "../../src/ui/notify";
-import * as Sentry from "@sentry/react-native";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import type { TFunction } from "i18next";
@@ -33,11 +31,11 @@ import {
 import { financeApi } from "../../src/api/finance";
 import { formatMoney } from "../../src/api/mappers";
 import type {
-  FinancialReport,
   FinancialReportPeriod,
   FinancialReportPosition,
   FinancialTopTransaction,
 } from "../../src/api/types";
+import { ComingSoonCard } from "../../src/components/ComingSoonCard";
 import { DataStateCard } from "../../src/components/DataStateCard";
 import { Screen } from "../../src/components/Screen";
 import {
@@ -54,16 +52,11 @@ import {
 import { getCategoryLabel } from "../../src/finance/categoryLabels";
 import { suggestedCategoryIcons } from "../../src/finance/categoryIcons";
 import {
-  exportFinancialReportXlsx,
-  exportFinancialReportPdf,
-  type ReportExportLabels,
-} from "../../src/finance/report-export";
-import {
   getPresetRange,
   type ReportPeriodPreset,
 } from "../../src/finance/reports";
 import { getAppLocale, type AppLanguage } from "../../src/i18n";
-import { FintCard, FintDateField, FintSheetSelect, FintSpinner } from "../../src/ui";
+import { FintCard, FintDateField, FintSheetSelect } from "../../src/ui";
 import { ReportOverflowFootnote } from "../../src/components/ReportOverflowFootnote";
 import { useSensitiveMoney } from "../../src/privacy/useSensitiveMoney";
 import { SensitiveAmountToggle } from "../../src/privacy/SensitiveAmountToggle";
@@ -92,12 +85,8 @@ const REPORT_TEXT_KEYS = [
   "loading",
   "error",
   "empty",
-  "exportTitle",
-  "exportPdf",
-  "exportExcel",
-  "exporting",
-  "exported",
-  "exportError",
+  "exportComingSoonTitle",
+  "exportComingSoonHint",
   "executiveSummary",
   "financialStatus",
   "income",
@@ -174,7 +163,6 @@ export default function ReportsScreen() {
   const [customTo, setCustomTo] = useState("");
   const [accountId, setAccountId] = useState(ALL_ACCOUNTS);
   const [currency, setCurrency] = useState("");
-  const [isExporting, setIsExporting] = useState(false);
   const hasCustomRange = Boolean(customFrom && customTo);
   const isCustomRangeIncomplete = preset === "custom" && !hasCustomRange;
   const range =
@@ -242,47 +230,10 @@ export default function ReportsScreen() {
   const reportError = optionsQuery.error ?? periodQuery.error;
   const report = periodQuery.data;
   const hasMovements = Boolean(report?.summary.transactionCount);
-  const accountTypes = {
-    cash: t("accountTypes.cash"),
-    credit_card: t("accountTypes.creditCard"),
-    checking_account: t("accountTypes.checkingAccount"),
-    savings_account: t("accountTypes.savingsAccount"),
-  };
-  const exportOptions = {
-    locale,
-    labels: {
-      ...text,
-      generated: text.updated,
-      accountTypes,
-    } as unknown as ReportExportLabels,
-  };
-
-  const exportReport = async (format: "pdf" | "xlsx") => {
-    setIsExporting(true);
-    const task = (async () => {
-      const exportData =
-        await financeApi.getFinancialReportExportData(reportFilters);
-      const localizedReport = localizeReport(exportData, t);
-      if (format === "pdf")
-        await exportFinancialReportPdf(localizedReport, exportOptions);
-      else await exportFinancialReportXlsx(localizedReport, exportOptions);
-    })();
-    // Toast de proceso: "Preparando…" → "Reporte listo" / error.
-    toast.promise(task, {
-      loading: text.exporting,
-      success: text.exported,
-      error: text.exportError,
+  const showExportComingSoon = () =>
+    toast.info(text.exportComingSoonTitle, {
+      message: text.exportComingSoonHint,
     });
-    try {
-      await task;
-    } catch (error) {
-      Sentry.captureException(error, {
-        tags: { operation: `report_export_${format}` },
-      });
-    } finally {
-      setIsExporting(false);
-    }
-  };
 
   return (
     <Screen
@@ -325,49 +276,23 @@ export default function ReportsScreen() {
             </YStack>
             <XStack items="center" gap="$2" shrink={0}>
               <SensitiveAmountToggle color="$heroAccent" inverse />
-              <FintSheetSelect
-                label={text.exportTitle}
-                placeholder={text.exportTitle}
-                options={[
-                  {
-                    value: "pdf",
-                    label: text.exportPdf,
-                    icon: <FileText size={19} color="$primary" />,
-                  },
-                  {
-                    value: "xlsx",
-                    label: text.exportExcel,
-                    icon: <Table2 size={19} color="$primary" />,
-                  },
-                ]}
-                onValueChange={(value) => {
-                  void exportReport(value as "pdf" | "xlsx");
-                }}
-                renderTrigger={({ onPress }) => (
-                  <YStack
-                    width={44}
-                    height={44}
-                    rounded={22}
-                    bg="rgba(246,251,252,0.10)"
-                    borderColor="rgba(246,251,252,0.16)"
-                    borderWidth={1}
-                    items="center"
-                    justify="center"
-                    transition="quick"
-                    pressStyle={{ scale: 0.96, bg: "rgba(246,251,252,0.16)" }}
-                    opacity={!hasMovements ? 0.45 : 1}
-                    onPress={!hasMovements || isExporting ? undefined : onPress}
-                    role="button"
-                    aria-label={text.exportTitle}
-                  >
-                    {isExporting ? (
-                      <FintSpinner size="small" color="$heroAccent" />
-                    ) : (
-                      <Download size={21} color="$heroAccent" />
-                    )}
-                  </YStack>
-                )}
-              />
+              <YStack
+                width={44}
+                height={44}
+                rounded={22}
+                bg="rgba(246,251,252,0.10)"
+                borderColor="rgba(246,251,252,0.16)"
+                borderWidth={1}
+                items="center"
+                justify="center"
+                transition="quick"
+                pressStyle={{ scale: 0.96, bg: "rgba(246,251,252,0.16)" }}
+                onPress={showExportComingSoon}
+                role="button"
+                aria-label={text.exportComingSoonTitle}
+              >
+                <Lock size={19} color="$heroAccent" />
+              </YStack>
             </XStack>
           </XStack>
         </YStack>
@@ -472,6 +397,13 @@ export default function ReportsScreen() {
       ) : null}
       {report && !hasMovements ? <DataStateCard message={text.empty} /> : null}
       {report && hasMovements ? (
+        <ComingSoonCard
+          icon={<Lock size={20} color="$primary" />}
+          title={text.exportComingSoonTitle}
+          description={text.exportComingSoonHint}
+        />
+      ) : null}
+      {report && hasMovements ? (
         <ReportContent
           report={report}
           position={positionQuery.data}
@@ -483,7 +415,7 @@ export default function ReportsScreen() {
           text={text}
           locale={locale}
           onOpenMovements={() => router.push("/(tabs)/movements")}
-          onExport={() => void exportReport("pdf")}
+          onExport={showExportComingSoon}
           onRetryPosition={() => {
             void positionQuery.refetch();
           }}
@@ -1119,7 +1051,7 @@ function CategoryCard({
       <ReportOverflowFootnote
         remainingCount={report.categories.length - REPORT_TOP_N}
         onPress={onExport}
-        label={t("reports.seeAllInExport", {
+        label={t("reports.seeAllComingSoon", {
           count: report.categories.length - REPORT_TOP_N,
         })}
       />
@@ -1184,7 +1116,7 @@ function AccountActivityCard({
       <ReportOverflowFootnote
         remainingCount={report.accountActivity.length - REPORT_TOP_N}
         onPress={onExport}
-        label={t("reports.seeAllInExport", {
+        label={t("reports.seeAllComingSoon", {
           count: report.accountActivity.length - REPORT_TOP_N,
         })}
       />
@@ -1279,7 +1211,7 @@ function CurrentPositionCard({
           (position.debts.length - topDebts.length)
         }
         onPress={onExport}
-        label={t("reports.seeAllInExport", {
+        label={t("reports.seeAllComingSoon", {
           count:
             position.accounts.length - topAccounts.length +
             (position.debts.length - topDebts.length),
@@ -1392,41 +1324,6 @@ function ReportsSkeleton({ label }: { label: string }) {
       <SkeletonContentCard rows={3} />
     </SkeletonGroup>
   );
-}
-
-function localizeReport(
-  report: FinancialReport,
-  t: TFunction,
-): FinancialReport {
-  const categoryName = (name: string) => getCategoryLabel(name, t);
-  const transaction = (item: FinancialReport["topTransactions"][number]) => ({
-    ...item,
-    category: categoryName(item.category),
-  });
-  return {
-    ...report,
-    categories: report.categories.map((item) => ({
-      ...item,
-      icon: getExpenseCategoryIcon(item.name, item.icon),
-      name: categoryName(item.name),
-    })),
-    highlights: {
-      topExpenseCategory: report.highlights.topExpenseCategory
-        ? {
-            ...report.highlights.topExpenseCategory,
-            icon: getExpenseCategoryIcon(
-              report.highlights.topExpenseCategory.name,
-              report.highlights.topExpenseCategory.icon,
-            ),
-            name: categoryName(report.highlights.topExpenseCategory.name),
-          }
-        : null,
-      largestTransaction: report.highlights.largestTransaction
-        ? transaction(report.highlights.largestTransaction)
-        : null,
-    },
-    topTransactions: report.topTransactions.map(transaction),
-  };
 }
 
 function getExpenseCategoryIcon(name: string, icon: string | null) {

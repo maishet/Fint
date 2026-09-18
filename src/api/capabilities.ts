@@ -16,5 +16,8 @@ export const disabledCapabilities: AppCapabilities = {
 
 export function useCapabilities() {
   const query = useQuery({ queryKey: ['capabilities'], queryFn: financeApi.getCapabilities, retry: false })
-  return { ...query, capabilities: query.data ?? disabledCapabilities }
+  const capabilities = query.data ?? disabledCapabilities
+  // Rama de lanzamiento a tiendas: la captura por foto se vende como "Próximamente"
+  // (ComingSoonCard) sin importar lo que devuelva el backend todavía.
+  return { ...query, capabilities: { ...capabilities, features: { ...capabilities.features, captureImport: false } } }
 }

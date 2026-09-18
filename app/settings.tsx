@@ -45,6 +45,7 @@ import { financeApi } from "../src/api/finance";
 import { useCapabilities } from "../src/api/capabilities";
 import { useAuth } from "../src/auth/AuthProvider";
 import { resolveDisplayName } from "../src/auth/displayName";
+import { ComingSoonCard } from "../src/components/ComingSoonCard";
 import { Screen } from "../src/components/Screen";
 import { changeAppLanguage, getAppLocale, type AppLanguage } from "../src/i18n";
 import { getSupportDiagnostics } from "../src/support/diagnostics";
@@ -379,13 +380,14 @@ export default function SettingsScreen() {
           label={t("settings.categories")}
           onPress={() => router.push("/categories")}
         />
-        <SettingsRow
-          icon={<Mail size={19} color="$primary" />}
-          label={t("settings.gmail")}
-          // detail={t("settings.gmailDetail")}
-          onPress={() => router.push("/gmail-settings")}
-        />
       </SettingsGroup>
+
+      <ComingSoonCard
+        icon={<Mail size={20} color="$primary" />}
+        title={t("settings.gmail")}
+        description={t("settings.gmailComingSoonHint")}
+        compact
+      />
 
       {/* <SettingsGroup title={t("settings.dataSection")}>
         {capabilities.features.captureImport ? (
