@@ -168,8 +168,6 @@ const resources = {
         settingsAction: "Importar constancia",
         settingsHint: "Sube un Yape, Plin o constancia bancaria desde tu galería",
         shareDiscarded: "Se descartó la imagen compartida: la importación por captura está desactivada.",
-        teaserTitle: "Registra recibos con una foto",
-        teaserHint: "Toma una foto de tu Yape, Plin o constancia bancaria y Fint arma el movimiento por ti, sin escribir montos a mano.",
         errors: {
           permissionDenied: "Necesitamos permiso para continuar.",
           saveFailed: "No pudimos guardar las capturas.",
@@ -796,8 +794,6 @@ const resources = {
         settingsAction: "Import receipt",
         settingsHint: "Upload a Yape, Plin or bank receipt from your gallery",
         shareDiscarded: "The shared image was discarded: capture import is currently disabled.",
-        teaserTitle: "Log receipts with a photo",
-        teaserHint: "Snap a photo of your Yape, Plin, or bank receipt and Fint builds the transaction for you, no typing amounts by hand.",
         errors: {
           permissionDenied: "We need permission to continue.",
           saveFailed: "We couldn't save the captures.",

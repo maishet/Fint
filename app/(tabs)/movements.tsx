@@ -28,7 +28,6 @@ import { financeApi } from "../../src/api/finance";
 import { formatMoney, normalizeTransaction } from "../../src/api/mappers";
 import type { Transaction } from "../../src/api/types";
 import { supabase } from "../../src/auth/supabase";
-import { ComingSoonCard } from "../../src/components/ComingSoonCard";
 import { DataStateCard } from "../../src/components/DataStateCard";
 import { EmptyState } from "../../src/components/EmptyState";
 import { SwipeableRow } from "../../src/components/SwipeableRow";
@@ -447,11 +446,6 @@ export default function MovementsScreen() {
           </Paragraph>
         ) : null}
       </YStack>
-      <ComingSoonCard
-        icon={<ImageUp size={20} color="$primary" />}
-        title={t("capture.teaserTitle")}
-        description={t("capture.teaserHint")}
-      />
       {movementsQuery.error ? (
         <DataStateCard
           message={t("states.error")}
