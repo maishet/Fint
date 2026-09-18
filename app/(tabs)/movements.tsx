@@ -338,17 +338,18 @@ export default function MovementsScreen() {
           setMonth(new Date(year, selectedMonth - 1, 1));
         }}
       />
+      {pendingCount > 0 ? (
       <FintCard
         p={0}
         overflow="hidden"
-        borderColor={pendingCount ? "$yellow7" : "$borderColor"}
+        borderColor="$yellow7"
       >
         <XStack
           items="center"
           gap="$3"
           minH={56}
           p="$3"
-          bg={pendingCount ? "$yellow2" : "$muted"}
+          bg="$yellow2"
           role="button"
           transition="quick"
           pressStyle={{ scale: 0.98, opacity: 0.9 }}
@@ -359,20 +360,18 @@ export default function MovementsScreen() {
             width={36}
             height={36}
             rounded="$10"
-            bg={pendingCount ? "$yellow4" : "$color4"}
+            bg="$yellow4"
             items="center"
             justify="center"
           >
-            <Mail size={18} color={pendingCount ? "$yellow10" : "$color10"} />
+            <Mail size={18} color="$yellow10" />
           </YStack>
           <YStack flex={1} minW={0} gap="$1">
             <Paragraph
-              color={pendingCount ? "$yellow11" : "$color11"}
+              color="$yellow11"
               fontWeight="600"
             >
-              {pendingSummaryQuery.isLoading
-                ? t("movementUx.pendingTitle")
-                : t("movementUx.pendingCount", { count: pendingCount })}
+              {t("movementUx.pendingCount", { count: pendingCount })}
             </Paragraph>
             <Paragraph color="$color10" fontSize="$1">
               {t("movementUx.pendingReviewHint")}
@@ -380,6 +379,8 @@ export default function MovementsScreen() {
           </YStack>
           <ChevronRight size={19} color="$color10" />
         </XStack>
+      </FintCard>
+      ) : null}
       </FintCard>
       <XStack items="center" justify="space-between" gap="$3">
         <YStack gap="$1">
