@@ -3,7 +3,6 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "tamagui";
 import { ArrowLeftRight, ChartColumn, CreditCard, House } from "@tamagui/lucide-icons-2";
-import { AppHeader } from "../../src/components/AppHeader";
 import { FintTabBar } from "../../src/components/FintTabBar";
 import { RecordSheet } from "../../src/components/RecordSheet";
 
@@ -66,7 +65,8 @@ export default function TabLayout() {
           name="reports"
           options={{
             title: t("tabs.reports"),
-            header: () => <AppHeader title={t("tabs.reports")} />,
+            // La pantalla dibuja su propio título grande con el botón de descargar.
+            headerShown: false,
             tabBarIcon: ({ color, size }) => <ChartColumn color={color as any} size={size} />,
           }}
         />

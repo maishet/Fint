@@ -1,1476 +1,798 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import * as Sentry from "@sentry/react-native";
 import {
   AlertTriangle,
   ArrowDown,
   ArrowUp,
-  ArrowUpRight,
-  BarChart3,
-  CalendarDays,
+  Check,
+  ChevronDown,
+  ChevronLeft,
   ChevronRight,
-  CreditCard,
-  Download,
   FileText,
-  Landmark,
-  Percent,
-  PiggyBank,
+  Info,
+  Minus,
+  Share,
+  RotateCcw,
   Table2,
-  Target,
-  WalletCards,
+  Wallet,
 } from "@tamagui/lucide-icons-2";
-import { useNotify } from "../../src/ui/notify";
-import * as Sentry from "@sentry/react-native";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { setStatusBarStyle } from "expo-status-bar";
 import type { TFunction } from "i18next";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Button,
-  Paragraph,
-  ScrollView,
-  XStack,
-  YStack,
-} from "tamagui";
+import { RefreshControl, ScrollView } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { View, XStack, YStack, useTheme, type ColorTokens } from "tamagui";
 import { financeApi } from "../../src/api/finance";
-import { formatMoney } from "../../src/api/mappers";
-import type {
-  FinancialReport,
-  FinancialReportPeriod,
-  FinancialReportPosition,
-  FinancialTopTransaction,
-} from "../../src/api/types";
+import type { FinancialReport, FinancialReportPeriod, FinancialReportPosition, FinancialTopTransaction } from "../../src/api/types";
 import { DataStateCard } from "../../src/components/DataStateCard";
-import { Screen } from "../../src/components/Screen";
-import {
-  allAccountsOption,
-  useAccountPickerOptions,
-} from "../../src/finance/useAccountPickerOptions";
-import {
-  SkeletonBlock,
-  SkeletonContentCard,
-  SkeletonGroup,
-  SkeletonMetricGrid,
-  SkeletonSection,
-} from "../../src/components/Skeleton";
-import { getCategoryLabel } from "../../src/finance/categoryLabels";
+import { floatingTabBarHeight } from "../../src/components/FintTabBar";
 import { suggestedCategoryIcons } from "../../src/finance/categoryIcons";
+import { getCategoryLabel } from "../../src/finance/categoryLabels";
+import { exportFinancialReportPdf, exportFinancialReportXlsx, type ReportExportLabels } from "../../src/finance/report-export";
+import { useCategoryIcons } from "../../src/finance/useCategoryIcons";
+import { categoryColorIndex } from "../../src/home/spending";
+import { getAppLocale } from "../../src/i18n";
+import { CategoryBreakdown } from "../../src/reports/CategoryBreakdown";
+import { FlowChart, type FlowChartColumn } from "../../src/reports/FlowChart";
 import {
-  exportFinancialReportXlsx,
-  exportFinancialReportPdf,
-  type ReportExportLabels,
-} from "../../src/finance/report-export";
-import {
-  getPresetRange,
-  type ReportPeriodPreset,
-} from "../../src/finance/reports";
-import { getAppLocale, type AppLanguage } from "../../src/i18n";
-import { FintCard, FintDateField, FintSheetSelect, FintSpinner } from "../../src/ui";
-import { ReportOverflowFootnote } from "../../src/components/ReportOverflowFootnote";
-import { useSensitiveMoney } from "../../src/privacy/useSensitiveMoney";
-import { SensitiveAmountToggle } from "../../src/privacy/SensitiveAmountToggle";
+  categoryRows,
+  changePercent,
+  dailyFlow,
+  fillSeries,
+  isCurrentPeriod,
+  periodGrouping,
+  periodRange,
+  periodStart,
+  shiftPeriod,
+  type CategoryRow,
+  type PeriodKind,
+} from "../../src/reports/logic";
+import { useThemeMode } from "../../src/theme/ThemeMode";
+import { radius, space } from "../../src/theme/tokens";
+import { fontFace } from "../../src/theme/typography";
+import { Amount, FintCard, FintSheet, FText, IconButton, ListRow, Monogram, PressableScale, SegmentedControl } from "../../src/ui";
+import { AmountSkeleton } from "../../src/ui/AmountSkeleton";
+import { useNotify } from "../../src/ui/notify";
 
 const ALL_ACCOUNTS = "__all__";
+const PERIODS: PeriodKind[] = ["week", "month", "year"];
 
+/** Las claves de `reports.*` que usa la exportación (PDF y Excel), igual que antes. */
 const REPORT_TEXT_KEYS = [
-  "title",
-  "subtitle",
-  "closing",
-  "filters",
-  "period",
-  "account",
-  "currency",
-  "allAccounts",
-  "currentMonth",
-  "previousMonth",
-  "last3Months",
-  "last6Months",
-  "customRange",
-  "fromDate",
-  "toDate",
-  "customRangeHint",
-  "updated",
-  "mixed",
-  "loading",
-  "error",
-  "empty",
-  "exportTitle",
-  "exportPdf",
-  "exportExcel",
-  "exporting",
-  "exported",
-  "exportError",
-  "executiveSummary",
-  "financialStatus",
-  "income",
-  "expenses",
-  "net",
-  "savingsRate",
-  "transactions",
-  "previousPeriod",
-  "flow",
-  "categories",
-  "accountActivity",
-  "currentPosition",
-  "accounts",
-  "debts",
-  "topTransactions",
-  "category",
-  "date",
-  "type",
-  "amount",
-  "balance",
-  "outstanding",
-  "dueDate",
-  "progress",
-  "noData",
-  "currentSnapshotNote",
-  "incomeType",
-  "expenseType",
-  "viewMovements",
-  "comparison",
-  "topCategory",
-  "largestMovement",
-  "noPrevious",
+  "title", "subtitle", "closing", "filters", "period", "account", "currency", "allAccounts", "currentMonth", "previousMonth",
+  "last3Months", "last6Months", "customRange", "fromDate", "toDate", "customRangeHint", "updated", "mixed", "loading", "error",
+  "empty", "exportTitle", "exportPdf", "exportExcel", "exporting", "exported", "exportError", "executiveSummary", "financialStatus",
+  "income", "expenses", "net", "savingsRate", "transactions", "previousPeriod", "flow", "categories", "accountActivity",
+  "currentPosition", "accounts", "debts", "topTransactions", "category", "date", "type", "amount", "balance", "outstanding",
+  "dueDate", "progress", "noData", "currentSnapshotNote", "incomeType", "expenseType", "viewMovements", "comparison",
+  "topCategory", "largestMovement", "noPrevious",
 ] as const;
 
-type ReportStatus = FinancialReportPeriod["summary"]["status"];
-type ReportText = Record<(typeof REPORT_TEXT_KEYS)[number], string> & {
-  statuses: Record<ReportStatus, string>;
-  statusMessages: Record<ReportStatus, string>;
-};
-
-function getReportText(t: TFunction): ReportText {
-  const labels = Object.fromEntries(
-    REPORT_TEXT_KEYS.map((key) => [key, t(`reports.${key}`)]),
-  ) as Record<(typeof REPORT_TEXT_KEYS)[number], string>;
-  return {
-    ...labels,
-    statuses: t("reports.statuses", { returnObjects: true }) as Record<
-      ReportStatus,
-      string
-    >,
-    statusMessages: t("reports.statusMessages", {
-      returnObjects: true,
-    }) as Record<ReportStatus, string>,
-  };
+function capitalize(text: string) {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
+/** Dentro de una frase el mes va en minúscula ("vs. agosto"); en inglés, como lo da Intl. */
+function inSentence(text: string, locale: string) {
+  return locale.startsWith("en") ? text : text.toLocaleLowerCase(locale);
+}
+
+function parseIso(value: string) {
+  const [y, m, d] = value.slice(0, 10).split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/** Mes corto sin punto y, salvo en inglés, en minúscula: suelto, Intl lo da con mayúscula ("Set"). */
+function monthShort(date: Date, locale: string) {
+  return inSentence(new Intl.DateTimeFormat(locale, { month: "short" }).format(date).replace(".", ""), locale);
+}
+
+function shortDate(date: Date, locale: string) {
+  return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(date).replace(".", "");
+}
+
+/** Nombre del periodo entre las flechas: "Setiembre 2026", "21–27 set" o "2026". */
+function periodTitle(kind: PeriodKind, start: Date, locale: string) {
+  if (kind === "year") return String(start.getFullYear());
+  if (kind === "month") return capitalize(`${new Intl.DateTimeFormat(locale, { month: "long" }).format(start)} ${start.getFullYear()}`);
+  const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
+  const month = (d: Date) => monthShort(d, locale);
+  return start.getMonth() === end.getMonth()
+    ? `${start.getDate()}–${end.getDate()} ${month(end)}`
+    : `${start.getDate()} ${month(start)} – ${end.getDate()} ${month(end)}`;
+}
+
+/**
+ * Tab Reportes v3: el análisis completo de un periodo. Título con descargar,
+ * Semana / Mes / Año con flechas y la píldora de cuenta, la tarjeta de estado
+ * (neto, etiqueta, ingresos y egresos con su variación), el flujo con la lente,
+ * el donut de categorías, los mayores gastos y la posición al día de hoy.
+ *
+ * Conserva la lógica anterior: el reporte del periodo, la posición y las
+ * mayores transacciones del backend, el filtro de cuenta y moneda, el aviso de
+ * varias monedas y la exportación a PDF y Excel.
+ */
 export default function ReportsScreen() {
-  const toAccountOption = useAccountPickerOptions();
-  const { i18n, t } = useTranslation();
-  const language = (
-    i18n.resolvedLanguage === "en" || i18n.resolvedLanguage === "pt"
-      ? i18n.resolvedLanguage
-      : "es"
-  ) as AppLanguage;
-  const text = getReportText(t);
-  const locale = getAppLocale(language);
-  const queryClient = useQueryClient();
-  const toast = useNotify();
+  const { t, i18n } = useTranslation();
+  const locale = getAppLocale(i18n.resolvedLanguage);
   const router = useRouter();
-  const [preset, setPreset] = useState<ReportPeriodPreset | "custom">(
-    "currentMonth",
-  );
-  const [customFrom, setCustomFrom] = useState("");
-  const [customTo, setCustomTo] = useState("");
+  const toast = useNotify();
+  const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const { themeMode } = useThemeMode();
+  const iconFor = useCategoryIcons();
+
+  const [kind, setKind] = useState<PeriodKind>("month");
+  const [start, setStart] = useState(() => periodStart("month", new Date()));
   const [accountId, setAccountId] = useState(ALL_ACCOUNTS);
   const [currency, setCurrency] = useState("");
+  const [sheet, setSheet] = useState<"account" | "currency" | "export" | "top" | null>(null);
   const [isExporting, setIsExporting] = useState(false);
-  const hasCustomRange = Boolean(customFrom && customTo);
-  const isCustomRangeIncomplete = preset === "custom" && !hasCustomRange;
-  const range =
-    preset === "custom"
-      ? hasCustomRange
-        ? { from: customFrom, to: customTo }
-        : getPresetRange("currentMonth")
-      : getPresetRange(preset);
-  const reportFilters = {
-    ...range,
-    grouping:
-      preset === "currentMonth" || preset === "previousMonth"
-        ? ("week" as const)
-        : ("month" as const),
-    ...(accountId !== ALL_ACCOUNTS ? { accountId } : {}),
-    ...(currency ? { currency } : {}),
-  };
+  const [pulling, setPulling] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      setStatusBarStyle(themeMode === "dark" ? "light" : "dark");
+      return () => setStatusBarStyle("light");
+    }, [themeMode]),
+  );
+
+  const today = new Date();
+  const current = isCurrentPeriod(kind, start, today);
+  const range = periodRange(kind, start);
+  const account = accountId !== ALL_ACCOUNTS ? { accountId } : {};
+  const filters = { ...range, grouping: periodGrouping(kind), ...account, ...(currency ? { currency } : {}) };
+
   const optionsQuery = useQuery({
     queryKey: ["reports", "financial", "options"],
-    queryFn: ({ signal }) => financeApi.getFinancialReportOptions(signal),    staleTime: 5 * 60_000,
+    queryFn: ({ signal }) => financeApi.getFinancialReportOptions(signal),
+    staleTime: 5 * 60_000,
   });
   const periodQuery = useQuery({
-    queryKey: ["reports", "financial", "period", reportFilters],
-    queryFn: ({ signal }) =>
-      financeApi.getFinancialReportPeriod(reportFilters, signal),
-    enabled: !isCustomRangeIncomplete,
+    queryKey: ["reports", "financial", "period", filters],
+    queryFn: ({ signal }) => financeApi.getFinancialReportPeriod(filters, signal),
   });
-  const selectedCurrency =
-    currency ||
-    periodQuery.data?.filters.currency ||
-    optionsQuery.data?.baseCurrency ||
-    "";
+  const selectedCurrency = currency || periodQuery.data?.filters.currency || optionsQuery.data?.baseCurrency || "";
   const positionQuery = useQuery({
     queryKey: ["reports", "financial", "position", accountId, selectedCurrency],
-    queryFn: ({ signal }) =>
-      financeApi.getFinancialReportPosition(
-        {
-          ...(accountId !== ALL_ACCOUNTS ? { accountId } : {}),
-          currency: selectedCurrency,
-        },
-        signal,
-      ),
-    enabled: Boolean(selectedCurrency),  });
-  const topTransactionsQuery = useQuery({
-    queryKey: [
-      "reports",
-      "financial",
-      "top-transactions",
-      range.from,
-      range.to,
-      accountId,
-      selectedCurrency,
-    ],
-    queryFn: ({ signal }) =>
-      financeApi.getFinancialTopTransactions(
-        {
-          ...range,
-          ...(accountId !== ALL_ACCOUNTS ? { accountId } : {}),
-          currency: selectedCurrency,
-          limit: 5,
-        },
-        signal,
-      ),
-    enabled: Boolean(selectedCurrency) && !isCustomRangeIncomplete,  });
-  const reportError = optionsQuery.error ?? periodQuery.error;
+    queryFn: ({ signal }) => financeApi.getFinancialReportPosition({ ...account, currency: selectedCurrency }, signal),
+    enabled: Boolean(selectedCurrency),
+  });
+  const topQuery = useQuery({
+    queryKey: ["reports", "financial", "top-transactions", range.from, range.to, accountId, selectedCurrency],
+    queryFn: ({ signal }) => financeApi.getFinancialTopTransactions({ ...range, ...account, currency: selectedCurrency, limit: 10 }, signal),
+    enabled: Boolean(selectedCurrency),
+  });
+  // La semana se dibuja por día: el backend agrupa por semana o por mes, así que los días se arman aquí.
+  const weekQuery = useQuery({
+    queryKey: ["transactions", "reports-week", range.from, range.to, accountId],
+    queryFn: () => financeApi.listAllTransactions({ ...range, ...account }),
+    enabled: kind === "week",
+  });
+
   const report = periodQuery.data;
   const hasMovements = Boolean(report?.summary.transactionCount);
-  const accountTypes = {
-    cash: t("accountTypes.cash"),
-    credit_card: t("accountTypes.creditCard"),
-    checking_account: t("accountTypes.checkingAccount"),
-    savings_account: t("accountTypes.savingsAccount"),
+  const accounts = optionsQuery.data?.accounts ?? [];
+  const currencies = optionsQuery.data?.currencies ?? [];
+  const accountLabel = accountId === ALL_ACCOUNTS ? t("reportsTab.allAccounts") : (accounts.find((a) => a.id === accountId)?.name ?? t("reportsTab.allAccounts"));
+
+  const changeKind = (next: PeriodKind) => {
+    setKind(next);
+    // Desde el periodo actual se va al actual del otro tipo; desde uno pasado, al que lo contiene.
+    setStart(periodStart(next, current ? new Date() : start));
   };
-  const exportOptions = {
-    locale,
-    labels: {
-      ...text,
-      generated: text.updated,
-      accountTypes,
-    } as unknown as ReportExportLabels,
-  };
+
+  const previousLabel =
+    kind === "week"
+      ? t("reportsTab.previousWeek")
+      : kind === "month"
+        ? inSentence(new Intl.DateTimeFormat(locale, { month: "long" }).format(shiftPeriod("month", start, -1)), locale)
+        : String(start.getFullYear() - 1);
+
+  const columns = useMemo<FlowChartColumn[]>(() => {
+    if (kind === "week") {
+      if (!selectedCurrency) return [];
+      const weekday = new Intl.DateTimeFormat(locale, { weekday: "short" });
+      const weekdayLong = new Intl.DateTimeFormat(locale, { weekday: "long" });
+      return dailyFlow(weekQuery.data ?? [], start, selectedCurrency).map((d) => {
+        const date = parseIso(d.start);
+        return {
+          key: d.start,
+          label: `${weekday.format(date).replace(".", "")} ${date.getDate()}`,
+          title: capitalize(`${weekdayLong.format(date)} ${date.getDate()}`),
+          income: d.income,
+          expenses: d.expenses,
+        };
+      });
+    }
+    const end = parseIso(range.to);
+    end.setDate(end.getDate() - 1);
+    if (!report) return [];
+    return fillSeries(kind, start, report.series, new Date()).map((s) => {
+      const from = parseIso(s.start);
+      if (kind === "year") {
+        return {
+          key: s.start,
+          label: monthShort(from, locale),
+          title: capitalize(new Intl.DateTimeFormat(locale, { month: "long" }).format(from)),
+          income: s.income,
+          expenses: s.expenses,
+        };
+      }
+      const to = new Date(Math.min(new Date(from.getFullYear(), from.getMonth(), from.getDate() + 6).getTime(), end.getTime()));
+      const month = (d: Date) => monthShort(d, locale);
+      // "7-13 set"; una semana que empieza en el mes anterior se lee "31-6 set" y su resumen, completo.
+      const label = `${from.getDate()}-${to.getDate()} ${month(to)}`;
+      const title = from.getMonth() === to.getMonth() ? label : `${from.getDate()} ${month(from)} – ${to.getDate()} ${month(to)}`;
+      return { key: s.start, label, title, income: s.income, expenses: s.expenses };
+    });
+  }, [kind, locale, range.to, report, selectedCurrency, start, weekQuery.data]);
+  // La columna de hoy si el periodo es el actual; si no, la última.
+  const initialIndex = useMemo(() => {
+    if (!current) return Math.max(0, columns.length - 1);
+    const now = new Date();
+    const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    let i = 0;
+    columns.forEach((c, j) => {
+      if (c.key <= todayIso) i = j;
+    });
+    return i;
+  }, [columns, current]);
+
+  const rows = useMemo(
+    () =>
+      categoryRows(
+        (report?.categories ?? []).map((c) => ({ ...c, label: getCategoryLabel(c.name, t) })),
+        t("reportsTab.other"),
+      ),
+    [report?.categories, t],
+  );
+  const topExpenses = (topQuery.data ?? []).filter((x) => x.type === "expense");
 
   const exportReport = async (format: "pdf" | "xlsx") => {
     setIsExporting(true);
+    const labels = Object.fromEntries(REPORT_TEXT_KEYS.map((key) => [key, t(`reports.${key}`)]));
+    const options = {
+      locale,
+      labels: {
+        ...labels,
+        statuses: t("reports.statuses", { returnObjects: true }),
+        statusMessages: t("reports.statusMessages", { returnObjects: true }),
+        generated: t("reports.updated"),
+        accountTypes: {
+          cash: t("accountTypes.cash"),
+          credit_card: t("accountTypes.creditCard"),
+          checking_account: t("accountTypes.checkingAccount"),
+          savings_account: t("accountTypes.savingsAccount"),
+        },
+      } as unknown as ReportExportLabels,
+    };
     const task = (async () => {
-      const exportData =
-        await financeApi.getFinancialReportExportData(reportFilters);
-      const localizedReport = localizeReport(exportData, t);
-      if (format === "pdf")
-        await exportFinancialReportPdf(localizedReport, exportOptions);
-      else await exportFinancialReportXlsx(localizedReport, exportOptions);
+      const data = localizeReport(await financeApi.getFinancialReportExportData(filters), t);
+      if (format === "pdf") await exportFinancialReportPdf(data, options);
+      else await exportFinancialReportXlsx(data, options);
     })();
-    // Toast de proceso: "Preparando…" → "Reporte listo" / error.
-    toast.promise(task, {
-      loading: text.exporting,
-      success: text.exported,
-      error: text.exportError,
-    });
+    toast.promise(task, { loading: t("reports.exporting"), success: t("reports.exported"), error: t("reports.exportError") });
     try {
       await task;
     } catch (error) {
-      Sentry.captureException(error, {
-        tags: { operation: `report_export_${format}` },
-      });
+      Sentry.captureException(error, { tags: { operation: `report_export_${format}` } });
     } finally {
       setIsExporting(false);
     }
   };
 
-  return (
-    <Screen
-      isRefreshing={
-        periodQuery.isRefetching ||
-        positionQuery.isRefetching ||
-        topTransactionsQuery.isRefetching
-      }
-      onRefresh={() => {
-        void periodQuery.refetch();
-        void positionQuery.refetch();
-        void topTransactionsQuery.refetch();
-      }}
-      ground={
-        <YStack gap="$4">
-          <XStack items="flex-start" justify="space-between" gap="$3">
-            <YStack flex={1} minW={0}>
-              <Paragraph
-                color="$heroMuted"
-                fontSize={11}
-                fontWeight="600"
-                letterSpacing={1.4}
-                textTransform="uppercase"
-              >
-                {text.closing}
-              </Paragraph>
-              <Paragraph
-                color="$heroForeground"
-                fontFamily="$heading"
-                fontSize="$7"
-                fontWeight="600"
-                letterSpacing={-0.5}
-                mt="$2"
-              >
-                {text.title}
-              </Paragraph>
-              <Paragraph color="$heroMuted" fontSize="$2" mt="$1">
-                {text.subtitle}
-              </Paragraph>
-            </YStack>
-            <XStack items="center" gap="$2" shrink={0}>
-              <SensitiveAmountToggle color="$heroAccent" inverse />
-              <FintSheetSelect
-                label={text.exportTitle}
-                placeholder={text.exportTitle}
-                options={[
-                  {
-                    value: "pdf",
-                    label: text.exportPdf,
-                    icon: <FileText size={19} color="$primary" />,
-                  },
-                  {
-                    value: "xlsx",
-                    label: text.exportExcel,
-                    icon: <Table2 size={19} color="$primary" />,
-                  },
-                ]}
-                onValueChange={(value) => {
-                  void exportReport(value as "pdf" | "xlsx");
-                }}
-                renderTrigger={({ onPress }) => (
-                  <YStack
-                    width={44}
-                    height={44}
-                    rounded={22}
-                    bg="rgba(246,251,252,0.10)"
-                    borderColor="rgba(246,251,252,0.16)"
-                    borderWidth={1}
-                    items="center"
-                    justify="center"
-                    transition="quick"
-                    pressStyle={{ scale: 0.96, bg: "rgba(246,251,252,0.16)" }}
-                    opacity={!hasMovements ? 0.45 : 1}
-                    onPress={!hasMovements || isExporting ? undefined : onPress}
-                    role="button"
-                    aria-label={text.exportTitle}
-                  >
-                    {isExporting ? (
-                      <FintSpinner size="small" color="$heroAccent" />
-                    ) : (
-                      <Download size={21} color="$heroAccent" />
-                    )}
-                  </YStack>
-                )}
-              />
-            </XStack>
-          </XStack>
-        </YStack>
-      }
-    >
+  const openCategory = (row: CategoryRow) => {
+    if (!row.key) return;
+    // Movimientos busca en todo el historial por el nombre de la categoría (el contrato aún no filtra por categoría).
+    router.navigate({ pathname: "/(tabs)/movements", params: { q: row.key, qt: String(Date.now()) } });
+  };
 
-      <FintCard gap="$3">
-        <ReportCardHeader
-          icon={<CalendarDays size={19} color="$primary" />}
-          title={text.filters}
-        />
-        <FintSheetSelect
-          label={text.period}
-          placeholder={text.period}
-          value={preset}
-          options={[
-            { value: "currentMonth", label: text.currentMonth },
-            { value: "previousMonth", label: text.previousMonth },
-            { value: "last3Months", label: text.last3Months },
-            { value: "last6Months", label: text.last6Months },
-            { value: "custom", label: text.customRange },
-          ]}
-          onValueChange={(value) =>
-            setPreset(value as ReportPeriodPreset | "custom")
-          }
-        />
-        {preset === "custom" ? (
-          <XStack gap="$3">
-            <YStack flex={1}>
-              <FintDateField
-                label={text.fromDate}
-                placeholder={text.fromDate}
-                value={customFrom}
-                maxDate={customTo || undefined}
-                onValueChange={setCustomFrom}
-              />
-            </YStack>
-            <YStack flex={1}>
-              <FintDateField
-                label={text.toDate}
-                placeholder={text.toDate}
-                value={customTo}
-                minDate={customFrom || undefined}
-                onValueChange={setCustomTo}
-              />
-            </YStack>
+  const error = optionsQuery.error ?? periodQuery.error;
+
+  return (
+    <YStack flex={1} bg="$canvas" pt={insets.top}>
+      <ScrollView
+        contentContainerStyle={{ paddingTop: space[2], paddingBottom: floatingTabBarHeight(insets.bottom) + space[4] }}
+        refreshControl={
+          <RefreshControl
+            refreshing={pulling}
+            onRefresh={() => {
+              setPulling(true);
+              void Promise.all([periodQuery.refetch(), positionQuery.refetch(), topQuery.refetch(), kind === "week" ? weekQuery.refetch() : null]).finally(() =>
+                setPulling(false),
+              );
+            }}
+            tintColor={theme.brand.val}
+            colors={[theme.brand.val]}
+            progressBackgroundColor={theme.surface.val}
+          />
+        }
+      >
+        {/* Título y descargar el reporte (PDF o Excel). */}
+        <XStack items="center" justify="space-between" px={space[4]} gap={space[3]}>
+          <FText variant="display-lg" accessibilityRole="header">
+            {t("reportsTab.title")}
+          </FText>
+          <IconButton
+            label={t("reportsTab.share")}
+            icon={<Share size={18} color="$ink" strokeWidth={2} />}
+            disabled={!hasMovements || isExporting}
+            style={{ opacity: !hasMovements || isExporting ? 0.42 : 1 }}
+            onPress={() => setSheet("export")}
+          />
+        </XStack>
+
+        {/* Periodo: Semana, Mes o Año; flechas entre periodos y la cuenta. */}
+        <View mx={space[4]} mt={14}>
+          <SegmentedControl
+            options={PERIODS.map((p) => ({ value: p, label: t(`reportsTab.periods.${p}`) }))}
+            value={kind}
+            onChange={changeKind}
+            accessibilityLabel={t("reportsTab.periodsLabel")}
+          />
+        </View>
+        {/* El periodo tiene su fila: con una cuenta de nombre largo, la fecha ya no se corta. */}
+        <XStack mx={space[4]} mt={12} items="center" justify="space-between" gap={space[3]}>
+          <ArrowButton label={t("reportsTab.previous")} onPress={() => setStart(shiftPeriod(kind, start, -1))}>
+            <ChevronLeft size={16} color="$inkMuted" strokeWidth={2.2} />
+          </ArrowButton>
+          <FText variant="body-strong" numberOfLines={1} style={{ flex: 1, textAlign: "center" }} accessibilityLiveRegion="polite">
+            {periodTitle(kind, start, locale)}
+          </FText>
+          <ArrowButton label={t("reportsTab.next")} disabled={current} onPress={() => setStart(shiftPeriod(kind, start, 1))}>
+            <ChevronRight size={16} color="$inkMuted" strokeWidth={2.2} />
+          </ArrowButton>
+        </XStack>
+        {/* Los filtros, debajo y con todo el ancho: la cuenta con su icono para que se lea como filtro. */}
+        <XStack mx={space[4]} mt={10} items="center" gap={8}>
+          <View shrink={1}>
+            <Pill
+              icon={<Wallet size={14} color="$inkMuted" strokeWidth={2} />}
+              label={accountLabel}
+              a11yLabel={`${t("reportsTab.account")}: ${accountLabel}`}
+              onPress={() => setSheet("account")}
+            />
+          </View>
+          {currencies.length > 1 ? (
+            <Pill label={selectedCurrency} a11yLabel={`${t("reportsTab.currency")}: ${selectedCurrency}`} onPress={() => setSheet("currency")} />
+          ) : null}
+          {/* Lejos del periodo actual, un toque para volver a él en lugar de ir de uno en uno con las flechas. */}
+          {!current ? (
+            <PressableScale
+              onPress={() => setStart(periodStart(kind, new Date()))}
+              haptic="select"
+              hitSlop={6}
+              style={{ marginLeft: "auto" }}
+              accessibilityRole="button"
+              accessibilityLabel={t("reportsTab.backToCurrentA11y")}
+            >
+              <XStack height={34} px={12} gap={6} items="center" rounded={radius.pill} bg="$brandWash">
+                <RotateCcw size={14} color="$brand" strokeWidth={2.2} />
+                <FText variant="label" tone="brand" numberOfLines={1} style={{ fontSize: 13, fontFamily: fontFace.sans[600] }}>
+                  {t(`reportsTab.backToCurrent.${kind}`)}
+                </FText>
+              </XStack>
+            </PressableScale>
+          ) : null}
+        </XStack>
+
+        {currencies.length > 1 ? (
+          <XStack mx={space[4]} mt={space[3]} px={space[4]} py={12} gap={10} rounded={radius.md} bg="$surfaceSunken" items="center">
+            <Info size={16} color="$inkMuted" />
+            <FText variant="caption" tone="inkMuted" style={{ flex: 1 }}>
+              {t("reports.mixed")}
+            </FText>
           </XStack>
         ) : null}
-        {isCustomRangeIncomplete ? (
-          <Paragraph color="$color10" fontSize="$1" px="$1">
-            {text.customRangeHint}
-          </Paragraph>
+
+        {error ? (
+          <View mx={space[4]} mt={space[4]}>
+            <DataStateCard
+              message={t("states.error")}
+              onRetry={() => {
+                void optionsQuery.refetch();
+                void periodQuery.refetch();
+              }}
+            />
+          </View>
         ) : null}
-        <YStack gap="$3">
-          <FintSheetSelect
-            label={text.account}
-            placeholder={text.account}
-            value={accountId}
-            options={[
-              allAccountsOption(ALL_ACCOUNTS, text.allAccounts),
-              ...(optionsQuery.data?.accounts ?? []).map((item) => toAccountOption(item)),
-            ]}
-            onValueChange={(value) => {
-              setAccountId(value);
-              const selected = optionsQuery.data?.accounts.find(
-                (item) => item.id === value,
-              );
-              if (selected) setCurrency(selected.currency);
+
+        {periodQuery.isLoading ? (
+          <ReportSkeleton />
+        ) : report ? (
+          <>
+            <StatusCard report={report} kind={kind} previousLabel={previousLabel} />
+
+            <Section title={t(`reportsTab.flow.${kind}`)}>
+              <FintCard p={space[5]}>
+                {(kind === "week" && weekQuery.isLoading) || columns.length === 0 ? (
+                  kind === "week" && weekQuery.isLoading ? (
+                    <AmountSkeleton width={200} height={120} />
+                  ) : (
+                    <EmptyLine text={t("reportsTab.flowEmpty")} />
+                  )
+                ) : columns.every((c) => c.income === 0 && c.expenses === 0) ? (
+                  <EmptyLine text={t("reportsTab.flowEmpty")} />
+                ) : (
+                  <FlowChart columns={columns} currency={report.filters.currency} initialIndex={initialIndex} />
+                )}
+              </FintCard>
+            </Section>
+
+            <Section
+              title={t("reportsTab.categories")}
+              trailing={
+                rows.length > 0 ? (
+                  <FText variant="caption" tone="inkFaint">
+                    {t("reportsTab.vs", { period: previousLabel })}
+                  </FText>
+                ) : null
+              }
+            >
+              <FintCard p={space[5]}>
+                {rows.length === 0 ? (
+                  <EmptyLine text={t("reportsTab.categoriesEmpty")} />
+                ) : (
+                  <CategoryBreakdown rows={rows} currency={report.filters.currency} onOpen={openCategory} />
+                )}
+              </FintCard>
+            </Section>
+
+            <Section
+              title={t("reportsTab.topExpenses")}
+              trailing={
+                topExpenses.length > 3 ? (
+                  <PressableScale onPress={() => setSheet("top")} haptic="tap" hitSlop={8} accessibilityRole="button">
+                    <XStack items="center" gap={2}>
+                      <FText variant="label" tone="brand" style={{ fontSize: 13, fontFamily: fontFace.sans[600] }}>
+                        {t("reportsTab.seeAll")}
+                      </FText>
+                      <ChevronRight size={14} color="$brand" strokeWidth={2.2} />
+                    </XStack>
+                  </PressableScale>
+                ) : null
+              }
+            >
+              <FintCard p={0} overflow="hidden">
+                {topQuery.isLoading ? (
+                  <View p={space[5]}>
+                    <AmountSkeleton width={220} height={14} />
+                  </View>
+                ) : topExpenses.length === 0 ? (
+                  <View p={space[5]}>
+                    <EmptyLine text={t("reportsTab.topEmpty")} />
+                  </View>
+                ) : (
+                  topExpenses.slice(0, 3).map((item, i) => (
+                    <TopExpenseRow key={item.id} item={item} first={i === 0} locale={locale} emoji={iconFor(item.category, "expense")} currency={report.filters.currency} />
+                  ))
+                )}
+              </FintCard>
+            </Section>
+
+            <PositionCard position={positionQuery.data} loading={positionQuery.isLoading} currency={report.filters.currency} locale={locale} />
+          </>
+        ) : null}
+      </ScrollView>
+
+      <FintSheet open={sheet === "account"} onClose={() => setSheet(null)} title={t("reportsTab.account")}>
+        <View height={8} />
+        {[{ id: ALL_ACCOUNTS, name: t("reportsTab.allAccounts"), currency: "" }, ...accounts].map((a, i) => (
+          <ListRow
+            key={a.id}
+            divider={i > 0}
+            title={a.name}
+            subtitle={a.currency || undefined}
+            trailing={a.id === accountId ? <Check size={18} color="$brand" strokeWidth={2.4} /> : undefined}
+            onPress={() => {
+              setAccountId(a.id);
+              // Una cuenta es de una moneda: el reporte pasa a esa moneda.
+              if (a.currency) setCurrency(a.currency);
+              setSheet(null);
             }}
           />
-          <FintSheetSelect
-            label={text.currency}
-            placeholder={text.currency}
-            value={selectedCurrency}
-            options={(optionsQuery.data?.currencies ?? [selectedCurrency])
-              .filter(Boolean)
-              .map((value) => ({ value, label: value }))}
-            onValueChange={setCurrency}
+        ))}
+      </FintSheet>
+      <FintSheet open={sheet === "currency"} onClose={() => setSheet(null)} title={t("reportsTab.currency")}>
+        <View height={8} />
+        {currencies.map((c, i) => (
+          <ListRow
+            key={c}
+            divider={i > 0}
+            title={c}
+            trailing={c === selectedCurrency ? <Check size={18} color="$brand" strokeWidth={2.4} /> : undefined}
+            onPress={() => {
+              setCurrency(c);
+              setSheet(null);
+            }}
           />
-        </YStack>
-      </FintCard>
-
-      {periodQuery.isLoading ? <ReportsSkeleton label={text.loading} /> : null}
-      {reportError ? (
-        <DataStateCard
-          message={t("states.error")}
-          onRetry={() => {
-            void optionsQuery.refetch();
-            void periodQuery.refetch();
+        ))}
+      </FintSheet>
+      <FintSheet open={sheet === "export"} onClose={() => setSheet(null)} title={t("reports.exportTitle")}>
+        <View height={8} />
+        <ListRow
+          title={t("reports.exportPdf")}
+          leading={<FileText size={20} color="$ink" />}
+          onPress={() => {
+            setSheet(null);
+            void exportReport("pdf");
           }}
         />
-      ) : null}
-      {(optionsQuery.data?.currencies.length ?? 0) > 1 ? (
-        <FintCard bg="$yellow2" borderColor="$yellow6">
-          <XStack gap="$2" items="center">
-            <AlertTriangle size={18} color="$yellow10" />
-            <Paragraph color="$yellow11" flex={1}>
-              {text.mixed}
-            </Paragraph>
-          </XStack>
-        </FintCard>
-      ) : null}
-      {report && !hasMovements ? <DataStateCard message={text.empty} /> : null}
-      {report && hasMovements ? (
-        <ReportContent
-          report={report}
-          position={positionQuery.data}
-          positionError={Boolean(positionQuery.error)}
-          positionLoading={positionQuery.isLoading}
-          topTransactions={topTransactionsQuery.data}
-          topTransactionsError={Boolean(topTransactionsQuery.error)}
-          topTransactionsLoading={topTransactionsQuery.isLoading}
-          text={text}
-          locale={locale}
-          onOpenMovements={() => router.push("/(tabs)/movements")}
-          onExport={() => void exportReport("pdf")}
-          onRetryPosition={() => {
-            void positionQuery.refetch();
-          }}
-          onRetryTopTransactions={() => {
-            void topTransactionsQuery.refetch();
+        <ListRow
+          divider
+          title={t("reports.exportExcel")}
+          leading={<Table2 size={20} color="$ink" />}
+          onPress={() => {
+            setSheet(null);
+            void exportReport("xlsx");
           }}
         />
-      ) : null}
-    </Screen>
+      </FintSheet>
+      <FintSheet open={sheet === "top"} onClose={() => setSheet(null)} title={t("reportsTab.topExpenses")} subtitle={periodTitle(kind, start, locale)} scrollable snapPoints={[70]}>
+        <View height={4} />
+        {topExpenses.map((item, i) => (
+          <TopExpenseRow key={item.id} item={item} first={i === 0} locale={locale} emoji={iconFor(item.category, "expense")} currency={report?.filters.currency ?? selectedCurrency} />
+        ))}
+      </FintSheet>
+    </YStack>
   );
 }
 
-function ReportContent({
-  locale,
-  onExport,
-  onOpenMovements,
-  onRetryPosition,
-  onRetryTopTransactions,
-  position,
-  positionError,
-  positionLoading,
-  report,
-  text,
-  topTransactions,
-  topTransactionsError,
-  topTransactionsLoading,
-}: {
-  locale: string;
-  onExport: () => void;
-  onOpenMovements: () => void;
-  onRetryPosition: () => void;
-  onRetryTopTransactions: () => void;
-  position?: FinancialReportPosition;
-  positionError: boolean;
-  positionLoading: boolean;
-  report: FinancialReportPeriod;
-  text: ReportText;
-  topTransactions?: FinancialTopTransaction[];
-  topTransactionsError: boolean;
-  topTransactionsLoading: boolean;
-}) {
-  const { t } = useTranslation();
+function ArrowButton({ label, disabled, onPress, children }: { label: string; disabled?: boolean; onPress: () => void; children: ReactNode }) {
   return (
-    <>
-      <ReportMeta report={report} text={text} locale={locale} />
-      <StatusCard report={report} text={text} />
-      <MetricGrid report={report} text={text} />
-      <SeriesCard report={report} text={text} locale={locale} />
-      <CategoryCard
-        report={report}
-        text={text}
-        t={t}
-        onOpenMovements={onOpenMovements}
-        onExport={onExport}
-      />
-      <AccountActivityCard report={report} text={text} onExport={onExport} />
-      <YStack minH={position ? undefined : 220}>
-        {positionLoading ? (
-          <SkeletonGroup label={text.loading}>
-            <SkeletonContentCard rows={3} />
-          </SkeletonGroup>
-        ) : null}
-        {positionError ? (
-          <DataStateCard message={text.error} onRetry={onRetryPosition} />
-        ) : null}
-        {position ? (
-          <CurrentPositionCard
-            position={position}
-            currency={report.filters.currency}
-            text={text}
-            onExport={onExport}
-          />
-        ) : null}
-      </YStack>
-      <YStack minH={topTransactions ? undefined : 220}>
-        {topTransactionsLoading ? (
-          <SkeletonGroup label={text.loading}>
-            <SkeletonContentCard rows={4} />
-          </SkeletonGroup>
-        ) : null}
-        {topTransactionsError ? (
-          <DataStateCard
-            message={text.error}
-            onRetry={onRetryTopTransactions}
-          />
-        ) : null}
-        {topTransactions ? (
-          <TopTransactionsCard
-            transactions={topTransactions}
-            currency={report.filters.currency}
-            text={text}
-            locale={locale}
-          />
-        ) : null}
-      </YStack>
-    </>
+    <PressableScale onPress={onPress} disabled={disabled} haptic="select" hitSlop={6} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }}>
+      <View width={32} height={32} rounded={radius.pill} bg="$surface" borderWidth={1} borderColor="$line" items="center" justify="center" opacity={disabled ? 0.38 : 1}>
+        {children}
+      </View>
+    </PressableScale>
   );
 }
 
-function ReportMeta({
-  locale,
-  report,
-  text,
-}: {
-  locale: string;
-  report: FinancialReportPeriod;
-  text: ReportText;
-}) {
+function Pill({ label, a11yLabel, icon, onPress }: { label: string; a11yLabel: string; icon?: ReactNode; onPress: () => void }) {
   return (
-    <XStack gap="$2" items="center" px="$1">
-      <CalendarDays size={16} color="$color10" />
-      <Paragraph flex={1} color="$color10" fontSize="$1">
-        {formatDate(report.period.from, locale)} -{" "}
-        {formatDate(previousDay(report.period.to), locale)} · {text.updated}:{" "}
-        {new Intl.DateTimeFormat(locale, {
-          dateStyle: "short",
-          timeStyle: "short",
-        }).format(new Date(report.generatedAt))}
-      </Paragraph>
-    </XStack>
-  );
-}
-
-function ReportCardHeader({
-  action,
-  icon,
-  title,
-}: {
-  action?: React.ReactNode;
-  icon: React.ReactNode;
-  title: string;
-}) {
-  return (
-    <XStack minH={44} items="center" gap="$3">
-      <YStack
-        width={38}
-        height={38}
-        rounded="$9"
-        bg="$accent2"
-        items="center"
-        justify="center"
-      >
+    <PressableScale onPress={onPress} haptic="tap" accessibilityRole="button" accessibilityLabel={a11yLabel}>
+      <XStack height={34} pl={icon ? 12 : 14} pr={12} gap={6} items="center" rounded={radius.pill} borderWidth={1} borderColor="$lineStrong" bg="$surface">
         {icon}
-      </YStack>
-      <Paragraph
-        flex={1}
-        color="$color12"
-        fontFamily="$heading"
-        fontSize="$5"
-        fontWeight="600"
-      >
-        {title}
-      </Paragraph>
-      {action}
-    </XStack>
-  );
-}
-
-function WidgetEmpty({ message }: { message: string }) {
-  return (
-    <YStack
-      minH={72}
-      items="center"
-      justify="center"
-      bg="$muted"
-      rounded="$5"
-      px="$4"
-    >
-      <Paragraph color="$color10" text="center">
-        {message}
-      </Paragraph>
-    </YStack>
-  );
-}
-
-function StatusCard({
-  report,
-  text,
-}: {
-  report: FinancialReportPeriod;
-  text: ReportText;
-}) {
-  const { t } = useTranslation();
-  const { formatSensitiveAmount } = useSensitiveMoney();
-  const positive = report.summary.status === "healthy";
-  const attention = report.summary.status === "attention";
-  return (
-    <FintCard
-      bg={positive ? "$green2" : attention ? "$red2" : "$secondary"}
-      borderColor={positive ? "$green6" : attention ? "$red6" : "$borderColor"}
-      gap="$3"
-    >
-      <XStack items="center" gap="$3">
-        <YStack
-          width={42}
-          height={42}
-          rounded="$9"
-          bg={positive ? "$green4" : attention ? "$red4" : "$accent3"}
-          items="center"
-          justify="center"
-        >
-          <Target
-            size={21}
-            color={positive ? "$green10" : attention ? "$red10" : "$primary"}
-          />
-        </YStack>
-        <YStack flex={1} gap="$1">
-          <Paragraph
-            color="$color10"
-            fontSize={10}
-            fontWeight="600"
-            letterSpacing={0.8}
-            textTransform="uppercase"
-          >
-            {text.financialStatus}
-          </Paragraph>
-          <Paragraph
-            color="$color12"
-            fontFamily="$heading"
-            fontSize="$5"
-            fontWeight="600"
-          >
-            {text.statuses[report.summary.status]}
-          </Paragraph>
-        </YStack>
-      </XStack>
-      <Paragraph color="$color10">
-        {text.statusMessages[report.summary.status]}
-      </Paragraph>
-      {report.highlights.topExpenseCategory ||
-      report.highlights.largestTransaction ? (
-        <XStack gap="$2">
-          <Highlight
-            label={text.topCategory}
-            value={
-              report.highlights.topExpenseCategory
-                ? getCategoryLabel(report.highlights.topExpenseCategory.name, t)
-                : text.noData
-            }
-            amount={
-              report.highlights.topExpenseCategory
-                ? formatSensitiveAmount(
-                    report.highlights.topExpenseCategory.amount,
-                    report.filters.currency,
-                  )
-                : undefined
-            }
-          />
-          <Highlight
-            label={text.largestMovement}
-            value={
-              report.highlights.largestTransaction
-                ? getCategoryLabel(
-                    report.highlights.largestTransaction.category,
-                    t,
-                  )
-                : text.noData
-            }
-            amount={
-              report.highlights.largestTransaction
-                ? formatSensitiveAmount(
-                    report.highlights.largestTransaction.amount,
-                    report.filters.currency,
-                  )
-                : undefined
-            }
-          />
-        </XStack>
-      ) : null}
-    </FintCard>
-  );
-}
-
-function Highlight({
-  amount,
-  label,
-  value,
-}: {
-  amount?: string;
-  label: string;
-  value: string;
-}) {
-  return (
-    <YStack
-      flex={1}
-      bg="$card"
-      borderColor="$borderColor"
-      borderWidth={1}
-      rounded="$5"
-      p="$2"
-      gap="$1"
-    >
-      <Paragraph color="$color9" fontSize={9}>
-        {label}
-      </Paragraph>
-      <Paragraph
-        color="$color12"
-        fontSize="$1"
-        fontWeight="600"
-        numberOfLines={1}
-      >
-        {value}
-      </Paragraph>
-      {amount ? (
-        <Paragraph color="$primary" fontSize="$1" fontWeight="600">
-          {amount}
-        </Paragraph>
-      ) : null}
-    </YStack>
-  );
-}
-
-function MetricGrid({
-  report,
-  text,
-}: {
-  report: FinancialReportPeriod;
-  text: ReportText;
-}) {
-  const { formatSensitiveAmount } = useSensitiveMoney();
-  const comparison =
-    report.summary.netChangePercentage === null
-      ? text.noPrevious
-      : `${report.summary.netChangePercentage > 0 ? "+" : ""}${report.summary.netChangePercentage}% ${text.comparison}`;
-  return (
-    <YStack gap="$2">
-      <XStack gap="$2">
-        <Metric
-          icon={<ArrowUp size={17} color="$green10" />}
-          label={text.income}
-          value={formatSensitiveAmount(
-            report.summary.income,
-            report.filters.currency,
-          )}
-        />
-        <Metric
-          icon={<ArrowDown size={17} color="$red10" />}
-          label={text.expenses}
-          value={formatSensitiveAmount(
-            report.summary.expenses,
-            report.filters.currency,
-          )}
-        />
-      </XStack>
-      <XStack gap="$2">
-        <Metric
-          icon={<PiggyBank size={17} color="$primary" />}
-          label={text.net}
-          value={formatSensitiveAmount(
-            report.summary.net,
-            report.filters.currency,
-          )}
-          detail={comparison}
-        />
-        <Metric
-          icon={<Percent size={17} color="$primary" />}
-          label={text.savingsRate}
-          value={
-            report.summary.savingsRate === null
-              ? "-"
-              : `${report.summary.savingsRate}%`
-          }
-          detail={`${report.summary.transactionCount} ${text.transactions.toLowerCase()}`}
-        />
-      </XStack>
-    </YStack>
-  );
-}
-
-function Metric({
-  detail,
-  icon,
-  label,
-  value,
-}: {
-  detail?: string;
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <FintCard flex={1} minH={108} p="$3" gap="$2">
-      <XStack items="center" gap="$2">
-        <YStack
-          width={34}
-          height={34}
-          rounded="$9"
-          bg="$accent2"
-          items="center"
-          justify="center"
-        >
-          {icon}
-        </YStack>
-        <Paragraph color="$color10" fontSize="$1" flex={1}>
+        <FText variant="label" numberOfLines={1} style={{ fontSize: 13, flexShrink: 1 }}>
           {label}
-        </Paragraph>
+        </FText>
+        <ChevronDown size={14} color="$ink" strokeWidth={2.2} />
       </XStack>
-      <Paragraph
-        color="$color12"
-        fontSize="$4"
-        fontWeight="600"
-        numberOfLines={1}
-        adjustsFontSizeToFit
-      >
-        {value}
-      </Paragraph>
-      {detail ? (
-        <Paragraph color="$color9" fontSize={10} numberOfLines={1}>
-          {detail}
-        </Paragraph>
-      ) : null}
-    </FintCard>
+    </PressableScale>
   );
 }
 
-function SeriesCard({
-  locale,
-  report,
-  text,
-}: {
-  locale: string;
-  report: FinancialReportPeriod;
-  text: ReportText;
-}) {
-  const { formatSensitiveAmount } = useSensitiveMoney();
-  const [selectedPeriod, setSelectedPeriod] = useState(
-    report.series.at(-1)?.period ?? "",
-  );
-  const max = Math.max(
-    1,
-    ...report.series.flatMap((item) => [item.income, item.expenses]),
-  );
-  const selected =
-    report.series.find((item) => item.period === selectedPeriod) ??
-    report.series.at(-1);
+function Section({ title, trailing, children }: { title: string; trailing?: ReactNode; children: ReactNode }) {
   return (
-    <FintCard gap="$3">
-      <ReportCardHeader
-        icon={<BarChart3 size={19} color="$primary" />}
-        title={text.flow}
-      />
-      <XStack gap="$4">
-        <Legend color="$green9" label={text.income} />
-        <Legend color="$red9" label={text.expenses} />
+    <YStack mx={space[4]} mt={space[6]}>
+      <XStack items="baseline" justify="space-between" gap={space[3]} mb={space[3]}>
+        <FText variant="title" accessibilityRole="header" style={{ fontSize: 20, lineHeight: 25 }}>
+          {title}
+        </FText>
+        {trailing}
       </XStack>
-      {selected ? (
-        <XStack bg="$secondary" rounded="$5" p="$3" items="center" gap="$3">
-          <CalendarDays size={18} color="$primary" />
-          <YStack flex={1} minW={0}>
-            <Paragraph color="$color12" fontWeight="600">
-              {formatSeriesPeriod(
-                selected.period,
-                report.period.grouping,
-                locale,
-              )}
-            </Paragraph>
-            <Paragraph color="$color10" fontSize="$1">
-              {selected.transactionCount} {text.transactions.toLowerCase()} ·{" "}
-              {text.net}:{" "}
-              {formatSensitiveAmount(selected.net, report.filters.currency)}
-            </Paragraph>
-          </YStack>
-          <YStack items="flex-end">
-            <Paragraph color="$green11" fontSize="$1" fontWeight="600">
-              {formatSensitiveAmount(selected.income, report.filters.currency)}
-            </Paragraph>
-            <Paragraph color="$red11" fontSize="$1" fontWeight="600">
-              {formatSensitiveAmount(
-                selected.expenses,
-                report.filters.currency,
-              )}
-            </Paragraph>
-          </YStack>
-        </XStack>
-      ) : null}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <XStack
-          minW="100%"
-          height={170}
-          items="flex-end"
-          gap="$2"
-          px="$1"
-          pb="$2"
-        >
-          {report.series.map((item) => {
-            const isSelected = item.period === selected?.period;
-            return (
-              <YStack
-                key={item.period}
-                width={72}
-                height={154}
-                overflow="hidden"
-                items="center"
-                justify="flex-end"
-                gap="$2"
-                px="$1"
-                py="$2"
-                rounded="$4"
-                bg={isSelected ? "$secondary" : "transparent"}
-                transition="quick"
-                pressStyle={{ bg: "$secondary", scale: 0.99 }}
-                role="button"
-                accessibilityState={{ selected: isSelected }}
-                aria-label={`${formatSeriesPeriod(item.period, report.period.grouping, locale)}. ${text.income}: ${formatSensitiveAmount(item.income, report.filters.currency)}. ${text.expenses}: ${formatSensitiveAmount(item.expenses, report.filters.currency)}. ${text.net}: ${formatSensitiveAmount(item.net, report.filters.currency)}`}
-                onPress={() => setSelectedPeriod(item.period)}
-              >
-                <XStack height={108} items="flex-end" gap={6}>
-                  <YStack
-                    transition="200ms"
-                    width={15}
-                    height={
-                      item.income
-                        ? Math.max(5, Math.round((item.income / max) * 100))
-                        : 0
-                    }
-                    bg="$green9"
-                    rounded="$3"
-                    opacity={isSelected ? 1 : 0.72}
-                  />
-                  <YStack
-                    transition="200ms"
-                    width={15}
-                    height={
-                      item.expenses
-                        ? Math.max(5, Math.round((item.expenses / max) * 100))
-                        : 0
-                    }
-                    bg="$red9"
-                    rounded="$3"
-                    opacity={isSelected ? 1 : 0.72}
-                  />
-                </XStack>
-                <Paragraph
-                  color={isSelected ? "$color12" : "$color10"}
-                  fontSize={9}
-                  fontWeight={isSelected ? "800" : "500"}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                >
-                  {formatSeriesPeriod(
-                    item.period,
-                    report.period.grouping,
-                    locale,
-                  )}
-                </Paragraph>
-              </YStack>
-            );
-          })}
-        </XStack>
-      </ScrollView>
-    </FintCard>
-  );
-}
-
-function Legend({ color, label }: { color: string; label: string }) {
-  return (
-    <XStack items="center" gap="$1">
-      <YStack width={8} height={8} rounded="$10" bg={color as never} />
-      <Paragraph color="$color10" fontSize="$1">
-        {label}
-      </Paragraph>
-    </XStack>
-  );
-}
-
-const REPORT_TOP_N = 3;
-
-function CategoryCard({
-  onExport,
-  onOpenMovements,
-  report,
-  t,
-  text,
-}: {
-  onExport: () => void;
-  onOpenMovements: () => void;
-  report: FinancialReportPeriod;
-  t: TFunction;
-  text: ReportText;
-}) {
-  const { formatSensitiveAmount } = useSensitiveMoney();
-  const categories = report.categories.slice(0, REPORT_TOP_N);
-  return (
-    <FintCard gap="$3">
-      <ReportCardHeader
-        icon={<Table2 size={19} color="$primary" />}
-        title={text.categories}
-        action={
-          <Button chromeless minH={44} px="$2" onPress={onOpenMovements}>
-            <XStack items="center" gap="$1">
-              <Paragraph color="$primary" fontWeight="600" fontSize="$2">
-                {text.viewMovements}
-              </Paragraph>
-              <ChevronRight size={14} color="$primary" />
-            </XStack>
-          </Button>
-        }
-      />
-      {report.categories.length === 0 ? (
-        <WidgetEmpty message={text.noData} />
-      ) : (
-        categories.map((item) => (
-          <XStack key={item.name} items="center" gap="$3">
-            <YStack
-              width={38}
-              height={38}
-              rounded="$8"
-              bg="$secondary"
-              items="center"
-              justify="center"
-            >
-              <Paragraph fontSize="$5">
-                {getExpenseCategoryIcon(item.name, item.icon)}
-              </Paragraph>
-            </YStack>
-            <YStack flex={1}>
-              <Paragraph color="$color12" fontWeight="600">
-                {getCategoryLabel(item.name, t)}
-              </Paragraph>
-              <Paragraph color="$color10" fontSize="$1">
-                {item.percentage}% ·{" "}
-                {item.changePercentage === null
-                  ? text.noPrevious
-                  : `${item.changePercentage > 0 ? "+" : ""}${item.changePercentage}% ${text.comparison}`}
-              </Paragraph>
-            </YStack>
-            <Paragraph color="$color12" fontWeight="600">
-              {formatSensitiveAmount(item.amount, report.filters.currency)}
-            </Paragraph>
-          </XStack>
-        ))
-      )}
-      <ReportOverflowFootnote
-        remainingCount={report.categories.length - REPORT_TOP_N}
-        onPress={onExport}
-        label={t("reports.seeAllInExport", {
-          count: report.categories.length - REPORT_TOP_N,
-        })}
-      />
-    </FintCard>
-  );
-}
-
-function AccountActivityCard({
-  onExport,
-  report,
-  text,
-}: {
-  onExport: () => void;
-  report: FinancialReportPeriod;
-  text: ReportText;
-}) {
-  const { t } = useTranslation();
-  const { formatSensitiveAmount } = useSensitiveMoney();
-  const accountActivity = report.accountActivity.slice(0, REPORT_TOP_N);
-  return (
-    <FintCard gap="$3">
-      <ReportCardHeader
-        icon={<Landmark size={19} color="$primary" />}
-        title={text.accountActivity}
-      />
-      {report.accountActivity.length === 0 ? (
-        <WidgetEmpty message={text.noData} />
-      ) : (
-        accountActivity.map((item) => (
-          <XStack key={item.id} items="center" gap="$3">
-            <YStack
-              width={38}
-              height={38}
-              rounded="$8"
-              bg="$secondary"
-              items="center"
-              justify="center"
-            >
-              <Landmark size={18} color="$primary" />
-            </YStack>
-            <YStack flex={1}>
-              <Paragraph color="$color12" fontWeight="600">
-                {item.name}
-              </Paragraph>
-              <Paragraph color="$color10" fontSize="$1" numberOfLines={2}>
-                {item.transactionCount} {text.transactions.toLowerCase()} ·{" "}
-                {text.income}:{" "}
-                {formatSensitiveAmount(item.income, report.filters.currency)} ·{" "}
-                {text.expenses}:{" "}
-                {formatSensitiveAmount(item.expenses, report.filters.currency)}
-              </Paragraph>
-            </YStack>
-            <Paragraph
-              color={item.net >= 0 ? "$green10" : "$red10"}
-              fontWeight="600"
-            >
-              {formatSensitiveAmount(item.net, report.filters.currency)}
-            </Paragraph>
-          </XStack>
-        ))
-      )}
-      <ReportOverflowFootnote
-        remainingCount={report.accountActivity.length - REPORT_TOP_N}
-        onPress={onExport}
-        label={t("reports.seeAllInExport", {
-          count: report.accountActivity.length - REPORT_TOP_N,
-        })}
-      />
-    </FintCard>
-  );
-}
-
-function CurrentPositionCard({
-  currency,
-  onExport,
-  position,
-  text,
-}: {
-  currency: string;
-  onExport: () => void;
-  position: FinancialReportPosition;
-  text: ReportText;
-}) {
-  const { t } = useTranslation();
-  const { formatSensitiveAmount } = useSensitiveMoney();
-  const topAccounts = [...position.accounts]
-    .sort((a, b) => b.balance - a.balance)
-    .slice(0, REPORT_TOP_N);
-  const topDebts = position.debts.slice(0, REPORT_TOP_N);
-  return (
-    <FintCard gap="$3">
-      <ReportCardHeader
-        icon={<WalletCards size={19} color="$primary" />}
-        title={text.currentPosition}
-      />
-      <Paragraph color="$color10" fontSize="$1">
-        {text.currentSnapshotNote}
-      </Paragraph>
-      <XStack gap="$2">
-        <PositionMetric
-          label={text.balance}
-          value={formatSensitiveAmount(position.totalAccountBalance, currency)}
-        />
-        <PositionMetric
-          label={text.outstanding}
-          value={formatSensitiveAmount(position.totalDebtOutstanding, currency)}
-        />
-      </XStack>
-      <PositionMetric
-        label={text.net}
-        value={formatSensitiveAmount(position.netPosition, currency)}
-        emphasis
-      />
-      {position.accounts.length === 0 && position.debts.length === 0 ? (
-        <WidgetEmpty message={text.noData} />
-      ) : null}
-      {topAccounts.map((item) => (
-        <XStack key={item.id} items="center" gap="$3">
-          <Landmark size={17} color="$primary" />
-          <Paragraph color="$color12" fontWeight="600" flex={1}>
-            {item.name}
-          </Paragraph>
-          <Paragraph color="$color12" fontWeight="600">
-            {formatSensitiveAmount(item.balance, item.currency)}
-          </Paragraph>
-        </XStack>
-      ))}
-      {position.debts.length ? (
-        <>
-          <Paragraph color="$color12" fontWeight="600" mt="$2">
-            {text.debts}
-          </Paragraph>
-          {topDebts.map((item) => (
-            <XStack key={item.id} items="center" gap="$3">
-              <CreditCard
-                size={17}
-                color={item.status === "overdue" ? "$red10" : "$primary"}
-              />
-              <YStack flex={1}>
-                <Paragraph color="$color12" fontWeight="600">
-                  {item.description}
-                </Paragraph>
-                <Paragraph color="$color10" fontSize="$1">
-                  {item.paidPercentage}% {text.progress.toLowerCase()}
-                </Paragraph>
-              </YStack>
-              <Paragraph color="$color12" fontWeight="600">
-                {formatSensitiveAmount(item.outstanding, item.currency)}
-              </Paragraph>
-            </XStack>
-          ))}
-        </>
-      ) : null}
-      <ReportOverflowFootnote
-        remainingCount={
-          position.accounts.length - topAccounts.length +
-          (position.debts.length - topDebts.length)
-        }
-        onPress={onExport}
-        label={t("reports.seeAllInExport", {
-          count:
-            position.accounts.length - topAccounts.length +
-            (position.debts.length - topDebts.length),
-        })}
-      />
-    </FintCard>
-  );
-}
-
-function PositionMetric({
-  emphasis = false,
-  label,
-  value,
-}: {
-  emphasis?: boolean;
-  label: string;
-  value: string;
-}) {
-  return (
-    <YStack
-      flex={1}
-      minH={64}
-      bg={emphasis ? "$accent2" : "$secondary"}
-      borderColor={emphasis ? "$accent5" : "transparent"}
-      borderWidth={1}
-      rounded="$5"
-      p="$3"
-      gap="$1"
-    >
-      <Paragraph color="$color10" fontSize="$1" numberOfLines={1}>
-        {label}
-      </Paragraph>
-      <Paragraph
-        color={emphasis ? "$primary" : "$color12"}
-        fontSize={emphasis ? "$4" : "$3"}
-        fontWeight="600"
-        numberOfLines={1}
-        adjustsFontSizeToFit
-      >
-        {value}
-      </Paragraph>
+      {children}
     </YStack>
   );
 }
 
-function TopTransactionsCard({
-  currency,
-  locale,
-  text,
-  transactions,
-}: {
-  currency: string;
-  locale: string;
-  text: ReportText;
-  transactions: FinancialTopTransaction[];
-}) {
-  const { formatSensitiveAmount } = useSensitiveMoney();
+function EmptyLine({ text }: { text: string }) {
   return (
-    <FintCard gap="$3">
-      <ReportCardHeader
-        icon={<ArrowUpRight size={19} color="$primary" />}
-        title={text.topTransactions}
-      />
-      {transactions.length === 0 ? (
-        <WidgetEmpty message={text.noData} />
-      ) : (
-        transactions.map((item, index) => (
-          <XStack key={item.id} items="center" gap="$3">
-            <YStack
-              width={30}
-              height={30}
-              rounded="$8"
-              bg="$secondary"
-              items="center"
-              justify="center"
-            >
-              <Paragraph color="$primary" fontWeight="600">
-                {index + 1}
-              </Paragraph>
-            </YStack>
-            <YStack flex={1}>
-              <Paragraph color="$color12" fontWeight="600">
-                {item.category}
-              </Paragraph>
-              <Paragraph color="$color10" fontSize="$1">
-                {formatDate(item.date, locale)} · {item.account}
-              </Paragraph>
-            </YStack>
-            <Paragraph
-              color={item.type === "income" ? "$green10" : "$red10"}
-              fontWeight="600"
-            >
-              {formatSensitiveAmount(item.amount, currency)}
-            </Paragraph>
+    <FText variant="body" tone="inkMuted" style={{ textAlign: "center", paddingVertical: space[4] }}>
+      {text}
+    </FText>
+  );
+}
+
+/** Sin nada en el periodo anterior no hay con qué comparar (tampoco si los dos están en cero): `null`, "sin datos de…". */
+function comparable(current: number, previous: number) {
+  return previous === 0 ? null : changePercent(current, previous);
+}
+
+/** Variación de ingresos o egresos: verde cuando es buena noticia (ingresos que suben, egresos que bajan). */
+function Change({ value, goodWhenUp, previousLabel }: { value: number | null; goodWhenUp: boolean; previousLabel: string }) {
+  const { t } = useTranslation();
+  const vs = t("reportsTab.vs", { period: previousLabel });
+  if (value === null || value === 0) {
+    // Sin nada en el periodo anterior no hay con qué comparar: "sin movimientos en agosto", no "nueva".
+    return (
+      <FText variant="caption" tone="inkFaint" style={{ fontSize: 11, lineHeight: 14, marginTop: 3 }} numberOfLines={1}>
+        {value === null ? t("reportsTab.noPrevious", { period: previousLabel }) : `${t("reportsTab.same")} ${vs}`}
+      </FText>
+    );
+  }
+  const good = goodWhenUp ? value > 0 : value < 0;
+  const tone = good ? "flowIn" : "flowOut";
+  const Icon = value > 0 ? ArrowUp : ArrowDown;
+  return (
+    <XStack items="center" gap={4} mt={3}>
+      <Icon size={11} color={`$${tone}` as ColorTokens} strokeWidth={2.6} />
+      <FText variant="figure-caption" tone={tone} style={{ fontSize: 11 }}>
+        {`${Math.abs(value)}%`}
+      </FText>
+      <FText variant="figure-caption" tone="inkFaint" style={{ fontSize: 11 }} numberOfLines={1}>
+        {vs}
+      </FText>
+    </XStack>
+  );
+}
+
+/** Neto del periodo en `flowIn` o `flowOut`, la etiqueta del estado, una frase, e ingresos y egresos con su variación. */
+function StatusCard({ report, kind, previousLabel }: { report: FinancialReportPeriod; kind: PeriodKind; previousLabel: string }) {
+  const { t } = useTranslation();
+  const { summary } = report;
+  const currency = report.filters.currency;
+  const status = summary.status;
+  const badge =
+    status === "healthy"
+      ? { icon: <Check size={12} color="$flowIn" strokeWidth={2.6} />, tone: "flowIn" as const }
+      : status === "attention"
+        ? { icon: <AlertTriangle size={12} color="$flowOut" strokeWidth={2.4} />, tone: "flowOut" as const }
+        : status === "balanced"
+          ? { icon: <Minus size={12} color="$inkMuted" strokeWidth={2.6} />, tone: "inkMuted" as const }
+          : null;
+  // El backend manda el porcentaje con decimales; la frase lo dice entero ("Ahorraste el 66%").
+  const rate = summary.savingsRate === null ? null : Math.round(summary.savingsRate);
+
+  let message: ReactNode;
+  if (summary.transactionCount === 0) message = t("reportsTab.noData");
+  else if (summary.income <= 0) message = t("reportsTab.noIncome");
+  else if (rate !== null && rate > 0)
+    message = (
+      <>
+        {`${t("reportsTab.savedBefore")} `}
+        <FText variant="caption" style={{ fontSize: 13, fontFamily: fontFace.mono[500] }}>{`${rate}%`}</FText>
+        {` ${t("reportsTab.savedAfter")}`}
+      </>
+    );
+  else message = t("reportsTab.overspent");
+
+  return (
+    <FintCard mx={space[4]} mt={space[4]} p={space[5]}>
+      <XStack items="center" justify="space-between" gap={space[3]}>
+        <FText variant="caption" tone="inkMuted" style={{ fontSize: 13 }}>
+          {t(`reportsTab.net.${kind}`)}
+        </FText>
+        {badge ? (
+          <XStack height={24} px={10} gap={5} items="center" rounded={radius.pill} bg="$surfaceSunken">
+            {badge.icon}
+            <FText variant="caption" tone={badge.tone} style={{ fontFamily: fontFace.sans[600] }}>
+              {t(`reports.statuses.${status}`)}
+            </FText>
           </XStack>
-        ))
-      )}
+        ) : null}
+      </XStack>
+      <Amount
+        value={summary.net}
+        currency={currency}
+        kind={summary.net > 0 ? "income" : summary.net < 0 ? "expense" : "neutral"}
+        tone={summary.net > 0 ? "flowIn" : summary.net < 0 ? "flowOut" : "ink"}
+        variant="amount-lg"
+        style={{ fontSize: 32, lineHeight: 36, letterSpacing: -1.2, marginTop: 4 }}
+      />
+      <FText variant="caption" tone="inkMuted" style={{ fontSize: 13, marginTop: 4 }}>
+        {message}
+      </FText>
+      <XStack mt={16} pt={14} borderTopWidth={1} borderColor="$line">
+        <YStack flex={1} minW={0} pr={space[3]}>
+          <FText variant="caption" tone="inkMuted">
+            {t("reportsTab.income")}
+          </FText>
+          <Amount value={summary.income} currency={currency} style={{ fontSize: 17, lineHeight: 22, letterSpacing: -0.4, marginTop: 2 }} />
+          <Change value={comparable(summary.income, summary.previousIncome)} goodWhenUp previousLabel={previousLabel} />
+        </YStack>
+        <YStack flex={1} minW={0} pl={space[4]} borderLeftWidth={1} borderColor="$line">
+          <FText variant="caption" tone="inkMuted">
+            {t("reportsTab.expenses")}
+          </FText>
+          <Amount value={summary.expenses} currency={currency} style={{ fontSize: 17, lineHeight: 22, letterSpacing: -0.4, marginTop: 2 }} />
+          <Change value={comparable(summary.expenses, summary.previousExpenses)} goodWhenUp={false} previousLabel={previousLabel} />
+        </YStack>
+      </XStack>
     </FintCard>
   );
 }
 
-function ReportsSkeleton({ label }: { label: string }) {
+/** Una de las mayores transacciones: el emoji de su categoría, la nota (o la categoría), la fecha y el monto. */
+function TopExpenseRow({ item, first, locale, emoji, currency }: { item: FinancialTopTransaction; first: boolean; locale: string; emoji: string | null; currency: string }) {
+  const { t } = useTranslation();
+  const category = getCategoryLabel(item.category, t);
+  const date = shortDate(parseIso(item.date), locale);
   return (
-    <SkeletonGroup label={label}>
-      <SkeletonBlock height={12} width="64%" />
-      <SkeletonContentCard rows={1} />
-      <SkeletonMetricGrid />
-      <SkeletonSection height={286} />
-      <SkeletonContentCard rows={4} />
-      <SkeletonContentCard rows={3} />
-    </SkeletonGroup>
+    <XStack items="center" gap={space[3]} px={space[4]} py={space[3]} borderTopWidth={first ? 0 : 1} borderColor="$line">
+      <Monogram name={category} emoji={emoji} color={`$chart${categoryColorIndex(category)}` as ColorTokens} />
+      <YStack flex={1} minW={0}>
+        <FText variant="body-strong" numberOfLines={1} style={{ letterSpacing: -0.15 }}>
+          {category}
+        </FText>
+        <FText variant="caption" tone="inkFaint" numberOfLines={1} style={{ marginTop: 1 }}>
+          {`${date} · ${item.account}`}
+        </FText>
+      </YStack>
+      <Amount value={item.amount} currency={currency} kind="expense" />
+    </XStack>
   );
 }
 
-function localizeReport(
-  report: FinancialReport,
-  t: TFunction,
-): FinancialReport {
+/** Una barra partida entre lo que hay en cuentas (`chart-1`) y lo que se debe (`flowOut`), los dos montos y la posición neta. */
+function PositionCard({ position, loading, currency, locale }: { position?: FinancialReportPosition; loading: boolean; currency: string; locale: string }) {
+  const { t } = useTranslation();
+  const asOf = position ? parseIso(position.asOf) : new Date();
+  const date = new Intl.DateTimeFormat(locale, { day: "numeric", month: "long" }).format(asOf);
+  const accounts = Math.max(0, position?.totalAccountBalance ?? 0);
+  const debts = Math.max(0, position?.totalDebtOutstanding ?? 0);
+  return (
+    <Section title={t("reportsTab.position", { date })}>
+      <FintCard p={space[5]}>
+        {loading || !position ? (
+          <AmountSkeleton width={220} height={14} />
+        ) : (
+          <>
+            <XStack height={10} rounded={radius.pill} overflow="hidden" gap={accounts > 0 && debts > 0 ? 2 : 0} mb={12} bg="$chartTrack">
+              {accounts > 0 ? <View height="100%" bg="$chart1" style={{ flex: accounts }} /> : null}
+              {debts > 0 ? <View height="100%" bg="$flowOut" style={{ flex: debts }} /> : null}
+            </XStack>
+            <XStack justify="space-between" items="center">
+              <FText variant="caption" tone="inkMuted" style={{ fontSize: 13 }}>
+                {t("reportsTab.accounts")}
+              </FText>
+              <Amount value={position.totalAccountBalance} currency={currency} variant="amount-sm" />
+            </XStack>
+            <XStack justify="space-between" items="center" mt={6}>
+              <FText variant="caption" tone="inkMuted" style={{ fontSize: 13 }}>
+                {t("reportsTab.debts")}
+              </FText>
+              <Amount value={-Math.abs(position.totalDebtOutstanding)} currency={currency} variant="amount-sm" />
+            </XStack>
+            <XStack justify="space-between" items="center" mt={10} pt={10} borderTopWidth={1} borderColor="$line">
+              <FText variant="body-strong" style={{ fontSize: 14 }}>
+                {t("reportsTab.netPosition")}
+              </FText>
+              <Amount value={position.netPosition} currency={currency} style={{ fontSize: 14, fontFamily: fontFace.mono[600] }} />
+            </XStack>
+          </>
+        )}
+      </FintCard>
+    </Section>
+  );
+}
+
+function ReportSkeleton() {
+  return (
+    <YStack mx={space[4]} mt={space[4]} gap={space[4]}>
+      <FintCard p={space[5]} gap={10}>
+        <AmountSkeleton width={110} height={12} />
+        <AmountSkeleton width={190} height={28} />
+        <AmountSkeleton width={170} height={12} />
+      </FintCard>
+      <FintCard p={space[5]} gap={10}>
+        <AmountSkeleton width={140} height={12} />
+        <AmountSkeleton width={260} height={110} />
+      </FintCard>
+    </YStack>
+  );
+}
+
+function localizeReport(report: FinancialReport, t: TFunction): FinancialReport {
   const categoryName = (name: string) => getCategoryLabel(name, t);
-  const transaction = (item: FinancialReport["topTransactions"][number]) => ({
-    ...item,
-    category: categoryName(item.category),
-  });
+  const icon = (name: string, value: string | null) => value || suggestedCategoryIcons(name, "expense")[0];
+  const transaction = (item: FinancialReport["topTransactions"][number]) => ({ ...item, category: categoryName(item.category) });
   return {
     ...report,
-    categories: report.categories.map((item) => ({
-      ...item,
-      icon: getExpenseCategoryIcon(item.name, item.icon),
-      name: categoryName(item.name),
-    })),
+    categories: report.categories.map((item) => ({ ...item, icon: icon(item.name, item.icon), name: categoryName(item.name) })),
     highlights: {
       topExpenseCategory: report.highlights.topExpenseCategory
         ? {
             ...report.highlights.topExpenseCategory,
-            icon: getExpenseCategoryIcon(
-              report.highlights.topExpenseCategory.name,
-              report.highlights.topExpenseCategory.icon,
-            ),
+            icon: icon(report.highlights.topExpenseCategory.name, report.highlights.topExpenseCategory.icon),
             name: categoryName(report.highlights.topExpenseCategory.name),
           }
         : null,
-      largestTransaction: report.highlights.largestTransaction
-        ? transaction(report.highlights.largestTransaction)
-        : null,
+      largestTransaction: report.highlights.largestTransaction ? transaction(report.highlights.largestTransaction) : null,
     },
     topTransactions: report.topTransactions.map(transaction),
   };
-}
-
-function getExpenseCategoryIcon(name: string, icon: string | null) {
-  return icon || suggestedCategoryIcons(name, "expense")[0];
-}
-
-function previousDay(value: string) {
-  const date = new Date(`${value}T12:00:00Z`);
-  date.setUTCDate(date.getUTCDate() - 1);
-  return date.toISOString().slice(0, 10);
-}
-function formatDate(value: string, locale: string) {
-  return new Intl.DateTimeFormat(locale, {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(`${value}T12:00:00Z`));
-}
-function formatSeriesPeriod(
-  value: string,
-  grouping: "week" | "month",
-  locale: string,
-) {
-  const start = new Date(`${value}T12:00:00Z`);
-  if (grouping === "month")
-    return new Intl.DateTimeFormat(locale, {
-      month: "short",
-      timeZone: "UTC",
-    }).format(start);
-  const end = new Date(start);
-  end.setUTCDate(start.getUTCDate() + 6);
-  const dayFormatter = new Intl.DateTimeFormat(locale, {
-    day: "2-digit",
-    timeZone: "UTC",
-  });
-  const monthFormatter = new Intl.DateTimeFormat(locale, {
-    month: "short",
-    timeZone: "UTC",
-  });
-  const startDay = dayFormatter.format(start);
-  const endDay = dayFormatter.format(end);
-  const endMonth = monthFormatter.format(end).replace(".", "");
-  if (start.getUTCMonth() === end.getUTCMonth())
-    return `${startDay}-${endDay} ${endMonth}`;
-  return `${startDay} ${monthFormatter.format(start).replace(".", "")}-${endDay} ${endMonth}`;
 }

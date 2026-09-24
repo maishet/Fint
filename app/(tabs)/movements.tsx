@@ -1,7 +1,7 @@
 import { FlashList } from "@shopify/flash-list";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowLeftRight, ArrowUp, CalendarDays, Check, ChevronDown, ChevronRight, Mail, ScanLine, Search, Trash2, X } from "@tamagui/lucide-icons-2";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { setStatusBarStyle } from "expo-status-bar";
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -103,6 +103,15 @@ export default function MovementsScreen() {
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null);
   const [reverseTarget, setReverseTarget] = useState<Transaction | null>(null);
   const [reverseTransferTarget, setReverseTransferTarget] = useState<string | null>(null);
+
+  // Reportes abre esta pestaña con una búsqueda (tocar una categoría): `qt` cambia en cada toque, así se aplica aunque sea la misma.
+  const params = useLocalSearchParams<{ q?: string; qt?: string }>();
+  useEffect(() => {
+    if (params.q) {
+      setSearch(params.q);
+      setFilter("all");
+    }
+  }, [params.q, params.qt]);
 
   // El fondo de esta pantalla es `canvas`: la barra de estado va con iconos oscuros en claro.
   useFocusEffect(

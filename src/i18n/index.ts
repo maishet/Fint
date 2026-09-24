@@ -8,6 +8,7 @@ import { homeTranslations } from "./home";
 import { movementFormTranslations } from "./movementForm";
 import { movementsTabTranslations } from "./movements";
 import { paymentsTabTranslations } from "./payments";
+import { reportsTabTranslations } from "./reports";
 
 export type { AppLanguage };
 
@@ -2806,6 +2807,11 @@ for (const [language, bundle] of Object.entries(movementsTabTranslations)) {
 
 // Tab Pagos v3.
 for (const [language, bundle] of Object.entries(paymentsTabTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Tab Reportes v3.
+for (const [language, bundle] of Object.entries(reportsTabTranslations)) {
   i18n.addResourceBundle(language, "translation", bundle, true, false);
 }
 
