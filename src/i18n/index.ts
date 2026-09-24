@@ -6,6 +6,7 @@ import { ptTranslation } from "./pt";
 import { setStoredCurrentLanguage, type AppLanguage } from "./current-language";
 import { homeTranslations } from "./home";
 import { movementFormTranslations } from "./movementForm";
+import { movementsTabTranslations } from "./movements";
 
 export type { AppLanguage };
 
@@ -2794,6 +2795,11 @@ for (const [language, bundle] of Object.entries(homeTranslations)) {
 
 // Formulario de movimiento v3 y sus hojas.
 for (const [language, bundle] of Object.entries(movementFormTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Tab Movimientos v3.
+for (const [language, bundle] of Object.entries(movementsTabTranslations)) {
   i18n.addResourceBundle(language, "translation", bundle, true, false);
 }
 

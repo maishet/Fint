@@ -1,7 +1,7 @@
 import { X } from "@tamagui/lucide-icons-2";
 import { useContext, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { TextInput, type TextInputProps } from "react-native";
+import { TextInput, useWindowDimensions, type TextInputProps } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Sheet, XStack, YStack, useTheme } from "tamagui";
@@ -60,6 +60,7 @@ export function FintSheet({
   // Con "reducir movimiento" la hoja aparece en su lugar, sin subir; el velo sigue entrando con fade.
   const reduceMotion = useReducedMotion();
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
   const { t } = useTranslation();
   // La hoja se dibuja en el portal de Tamagui, fuera de los proveedores de la app: se vuelve a proveer
   // "Ocultar montos" para que un `Amount` dentro de la hoja lo respete.
@@ -115,24 +116,32 @@ export function FintSheet({
       transitionConfig={reduceMotion ? { type: "direct" } : { type: "spring", ...motion.springSheet }}
     >
       <Sheet.Overlay bg="$scrim" transition="quick" enterStyle={{ opacity: 0 }} exitStyle={{ opacity: 0 }} />
-      <Sheet.Frame
-        bg="$surfaceOverlay"
-        borderTopWidth={themeMode === "dark" ? 1 : 0}
-        borderColor="$line"
-        pb={Math.max(insets.bottom, 16) + 10}
-        style={{
-          borderTopLeftRadius: radius.xl,
-          borderTopRightRadius: radius.xl,
-          borderBottomLeftRadius: 0,
-          borderBottomRightRadius: 0,
-          boxShadow: shadows[themeMode].sheet,
-        }}
-      >
-        <YStack self="center" width={38} height={5} rounded={999} bg="$lineStrong" opacity={0.45} mt={8} mb={4} />
-        {header}
-        <SensitiveAmountsContext.Provider value={sensitiveAmounts}>
-          {scrollable ? <Sheet.ScrollView showsVerticalScrollIndicator={false}>{children}</Sheet.ScrollView> : children}
-        </SensitiveAmountsContext.Provider>
+      {/*
+        El marco de Tamagui queda transparente y el aspecto va en la capa de adentro: la cubierta que Tamagui pone
+        bajo la hoja copia las props del marco (esquinas, filete, sombra) y al estirar la hoja hacia arriba se veía
+        como una segunda hoja cortada. En su lugar, la capa lleva debajo su propia extensión lisa.
+      */}
+      <Sheet.Frame bg="transparent" overflow="visible" disableHideBottomOverflow>
+        <YStack
+          flex={snapPoints ? 1 : undefined}
+          bg="$surfaceOverlay"
+          borderTopWidth={themeMode === "dark" ? 1 : 0}
+          borderColor="$line"
+          pb={Math.max(insets.bottom, 16) + 10}
+          style={{
+            borderTopLeftRadius: radius.xl,
+            borderTopRightRadius: radius.xl,
+            boxShadow: shadows[themeMode].sheet,
+          }}
+        >
+          <YStack self="center" width={38} height={5} rounded={999} bg="$lineStrong" opacity={0.45} mt={8} mb={4} />
+          {header}
+          <SensitiveAmountsContext.Provider value={sensitiveAmounts}>
+            {scrollable ? <Sheet.ScrollView showsVerticalScrollIndicator={false}>{children}</Sheet.ScrollView> : children}
+          </SensitiveAmountsContext.Provider>
+          {/* Al estirar la hoja más allá de su alto, esto cubre lo que queda debajo. Va al final para tapar la sombra. */}
+          <YStack position="absolute" t="100%" l={0} r={0} height={height} bg="$surfaceOverlay" pointerEvents="none" />
+        </YStack>
       </Sheet.Frame>
     </Sheet>
   );

@@ -48,7 +48,8 @@ export default function TabLayout() {
           name="movements"
           options={{
             title: t("tabs.movements"),
-            header: () => <AppHeader title={t("tabs.movements")} />,
+            // La pantalla dibuja su propio título grande con Escanear.
+            headerShown: false,
             tabBarIcon: ({ color, size }) => <ArrowLeftRight color={color as any} size={size} />,
           }}
         />
