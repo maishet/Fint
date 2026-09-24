@@ -1,1006 +1,392 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  CalendarClock,
-  CheckCircle2,
-  HandCoins,
-  Landmark,
-  Plus,
-  Trash2,
-} from "@tamagui/lucide-icons-2";
-import { useNotify } from "../../src/ui/notify";
-import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { AlertTriangle, CalendarCheck, Check, ChevronDown, Plus, Repeat, Trash2 } from "@tamagui/lucide-icons-2";
+import { useFocusEffect, useRouter } from "expo-router";
+import { setStatusBarStyle } from "expo-status-bar";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button, Paragraph, XStack, YStack } from "tamagui";
-import { financeApi } from "../../src/api/finance";
-import { formatMoney } from "../../src/api/mappers";
-import type { PaymentOccurrence } from "../../src/api/types";
-import { DataStateCard } from "../../src/components/DataStateCard";
-import { OccurrencePaymentSheet } from "../../src/components/OccurrencePaymentSheet";
-import { Screen } from "../../src/components/Screen";
-import { SwipeableRow } from "../../src/components/SwipeableRow";
-import {
-  SkeletonGroup,
-  SkeletonBlock,
-  SkeletonList,
-} from "../../src/components/Skeleton";
-import { getCurrencySymbol } from "../../src/finance/currencies";
-import { formatDateString, parseDateString } from "../../src/finance/dates";
-import { getDueState } from "../../src/finance/dueState";
-import { usePressOnce } from "../../src/hooks/usePressOnce";
-import {
-  FintButton,
-  FintCard,
-  FintConfirmDialog,
-  FintSpinner,
-} from "../../src/ui";
-import { getAppLocale } from "../../src/i18n";
+import { RefreshControl, ScrollView } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { View, XStack, YStack, useTheme } from "tamagui";
 import { useCapabilities } from "../../src/api/capabilities";
-import { useSensitiveMoney } from "../../src/privacy/useSensitiveMoney";
-import { SensitiveAmountToggle } from "../../src/privacy/SensitiveAmountToggle";
+import { financeApi } from "../../src/api/finance";
+import type { PaymentOccurrence, PaymentRule } from "../../src/api/types";
+import { DataStateCard } from "../../src/components/DataStateCard";
+import { floatingTabBarHeight } from "../../src/components/FintTabBar";
+import { OccurrencePaymentSheet } from "../../src/components/OccurrencePaymentSheet";
+import { useCategoryIcons } from "../../src/finance/useCategoryIcons";
+import { usePressOnce } from "../../src/hooks/usePressOnce";
+import { getAppLocale } from "../../src/i18n";
+import { buildPendingItems, groupHistory, groupPending, leadOccurrence, monthSummaries, type PendingGroupKey } from "../../src/payments/logic";
+import { HistoryRow, PaymentRow } from "../../src/payments/PaymentRow";
+import { useThemeMode } from "../../src/theme/ThemeMode";
+import { radius, space } from "../../src/theme/tokens";
+import { fontFace } from "../../src/theme/typography";
+import { Amount, FintButton, FintCard, FintConfirmDialog, FintSheet, FText, IconButton, ListRow, PressableScale, SegmentedControl } from "../../src/ui";
+import { AmountSkeleton } from "../../src/ui/AmountSkeleton";
+import { useNotify } from "../../src/ui/notify";
 
 type PaymentsTab = "pending" | "history";
 
-type PendingItem =
-  | { kind: "single"; occurrence: PaymentOccurrence }
-  | { kind: "group"; ruleId: string; periods: PaymentOccurrence[] };
-
-function pendingItemDueDate(item: PendingItem): string | null {
-  return item.kind === "group" ? item.periods[0].dueDate : item.occurrence.dueDate;
+function capitalize(text: string) {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-function buildPendingItems(occurrences: PaymentOccurrence[]): PendingItem[] {
-  const byRule = new Map<string, PaymentOccurrence[]>();
-  const standalone: PaymentOccurrence[] = [];
-  for (const occurrence of occurrences) {
-    if (!occurrence.ruleId) {
-      standalone.push(occurrence);
-      continue;
-    }
-    const list = byRule.get(occurrence.ruleId) ?? [];
-    list.push(occurrence);
-    byRule.set(occurrence.ruleId, list);
-  }
-  const items: PendingItem[] = [];
-  for (const [ruleId, periods] of byRule) {
-    const sorted = [...periods].sort((a, b) =>
-      String(a.dueDate).localeCompare(String(b.dueDate)),
-    );
-    items.push(
-      sorted.length > 1
-        ? { kind: "group", ruleId, periods: sorted }
-        : { kind: "single", occurrence: sorted[0] },
-    );
-  }
-  for (const occurrence of standalone) items.push({ kind: "single", occurrence });
-  return items.sort((a, b) => {
-    const dueA = pendingItemDueDate(a);
-    const dueB = pendingItemDueDate(b);
-    if (!dueA) return 1;
-    if (!dueB) return -1;
-    return dueA.localeCompare(dueB);
-  });
-}
-
-type HistoryGroup = { key: string; label: string; items: PaymentOccurrence[] };
-
-function groupHistory(occurrences: PaymentOccurrence[], locale: string): HistoryGroup[] {
-  const sorted = [...occurrences].sort((a, b) => {
-    const dateA = a.paidAt ?? a.dueDate ?? "";
-    const dateB = b.paidAt ?? b.dueDate ?? "";
-    return dateB.localeCompare(dateA);
-  });
-  const groups: HistoryGroup[] = [];
-  for (const occurrence of sorted) {
-    const date = parseDateString(occurrence.paidAt ?? occurrence.dueDate);
-    const key = date ? `${date.getFullYear()}-${date.getMonth()}` : "unknown";
-    let group = groups.find((item) => item.key === key);
-    if (!group) {
-      const rawLabel = date
-        ? new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" }).format(date)
-        : "";
-      group = {
-        key,
-        label: rawLabel ? rawLabel.charAt(0).toLocaleUpperCase(locale) + rawLabel.slice(1) : "",
-        items: [],
-      };
-      groups.push(group);
-    }
-    group.items.push(occurrence);
-  }
-  return groups;
-}
-
-export default function DebtsScreen() {
+/**
+ * Tab Pagos v3: título con el botón para crear un pago recurrente, el resumen
+ * del mes (falta pagar, barra de lo pagado, activos), Pendientes e Historial,
+ * y los pendientes agrupados en Vencido, Esta semana y Más adelante.
+ *
+ * Conserva la lógica anterior: ocurrencias abiertas y pagadas, la hoja de pago
+ * que ya existe, editar y eliminar la regla, y los períodos atrasados de una
+ * misma regla en una sola fila, cada uno pagable por separado.
+ */
+export default function PaymentsScreen() {
   const { t, i18n } = useTranslation();
+  const locale = getAppLocale(i18n.resolvedLanguage);
   const router = useRouter();
   const queryClient = useQueryClient();
   const toast = useNotify();
+  const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const { themeMode } = useThemeMode();
   const { capabilities } = useCapabilities();
-  const [tab, setTab] = useState<PaymentsTab>("pending");
-  const [paymentOccurrence, setPaymentOccurrence] =
-    useState<PaymentOccurrence | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<PaymentOccurrence | null>(
-    null,
-  );
+  const iconFor = useCategoryIcons();
   const pressOnce = usePressOnce();
-  const locale = getAppLocale(i18n.resolvedLanguage);
 
-  const occurrencesQuery = useQuery({
-    queryKey: ["payment-occurrences", "open"],
-    queryFn: ({ signal }) =>
-      financeApi.listPaymentOccurrences({ status: "open" }, signal),
-  });
-  const historyQuery = useQuery({
-    queryKey: ["payment-occurrences", "paid"],
-    queryFn: ({ signal }) =>
-      financeApi.listPaymentOccurrences({ status: "paid" }, signal),
-    enabled: tab === "history",
-  });
-  const accountsQuery = useQuery({
-    queryKey: [
-      "account-options",
-      "occurrence-payment",
-      paymentOccurrence?.currency,
-    ],
-    queryFn: () =>
-      financeApi.listAccountOptions({
-        currency: paymentOccurrence?.currency,
-        excludeAccountType: "credit_card",
-      }),    enabled: Boolean(paymentOccurrence),
-  });
+  const [tab, setTab] = useState<PaymentsTab>("pending");
+  const [paymentOccurrence, setPaymentOccurrence] = useState<PaymentOccurrence | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<PaymentOccurrence | null>(null);
+  const [summaryCurrency, setSummaryCurrency] = useState("");
+  const [currencySheet, setCurrencySheet] = useState(false);
+  const [pulling, setPulling] = useState(false);
 
-  const occurrences = occurrencesQuery.data ?? [];
-  const accounts = accountsQuery.data ?? [];
-  const pendingItems = useMemo(() => buildPendingItems(occurrences), [occurrences]);
-  const displayCurrency = occurrences[0]?.currency ?? "PEN";
-  const totalOutstanding = occurrences
-    .filter((item) => item.currency === displayCurrency)
-    .reduce((sum, item) => sum + (item.remainingAmount ?? 0), 0);
-  const nextDueDebt = [...occurrences]
-    .filter((item) => item.dueDate)
-    .sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)))[0];
-  const isLoading = occurrencesQuery.isLoading;
-  const isRefreshing = occurrencesQuery.isRefetching;
-  const error = occurrencesQuery.error;
-
-  const history = historyQuery.data ?? [];
-  const historyGroups = useMemo(() => groupHistory(history, locale), [history, locale]);
-  const sortedHistory = useMemo(
-    () =>
-      [...history].sort((a, b) =>
-        (b.paidAt ?? b.dueDate ?? "").localeCompare(a.paidAt ?? a.dueDate ?? ""),
-      ),
-    [history],
+  // El fondo de esta pantalla es `canvas`: la barra de estado va con iconos oscuros en claro.
+  useFocusEffect(
+    useCallback(() => {
+      setStatusBarStyle(themeMode === "dark" ? "light" : "dark");
+      return () => setStatusBarStyle("light");
+    }, [themeMode]),
   );
-  const historyDisplayCurrency = history[0]?.currency ?? "PEN";
-  const now = new Date();
-  const paidThisMonthTotal = history
-    .filter((item) => {
-      if (item.currency !== historyDisplayCurrency) return false;
-      const paidDate = parseDateString(item.paidAt);
-      return (
-        paidDate !== null &&
-        paidDate.getFullYear() === now.getFullYear() &&
-        paidDate.getMonth() === now.getMonth()
-      );
-    })
-    .reduce((sum, item) => sum + (item.totalAmount ?? item.paidAmount ?? 0), 0);
-  const historyLoading = historyQuery.isLoading;
-  const historyError = historyQuery.error;
 
-  const activeLoading = tab === "pending" ? isLoading : historyLoading;
-  const activeError = tab === "pending" ? error : historyError;
+  const openQuery = useQuery({
+    queryKey: ["payment-occurrences", "open"],
+    queryFn: ({ signal }) => financeApi.listPaymentOccurrences({ status: "open" }, signal),
+  });
+  // Los pagados alimentan el Historial y también lo pagado del resumen del mes.
+  const paidQuery = useQuery({
+    queryKey: ["payment-occurrences", "paid"],
+    queryFn: ({ signal }) => financeApi.listPaymentOccurrences({ status: "paid" }, signal),
+  });
+  const rulesQuery = useQuery({ queryKey: ["payment-rules"], queryFn: financeApi.listPaymentRules });
+  const accountsQuery = useQuery({
+    queryKey: ["account-options", "occurrence-payment", paymentOccurrence?.currency],
+    queryFn: () => financeApi.listAccountOptions({ currency: paymentOccurrence?.currency, excludeAccountType: "credit_card" }),
+    enabled: Boolean(paymentOccurrence),
+  });
+
+  // Un solo "hoy" para los grupos y el resumen; se renueva cada vez que llegan datos (al volver a la pestaña o al tirar).
+  const today = useMemo(() => new Date(), [openQuery.dataUpdatedAt]);
+  const open = useMemo(() => openQuery.data ?? [], [openQuery.data]);
+  const paid = useMemo(() => paidQuery.data ?? [], [paidQuery.data]);
+  const rules = useMemo(() => new Map((rulesQuery.data ?? []).map((r) => [r.id, r])), [rulesQuery.data]);
+
+  const groups = useMemo(() => groupPending(buildPendingItems(open), today), [open, today]);
+  const history = useMemo(() => groupHistory(paid), [paid]);
+  const summaries = useMemo(() => monthSummaries(open, paid, today), [open, paid, today]);
+  const currencies = summaries.map((s) => s.currency);
+  const summary = summaries.find((s) => s.currency === summaryCurrency) ?? summaries[0];
+  const currency = summary?.currency ?? open[0]?.currency ?? "PEN";
+  const activeCount = rulesQuery.data
+    ? rulesQuery.data.filter((r) => r.status === "active" && r.currency === currency).length
+    : new Set(open.filter((o) => o.currency === currency && o.ruleId).map((o) => o.ruleId)).size;
+
+  const emojiFor = (rule: PaymentRule | undefined) => (rule?.category ? iconFor(rule.category, "expense") : null);
 
   const openCreate = () =>
     pressOnce(() =>
-      capabilities.features.recurringPayments
-        ? router.push("/debt-form")
-        : toast.show(t("payments.disabled"), { preset: "error" }),
+      capabilities.features.recurringPayments ? router.push("/debt-form") : toast.show(t("payments.disabled"), { preset: "error" }),
     );
+  const openEdit = (ruleId: string) => router.push({ pathname: "/debt-form", params: { ruleId } });
+
   const deleteMutation = useMutation({
     mutationFn: financeApi.deletePaymentRule,
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["payment-rules"] }),
-        queryClient.invalidateQueries({ queryKey: ["payment-occurrences"] }),
-        queryClient.invalidateQueries({ queryKey: ["summary"] }),
-        queryClient.invalidateQueries({ queryKey: ["reports"] }),
-      ]);
+      await Promise.all(
+        ["payment-rules", "payment-occurrences", "summary", "reports"].map((key) => queryClient.invalidateQueries({ queryKey: [key] })),
+      );
       setDeleteTarget(null);
-      toast.show(t("payments.deletedToast"), {
-        message: t("payments.deletedMessage"),
-        preset: "success",
-      });
+      toast.show(t("payments.deletedToast"), { message: t("payments.deletedMessage"), preset: "success" });
     },
     onError: () => toast.show(t("payments.deleteError"), { preset: "error" }),
   });
+
+  // El resumen espera también a los pagados: si no, mostraría "Pagado S/ 0.00" un instante.
+  const summaryLoading = openQuery.isLoading || paidQuery.isLoading;
+  // Dentro de la frase el mes va en minúscula ("Falta pagar en setiembre"); en inglés, como lo da Intl.
+  const monthRaw = new Intl.DateTimeFormat(locale, { month: "long" }).format(today);
+  const monthName = i18n.resolvedLanguage === "en" ? monthRaw : monthRaw.toLocaleLowerCase(locale);
+  const hasRules = (rulesQuery.data?.length ?? 0) > 0;
+
+  const pendingList = groups.map((group) => (
+    <YStack key={group.key}>
+      <GroupHeader group={group.key} count={group.items.length} />
+      <YStack px={space[4]}>
+        {group.items.map((item, i) => {
+          const lead = leadOccurrence(item);
+          const rule = lead.ruleId ? rules.get(lead.ruleId) : undefined;
+          return (
+            <PaymentRow
+              key={item.kind === "group" ? item.ruleId : item.occurrence.id}
+              item={item}
+              rule={rule}
+              emoji={emojiFor(rule)}
+              first={i === 0}
+              last={i === group.items.length - 1}
+              late={group.key === "overdue"}
+              today={today}
+              onPay={setPaymentOccurrence}
+              onEdit={lead.ruleId ? () => openEdit(lead.ruleId!) : undefined}
+              onDelete={lead.ruleId ? () => setDeleteTarget(lead) : undefined}
+            />
+          );
+        })}
+      </YStack>
+    </YStack>
+  ));
+
+  const historyList = history.map((group) => (
+    <YStack key={group.key}>
+      <XStack px={space[4]} pt={18} pb={8}>
+        <FText variant="body-strong" style={{ fontSize: 13 }}>
+          {group.date ? capitalize(`${new Intl.DateTimeFormat(locale, { month: "long" }).format(group.date)} ${group.date.getFullYear()}`) : "—"}
+        </FText>
+      </XStack>
+      <YStack px={space[4]}>
+        {group.items.map((occurrence, i) => (
+          <HistoryRow
+            key={occurrence.id}
+            occurrence={occurrence}
+            emoji={emojiFor(occurrence.ruleId ? rules.get(occurrence.ruleId) : undefined)}
+            first={i === 0}
+            last={i === group.items.length - 1}
+          />
+        ))}
+      </YStack>
+    </YStack>
+  ));
+
+  const activeQuery = tab === "pending" ? openQuery : paidQuery;
+  let body: React.ReactNode;
+  // Las filas esperan también a las reglas (emoji y frecuencia) para no reacomodarse al llegar.
+  if (activeQuery.isLoading || rulesQuery.isLoading) body = <ListSkeleton />;
+  else if (activeQuery.error)
+    body = (
+      <View mx={space[4]} mt={space[4]}>
+        <DataStateCard message={t("states.error")} onRetry={() => void activeQuery.refetch()} />
+      </View>
+    );
+  else if (tab === "pending" && groups.length === 0)
+    body = hasRules ? (
+      <EmptyState icon={<CalendarCheck size={22} color="$flowIn" />} title={t("paymentsTab.caughtUpTitle")} hint={t("paymentsTab.caughtUpHint")} />
+    ) : (
+      <EmptyState
+        icon={<Repeat size={22} color="$inkMuted" />}
+        title={t("paymentsTab.emptyTitle")}
+        action={capabilities.features.recurringPayments ? { label: t("paymentsTab.emptyAction"), onPress: openCreate } : undefined}
+      />
+    );
+  else if (tab === "history" && history.length === 0)
+    body = (
+      <EmptyState icon={<CalendarCheck size={22} color="$inkMuted" />} title={t("payments.historyEmptyTitle")} hint={t("payments.historyEmptyDescription")} />
+    );
+  else body = tab === "pending" ? pendingList : historyList;
+
   return (
-    <>
-      <Screen
-        isRefreshing={isRefreshing}
-        onRefresh={() => {
-          void occurrencesQuery.refetch();
-          if (tab === "history") void historyQuery.refetch();
-        }}
-        ground={
-          !activeLoading && !activeError ? (
-            tab === "pending" ? (
-              <DebtHero
-                count={pendingItems.length}
-                currency={displayCurrency}
-                nextDueDate={nextDueDebt?.dueDate ?? null}
-                total={totalOutstanding}
-              />
-            ) : (
-              <HistoryHero
-                count={sortedHistory.length}
-                currency={historyDisplayCurrency}
-                lastPaidAt={sortedHistory[0]?.paidAt ?? null}
-                total={paidThisMonthTotal}
-              />
-            )
-          ) : (
-            <YStack gap="$2">
-              <SkeletonBlock height={14} width="42%" opacity={0.5} />
-              <SkeletonBlock height={40} width="70%" opacity={0.5} />
-            </YStack>
-          )
+    <YStack flex={1} bg="$canvas" pt={insets.top}>
+      <ScrollView
+        contentContainerStyle={{ paddingTop: space[2], paddingBottom: floatingTabBarHeight(insets.bottom) + space[4] }}
+        refreshControl={
+          <RefreshControl
+            // Solo cuando la persona tira: las recargas en segundo plano no muestran spinner.
+            refreshing={pulling}
+            onRefresh={() => {
+              setPulling(true);
+              void Promise.all([openQuery.refetch(), paidQuery.refetch(), rulesQuery.refetch()]).finally(() => setPulling(false));
+            }}
+            tintColor={theme.brand.val}
+            colors={[theme.brand.val]}
+            progressBackgroundColor={theme.surface.val}
+          />
         }
       >
-        <PaymentsTabs active={tab} onChange={setTab} />
-
-        <XStack items="center" justify="space-between" gap="$3">
-          <YStack gap="$1" flex={1}>
-            <Paragraph
-              color="$color12"
-              fontFamily="$heading"
-              fontSize="$6"
-              fontWeight="600"
-            >
-              {tab === "pending" ? t("payments.upcoming") : t("payments.historyTitle")}
-            </Paragraph>
-            {tab === "pending" && !isLoading ? (
-              <Paragraph color="$color10" fontSize="$2">
-                {t("payments.count", { count: pendingItems.length })}
-              </Paragraph>
-            ) : null}
-            {tab === "history" && !historyLoading ? (
-              <Paragraph color="$color10" fontSize="$2">
-                {t("payments.count", { count: sortedHistory.length })}
-              </Paragraph>
-            ) : null}
-          </YStack>
-          {tab === "pending" && capabilities.features.recurringPayments ? (
-            <Button
-              circular
-              bg="$primary"
-              icon={<Plus size={22} color="$primaryForeground" />}
-              onPress={openCreate}
-              aria-label={t("payments.newRecurring")}
-            />
+        {/* Título y crear pago recurrente. */}
+        <XStack items="center" justify="space-between" px={space[4]} gap={space[3]}>
+          <FText variant="display-lg" accessibilityRole="header">
+            {t("paymentsTab.title")}
+          </FText>
+          {capabilities.features.recurringPayments ? (
+            <IconButton tone="brand" label={t("payments.newRecurring")} icon={<Plus size={20} color="$onBrand" strokeWidth={2.2} />} onPress={openCreate} />
           ) : null}
         </XStack>
 
-        {activeLoading ? (
-          <SkeletonGroup label={t("states.loading")}>
-            <SkeletonList rows={3} />
-          </SkeletonGroup>
-        ) : null}
-        {activeError ? (
-          <DataStateCard
-            message={activeError instanceof Error ? activeError.message : t("states.error")}
-            onRetry={() => {
-              if (tab === "pending") void occurrencesQuery.refetch();
-              else void historyQuery.refetch();
-            }}
-          />
-        ) : null}
-
-        {tab === "pending" && !isLoading && !error && pendingItems.length === 0 ? (
-          <FintCard items="center" gap="$3" py="$6">
-            <YStack
-              width={54}
-              height={54}
-              rounded="$10"
-              bg="$secondary"
-              items="center"
-              justify="center"
-            >
-              <HandCoins size={26} color="$primary" />
-            </YStack>
-            <Paragraph
-              color="$color12"
-              fontFamily="$heading"
-              fontSize="$5"
-              fontWeight="600"
-            >
-              {t("payments.emptyTitle")}
-            </Paragraph>
-            <Paragraph color="$color10" text="center" maxW={280}>
-              {t("payments.emptyDescription")}
-            </Paragraph>
-            {capabilities.features.recurringPayments ? (
-              <FintButton icon={<Plus size={16} />} onPress={openCreate}>
-                {t("payments.newRecurring")}
-              </FintButton>
+        {/* Resumen del mes: lleva riel porque el total es un límite conocido. */}
+        <FintCard mx={space[4]} mt={space[4]} p={space[5]}>
+          <XStack items="center" justify="space-between" gap={space[3]}>
+            <FText variant="label" tone="inkMuted" style={{ fontSize: 13, fontFamily: fontFace.sans[400] }}>
+              {t("paymentsTab.remaining", { month: monthName })}
+            </FText>
+            {currencies.length > 1 ? (
+              <PressableScale onPress={() => setCurrencySheet(true)} haptic="tap" accessibilityRole="button" accessibilityLabel={`${t("paymentsTab.currency")}: ${currency}`}>
+                <XStack height={28} pl={10} pr={8} gap={4} items="center" rounded={radius.pill} borderWidth={1} borderColor="$lineStrong">
+                  <FText variant="caption" style={{ fontFamily: fontFace.sans[600] }}>
+                    {currency}
+                  </FText>
+                  <ChevronDown size={14} color="$ink" strokeWidth={2.2} />
+                </XStack>
+              </PressableScale>
             ) : null}
-          </FintCard>
-        ) : null}
+          </XStack>
+          {summaryLoading ? (
+            <View mt={8} mb={2}>
+              <AmountSkeleton width={170} height={26} />
+            </View>
+          ) : (
+            <Amount value={summary?.remaining ?? 0} currency={currency} variant="amount-lg" style={{ fontSize: 30, lineHeight: 34, letterSpacing: -1, marginTop: 2 }} />
+          )}
+          <View height={8} mt={16} mb={10} rounded={radius.pill} bg="$chartTrack" overflow="hidden">
+            {summary && summary.total > 0 ? (
+              <View width={`${Math.round((summary.paid / summary.total) * 100)}%`} height="100%" rounded={radius.pill} bg="$flowIn" />
+            ) : null}
+          </View>
+          <XStack justify="space-between" items="center" gap={space[3]}>
+            <XStack items="center" gap={4} shrink={1} flexWrap="wrap">
+              <FText variant="caption" tone="inkMuted">
+                {t("paymentsTab.paid")}
+              </FText>
+              <Amount value={summary?.paid ?? 0} currency={currency} variant="amount-sm" style={{ fontSize: 12, lineHeight: 16 }} />
+              <FText variant="caption" tone="inkMuted">
+                {t("paymentsTab.of")}
+              </FText>
+              <Amount value={summary?.total ?? 0} currency={currency} variant="amount-sm" style={{ fontSize: 12, lineHeight: 16 }} />
+            </XStack>
+            <FText variant="caption" tone="inkMuted">
+              {t("paymentsTab.active", { count: activeCount })}
+            </FText>
+          </XStack>
+        </FintCard>
 
-        {tab === "pending" && !isLoading && !error
-          ? pendingItems.map((item) =>
-              item.kind === "group" ? (
-                <OccurrenceGroupCard
-                  key={item.ruleId}
-                  periods={item.periods}
-                  isDeleting={
-                    deleteMutation.isPending && deleteTarget?.ruleId === item.ruleId
-                  }
-                  locale={locale}
-                  onDelete={() => setDeleteTarget(item.periods[0])}
-                  onEdit={() =>
-                    router.push({
-                      pathname: "/debt-form",
-                      params: { ruleId: item.ruleId },
-                    })
-                  }
-                  onPayPeriod={(occurrence) => setPaymentOccurrence(occurrence)}
-                />
-              ) : (
-                <OccurrenceCard
-                  key={item.occurrence.id}
-                  occurrence={item.occurrence}
-                  isDeleting={
-                    deleteMutation.isPending &&
-                    deleteTarget?.ruleId === item.occurrence.ruleId
-                  }
-                  locale={locale}
-                  onDelete={() => setDeleteTarget(item.occurrence)}
-                  onEdit={() =>
-                    item.occurrence.ruleId &&
-                    router.push({
-                      pathname: "/debt-form",
-                      params: { ruleId: item.occurrence.ruleId },
-                    })
-                  }
-                  onPay={() => setPaymentOccurrence(item.occurrence)}
-                />
-              ),
-            )
-          : null}
+        <View mx={space[4]} mt={space[4]}>
+          <SegmentedControl
+            options={[
+              { value: "pending", label: t("paymentsTab.tabs.pending") },
+              { value: "history", label: t("paymentsTab.tabs.history") },
+            ]}
+            value={tab}
+            onChange={setTab}
+            accessibilityLabel={t("paymentsTab.tabsLabel")}
+          />
+        </View>
 
-        {tab === "history" && !historyLoading && !historyError && sortedHistory.length === 0 ? (
-          <FintCard items="center" gap="$3" py="$6">
-            <YStack
-              width={54}
-              height={54}
-              rounded="$10"
-              bg="$secondary"
-              items="center"
-              justify="center"
-            >
-              <CheckCircle2 size={26} color="$primary" />
-            </YStack>
-            <Paragraph
-              color="$color12"
-              fontFamily="$heading"
-              fontSize="$5"
-              fontWeight="600"
-            >
-              {t("payments.historyEmptyTitle")}
-            </Paragraph>
-            <Paragraph color="$color10" text="center" maxW={280}>
-              {t("payments.historyEmptyDescription")}
-            </Paragraph>
-          </FintCard>
-        ) : null}
-
-        {tab === "history" && !historyLoading && !historyError
-          ? historyGroups.flatMap((group) => [
-              <Paragraph
-                key={`label-${group.key}`}
-                color="$color10"
-                fontSize="$2"
-                fontWeight="600"
-              >
-                {group.label}
-              </Paragraph>,
-              ...group.items.map((occurrence) => (
-                <HistoryRow key={occurrence.id} occurrence={occurrence} locale={locale} />
-              )),
-            ])
-          : null}
-      </Screen>
+        {body}
+      </ScrollView>
 
       <OccurrencePaymentSheet
-        accounts={accounts}
+        accounts={accountsQuery.data ?? []}
         occurrence={paymentOccurrence}
         open={Boolean(paymentOccurrence)}
-        onOpenChange={(open) => !open && setPaymentOccurrence(null)}
+        onOpenChange={(next) => !next && setPaymentOccurrence(null)}
       />
-      <DeletePaymentRuleDialog
-        occurrence={deleteTarget}
+      <FintSheet open={currencySheet} onClose={() => setCurrencySheet(false)} title={t("paymentsTab.currency")}>
+        <View height={8} />
+        {currencies.map((c, i) => (
+          <ListRow
+            key={c}
+            divider={i > 0}
+            title={c}
+            trailing={c === currency ? <Check size={18} color="$brand" strokeWidth={2.4} /> : undefined}
+            onPress={() => {
+              setSummaryCurrency(c);
+              setCurrencySheet(false);
+            }}
+          />
+        ))}
+      </FintSheet>
+      <FintConfirmDialog
+        open={Boolean(deleteTarget)}
         isPending={deleteMutation.isPending}
+        title={t("payments.deleteRecurring")}
+        description={t("payments.deleteDescription", { title: deleteTarget?.title ?? "" })}
+        cancelLabel={t("actions.cancel")}
+        confirmLabel={t("actions.delete")}
+        pendingLabel={t("payments.deleting")}
+        destructive
+        icon={<Trash2 size={17} color="$onDanger" />}
         onCancel={() => setDeleteTarget(null)}
-        onConfirm={() =>
-          deleteTarget?.ruleId && deleteMutation.mutate(deleteTarget.ruleId)
-        }
+        onConfirm={() => deleteTarget?.ruleId && deleteMutation.mutate(deleteTarget.ruleId)}
       />
-    </>
+    </YStack>
   );
 }
 
-function PaymentsTabs({
-  active,
-  onChange,
-}: {
-  active: PaymentsTab;
-  onChange: (tab: PaymentsTab) => void;
-}) {
+/** "Vencido 1" en `dangerHard` con el icono de alerta; "Esta semana 2" y "Más adelante 2" en `ink`. */
+function GroupHeader({ group, count }: { group: PendingGroupKey; count: number }) {
   const { t } = useTranslation();
+  const late = group === "overdue";
   return (
-    <XStack bg="$secondary" rounded="$5" p="$1" gap="$1">
-      <PaymentsTabButton
-        active={active === "pending"}
-        label={t("payments.tabPending")}
-        onPress={() => onChange("pending")}
-      />
-      <PaymentsTabButton
-        active={active === "history"}
-        label={t("payments.tabHistory")}
-        onPress={() => onChange("history")}
-      />
+    <XStack items="center" gap={6} px={space[4]} pt={18} pb={8} accessibilityRole="header">
+      {late ? <AlertTriangle size={14} color="$dangerHard" strokeWidth={2.4} /> : null}
+      <FText variant="body-strong" tone={late ? "dangerHard" : "ink"} style={{ fontSize: 13 }}>
+        {t(`paymentsTab.groups.${group}`)}
+      </FText>
+      <FText variant="caption" tone="inkFaint" style={{ fontFamily: fontFace.mono[500] }}>
+        {String(count)}
+      </FText>
     </XStack>
   );
 }
 
-function PaymentsTabButton({
-  active,
-  label,
-  onPress,
-}: {
-  active: boolean;
-  label: string;
-  onPress: () => void;
-}) {
+function EmptyState({ icon, title, hint, action }: { icon: React.ReactNode; title: string; hint?: string; action?: { label: string; onPress: () => void } }) {
   return (
-    <Button
-      flex={1}
-      size="$3"
-      bg={active ? "$card" : "transparent"}
-      color={active ? "$color12" : "$primaryStrong"}
-      fontWeight="600"
-      rounded="$4"
-      pressStyle={{ opacity: 0.85 }}
-      onPress={onPress}
-    >
-      {label}
-    </Button>
-  );
-}
-
-function OccurrenceCard({
-  isDeleting,
-  locale,
-  occurrence,
-  onDelete,
-  onEdit,
-  onPay,
-}: {
-  isDeleting: boolean;
-  locale: string;
-  occurrence: PaymentOccurrence;
-  onDelete: () => void;
-  onEdit: () => void;
-  onPay: () => void;
-}) {
-  const { t } = useTranslation();
-  const { formatSensitiveAmount } = useSensitiveMoney();
-  const due = getDueState(occurrence.dueDate, locale, t);
-  const amount = occurrence.totalAmount ?? occurrence.remainingAmount ?? 0;
-  const isPaid = occurrence.paymentStatus === "paid";
-  // Legacy credit_card items are read-only history; the app no longer supports paying them.
-  const isLegacy = occurrence.kind === "credit_card";
-  return (
-    <SwipeableRow
-      enabled={!isDeleting}
-      onAction={onDelete}
-      actionIcon={<Trash2 size={20} color="white" />}
-      actionLabel={t("payments.deleteRecurring")}
-    >
-    <FintCard
-      p="$3"
-      gap="$3"
-      onPress={onEdit}
-      role="button"
-      cursor="pointer"
-      transition="quick"
-      pressStyle={{ scale: 0.98, bg: "$secondary" }}
-    >
-      <XStack items="flex-start" gap="$3">
-        <YStack
-          width={42}
-          height={42}
-          rounded="$9"
-          bg={due.overdue ? "$red2" : "$secondary"}
-          items="center"
-          justify="center"
-        >
-          <CalendarClock
-            size={21}
-            color={due.overdue ? "$red10" : "$primary"}
-          />
-        </YStack>
-        <YStack flex={1} minW={0} gap="$1">
-          <Paragraph
-            color="$color12"
-            fontFamily="$heading"
-            fontSize="$4"
-            fontWeight="600"
-            numberOfLines={1}
-          >
-            {occurrence.title}
-          </Paragraph>
-          <Paragraph
-            color={due.overdue ? "$red10" : "$color10"}
-            fontSize="$1"
-            fontWeight={due.overdue ? "700" : "500"}
-          >
-            {due.label}
-          </Paragraph>
-          {occurrence.autoPayEnabled && !isPaid ? (
-            <XStack>
-              <XStack
-                bg="$secondary"
-                rounded="$3"
-                px="$2"
-                py="$1"
-                gap="$1"
-                items="center"
-              >
-                <Landmark size={12} color="$primary" />
-                <Paragraph color="$primary" fontSize="$1" fontWeight="600">
-                  {t("payments.autoPayBadge")}
-                </Paragraph>
-              </XStack>
-            </XStack>
-          ) : null}
-        </YStack>
-        <YStack items="flex-end" gap="$1">
-          <Paragraph color="$color12" fontSize="$4" fontWeight="600" shrink={0}>
-            {formatSensitiveAmount(amount, occurrence.currency)}
-          </Paragraph>
-          <Paragraph color="$color10" fontSize="$1">
-            {statusLabel(occurrence.paymentStatus, t)}
-          </Paragraph>
-          <XStack gap="$1">
-            {!isLegacy ? (
-              <Button
-                circular
-                chromeless
-                size="$3"
-                disabled={isPaid}
-                icon={<CheckCircle2 size={19} color={isPaid ? "$color8" : "$primary"} />}
-                onPress={(event) => {
-                  event.stopPropagation();
-                  onPay();
-                }}
-                aria-label={t("payments.registerPayment")}
-              />
-            ) : null}
-            <Button
-              circular
-              chromeless
-              size="$3"
-              disabled={isDeleting}
-              icon={
-                isDeleting ? (
-                  <FintSpinner size="small" color="$color8" />
-                ) : (
-                  <Trash2 size={16} color="$color8" />
-                )
-              }
-              pressStyle={{ bg: "$color4" }}
-              onPress={(event) => {
-                event.stopPropagation();
-                onDelete();
-              }}
-              aria-label={t("payments.deleteRecurring")}
-            />
-          </XStack>
-        </YStack>
-      </XStack>
-    </FintCard>
-    </SwipeableRow>
-  );
-}
-
-function OccurrenceGroupCard({
-  isDeleting,
-  locale,
-  periods,
-  onDelete,
-  onEdit,
-  onPayPeriod,
-}: {
-  isDeleting: boolean;
-  locale: string;
-  periods: PaymentOccurrence[];
-  onDelete: () => void;
-  onEdit: () => void;
-  onPayPeriod: (occurrence: PaymentOccurrence) => void;
-}) {
-  const { t } = useTranslation();
-  const { formatSensitiveAmount } = useSensitiveMoney();
-  const oldest = periods[0];
-  const due = getDueState(oldest.dueDate, locale, t);
-  const amount = oldest.totalAmount ?? oldest.remainingAmount ?? 0;
-  return (
-    <SwipeableRow
-      enabled={!isDeleting}
-      onAction={onDelete}
-      actionIcon={<Trash2 size={20} color="white" />}
-      actionLabel={t("payments.deleteRecurring")}
-    >
-    <FintCard
-      p="$3"
-      gap="$3"
-      onPress={onEdit}
-      role="button"
-      cursor="pointer"
-      transition="quick"
-      pressStyle={{ scale: 0.98, bg: "$secondary" }}
-    >
-      <XStack items="flex-start" gap="$3">
-        <YStack
-          width={42}
-          height={42}
-          rounded="$9"
-          bg="$red2"
-          items="center"
-          justify="center"
-        >
-          <CalendarClock size={21} color="$red10" />
-        </YStack>
-        <YStack flex={1} minW={0} gap="$1">
-          <Paragraph
-            color="$color12"
-            fontFamily="$heading"
-            fontSize="$4"
-            fontWeight="600"
-            numberOfLines={1}
-          >
-            {oldest.title}
-          </Paragraph>
-          <Paragraph color="$red10" fontSize="$1" fontWeight="700">
-            {due.label}
-          </Paragraph>
-          <XStack>
-            <XStack bg="$red2" rounded="$3" px="$2" py="$1">
-              <Paragraph color="$red10" fontSize="$1" fontWeight="700">
-                {t("payments.periodsPending", { count: periods.length })}
-              </Paragraph>
-            </XStack>
-          </XStack>
-          <XStack gap="$3" mt="$1">
-            {periods.map((period, index) => (
-              <YStack
-                key={period.id}
-                items="center"
-                gap="$0.5"
-                role="button"
-                pressStyle={{ opacity: 0.6 }}
-                onPress={(event) => {
-                  event.stopPropagation();
-                  onPayPeriod(period);
-                }}
-                aria-label={t("payments.registerPayment")}
-              >
-                <YStack
-                  width={9}
-                  height={9}
-                  rounded={999}
-                  bg={index === 0 ? "$red9" : "$color6"}
-                />
-                <Paragraph
-                  color={index === 0 ? "$red10" : "$color9"}
-                  fontSize={9}
-                  fontWeight="600"
-                  textTransform="uppercase"
-                >
-                  {parseDateString(period.dueDate)
-                    ? new Intl.DateTimeFormat(locale, { month: "short" }).format(
-                        parseDateString(period.dueDate) as Date,
-                      )
-                    : ""}
-                </Paragraph>
-              </YStack>
-            ))}
-          </XStack>
-        </YStack>
-        <YStack items="flex-end" gap="$1">
-          <Paragraph color="$color12" fontSize="$4" fontWeight="600" shrink={0}>
-            {formatSensitiveAmount(amount, oldest.currency)}
-          </Paragraph>
-          <Paragraph color="$color10" fontSize="$1">
-            {statusLabel(oldest.paymentStatus, t)}
-          </Paragraph>
-          <XStack gap="$1">
-            <Button
-              circular
-              chromeless
-              size="$3"
-              icon={<CheckCircle2 size={19} color="$primary" />}
-              onPress={(event) => {
-                event.stopPropagation();
-                onPayPeriod(oldest);
-              }}
-              aria-label={t("payments.registerPayment")}
-            />
-            <Button
-              circular
-              chromeless
-              size="$3"
-              disabled={isDeleting}
-              icon={
-                isDeleting ? (
-                  <FintSpinner size="small" color="$color8" />
-                ) : (
-                  <Trash2 size={16} color="$color8" />
-                )
-              }
-              pressStyle={{ bg: "$color4" }}
-              onPress={(event) => {
-                event.stopPropagation();
-                onDelete();
-              }}
-              aria-label={t("payments.deleteRecurring")}
-            />
-          </XStack>
-        </YStack>
-      </XStack>
-    </FintCard>
-    </SwipeableRow>
-  );
-}
-
-function HistoryRow({
-  locale,
-  occurrence,
-}: {
-  locale: string;
-  occurrence: PaymentOccurrence;
-}) {
-  const { t } = useTranslation();
-  const { formatSensitiveAmount } = useSensitiveMoney();
-  const amount = occurrence.totalAmount ?? occurrence.paidAmount;
-  const dateLabel = occurrence.paidAt ? formatDateString(occurrence.paidAt, locale) : null;
-  const subtitle = dateLabel
-    ? occurrence.paidAccount
-      ? t("payments.paidOnWithAccount", { date: dateLabel, account: occurrence.paidAccount })
-      : t("payments.paidOn", { date: dateLabel })
-    : t("payments.statusPaid");
-  return (
-    <FintCard p="$3">
-      <XStack items="center" gap="$3">
-        <YStack
-          width={42}
-          height={42}
-          rounded="$9"
-          bg="$green2"
-          items="center"
-          justify="center"
-        >
-          <CheckCircle2 size={20} color="$green10" />
-        </YStack>
-        <YStack flex={1} minW={0} gap="$1">
-          <Paragraph color="$color12" fontSize="$3" fontWeight="600" numberOfLines={1}>
-            {occurrence.title}
-          </Paragraph>
-          <Paragraph color="$color10" fontSize="$1" numberOfLines={1}>
-            {subtitle}
-          </Paragraph>
-        </YStack>
-        <Paragraph color="$color12" fontSize="$3" fontWeight="600">
-          {formatSensitiveAmount(amount, occurrence.currency)}
-        </Paragraph>
-      </XStack>
-    </FintCard>
-  );
-}
-
-function DeletePaymentRuleDialog({
-  isPending,
-  occurrence,
-  onCancel,
-  onConfirm,
-}: {
-  isPending: boolean;
-  occurrence: PaymentOccurrence | null;
-  onCancel: () => void;
-  onConfirm: () => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <FintConfirmDialog
-      open={Boolean(occurrence)}
-      isPending={isPending}
-      title={t("payments.deleteRecurring")}
-      description={t("payments.deleteDescription", {
-        title: occurrence?.title ?? "",
-      })}
-      cancelLabel={t("actions.cancel")}
-      confirmLabel={t("actions.delete")}
-      pendingLabel={t("payments.deleting")}
-      destructive
-      icon={<Trash2 size={17} color="$primaryForeground" />}
-      onCancel={onCancel}
-      onConfirm={onConfirm}
-    />
-  );
-}
-
-function statusLabel(
-  status: PaymentOccurrence["paymentStatus"],
-  t: (key: string) => string,
-) {
-  // Fixed payments are binary: paid or pending. 'partial'/'minimum_met' only appear on
-  // legacy credit_card occurrences kept for history.
-  return status === "paid" ? t("payments.statusPaid") : t("payments.statusPending");
-}
-
-function DebtHero({
-  count,
-  currency,
-  nextDueDate,
-  total,
-}: {
-  count: number;
-  currency: string;
-  nextDueDate: string | null;
-  total: number;
-}) {
-  const { t, i18n } = useTranslation();
-  const { formatSensitiveAmountOnly } = useSensitiveMoney();
-  const locale = getAppLocale(i18n.resolvedLanguage);
-  return (
-    <YStack gap="$5">
-      <XStack items="flex-end" justify="space-between" gap="$4">
-        <YStack flex={1} minW={0}>
-          <Paragraph
-            color="$heroMuted"
-            fontSize={11}
-            fontWeight="600"
-            letterSpacing={1.4}
-            textTransform="uppercase"
-          >
-            {t("payments.totalPending")}
-          </Paragraph>
-          <XStack items="baseline" gap="$2" mt="$2">
-            <Paragraph color="$heroMuted" fontSize="$3" fontWeight="500">
-              {getCurrencySymbol(currency)}
-            </Paragraph>
-            <Paragraph
-              color="$heroForeground"
-              fontFamily="$body"
-              fontSize={40}
-              fontWeight="600"
-              letterSpacing={-1.2}
-              lineHeight={44}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-            >
-              {formatSensitiveAmountOnly(total)}
-            </Paragraph>
-          </XStack>
-        </YStack>
-        <SensitiveAmountToggle color="$heroAccent" inverse />
-      </XStack>
-
-      <YStack height={1} bg="rgba(246,251,252,0.13)" />
-
-      <XStack gap="$5">
-        <HeroMetric
-          label={t("payments.activePayments")}
-          value={String(count)}
-        />
-        <YStack width={1} bg="rgba(246,251,252,0.13)" />
-        <HeroMetric
-          label={t("payments.nextDue")}
-          value={
-            nextDueDate
-              ? formatDateString(nextDueDate, locale)
-              : t("debts.noDueDate")
-          }
-        />
-      </XStack>
+    <YStack items="center" gap={space[3]} px={space[6]} pt={space[8]}>
+      <View width={52} height={52} rounded={999} bg="$surfaceSunken" items="center" justify="center">
+        {icon}
+      </View>
+      <FText variant="heading" style={{ textAlign: "center" }}>
+        {title}
+      </FText>
+      {hint ? (
+        <FText variant="body" tone="inkMuted" style={{ textAlign: "center" }}>
+          {hint}
+        </FText>
+      ) : null}
+      {action ? (
+        <FintButton icon={<Plus size={16} />} onPress={action.onPress}>
+          {action.label}
+        </FintButton>
+      ) : null}
     </YStack>
   );
 }
 
-function HistoryHero({
-  count,
-  currency,
-  lastPaidAt,
-  total,
-}: {
-  count: number;
-  currency: string;
-  lastPaidAt: string | null;
-  total: number;
-}) {
-  const { t, i18n } = useTranslation();
-  const { formatSensitiveAmountOnly } = useSensitiveMoney();
-  const locale = getAppLocale(i18n.resolvedLanguage);
+function ListSkeleton() {
   return (
-    <YStack gap="$5">
-      <XStack items="flex-end" justify="space-between" gap="$4">
-        <YStack flex={1} minW={0}>
-          <Paragraph
-            color="$heroMuted"
-            fontSize={11}
-            fontWeight="600"
-            letterSpacing={1.4}
-            textTransform="uppercase"
-          >
-            {t("payments.paidThisMonth")}
-          </Paragraph>
-          <XStack items="baseline" gap="$2" mt="$2">
-            <Paragraph color="$heroMuted" fontSize="$3" fontWeight="500">
-              {getCurrencySymbol(currency)}
-            </Paragraph>
-            <Paragraph
-              color="$heroForeground"
-              fontFamily="$body"
-              fontSize={40}
-              fontWeight="600"
-              letterSpacing={-1.2}
-              lineHeight={44}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-            >
-              {formatSensitiveAmountOnly(total)}
-            </Paragraph>
+    <YStack px={space[4]} pt={18} gap={8}>
+      <AmountSkeleton width={110} height={14} />
+      <YStack rounded={radius.lg} borderWidth={1} borderColor="$line" bg="$surface" overflow="hidden">
+        {[0, 1, 2].map((i) => (
+          <XStack key={i} items="center" gap={space[3]} px={space[4]} py={space[3]} borderTopWidth={i ? 1 : 0} borderColor="$line">
+            <View width={38} height={38} rounded={radius.md} bg="$surfaceSunken" />
+            <YStack flex={1} gap={6}>
+              <AmountSkeleton width={120} height={12} />
+              <AmountSkeleton width={90} height={10} />
+            </YStack>
+            <YStack items="flex-end" gap={6}>
+              <AmountSkeleton width={70} height={12} />
+              <AmountSkeleton width={54} height={20} />
+            </YStack>
           </XStack>
-        </YStack>
-        <SensitiveAmountToggle color="$heroAccent" inverse />
-      </XStack>
-
-      <YStack height={1} bg="rgba(246,251,252,0.13)" />
-
-      <XStack gap="$5">
-        <HeroMetric
-          label={t("payments.paymentsLogged")}
-          value={String(count)}
-        />
-        <YStack width={1} bg="rgba(246,251,252,0.13)" />
-        <HeroMetric
-          label={t("payments.lastPayment")}
-          value={
-            lastPaidAt ? formatDateString(lastPaidAt, locale) : t("debts.noDueDate")
-          }
-        />
-      </XStack>
-    </YStack>
-  );
-}
-
-function HeroMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <YStack flex={1} minW={0} gap="$1.5">
-      <Paragraph color="$heroMuted" fontSize="$1">
-        {label}
-      </Paragraph>
-      <Paragraph
-        color="$heroForeground"
-        fontSize="$5"
-        fontWeight="600"
-        letterSpacing={-0.3}
-        numberOfLines={1}
-      >
-        {value}
-      </Paragraph>
+        ))}
+      </YStack>
     </YStack>
   );
 }

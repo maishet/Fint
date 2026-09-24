@@ -1,25 +1,14 @@
 import { ArrowLeftRight, Pencil, RotateCcw, Trash2 } from "@tamagui/lucide-icons-2";
-import { useRef, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable } from "react-native";
-import ReanimatedSwipeable, { type SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";
-import type { SharedValue } from "react-native-reanimated";
-import { View, XStack, YStack, type ColorTokens } from "tamagui";
+import { XStack, YStack, type ColorTokens } from "tamagui";
 import { getCategoryLabel } from "../finance/categoryLabels";
 import { categoryColorIndex } from "../home/spending";
-import { radius, space } from "../theme/tokens";
-import { fontFace } from "../theme/typography";
+import { space } from "../theme/tokens";
 import { Amount, FText, Monogram } from "../ui";
-import { haptics } from "../ui/haptics";
+import { GroupedCell } from "../ui/GroupedCell";
+import { SwipeActions, type SwipeAction } from "../ui/SwipeActions";
 import type { MovementItem } from "./logic";
-
-/** Cada acción revelada mide 78px. */
-const ACTION_W = 78;
-/** Cuánto más allá de las acciones hay que deslizar para ejecutar la de la derecha. */
-const LONG_SWIPE = 56;
-
-/** La fila abierta en este momento: al abrir otra, la anterior se cierra. */
-let openRow: SwipeableMethods | null = null;
 
 export interface MovementRowProps {
   item: MovementItem;
@@ -43,8 +32,6 @@ export interface MovementRowProps {
  */
 export function MovementRow({ item, first, last, emoji, onOpen, onEdit, onDestroy, destroyKind }: MovementRowProps) {
   const { t } = useTranslation();
-  const swipe = useRef<SwipeableMethods>(null);
-  const translation = useRef<SharedValue<number> | null>(null);
 
   const transfer = item.kind === "transfer" || item.movement.type === "transfer";
   const tx = item.kind === "movement" ? item.movement : null;
@@ -64,18 +51,16 @@ export function MovementRow({ item, first, last, emoji, onOpen, onEdit, onDestro
   const currency = item.kind === "transfer" ? item.currency : tx!.currency;
   const kind = transfer ? "transfer" : tx!.type === "income" ? "income" : "expense";
 
-  const actions: { key: string; label: string; icon: ReactNode; bg: string; color: string; run: () => void }[] = [];
-  if (onEdit) actions.push({ key: "edit", label: t("movementsTab.edit"), icon: <Pencil size={18} color="$ink" />, bg: "$surfaceSunken", color: "$ink", run: onEdit });
+  const actions: SwipeAction[] = [];
+  if (onEdit) actions.push({ key: "edit", label: t("movementsTab.edit"), icon: <Pencil size={18} color="$ink" />, tone: "neutral", run: onEdit });
   if (onDestroy)
     actions.push({
       key: "destroy",
       label: t(destroyKind === "revert" ? "movementsTab.revert" : "movementsTab.delete"),
       icon: destroyKind === "revert" ? <RotateCcw size={18} color="$onDanger" /> : <Trash2 size={18} color="$onDanger" />,
-      bg: "$dangerHard",
-      color: "$onDanger",
+      tone: "danger",
       run: onDestroy,
     });
-  const actionsWidth = actions.length * ACTION_W;
 
   const content = (
     <Pressable
@@ -108,78 +93,8 @@ export function MovementRow({ item, first, last, emoji, onOpen, onEdit, onDestro
   );
 
   return (
-    <View
-      bg="$surface"
-      borderColor="$line"
-      borderLeftWidth={1}
-      borderRightWidth={1}
-      borderTopWidth={first ? 1 : 0}
-      borderBottomWidth={last ? 1 : 0}
-      overflow="hidden"
-      style={{
-        borderTopLeftRadius: first ? radius.lg : 0,
-        borderTopRightRadius: first ? radius.lg : 0,
-        borderBottomLeftRadius: last ? radius.lg : 0,
-        borderBottomRightRadius: last ? radius.lg : 0,
-      }}
-    >
-      {!first ? <View height={1} bg="$line" /> : null}
-      {actions.length === 0 ? (
-        content
-      ) : (
-        <ReanimatedSwipeable
-          ref={swipe}
-          friction={1}
-          overshootRight
-          overshootFriction={6}
-          rightThreshold={actionsWidth / 2}
-          renderRightActions={(_progress, drag) => {
-            translation.current = drag;
-            return (
-              <XStack width={actionsWidth}>
-                {actions.map((a) => (
-                  <Pressable
-                    key={a.key}
-                    style={{ width: ACTION_W }}
-                    accessibilityRole="button"
-                    accessibilityLabel={a.label}
-                    onPress={() => {
-                      haptics.tap();
-                      swipe.current?.close();
-                      a.run();
-                    }}
-                  >
-                    <YStack flex={1} items="center" justify="center" gap={4} bg={a.bg as never}>
-                      {a.icon}
-                      <FText variant="caption" color={a.color as ColorTokens} style={{ fontFamily: fontFace.sans[600] }}>
-                        {a.label}
-                      </FText>
-                    </YStack>
-                  </Pressable>
-                ))}
-              </XStack>
-            );
-          }}
-          onSwipeableWillOpen={() => {
-            // Un deslizamiento largo ejecuta la acción de la derecha (con su confirmación) y la fila vuelve.
-            const drag = translation.current?.value ?? 0;
-            if (drag < -(actionsWidth + LONG_SWIPE)) {
-              haptics.warning();
-              swipe.current?.close();
-              actions[actions.length - 1].run();
-              return;
-            }
-            haptics.select();
-            if (openRow && openRow !== swipe.current) openRow.close();
-            openRow = swipe.current;
-          }}
-          onSwipeableClose={() => {
-            if (openRow === swipe.current) openRow = null;
-          }}
-        >
-          {content}
-        </ReanimatedSwipeable>
-      )}
-    </View>
+    <GroupedCell first={first} last={last}>
+      <SwipeActions actions={actions}>{content}</SwipeActions>
+    </GroupedCell>
   );
 }

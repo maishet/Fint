@@ -57,7 +57,8 @@ export default function TabLayout() {
           name="debts"
           options={{
             title: t("tabs.payments"),
-            header: () => <AppHeader title={t("tabs.payments")} />,
+            // La pantalla dibuja su propio título grande con el botón para crear un pago.
+            headerShown: false,
             tabBarIcon: ({ color, size }) => <CreditCard color={color as any} size={size} />,
           }}
         />

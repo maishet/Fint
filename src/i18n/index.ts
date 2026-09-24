@@ -7,6 +7,7 @@ import { setStoredCurrentLanguage, type AppLanguage } from "./current-language";
 import { homeTranslations } from "./home";
 import { movementFormTranslations } from "./movementForm";
 import { movementsTabTranslations } from "./movements";
+import { paymentsTabTranslations } from "./payments";
 
 export type { AppLanguage };
 
@@ -2800,6 +2801,11 @@ for (const [language, bundle] of Object.entries(movementFormTranslations)) {
 
 // Tab Movimientos v3.
 for (const [language, bundle] of Object.entries(movementsTabTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Tab Pagos v3.
+for (const [language, bundle] of Object.entries(paymentsTabTranslations)) {
   i18n.addResourceBundle(language, "translation", bundle, true, false);
 }
 
