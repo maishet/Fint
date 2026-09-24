@@ -13,6 +13,7 @@ import {
 import { useFonts } from "expo-font";
 import { SplashScreen, Stack, useRouter } from "expo-router";
 import { useShareIntent } from "expo-share-intent";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import * as Sentry from "@sentry/react-native";
@@ -35,6 +36,7 @@ import {
   stripUrlQuery,
 } from "../src/monitoring/sentryPrivacy";
 import { fintPalette } from "../src/theme/palette";
+import { fontFace, fontFiles } from "../src/theme/typography";
 import { useNotify } from "../src/ui";
 
 export {
@@ -80,10 +82,10 @@ Sentry.init({
 });
 
 const navigationFonts = {
-  regular: { fontFamily: "InterRegular", fontWeight: "400" as const },
-  medium: { fontFamily: "InterMedium", fontWeight: "500" as const },
-  bold: { fontFamily: "InterBold", fontWeight: "700" as const },
-  heavy: { fontFamily: "InterBold", fontWeight: "700" as const },
+  regular: { fontFamily: fontFace.sans[400], fontWeight: "400" as const },
+  medium: { fontFamily: fontFace.sans[500], fontWeight: "500" as const },
+  bold: { fontFamily: fontFace.sans[600], fontWeight: "600" as const },
+  heavy: { fontFamily: fontFace.sans[600], fontWeight: "600" as const },
 };
 
 const lightNavigationTheme = {
@@ -113,12 +115,7 @@ const darkNavigationTheme = {
 };
 
 function RootLayout() {
-  const [fontsLoaded, fontsError] = useFonts({
-    InterRegular: require("../assets/fonts/Inter_18pt-Regular.ttf"),
-    InterMedium: require("../assets/fonts/Inter_18pt-Medium.ttf"),
-    InterSemiBold: require("../assets/fonts/Inter_24pt-SemiBold.ttf"),
-    InterBold: require("../assets/fonts/Inter_28pt-Bold.ttf"),
-  });
+  const [fontsLoaded, fontsError] = useFonts(fontFiles);
 
   useEffect(() => {
     if (fontsLoaded || fontsError) {
@@ -138,7 +135,10 @@ function RootLayout() {
           de navegación y el teclado tapa el último renglón. */}
       <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
         <Providers>
-          <RootLayoutNav />
+          {/* Dentro de Providers para que las hojas lean el tema de Tamagui. */}
+          <BottomSheetModalProvider>
+            <RootLayoutNav />
+          </BottomSheetModalProvider>
         </Providers>
       </KeyboardProvider>
     </GestureHandlerRootView>

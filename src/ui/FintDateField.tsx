@@ -16,6 +16,7 @@ import {
 import { formatDateString } from "../finance/dates";
 import { useSheetBackHandler } from "../hooks/useSheetBackHandler";
 import { getAppLocale } from "../i18n";
+import { fontFace } from "../theme/typography";
 
 LocaleConfig.locales.es = {
   monthNames: [
@@ -153,7 +154,7 @@ function CalendarDay({
       <Text
         allowFontScaling={false}
         style={{
-          fontFamily: "InterRegular",
+          fontFamily: fontFace.sans[400],
           fontSize: 14,
           fontWeight: isToday && !isSelected ? "700" : "400",
           opacity: isDisabled ? 0.32 : 1,
@@ -299,9 +300,9 @@ export function FintDateField({
               dayTextColor: theme.color12.val,
               monthTextColor: theme.color12.val,
               arrowColor: theme.primary.val,
-              textMonthFontFamily: "InterBold",
-              textDayFontFamily: "InterRegular",
-              textDayHeaderFontFamily: "InterSemiBold",
+              textMonthFontFamily: fontFace.sans[600],
+              textDayFontFamily: fontFace.sans[400],
+              textDayHeaderFontFamily: fontFace.sans[600],
               textDayHeaderFontSize: 12,
             }}
           />

@@ -1,30 +1,21 @@
-# Fuentes del Proyecto
+# Fuentes del proyecto
 
-## Requeridas
+Tres familias, todas de Google Fonts con licencia SIL Open Font License 1.1. Son estáticas, un archivo por peso, porque Android no resuelve bien los pesos de una fuente variable.
 
-### Inter
-- Descargar desde: https://fonts.google.com/specimen/Inter
-- Variantes necesarias:
-  - `Inter_18pt-Regular.ttf` (400)
-  - `Inter_18pt-Medium.ttf` (500)
-  - `Inter_24pt-SemiBold.ttf` (600)
-  - `Inter_28pt-Bold.ttf` (700)
+| Familia | Archivos | Uso |
+| --- | --- | --- |
+| Schibsted Grotesk (`display`) | `SchibstedGrotesk-SemiBold.ttf`, `SchibstedGrotesk-Bold.ttf` | Marca, títulos de pantalla y de sección. |
+| Geist (`sans`) | `Geist-Regular.ttf`, `Geist-Medium.ttf`, `Geist-SemiBold.ttf` | Cuerpo, etiquetas, botones y navegación. |
+| Geist Mono (`mono`) | `GeistMono-Regular.ttf`, `GeistMono-Medium.ttf`, `GeistMono-SemiBold.ttf` | Toda cifra: montos, saldos, porcentajes, fechas y ejes. |
 
-## Configuracion Actual
+Se registran en `src/theme/typography.ts` (`fontFiles`) y se cargan en `app/_layout.tsx` con `useFonts(fontFiles)`. En Tamagui son `$heading`, `$body` y `$mono`.
 
-Las fuentes ya estan configuradas en `tamagui.config.ts` y se cargan en `app/_layout.tsx` desde esta carpeta.
-
-`Inter` se usa en titulos, cuerpo, formularios, navegacion, numeros, importes y graficos para mantener una identidad consistente con My Fint web.
-
-## Instalación
-
-1. Descargar los archivos .ttf de Google Fonts
-2. Colocar en esta carpeta (`assets/fonts/`)
-3. Las fuentes se cargan automaticamente al iniciar la app
-
-## Uso en componentes
+## Uso
 
 ```tsx
-<Paragraph fontFamily="$heading">Mi titulo</Paragraph>
-<Paragraph fontFamily="$body">$1,234.56</Paragraph>
+<Paragraph fontFamily="$heading">Flujo semanal</Paragraph>
+<Paragraph fontFamily="$body">Gasto del mes</Paragraph>
+<Amount value={-84.5} currency="PEN" variant="amount" />   // cifras: siempre con Amount
 ```
+
+Los archivos `Inter_*.ttf` ya no se cargan y se pueden borrar cuando termine la migración.

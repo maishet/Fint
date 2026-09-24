@@ -16,6 +16,8 @@ import {
 import { v5ComponentThemes } from "@tamagui/themes/v5";
 import { createTamagui } from "tamagui";
 import { fintPalette } from "./src/theme/palette";
+import { fontFace } from "./src/theme/typography";
+
 
 const darkPalette = [
   fintPalette.dark.surface,
@@ -124,7 +126,7 @@ const themes = {
     elevated: fintPalette.light.elevated,
     accent: fintPalette.light.action,
     accentForeground: fintPalette.light.surface,
-    destructive: fintPalette.light.danger,
+    destructive: fintPalette.light.dangerHard,
     success: fintPalette.light.success,
     borderColor: fintPalette.light.border,
     input: fintPalette.light.border,
@@ -149,6 +151,47 @@ const themes = {
     heroForeground: fintPalette.light.groundForeground,
     heroMuted: fintPalette.light.heroMuted,
     heroAccent: fintPalette.light.groundAccent,
+    // Sistema de diseño: los componentes nuevos de src/ui usan estas claves.
+    canvas: fintPalette.light.canvas,
+    surface: fintPalette.light.surface,
+    surfaceSunken: fintPalette.light.surfaceSunken,
+    surfaceOverlay: fintPalette.light.surfaceOverlay,
+    segmentThumb: fintPalette.light.segmentThumb,
+    slab: fintPalette.light.slab,
+    slabLine: fintPalette.light.slabLine,
+    line: fintPalette.light.line,
+    lineStrong: fintPalette.light.lineStrong,
+    ink: fintPalette.light.ink,
+    inkMuted: fintPalette.light.inkMuted,
+    inkFaint: fintPalette.light.inkFaint,
+    slabInk: fintPalette.light.slabInk,
+    slabMuted: fintPalette.light.slabMuted,
+    brand: fintPalette.light.brand,
+    brandStrong: fintPalette.light.brandStrong,
+    brandWash: fintPalette.light.brandWash,
+    onBrand: fintPalette.light.onBrand,
+    focus: fintPalette.light.focus,
+    flowIn: fintPalette.light.flowIn,
+    flowOut: fintPalette.light.flowOut,
+    flowInSlab: fintPalette.light.flowInSlab,
+    flowOutSlab: fintPalette.light.flowOutSlab,
+    heroGlow: fintPalette.light.heroGlow,
+    heroGlowSoft: fintPalette.light.heroGlowSoft,
+    glassSlab: fintPalette.light.glassSlab,
+    glassSlabLine: fintPalette.light.glassSlabLine,
+    dangerHard: fintPalette.light.dangerHard,
+    onDanger: fintPalette.light.onDanger,
+    signal: fintPalette.light.signal,
+    chartTrack: fintPalette.light.chartTrack,
+    scrim: fintPalette.light.scrim,
+    glass: fintPalette.light.glass,
+    glassLine: fintPalette.light.glassLine,
+    chart1: fintPalette.light.chart[0],
+    chart2: fintPalette.light.chart[1],
+    chart3: fintPalette.light.chart[2],
+    chart4: fintPalette.light.chart[3],
+    chart5: fintPalette.light.chart[4],
+    chart6: fintPalette.light.chart[5],
     red2: fintPalette.light.negativeTint,
     red3: fintPalette.light.negativeTint,
     red4: "#FDD5D1",
@@ -172,11 +215,6 @@ const themes = {
     yellow9: "#D79628",
     yellow10: "#D97706",
     yellow11: "#92400E",
-    chart1: "#00535A",
-    chart2: "#007784",
-    chart3: "#3298AA",
-    chart4: "#6AB8CC",
-    chart5: "#A5D5E5",
   },
   dark: {
     ...generatedThemes.dark,
@@ -198,7 +236,7 @@ const themes = {
     elevated: fintPalette.dark.elevated,
     accent: fintPalette.dark.action,
     accentForeground: fintPalette.dark.background,
-    destructive: fintPalette.dark.danger,
+    destructive: fintPalette.dark.dangerHard,
     success: fintPalette.dark.success,
     borderColor: fintPalette.dark.border,
     input: fintPalette.dark.border,
@@ -223,6 +261,47 @@ const themes = {
     heroForeground: fintPalette.dark.groundForeground,
     heroMuted: fintPalette.dark.heroMuted,
     heroAccent: fintPalette.dark.groundAccent,
+    // Sistema de diseño: los componentes nuevos de src/ui usan estas claves.
+    canvas: fintPalette.dark.canvas,
+    surface: fintPalette.dark.surface,
+    surfaceSunken: fintPalette.dark.surfaceSunken,
+    surfaceOverlay: fintPalette.dark.surfaceOverlay,
+    segmentThumb: fintPalette.dark.segmentThumb,
+    slab: fintPalette.dark.slab,
+    slabLine: fintPalette.dark.slabLine,
+    line: fintPalette.dark.line,
+    lineStrong: fintPalette.dark.lineStrong,
+    ink: fintPalette.dark.ink,
+    inkMuted: fintPalette.dark.inkMuted,
+    inkFaint: fintPalette.dark.inkFaint,
+    slabInk: fintPalette.dark.slabInk,
+    slabMuted: fintPalette.dark.slabMuted,
+    brand: fintPalette.dark.brand,
+    brandStrong: fintPalette.dark.brandStrong,
+    brandWash: fintPalette.dark.brandWash,
+    onBrand: fintPalette.dark.onBrand,
+    focus: fintPalette.dark.focus,
+    flowIn: fintPalette.dark.flowIn,
+    flowOut: fintPalette.dark.flowOut,
+    flowInSlab: fintPalette.dark.flowInSlab,
+    flowOutSlab: fintPalette.dark.flowOutSlab,
+    heroGlow: fintPalette.dark.heroGlow,
+    heroGlowSoft: fintPalette.dark.heroGlowSoft,
+    glassSlab: fintPalette.dark.glassSlab,
+    glassSlabLine: fintPalette.dark.glassSlabLine,
+    dangerHard: fintPalette.dark.dangerHard,
+    onDanger: fintPalette.dark.onDanger,
+    signal: fintPalette.dark.signal,
+    chartTrack: fintPalette.dark.chartTrack,
+    scrim: fintPalette.dark.scrim,
+    glass: fintPalette.dark.glass,
+    glassLine: fintPalette.dark.glassLine,
+    chart1: fintPalette.dark.chart[0],
+    chart2: fintPalette.dark.chart[1],
+    chart3: fintPalette.dark.chart[2],
+    chart4: fintPalette.dark.chart[3],
+    chart5: fintPalette.dark.chart[4],
+    chart6: fintPalette.dark.chart[5],
     red2: fintPalette.dark.negativeTint,
     red3: fintPalette.dark.negativeTint,
     red4: "#512C2C",
@@ -248,48 +327,73 @@ const themes = {
     yellow9: "#B07F1E",
     yellow10: "#E2B457",
     yellow11: "#F3D392",
-    chart1: "#00636A",
-    chart2: "#19838E",
-    chart3: "#42A3B3",
-    chart4: "#71C1D3",
-    chart5: "#A7DBEA",
   },
 };
 
+// Tracking específico por tamaño (principio apple-design): positivo y sutil en
+// texto pequeño, cada vez más negativo a medida que crece.
+const trackingBySize = {
+  1: 0.02,
+  2: 0.01,
+  3: 0,
+  4: -0.02,
+  5: -0.03,
+  6: -0.06,
+  7: -0.09,
+  8: -0.14,
+  9: -0.22,
+  10: -0.32,
+  11: -0.36,
+  12: -0.4,
+};
+
+const weightScale = { 1: "400", 4: "400", 5: "500", 6: "600", 7: "700", 8: "700", 9: "700" } as const;
+
+/** Geist: cuerpo, etiquetas, botones y navegación. El 700 cae en SemiBold: sans vive en 400 y 600. */
 const bodyFont = createSystemFont({
   font: {
-    family: "Inter",
+    family: "Geist",
     face: {
-      400: { normal: "InterRegular" },
-      500: { normal: "InterMedium" },
-      600: { normal: "InterSemiBold" },
-      700: { normal: "InterBold" },
+      400: { normal: fontFace.sans[400] },
+      500: { normal: fontFace.sans[500] },
+      600: { normal: fontFace.sans[600] },
+      700: { normal: fontFace.sans[600] },
     },
-    weight: {
-      1: "400",
-      4: "400",
-      5: "500",
-      6: "600",
-      7: "700",
-      8: "700",
-      9: "700",
+    weight: weightScale,
+    letterSpacing: trackingBySize,
+  },
+});
+
+/** Schibsted Grotesk: marca y títulos. Vive en 600; 400 y 500 también caen en SemiBold. */
+const headingFont = createSystemFont({
+  font: {
+    family: "SchibstedGrotesk",
+    face: {
+      400: { normal: fontFace.display[600] },
+      500: { normal: fontFace.display[600] },
+      600: { normal: fontFace.display[600] },
+      700: { normal: fontFace.display[700] },
     },
-    // Tracking específico por tamaño (principio apple-design): positivo y
-    // sutil en texto pequeño, cada vez más negativo a medida que crece.
-    letterSpacing: {
-      1: 0.02,
-      2: 0.01,
-      3: 0,
-      4: -0.02,
-      5: -0.03,
-      6: -0.06,
-      7: -0.09,
-      8: -0.14,
-      9: -0.22,
-      10: -0.32,
-      11: -0.36,
-      12: -0.4,
+    weight: weightScale,
+    letterSpacing: trackingBySize,
+  },
+});
+
+/**
+ * Geist Mono: toda cifra. Úsala como `fontFamily="$mono"` junto con
+ * `fontVariant={["tabular-nums"]}`, o mejor con el componente `Amount`.
+ */
+const monoFont = createSystemFont({
+  font: {
+    family: "GeistMono",
+    face: {
+      400: { normal: fontFace.mono[400] },
+      500: { normal: fontFace.mono[500] },
+      600: { normal: fontFace.mono[600] },
+      700: { normal: fontFace.mono[600] },
     },
+    weight: weightScale,
+    letterSpacing: trackingBySize,
   },
 });
 
@@ -299,7 +403,8 @@ export const config = createTamagui({
   fonts: {
     ...defaultConfig.fonts,
     body: bodyFont,
-    heading: bodyFont,
+    heading: headingFont,
+    mono: monoFont,
   },
   themes,
 });

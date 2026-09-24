@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Paragraph, useTheme, XStack, YStack } from "tamagui";
 import { useAuth } from "../auth/AuthProvider";
 import { resolveDisplayName } from "../auth/displayName";
+import { fontFace } from "../theme/typography";
 
 interface AppHeaderProps {
   showGreeting?: boolean;
@@ -100,7 +101,7 @@ export function AppHeader({ showGreeting = false, title }: AppHeaderProps) {
             <Text
               style={{
                 color: theme.headerAccent.val,
-                fontFamily: "InterSemiBold",
+                fontFamily: fontFace.sans[600],
                 fontSize: 15,
                 fontWeight: "600",
                 includeFontPadding: false,

@@ -1,35 +1,29 @@
 import { Card, type CardProps } from "tamagui";
 import { useThemeMode } from "../theme/ThemeMode";
+import { radius, shadows } from "../theme/tokens";
 
 interface FintCardProps extends CardProps {
+  /** Sombra `raised` en lugar de `card`. Solo para lo que de verdad flota. */
   raised?: boolean;
 }
 
-export function FintCard({ raised = false, ...props }: FintCardProps) {
+/**
+ * Tarjeta del sistema: `surface`, filete `line` de 1px y `radius-lg`. En claro
+ * el filete es lo que la separa del fondo; la sombra es casi invisible a
+ * propósito. Una tarjeta nunca va sobre otra tarjeta.
+ */
+export function FintCard({ raised = false, style, ...props }: FintCardProps) {
   const { themeMode } = useThemeMode();
-  const shadowColor = themeMode === "dark" ? "#000000" : "#043036";
 
   return (
     <Card
       transition="quick"
-      bg="$card"
-      borderColor="$borderColor"
+      bg="$surface"
+      borderColor="$line"
       borderWidth={1}
       p="$4"
-      rounded={24}
-      shadowColor={shadowColor}
-      shadowOffset={{ width: 0, height: raised ? 10 : 3 }}
-      shadowOpacity={
-        raised
-          ? themeMode === "dark"
-            ? 0.32
-            : 0.07
-          : themeMode === "dark"
-            ? 0.24
-            : 0.05
-      }
-      shadowRadius={raised ? 24 : 10}
-      elevation={raised ? 4 : 1}
+      rounded={radius.lg}
+      style={[{ boxShadow: shadows[themeMode][raised ? "raised" : "card"] }, style as object]}
       {...props}
     />
   );
