@@ -12,6 +12,7 @@ import { reportsTabTranslations } from "./reports";
 import { accountsScreenTranslations } from "./accounts";
 import { movementDetailTranslations } from "./movementDetail";
 import { accountFormTranslations } from "./accountForm";
+import { paymentFormTranslations } from "./paymentForm";
 
 export type { AppLanguage };
 
@@ -2830,6 +2831,11 @@ for (const [language, bundle] of Object.entries(movementDetailTranslations)) {
 
 // Formulario de cuenta v3.
 for (const [language, bundle] of Object.entries(accountFormTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Formulario de pago recurrente v3.
+for (const [language, bundle] of Object.entries(paymentFormTranslations)) {
   i18n.addResourceBundle(language, "translation", bundle, true, false);
 }
 

@@ -32,6 +32,11 @@ export interface DateSheetProps {
   onClose: () => void;
   value: string;
   onChange: (value: string) => void;
+  /**
+   * Pagos recurrentes: se programan, así que los días futuros se pueden elegir,
+   * los atajos son Hoy y Mañana, y no hay puntos de movimientos.
+   */
+  allowFuture?: boolean;
 }
 
 /** "18 set" con el mes corto del idioma, sin punto. */
@@ -46,13 +51,14 @@ export function shortDay(date: Date, locale: string) {
  * en el pasado; lo que viene se programa en Pagos). Un punto marca los días con
  * movimientos. Tocar un día lo elige y cierra: no hay botón de confirmar.
  */
-export function DateSheet({ open, onClose, value, onChange }: DateSheetProps) {
+export function DateSheet({ open, onClose, value, onChange, allowFuture = false }: DateSheetProps) {
   const { t, i18n } = useTranslation();
   // es-PE: "set." y "setiembre", como el resto de la app.
   const locale = getAppLocale(i18n.resolvedLanguage);
   const reduceMotion = useReducedMotion();
   const today = parseDateString(todayDateString())!;
   const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+  const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
   const selected = parseDateString(value) ?? today;
 
   const [view, setView] = useState({ y: selected.getFullYear(), m: selected.getMonth() });
@@ -73,14 +79,18 @@ export function DateSheet({ open, onClose, value, onChange }: DateSheetProps) {
   const monthQuery = useQuery({
     queryKey: ["transactions", "month-days", range.from],
     queryFn: () => financeApi.listAllTransactions({ from: range.from, to: range.to }),
-    enabled: open,
+    enabled: open && !allowFuture,
     staleTime: 60_000,
   });
-  const marked = useMemo(() => daysWithMovements(monthQuery.data ?? [], view.y, view.m), [monthQuery.data, view.y, view.m]);
+  // Con pagos no hay puntos: la consulta está apagada, pero la caché podría traer los del mes.
+  const marked = useMemo(
+    () => (allowFuture ? new Set<number>() : daysWithMovements(monthQuery.data ?? [], view.y, view.m)),
+    [allowFuture, monthQuery.data, view.y, view.m],
+  );
   const grid = useMemo(() => monthGrid(view.y, view.m), [view.y, view.m]);
 
   const go = (step: 1 | -1) => {
-    if (step === 1 && isCurrentMonth) return;
+    if (step === 1 && isCurrentMonth && !allowFuture) return;
     haptics.select();
     setDirection(step);
     setView((v) => {
@@ -125,7 +135,11 @@ export function DateSheet({ open, onClose, value, onChange }: DateSheetProps) {
     <FintSheet open={open} onClose={onClose} title={t("movementForm.dateSheet.title")} subtitle={capitalize(subtitle)}>
       <XStack gap={8} px={16} pt={14}>
         <QuickChip label={t("movementForm.today")} date={shortDay(today, locale)} onPress={() => pick(today)} />
-        <QuickChip label={t("movementForm.yesterday")} date={shortDay(yesterday, locale)} onPress={() => pick(yesterday)} />
+        {allowFuture ? (
+          <QuickChip label={t("movementForm.tomorrow")} date={shortDay(tomorrow, locale)} onPress={() => pick(tomorrow)} />
+        ) : (
+          <QuickChip label={t("movementForm.yesterday")} date={shortDay(yesterday, locale)} onPress={() => pick(yesterday)} />
+        )}
       </XStack>
 
       <XStack items="center" justify="space-between" mt={20} mb={6} mx={20}>
@@ -137,7 +151,7 @@ export function DateSheet({ open, onClose, value, onChange }: DateSheetProps) {
           <IconButton
             size={34}
             label={t("movementForm.dateSheet.nextMonth")}
-            disabled={isCurrentMonth}
+            disabled={isCurrentMonth && !allowFuture}
             icon={<ChevronRight size={16} color="$ink" />}
             onPress={() => go(1)}
           />
@@ -170,15 +184,18 @@ export function DateSheet({ open, onClose, value, onChange }: DateSheetProps) {
               selectedIndex={selectedIndex}
               marked={marked}
               reduceMotion={reduceMotion}
+              allowFuture={allowFuture}
               onPick={pick}
             />
           </Animated.View>
         </Animated.View>
       </GestureDetector>
 
-      <FText variant="caption" tone="inkFaint" style={{ textAlign: "center", marginTop: 12 }}>
-        {t("movementForm.dateSheet.dotsHint")}
-      </FText>
+      {allowFuture ? null : (
+        <FText variant="caption" tone="inkFaint" style={{ textAlign: "center", marginTop: 12 }}>
+          {t("movementForm.dateSheet.dotsHint")}
+        </FText>
+      )}
     </FintSheet>
   );
 }
@@ -190,6 +207,7 @@ function CalendarGrid({
   selectedIndex,
   marked,
   reduceMotion,
+  allowFuture,
   onPick,
 }: {
   grid: (number | null)[];
@@ -198,6 +216,7 @@ function CalendarGrid({
   selectedIndex: number;
   marked: Set<number>;
   reduceMotion: boolean;
+  allowFuture: boolean;
   onPick: (date: Date) => void;
 }) {
   const { i18n } = useTranslation();
@@ -245,7 +264,7 @@ function CalendarGrid({
         {grid.map((day, i) => {
           if (day === null) return <View key={`e${i}`} width={`${100 / 7}%`} height={CELL_H} />;
           const date = new Date(view.y, view.m, day);
-          const future = isTodayMonth ? day > today.getDate() : date > today;
+          const future = allowFuture ? false : isTodayMonth ? day > today.getDate() : date > today;
           const isToday = isTodayMonth && day === today.getDate();
           const isSelected = i === selectedIndex;
           return (

@@ -292,6 +292,8 @@ function RootLayoutNav() {
           <Stack.Screen
             name="debt-form"
             options={{
+              // La pantalla dibuja su propia barra con cerrar y título.
+              headerShown: false,
               contentStyle: { backgroundColor: theme.background.val },
             }}
           />
