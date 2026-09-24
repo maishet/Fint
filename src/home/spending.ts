@@ -32,13 +32,17 @@ export function transactionDay(value: string): { y: number; m: number; d: number
   return { y: date.getFullYear(), m: date.getMonth(), d: date.getDate() };
 }
 
-/** Primer día del mes anterior y hoy, en `YYYY-MM-DD`, para pedir los movimientos que alimentan la serie. */
+/**
+ * Rango en `YYYY-MM-DD` para pedir los movimientos que alimentan la serie:
+ * desde el primer día del mes anterior hasta mañana. En `/api/transactions`
+ * el `to` es exclusivo (`fecha < to`); con `to` = hoy se perdía el gasto de hoy.
+ */
 export function spendingRange(now = new Date()) {
   const pad = (n: number) => String(n).padStart(2, "0");
-  const from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const ymd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   return {
-    from: `${from.getFullYear()}-${pad(from.getMonth() + 1)}-01`,
-    to: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
+    from: ymd(new Date(now.getFullYear(), now.getMonth() - 1, 1)),
+    to: ymd(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)),
   };
 }
 
@@ -106,17 +110,32 @@ export interface CategoryShare {
 /**
  * Las cuatro categorías más grandes y el resto en "Otros". Los porcentajes se
  * reparten por el método del mayor resto, para que sumen exactamente 100.
+ *
+ * `spent` es lo gastado hasta hoy que muestra la cabecera. El endpoint de
+ * categorías devuelve solo las seis más grandes, así que lo que falta para
+ * llegar a `spent` también va a "Otros": el donut y la cabecera cuadran.
  */
 export function topCategories(
   categories: readonly { name: string; amount: number }[],
   otherLabel: string,
-  max = 4,
+  { max = 4, spent }: { max?: number; spent?: number } = {},
 ): CategoryShare[] {
-  const sorted = [...categories].filter((c) => c.amount > 0).sort((a, b) => b.amount - a.amount);
-  const total = sorted.reduce((a, c) => a + c.amount, 0);
-  if (total <= 0) return [];
+  // Una categoría real que ya se llama "Otros" se suma al grupo "Otros": dos filas "Otros" no dicen nada.
+  const isOtherName = (name: string) => name.trim().toLowerCase() === otherLabel.trim().toLowerCase();
+  const positive = categories.filter((c) => c.amount > 0);
+  const listed = positive.reduce((a, c) => a + c.amount, 0);
+  const unlisted = spent != null ? Math.max(0, Math.round((spent - listed) * 100) / 100) : 0;
+  const total = listed + unlisted;
+  if (listed <= 0) return [];
+  const sorted = positive.filter((c) => !isOtherName(c.name)).sort((a, b) => b.amount - a.amount);
   const head = sorted.slice(0, max);
-  const rest = sorted.slice(max).reduce((a, c) => a + c.amount, 0);
+  const rest =
+    Math.round(
+      (sorted.slice(max).reduce((a, c) => a + c.amount, 0) +
+        positive.filter((c) => isOtherName(c.name)).reduce((a, c) => a + c.amount, 0) +
+        unlisted) *
+        100,
+    ) / 100;
   const rows = head.map((c) => ({ name: c.name, amount: c.amount, isOther: false }));
   if (rest > 0) rows.push({ name: otherLabel, amount: rest, isOther: true });
 

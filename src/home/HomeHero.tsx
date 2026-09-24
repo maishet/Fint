@@ -1,16 +1,19 @@
-import { Bell, ChevronDown, CreditCard, Ellipsis, ScanLine, Search, Wallet } from "@tamagui/lucide-icons-2";
+import { ArrowDown, ArrowUp, Bell, ChevronDown, Ellipsis, ReceiptText, ScanLine, Search, Wallet } from "@tamagui/lucide-icons-2";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Image, type LayoutChangeEvent } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Extrapolation,
+  FadeIn,
   interpolate,
   runOnJS,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
+  withDelay,
   withSpring,
+  withTiming,
   type SharedValue,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -22,6 +25,7 @@ import { useSensitiveAmounts } from "../privacy/SensitiveAmountsProvider";
 import { motion, radius, space } from "../theme/tokens";
 import { fontFace, textStyles } from "../theme/typography";
 import { Amount, FText, PressableScale } from "../ui";
+import { riseIn } from "../ui/entering";
 import { haptics } from "../ui/haptics";
 import { HeroMesh } from "./HeroMesh";
 
@@ -39,6 +43,8 @@ interface HomeHeroProps {
   index: number;
   onIndexChange: (index: number) => void;
   scrollY: SharedValue<number>;
+  /** Tirón hacia abajo desde el tope, para que la malla se estire con el hero. */
+  pull?: SharedValue<number>;
   attentionCount: number;
   onProfile: () => void;
   onSearch: () => void;
@@ -61,8 +67,11 @@ export function HomeHero(props: HomeHeroProps) {
   const { pages, index, onIndexChange, scrollY, attentionCount } = props;
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const reduceMotion = useReducedMotion();
   const [size, setSize] = useState({ width: 0, height: 0 });
   const page = pages[Math.min(index, pages.length - 1)];
+  // La moneda va en la píldora: el saldo nunca suma monedas distintas, así que se dice en cuál está.
+  const pillLabel = page ? `${page.label} · ${page.currency}` : t("home.accountsAll");
 
   const actionsStyle = useAnimatedStyle(() => ({
     opacity: interpolate(scrollY.value, [0, 120], [1, 0], Extrapolation.CLAMP),
@@ -78,16 +87,16 @@ export function HomeHero(props: HomeHeroProps) {
       bg="$slab"
       pt={insets.top + 8}
       pb={SHEET_OVERLAP + space[6]}
-      overflow="hidden"
       onLayout={(e: LayoutChangeEvent) => setSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
     >
-      <HeroMesh width={size.width} height={size.height} scrollY={scrollY} />
+      {/* Sin overflow oculto: al tirar, la malla sube al hueco sobre el hero; abajo la tapa la hoja. */}
+      <HeroMesh width={size.width} height={size.height} scrollY={scrollY} pull={props.pull} />
 
       <TopBar {...props} attentionCount={attentionCount} />
 
       <Animated.View style={balanceStyle}>
         <YStack items="center" mt={space[5]} gap={space[2]}>
-          <PressableScale onPress={props.onAccounts} haptic="tap" accessibilityRole="button" accessibilityLabel={page?.label}>
+          <PressableScale onPress={props.onAccounts} haptic="tap" accessibilityRole="button" accessibilityLabel={pillLabel}>
             <XStack
               height={32}
               px={14}
@@ -99,7 +108,7 @@ export function HomeHero(props: HomeHeroProps) {
               borderColor="$glassSlabLine"
             >
               <FText variant="label" tone="slabInk" numberOfLines={1} style={{ maxWidth: 220 }}>
-                {page?.label ?? t("home.accountsAll")}
+                {pillLabel}
               </FText>
               <ChevronDown size={14} color="$slabInk" strokeWidth={2.2} />
             </XStack>
@@ -112,18 +121,26 @@ export function HomeHero(props: HomeHeroProps) {
       </Animated.View>
 
       <Animated.View style={actionsStyle}>
+        {/* Entran subiendo 12px, escalonadas 40ms por botón. */}
         <XStack justify="space-between" px={space[6]} mt={space[6]}>
-          <HeroAction label={t("home.actions.accounts")} icon={<Wallet size={20} color="$slabInk" strokeWidth={1.8} />} onPress={props.onAccounts} />
-          <HeroAction label={t("home.actions.scan")} icon={<ScanLine size={20} color="$slabInk" strokeWidth={1.8} />} onPress={props.onScan} />
-          <HeroAction label={t("home.actions.pay")} icon={<CreditCard size={20} color="$slabInk" strokeWidth={1.8} />} onPress={props.onPay} />
-          <HeroAction label={t("home.actions.more")} icon={<Ellipsis size={20} color="$slabInk" strokeWidth={1.8} />} onPress={props.onMore} />
+          {[
+            { key: "accounts", icon: <Wallet size={20} color="$slabInk" strokeWidth={1.8} />, onPress: props.onAccounts },
+            { key: "scan", icon: <ScanLine size={20} color="$slabInk" strokeWidth={1.8} />, onPress: props.onScan },
+            { key: "pay", icon: <ReceiptText size={20} color="$slabInk" strokeWidth={1.8} />, onPress: props.onPay },
+            { key: "more", icon: <Ellipsis size={20} color="$slabInk" strokeWidth={1.8} />, onPress: props.onMore },
+          ].map((action, i) => (
+            <Animated.View key={action.key} entering={riseIn({ distance: 12, delay: i * 40, reduceMotion })}>
+              <HeroAction label={t(`home.actions.${action.key}`)} icon={action.icon} onPress={action.onPress} />
+            </Animated.View>
+          ))}
         </XStack>
       </Animated.View>
     </View>
   );
 }
 
-function TopBar({ onProfile, onSearch, onNotifications, attentionCount }: HomeHeroProps) {
+/** El avatar de la persona sobre la losa: abre Ajustes y perfil. Lo usan la barra del hero y la barra colapsada. */
+export function ProfileAvatar({ onPress, size = 40 }: { onPress: () => void; size?: number }) {
   const { t } = useTranslation();
   const { session } = useAuth();
   const metadata = session?.user.user_metadata ?? {};
@@ -139,18 +156,26 @@ function TopBar({ onProfile, onSearch, onNotifications, attentionCount }: HomeHe
       .join("") || "F";
 
   return (
+    <PressableScale onPress={onPress} haptic="tap" accessibilityRole="button" accessibilityLabel={t("home.bar.profile")}>
+      <View width={size} height={size} rounded={999} overflow="hidden" bg="$glassSlab" borderWidth={1} borderColor="$glassSlabLine" items="center" justify="center">
+        {avatarUrl ? (
+          <Image source={{ uri: avatarUrl }} style={{ width: size, height: size }} accessibilityIgnoresInvertColors />
+        ) : (
+          <Text color="$slabInk" style={{ fontFamily: fontFace.display[600], fontSize: Math.round(size * 0.35) }}>
+            {initials}
+          </Text>
+        )}
+      </View>
+    </PressableScale>
+  );
+}
+
+function TopBar({ onProfile, onSearch, onNotifications, attentionCount }: HomeHeroProps) {
+  const { t } = useTranslation();
+
+  return (
     <XStack items="center" gap={space[2]} px={space[4]}>
-      <PressableScale onPress={onProfile} haptic="tap" accessibilityRole="button" accessibilityLabel={t("home.bar.profile")}>
-        <View width={40} height={40} rounded={999} overflow="hidden" bg="$glassSlab" borderWidth={1} borderColor="$glassSlabLine" items="center" justify="center">
-          {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} style={{ width: 40, height: 40 }} accessibilityIgnoresInvertColors />
-          ) : (
-            <Text color="$slabInk" style={{ fontFamily: fontFace.display[600], fontSize: 14 }}>
-              {initials}
-            </Text>
-          )}
-        </View>
-      </PressableScale>
+      <ProfileAvatar onPress={onProfile} />
 
       <PressableScale onPress={onSearch} style={{ flex: 1 }} scaleTo={0.99} accessibilityRole="search" accessibilityLabel={t("home.bar.search")}>
         <XStack height={40} px={14} gap={8} items="center" rounded={radius.pill} bg="$glassSlab" borderWidth={1} borderColor="$glassSlabLine">
@@ -280,6 +305,7 @@ function SwipeableBalance({
   });
 
   const parts = amountParts(page.balance, page.currency);
+  const digitCount = parts.integer.replaceAll(THIN_SPACE, "").length + parts.fraction.length;
   const hero = textStyles["amount-hero"];
   const minor = { ...textStyles["amount-hero-cents"], lineHeight: undefined, letterSpacing: -0.4 };
 
@@ -299,15 +325,15 @@ function SwipeableBalance({
           else toggle();
         }}
       >
-        {/* Un solo Text con tramos anidados: el símbolo, la parte entera y los decimales comparten línea base. */}
-        <Text
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.6}
-          style={{ ...hero, color: theme.slabInk.val, textAlign: "center", includeFontPadding: false, paddingHorizontal: space[4] }}
-        >
-          {visible ? (
-            <>
+        {visible ? (
+          // Un solo Text con tramos anidados: el símbolo, la parte entera y los decimales comparten línea base.
+          <Animated.View key="shown" entering={FadeIn.duration(motion.fade.duration)}>
+            <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.6}
+              style={{ ...hero, color: theme.slabInk.val, textAlign: "center", includeFontPadding: false, paddingHorizontal: space[4] }}
+            >
               <Text style={{ ...minor, color: theme.slabMuted.val }}>
                 {parts.sign}
                 {parts.symbol}
@@ -315,14 +341,22 @@ function SwipeableBalance({
               </Text>
               {parts.integer}
               <Text style={{ ...minor, color: theme.slabInk.val }}>.{parts.fraction}</Text>
-            </>
-          ) : (
-            <Text style={{ color: theme.slabMuted.val, letterSpacing: 6 }}>••••••</Text>
-          )}
-        </Text>
+            </Text>
+          </Animated.View>
+        ) : isHydrated ? (
+          <HiddenDigits count={digitCount} lineHeight={hero.lineHeight} reduceMotion={reduceMotion} />
+        ) : (
+          // Mientras se lee la preferencia de montos, un hueco del mismo alto: ni puntos que luego saltan ni el saldo.
+          <View height={hero.lineHeight} />
+        )}
 
         {visible && page.monthChange != null && page.monthChange !== 0 ? (
-          <XStack justify="center" items="baseline" gap={6} mt={4}>
+          <XStack justify="center" items="center" gap={6} mt={4}>
+            {page.monthChange > 0 ? (
+              <ArrowUp size={14} color="$flowInSlab" strokeWidth={2.2} />
+            ) : (
+              <ArrowDown size={14} color="$flowOutSlab" strokeWidth={2.2} />
+            )}
             <Amount
               value={page.monthChange}
               currency={page.currency}
@@ -340,6 +374,42 @@ function SwipeableBalance({
         )}
       </Animated.View>
     </GestureDetector>
+  );
+}
+
+/**
+ * Montos ocultos: cada dígito se vuelve un punto de 12px en `slabMuted`. Los
+ * puntos giran a su lugar con `spring-ui`, escalonados 24ms de derecha a
+ * izquierda. Ocupa el mismo alto que el saldo para que el hero no salte.
+ */
+function HiddenDigits({ count, lineHeight, reduceMotion }: { count: number; lineHeight: number; reduceMotion: boolean }) {
+  const theme = useTheme();
+  const spring = motion.springUi;
+  const duration = motion.fade.duration;
+  return (
+    <XStack height={lineHeight} items="center" justify="center" gap={10} px={space[4]}>
+      {Array.from({ length: count }, (_, i) => {
+        const delay = (count - 1 - i) * 24;
+        const entering = () => {
+          "worklet";
+          if (reduceMotion) return { initialValues: { opacity: 0 }, animations: { opacity: withTiming(1, { duration }) } };
+          return {
+            initialValues: { opacity: 0, transform: [{ rotateX: "90deg" }, { scale: 0.4 }] },
+            animations: {
+              opacity: withDelay(delay, withTiming(1, { duration: 120 })),
+              transform: [{ rotateX: withDelay(delay, withSpring("0deg", spring)) }, { scale: withDelay(delay, withSpring(1, spring)) }],
+            },
+          };
+        };
+        return (
+          <Animated.View
+            key={i}
+            entering={entering}
+            style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: theme.slabMuted.val }}
+          />
+        );
+      })}
+    </XStack>
   );
 }
 

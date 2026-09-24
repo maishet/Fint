@@ -1,12 +1,12 @@
-import { ChevronRight, CircleCheck, Clock, Inbox, TriangleAlert } from "@tamagui/lucide-icons-2";
+import { ChevronRight, CircleCheck, Clock, Mail, TriangleAlert } from "@tamagui/lucide-icons-2";
 import { useTranslation } from "react-i18next";
-import { FlatList } from "react-native";
+import Animated, { FadeOut, LinearTransition } from "react-native-reanimated";
 import { View, XStack, YStack } from "tamagui";
 import type { PaymentOccurrence } from "../api/types";
 import { formatAmount } from "../finance/formatAmount";
 import { useSensitiveAmounts } from "../privacy/SensitiveAmountsProvider";
 import { getAppLocale } from "../i18n";
-import { radius, space } from "../theme/tokens";
+import { motion, radius, space } from "../theme/tokens";
 import { fontFace } from "../theme/typography";
 import { FText, PressableScale } from "../ui";
 import type { AttentionItem } from "./attention";
@@ -50,15 +50,21 @@ export function AttentionRail({ items, upcoming, onOpen }: AttentionRailProps) {
   }
 
   return (
-    <FlatList
+    // Cuando un aviso se resuelve, sale con `fade` y los demás se deslizan a llenar el hueco con `spring-ui`.
+    <Animated.FlatList
       horizontal
+      itemLayoutAnimation={LinearTransition.springify().damping(motion.springUi.damping).stiffness(motion.springUi.stiffness)}
       data={items.slice(0, MAX_CARDS)}
       keyExtractor={(item) => item.key}
       showsHorizontalScrollIndicator={false}
       snapToInterval={CARD_WIDTH + GAP}
       decelerationRate="fast"
       contentContainerStyle={{ paddingHorizontal: space[4], gap: GAP }}
-      renderItem={({ item }) => <AttentionCard item={item} onPress={() => onOpen(item)} />}
+      renderItem={({ item }) => (
+        <Animated.View exiting={FadeOut.duration(motion.fade.duration)}>
+          <AttentionCard item={item} onPress={() => onOpen(item)} />
+        </Animated.View>
+      )}
     />
   );
 }
@@ -86,7 +92,7 @@ function AttentionCard({ item, onPress }: { item: AttentionItem; onPress: () => 
           : t("home.attention.dueIn", { count: item.days ?? 0 });
 
   const icon = review ? (
-    <Inbox size={17} color="$brand" strokeWidth={2} />
+    <Mail size={17} color="$brand" strokeWidth={2} />
   ) : overdue ? (
     <TriangleAlert size={17} color="$dangerHard" strokeWidth={2} />
   ) : (

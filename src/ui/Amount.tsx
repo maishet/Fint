@@ -23,7 +23,7 @@ export interface AmountProps extends Omit<TextProps, "children"> {
   kind?: AmountKind;
   /** Fuerza el color. Por defecto lo decide `kind`. */
   tone?: FTextTone;
-  /** Sobre la losa: símbolo en `slabMuted` y color por defecto `slabInk`. */
+  /** Sobre la losa: color por defecto `slabInk`. */
   onSlab?: boolean;
   /** Muestra el símbolo de moneda. Por defecto sí. */
   showSymbol?: boolean;
@@ -37,7 +37,10 @@ const hidden = "••••••";
 
 /**
  * Toda cifra de la app pasa por aquí: Geist Mono con cifras tabulares, signo
- * menos tipográfico, espacio fino de miles y el símbolo más chico y apagado.
+ * menos tipográfico, espacio fino de miles y el símbolo un poco más chico.
+ * El símbolo va del mismo color que la cifra (`+S/ 4 200.00` entero en
+ * `flowIn`), como en los previews; el único símbolo apagado es el del saldo
+ * grande del hero, que no pasa por aquí.
  */
 export function Amount({
   value,
@@ -62,7 +65,6 @@ export function Amount({
 
   const resolvedTone: FTextTone =
     tone ?? (onSlab ? "slabInk" : kind === "income" ? "flowIn" : kind === "transfer" ? "inkMuted" : "ink");
-  const symbolTone: FTextTone = onSlab ? "slabMuted" : "inkFaint";
   const minor = Math.round(base.fontSize * (variant === "amount-hero" ? 26 / 48 : variant === "amount-input" ? 30 / 64 : 0.82));
 
   const isHidden = sensitive && !(isHydrated && amountsVisible);
@@ -71,25 +73,35 @@ export function Amount({
     : `${parts.sign}${parts.symbol} ${parts.integer.replaceAll(THIN_SPACE, "")}.${parts.fraction}`;
 
   if (isHidden) {
+    // Mientras se lee la preferencia (`!isHydrated`) el marcador ocupa su lugar pero no se ve: si no, cada
+    // arranque mostraba puntos un instante y luego saltaba a la cifra.
     return (
-      <Text color={`$${resolvedTone}` as ColorTokens} style={[base, style]} aria-label={label} {...props}>
+      <Text
+        color={`$${resolvedTone}` as ColorTokens}
+        style={[base, style, sensitive && !isHydrated ? { opacity: 0 } : null]}
+        aria-label={label}
+        {...props}
+      >
         {hidden}
       </Text>
     );
   }
 
+  // Un Text anidado de Tamagui no hereda el color del padre (toma el del tema), así que cada tramo lo lleva explícito.
+  const color = `$${resolvedTone}` as ColorTokens;
+
   return (
-    <Text color={`$${resolvedTone}` as ColorTokens} style={[base, style]} aria-label={label} numberOfLines={1} {...props}>
+    <Text color={color} style={[base, style]} aria-label={label} numberOfLines={1} {...props}>
       {parts.sign}
       {showSymbol ? (
-        <Text color={`$${symbolTone}` as ColorTokens} style={{ fontSize: minor, letterSpacing: 0 }}>
+        <Text color={color} style={{ fontSize: minor, letterSpacing: 0 }}>
           {parts.symbol}
           {THIN_SPACE}
         </Text>
       ) : null}
       {parts.integer}
       {smallCents ? (
-        <Text style={{ fontSize: minor }}>.{parts.fraction}</Text>
+        <Text color={color} style={{ fontSize: minor }}>.{parts.fraction}</Text>
       ) : parts.fraction ? (
         `.${parts.fraction}`
       ) : null}

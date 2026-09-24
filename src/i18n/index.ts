@@ -69,7 +69,7 @@ const resources = {
         newIncome: "Ingreso",
         newExpense: "Gasto",
         newTransfer: "Transferencia",
-        viewAll: "Ver todos",
+        viewAll: "Ver todo",
         signOut: "Cerrar sesión",
         save: "Guardar",
         cancel: "Cancelar",

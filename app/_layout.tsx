@@ -13,7 +13,6 @@ import {
 import { useFonts } from "expo-font";
 import { SplashScreen, Stack, useRouter } from "expo-router";
 import { useShareIntent } from "expo-share-intent";
-import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import * as Sentry from "@sentry/react-native";
@@ -135,10 +134,7 @@ function RootLayout() {
           de navegación y el teclado tapa el último renglón. */}
       <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
         <Providers>
-          {/* Dentro de Providers para que las hojas lean el tema de Tamagui. */}
-          <BottomSheetModalProvider>
-            <RootLayoutNav />
-          </BottomSheetModalProvider>
+          <RootLayoutNav />
         </Providers>
       </KeyboardProvider>
     </GestureHandlerRootView>

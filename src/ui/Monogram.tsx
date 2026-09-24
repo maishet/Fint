@@ -35,7 +35,17 @@ export function Monogram({ name, color = "$inkMuted", logoUrl, icon, emoji, size
   const initial = name.trim().charAt(0).toUpperCase() || "·";
 
   return (
-    <View width={size} height={size} rounded={999} bg="$surfaceSunken" items="center" justify="center">
+    // Decorativo: la fila ya dice el nombre; sin esto el lector de pantalla lee el emoji ("carrito de compras").
+    <View
+      width={size}
+      height={size}
+      rounded={999}
+      bg="$surfaceSunken"
+      items="center"
+      justify="center"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
       {icon ??
         (emoji ? (
           <Text style={{ fontSize: Math.round(size * 0.47), lineHeight: Math.round(size * 0.6), includeFontPadding: false, textAlign: "center" }}>

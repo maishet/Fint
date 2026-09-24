@@ -42,9 +42,11 @@ describe('buildSpendingSeries', () => {
     expect(buildSpendingSeries([tx('2026-09-04', 8, { account: 'Interbank' }), tx('2026-09-04', 3)], { currency: 'PEN', account: 'Interbank', now }).current).toBe(8)
   })
 
-  test('el rango pide desde el día 1 del mes anterior hasta hoy', () => {
-    expect(spendingRange(now)).toEqual({ from: '2026-08-01', to: '2026-09-18' })
-    expect(spendingRange(new Date(2026, 0, 5))).toEqual({ from: '2025-12-01', to: '2026-01-05' })
+  test('el rango pide desde el día 1 del mes anterior hasta mañana (el `to` de la API es exclusivo)', () => {
+    expect(spendingRange(now)).toEqual({ from: '2026-08-01', to: '2026-09-19' })
+    expect(spendingRange(new Date(2026, 0, 5))).toEqual({ from: '2025-12-01', to: '2026-01-06' })
+    expect(spendingRange(new Date(2026, 8, 30))).toEqual({ from: '2026-08-01', to: '2026-10-01' })
+    expect(spendingRange(new Date(2026, 11, 31))).toEqual({ from: '2026-11-01', to: '2027-01-01' })
   })
 
   test('cumulative acumula sin errores de redondeo', () => {
@@ -65,6 +67,33 @@ describe('topCategories', () => {
     expect(rows.reduce((a, r) => a + r.percentage, 0)).toBe(100)
     expect(rows[4].color).toBe(6)
     expect(new Set(rows.map((r) => r.color)).size).toBe(5)
+  })
+
+  test('una categoría que se llama "Otros" se suma al grupo Otros', () => {
+    const rows = topCategories(
+      [{ name: 'A', amount: 50 }, { name: 'Otros', amount: 10 }, { name: 'B', amount: 5 }, { name: 'C', amount: 5 }, { name: 'D', amount: 5 }, { name: 'E', amount: 5 }],
+      'Otros',
+    )
+    expect(rows.filter((r) => r.name === 'Otros')).toHaveLength(1)
+    expect(rows.find((r) => r.isOther)?.amount).toBe(15)
+    expect(rows.reduce((a, r) => a + r.percentage, 0)).toBe(100)
+  })
+
+  test('lo que el endpoint no lista (solo manda seis) va a Otros para cuadrar con lo gastado', () => {
+    const rows = topCategories(
+      [{ name: 'A', amount: 275 }, { name: 'B', amount: 240 }, { name: 'C', amount: 128.4 }, { name: 'D', amount: 116.8 }, { name: 'E', amount: 40 }, { name: 'F', amount: 21.8 }],
+      'Otros',
+      { spent: 836.25 },
+    )
+    expect(rows.find((r) => r.isOther)?.amount).toBe(76.05)
+    expect(Math.round(rows.reduce((a, r) => a + r.amount, 0) * 100) / 100).toBe(836.25)
+    expect(rows.reduce((a, r) => a + r.percentage, 0)).toBe(100)
+  })
+
+  test('si ya cuadra (o sobra), no inventa un Otros', () => {
+    const rows = topCategories([{ name: 'A', amount: 60 }, { name: 'B', amount: 40 }], 'Otros', { spent: 100 })
+    expect(rows.some((r) => r.isOther)).toBe(false)
+    expect(topCategories([{ name: 'A', amount: 60 }], 'Otros', { spent: 50 }).some((r) => r.isOther)).toBe(false)
   })
 
   test('sin gastos devuelve una lista vacía', () => {

@@ -1,18 +1,10 @@
-import {
-  BottomSheetBackdrop,
-  BottomSheetModal,
-  BottomSheetScrollView,
-  BottomSheetTextInput,
-  BottomSheetView,
-  useBottomSheetSpringConfigs,
-  type BottomSheetBackdropProps,
-} from "@gorhom/bottom-sheet";
 import { X } from "@tamagui/lucide-icons-2";
-import { useCallback, useEffect, useRef, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import type { TextInputProps } from "react-native";
+import { TextInput, type TextInputProps } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { XStack, YStack, useTheme } from "tamagui";
+import { Sheet, XStack, YStack, useTheme } from "tamagui";
 import { useSheetBackHandler } from "../hooks/useSheetBackHandler";
 import { useThemeMode } from "../theme/ThemeMode";
 import { motion, radius, shadows, space } from "../theme/tokens";
@@ -33,54 +25,52 @@ export interface FintSheetProps {
   headerAction?: { label: string; onPress: () => void };
   /** Contenido largo (lista de categorías, lugares): se desplaza dentro de la hoja. */
   scrollable?: boolean;
-  /** Alturas fijas. Sin ellas la hoja toma el alto de su contenido. */
-  snapPoints?: (string | number)[];
+  /** Alto fijo en porcentaje de la pantalla (por ejemplo `[78]`). Sin él, la hoja toma el alto de su contenido. */
+  snapPoints?: number[];
+  /** `compact` (18px) para hojas de menú como "¿Qué quieres registrar?"; `title` (22px) para las del formulario. */
+  titleSize?: "title" | "compact";
   children: ReactNode;
 }
 
 /**
- * Hoja inferior del sistema. Sube con `spring-sheet` sobre el velo `scrim`, en
- * `surfaceOverlay` con esquinas `radius-xl` y manija de 38x5. Se cierra
- * arrastrando, tocando el velo, con el botón de la cabecera o con "atrás" en
- * Android. En oscuro lleva un filete `line` arriba porque la sombra no se ve.
+ * Hoja inferior del sistema, sobre el `Sheet` de Tamagui (el mismo que ya usa
+ * la app). Sube con `spring-sheet` sobre el velo `scrim`, en `surfaceOverlay`
+ * con esquinas `radius-xl` y manija de 38x5. Se cierra arrastrando, tocando el
+ * velo, con el botón de la cabecera o con "atrás" en Android. En oscuro lleva
+ * un filete `line` arriba porque la sombra no se ve.
  *
  * Todo lo que se elige dentro de un formulario se elige en una de estas.
  */
-export function FintSheet({ open, onClose, title, subtitle, headerAction, scrollable = false, snapPoints, children }: FintSheetProps) {
-  const ref = useRef<BottomSheetModal>(null);
-  const theme = useTheme();
+export function FintSheet({
+  open,
+  onClose,
+  title,
+  subtitle,
+  headerAction,
+  scrollable = false,
+  snapPoints,
+  titleSize = "title",
+  children,
+}: FintSheetProps) {
   const { themeMode } = useThemeMode();
+  // Con "reducir movimiento" la hoja aparece en su lugar, sin subir; el velo sigue entrando con fade.
+  const reduceMotion = useReducedMotion();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
-  const animationConfigs = useBottomSheetSpringConfigs(motion.springSheet);
-
-  useEffect(() => {
-    if (open) ref.current?.present();
-    else ref.current?.dismiss();
-  }, [open]);
 
   useSheetBackHandler(open, onClose);
-
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop
-        {...props}
-        appearsOnIndex={0}
-        disappearsOnIndex={-1}
-        opacity={1}
-        pressBehavior="close"
-        style={[props.style, { backgroundColor: theme.scrim.val }]}
-      />
-    ),
-    [theme.scrim.val],
-  );
 
   const header =
     title || headerAction ? (
       <XStack items="center" justify="space-between" gap={space[3]} pt={4} pl={space[5]} pr={space[4]}>
         <YStack flex={1} minW={0}>
           {title ? (
-            <FText variant="title" accessibilityRole="header" numberOfLines={1}>
+            <FText
+              variant="title"
+              accessibilityRole="header"
+              numberOfLines={1}
+              style={titleSize === "compact" ? { fontSize: 18, lineHeight: 23, letterSpacing: -0.3 } : undefined}
+            >
               {title}
             </FText>
           ) : null}
@@ -102,34 +92,39 @@ export function FintSheet({ open, onClose, title, subtitle, headerAction, scroll
       </XStack>
     ) : null;
 
-  const Container = scrollable ? BottomSheetScrollView : BottomSheetView;
-
   return (
-    <BottomSheetModal
-      ref={ref}
-      snapPoints={snapPoints}
-      enableDynamicSizing={!snapPoints}
-      onDismiss={onClose}
-      backdropComponent={renderBackdrop}
-      animationConfigs={animationConfigs}
-      keyboardBehavior="interactive"
-      keyboardBlurBehavior="restore"
-      android_keyboardInputMode="adjustResize"
-      backgroundStyle={{
-        backgroundColor: theme.surfaceOverlay.val,
-        borderTopLeftRadius: radius.xl,
-        borderTopRightRadius: radius.xl,
-        borderTopWidth: themeMode === "dark" ? 1 : 0,
-        borderColor: theme.line.val,
-        boxShadow: shadows[themeMode].sheet,
+    <Sheet
+      modal
+      open={open}
+      onOpenChange={(next: boolean) => {
+        if (!next) onClose();
       }}
-      handleIndicatorStyle={{ width: 38, height: 5, backgroundColor: theme.lineStrong.val, opacity: 0.45 }}
+      snapPointsMode={snapPoints ? "percent" : "fit"}
+      snapPoints={snapPoints}
+      dismissOnSnapToBottom
+      moveOnKeyboardChange
+      zIndex={110_000}
+      transitionConfig={reduceMotion ? { type: "direct" } : { type: "spring", ...motion.springSheet }}
     >
-      <Container contentContainerStyle={scrollable ? { paddingBottom: insets.bottom + 26 } : undefined} style={scrollable ? undefined : { paddingBottom: insets.bottom + 26 }}>
+      <Sheet.Overlay bg="$scrim" transition="quick" enterStyle={{ opacity: 0 }} exitStyle={{ opacity: 0 }} />
+      <Sheet.Frame
+        bg="$surfaceOverlay"
+        borderTopWidth={themeMode === "dark" ? 1 : 0}
+        borderColor="$line"
+        pb={Math.max(insets.bottom, 16) + 10}
+        style={{
+          borderTopLeftRadius: radius.xl,
+          borderTopRightRadius: radius.xl,
+          borderBottomLeftRadius: 0,
+          borderBottomRightRadius: 0,
+          boxShadow: shadows[themeMode].sheet,
+        }}
+      >
+        <YStack self="center" width={38} height={5} rounded={999} bg="$lineStrong" opacity={0.45} mt={8} mb={4} />
         {header}
-        {children}
-      </Container>
-    </BottomSheetModal>
+        {scrollable ? <Sheet.ScrollView showsVerticalScrollIndicator={false}>{children}</Sheet.ScrollView> : children}
+      </Sheet.Frame>
+    </Sheet>
   );
 }
 
@@ -156,11 +151,11 @@ export function SheetField({ children, focused = false }: { children: ReactNode;
   );
 }
 
-/** Campo de texto para usar dentro de `FintSheet`: sube con el teclado sin tapar la hoja. */
+/** Campo de texto para usar dentro de `FintSheet` (la hoja sube con el teclado). */
 export function SheetTextInput(props: TextInputProps) {
   const theme = useTheme();
   return (
-    <BottomSheetTextInput
+    <TextInput
       placeholderTextColor={theme.inkFaint.val}
       selectionColor={theme.brand.val}
       {...props}

@@ -1,6 +1,6 @@
 {
   "name": "finanzas-mobilev2",
-  "version": "0.1.1",
+  "version": "2.0.0",
   "license": "Apache-2.0",
   "main": "expo-router/entry",
   "scripts": {
@@ -23,7 +23,6 @@
     "sentry:privacy-test": "bun test tests/unit/sentry-privacy.test.ts"
   },
   "dependencies": {
-    "@gorhom/bottom-sheet": "^5.2.14",
     "@react-native-community/datetimepicker": "8.6.0",
     "@react-native-community/netinfo": "11.5.2",
     "@react-native-google-signin/google-signin": "^16.1.4",

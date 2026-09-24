@@ -1,6 +1,7 @@
 import { ArrowLeftRight } from "@tamagui/lucide-icons-2";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+import Animated, { useReducedMotion } from "react-native-reanimated";
 import { YStack } from "tamagui";
 import type { Transaction } from "../api/types";
 import { getCategoryLabel } from "../finance/categoryLabels";
@@ -8,6 +9,7 @@ import { useCategoryIcons } from "../finance/useCategoryIcons";
 import { getAppLocale } from "../i18n";
 import { space } from "../theme/tokens";
 import { Amount, FintCard, FText, ListRow, Monogram, SectionHeader } from "../ui";
+import { riseIn } from "../ui/entering";
 import { categoryColorIndex, transactionDay } from "./spending";
 
 const ROWS = 3;
@@ -17,6 +19,7 @@ export function RecentMovementsCard({ transactions }: { transactions: Transactio
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const iconFor = useCategoryIcons();
+  const reduceMotion = useReducedMotion();
   const locale = getAppLocale(i18n.resolvedLanguage);
   const rows = transactions.slice(0, ROWS);
 
@@ -33,22 +36,24 @@ export function RecentMovementsCard({ transactions }: { transactions: Transactio
             const transfer = tx.type === "transfer";
             const title = transfer ? t("forms.transfer") : getCategoryLabel(tx.category, t);
             const subtitle = [relativeDay(tx.date, locale, t), tx.note || tx.account].filter(Boolean).join(" · ");
+            // Las filas entran con `fade` escalonado 30ms.
             return (
-              <ListRow
-                key={tx.id}
-                divider={i > 0}
-                title={title}
-                subtitle={subtitle}
-                leading={
-                  transfer ? (
-                    <Monogram name={title} icon={<ArrowLeftRight size={16} color="$inkMuted" strokeWidth={2} />} />
-                  ) : (
-                    <Monogram name={title} emoji={iconFor(tx.category, tx.type)} color={`$chart${categoryColorIndex(tx.category)}` as never} />
-                  )
-                }
-                trailing={<Amount value={tx.amount} currency={tx.currency} kind={tx.type === "income" ? "income" : transfer ? "transfer" : "expense"} />}
-                onPress={transfer ? undefined : () => openDetail(router, tx)}
-              />
+              <Animated.View key={tx.id} entering={riseIn({ distance: 0, delay: i * 30, reduceMotion })}>
+                <ListRow
+                  divider={i > 0}
+                  title={title}
+                  subtitle={subtitle}
+                  leading={
+                    transfer ? (
+                      <Monogram name={title} icon={<ArrowLeftRight size={16} color="$inkMuted" strokeWidth={2} />} />
+                    ) : (
+                      <Monogram name={title} emoji={iconFor(tx.category, tx.type)} color={`$chart${categoryColorIndex(tx.category)}` as never} />
+                    )
+                  }
+                  trailing={<Amount value={tx.amount} currency={tx.currency} kind={tx.type === "income" ? "income" : transfer ? "transfer" : "expense"} />}
+                  onPress={transfer ? undefined : () => openDetail(router, tx)}
+                />
+              </Animated.View>
             );
           })
         )}

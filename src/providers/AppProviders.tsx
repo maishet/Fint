@@ -48,12 +48,17 @@ export function AppProviders({ children, ...rest }: Omit<TamaguiProviderProps, '
     void loadStoredLanguage()
   }, [])
 
+  // Hasta leer la preferencia guardada no se escribe nada: si no, el 'system' inicial la pisaba al arrancar.
+  const [isThemeLoaded, setIsThemeLoaded] = useState(false)
+
   useEffect(() => {
     let isMounted = true
 
     async function loadThemeMode() {
-      const storedThemeMode = await getStoredThemeMode()
-      if (isMounted && storedThemeMode) setThemePreference(storedThemeMode)
+      const storedThemeMode = await getStoredThemeMode().catch(() => null)
+      if (!isMounted) return
+      if (storedThemeMode) setThemePreference(storedThemeMode)
+      setIsThemeLoaded(true)
     }
 
     loadThemeMode()
@@ -64,8 +69,8 @@ export function AppProviders({ children, ...rest }: Omit<TamaguiProviderProps, '
   }, [])
 
   useEffect(() => {
-    storeThemeMode(themePreference)
-  }, [themePreference])
+    if (isThemeLoaded) void storeThemeMode(themePreference).catch(() => undefined)
+  }, [isThemeLoaded, themePreference])
 
   return (
     <ThemeModeContext.Provider value={{ themeMode, themePreference, setThemePreference }}>

@@ -20,6 +20,8 @@ interface HeroMeshProps {
   height: number;
   /** Scroll del Inicio: la malla se desplaza a la mitad de su velocidad, lo que da profundidad. */
   scrollY?: SharedValue<number>;
+  /** Tirón hacia abajo desde el tope (px): la malla se estira hacia arriba y se agranda con el hero. */
+  pull?: SharedValue<number>;
 }
 
 /**
@@ -28,7 +30,7 @@ interface HeroMeshProps {
  * desfasados entre sí. Es atmósfera: nunca se acerca al saldo, no se toca, y se
  * detiene cuando la pantalla no está enfocada o se pide movimiento reducido.
  */
-export function HeroMesh({ width, height, scrollY }: HeroMeshProps) {
+export function HeroMesh({ width, height, scrollY, pull }: HeroMeshProps) {
   const theme = useTheme();
   const focused = useIsFocused();
   const reduceMotion = useReducedMotion();
@@ -52,7 +54,17 @@ export function HeroMesh({ width, height, scrollY }: HeroMeshProps) {
     vec(width * 0.08 + Math.cos(phase.value * 0.8 + 2.1) * width * 0.07, height * 0.92 + Math.sin(phase.value * 0.8 + 2.1) * height * 0.06),
   );
 
-  const parallax = useAnimatedStyle(() => ({ transform: [{ translateY: scrollY ? Math.max(0, scrollY.value) * 0.5 : 0 }] }));
+  // Con el tirón, el borde de arriba sube lo que baja el contenido y la malla escala desde arriba para cubrir el hueco.
+  const parallax = useAnimatedStyle(() => {
+    const stretch = pull ? Math.max(0, pull.value) : 0;
+    return {
+      transformOrigin: "top",
+      transform: [
+        { translateY: (scrollY ? Math.max(0, scrollY.value) * 0.5 : 0) - stretch },
+        { scale: height > 0 ? 1 + stretch / height : 1 },
+      ],
+    };
+  });
 
   if (width === 0 || height === 0) return null;
 
