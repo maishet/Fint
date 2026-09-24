@@ -2,7 +2,7 @@ import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Plus } from "@tamagui/lucide-icons-2";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AccessibilityInfo, Pressable, StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -15,6 +15,7 @@ import { useTheme, useThemeName } from "tamagui";
 import { useThemeMode } from "../theme/ThemeMode";
 import { motion, radius, shadows } from "../theme/tokens";
 import { PressableScale } from "../ui/PressableScale";
+import { setFabOrigin } from "../ui/fabOrigin";
 import { haptics } from "../ui/haptics";
 
 /** Medidas del design system: tabs de 56x46, 7px de padding, botón central de 54px en un hueco de 70px. */
@@ -66,6 +67,7 @@ export interface FintTabBarProps extends BottomTabBarProps {
  * cada tab lleva su nombre para el lector de pantalla.
  */
 export function FintTabBar({ state, descriptors, navigation, centerAction }: FintTabBarProps) {
+  const fabRef = useRef<View>(null);
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const themeName = useThemeName();
@@ -154,6 +156,12 @@ export function FintTabBar({ state, descriptors, navigation, centerAction }: Fin
           >
             <PressableScale onPress={centerAction.onPress} haptic="tap" accessibilityRole="button" accessibilityLabel={centerAction.label} hitSlop={6}>
               <View
+                ref={fabRef}
+                // El formulario de movimiento crece desde aquí: se guarda su centro en la pantalla. `measure` y no
+                // `measureInWindow`, que en Android descuenta la barra de estado.
+                onLayout={() =>
+                  fabRef.current?.measure((_x, _y, w, h, pageX, pageY) => setFabOrigin({ x: pageX + w / 2, y: pageY + h / 2, size: w - 6 }))
+                }
                 style={{
                   width: FAB_SIZE + 6,
                   height: FAB_SIZE + 6,

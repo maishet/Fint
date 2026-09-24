@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
-import { View, XStack, type ColorTokens } from "tamagui";
+import { Text, View, XStack, type ColorTokens } from "tamagui";
 import { radius } from "../theme/tokens";
 import { fontFace } from "../theme/typography";
+import { DashedOutline } from "./DashedOutline";
 import { FText } from "./FText";
 import { PressableScale } from "./PressableScale";
 
@@ -16,6 +17,8 @@ export interface ChipProps {
   variant?: "filter" | "choice" | "detail";
   /** Color de identidad (categoría) como punto a la izquierda. */
   dotColor?: ColorTokens | string;
+  /** El emoji que la persona eligió para la categoría; va en lugar del punto. */
+  emoji?: string | null;
   icon?: ReactNode;
   /** Borde punteado para "Más" o "Nueva". */
   dashed?: boolean;
@@ -31,6 +34,7 @@ export function Chip({
   selected = false,
   variant = "filter",
   dotColor,
+  emoji,
   icon,
   dashed = false,
   empty = false,
@@ -48,7 +52,7 @@ export function Chip({
       accessibilityRole={variant === "detail" ? "button" : "togglebutton"}
       accessibilityState={{ selected }}
       accessibilityLabel={label}
-      style={grow ? { flex: 1 } : undefined}
+      style={grow ? { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0 } : undefined}
     >
       <XStack
         height={32}
@@ -57,18 +61,24 @@ export function Chip({
         items="center"
         justify="center"
         rounded={radius.pill}
-        borderWidth={1}
-        borderStyle={dashed ? "dashed" : "solid"}
+        borderWidth={dashed ? 0 : 1}
         bg={filterOn ? "$ink" : choiceOn ? "$brandWash" : "$surface"}
         borderColor={filterOn ? "$ink" : choiceOn ? "$brand" : "$lineStrong"}
       >
-        {dotColor ? <View width={7} height={7} rounded={999} bg={dotColor as ColorTokens} /> : null}
+        {dashed ? <DashedOutline radius={radius.pill} strokeWidth={1} /> : null}
+        {emoji ? (
+          <Text style={{ fontSize: 15, lineHeight: 19, includeFontPadding: false }} accessibilityElementsHidden importantForAccessibility="no">
+            {emoji}
+          </Text>
+        ) : dotColor ? (
+          <View width={7} height={7} rounded={999} bg={dotColor as ColorTokens} />
+        ) : null}
         {icon}
         <FText
           variant="label"
           tone={tone === "canvas" ? undefined : (tone as "ink" | "inkMuted")}
           color={tone === "canvas" ? "$canvas" : undefined}
-          style={selected ? { fontFamily: fontFace.sans[600] } : undefined}
+          style={[{ flexShrink: 1 }, selected ? { fontFamily: fontFace.sans[600] } : null]}
           numberOfLines={1}
         >
           {label}

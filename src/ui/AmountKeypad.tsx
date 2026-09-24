@@ -53,7 +53,7 @@ function Key({ value, onKey, onClear }: { value: AmountKey; onKey: (k: AmountKey
     <Pressable
       style={{ flex: 1 }}
       accessibilityRole="keyboardkey"
-      accessibilityLabel={isDelete ? t("amountKeypad.delete", { defaultValue: "Borrar" }) : value === "." ? t("amountKeypad.decimal", { defaultValue: "Punto decimal" }) : value}
+      accessibilityLabel={isDelete ? t("amountKeypad.delete") : value === "." ? t("amountKeypad.decimal") : value}
       onPressIn={() => {
         pressed.value = withTiming(1, motion.press);
         haptics.select();

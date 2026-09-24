@@ -5,6 +5,7 @@ import { initReactI18next } from "react-i18next";
 import { ptTranslation } from "./pt";
 import { setStoredCurrentLanguage, type AppLanguage } from "./current-language";
 import { homeTranslations } from "./home";
+import { movementFormTranslations } from "./movementForm";
 
 export type { AppLanguage };
 
@@ -2788,6 +2789,11 @@ i18n.addResourceBundle(
 
 // Inicio v3, barra de tabs y hojas de registro.
 for (const [language, bundle] of Object.entries(homeTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Formulario de movimiento v3 y sus hojas.
+for (const [language, bundle] of Object.entries(movementFormTranslations)) {
   i18n.addResourceBundle(language, "translation", bundle, true, false);
 }
 

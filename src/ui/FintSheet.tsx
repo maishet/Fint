@@ -1,11 +1,12 @@
 import { X } from "@tamagui/lucide-icons-2";
-import type { ReactNode } from "react";
+import { useContext, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { TextInput, type TextInputProps } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Sheet, XStack, YStack, useTheme } from "tamagui";
 import { useSheetBackHandler } from "../hooks/useSheetBackHandler";
+import { SensitiveAmountsContext } from "../privacy/SensitiveAmountsProvider";
 import { useThemeMode } from "../theme/ThemeMode";
 import { motion, radius, shadows, space } from "../theme/tokens";
 import { textStyles } from "../theme/typography";
@@ -29,6 +30,8 @@ export interface FintSheetProps {
   snapPoints?: number[];
   /** `compact` (18px) para hojas de menú como "¿Qué quieres registrar?"; `title` (22px) para las del formulario. */
   titleSize?: "title" | "compact";
+  /** Sin arrastre para cerrar: la hoja lleva un mapa que se arrastra. Se cierra con el velo, la X o "atrás". */
+  disableDrag?: boolean;
   children: ReactNode;
 }
 
@@ -50,6 +53,7 @@ export function FintSheet({
   scrollable = false,
   snapPoints,
   titleSize = "title",
+  disableDrag = false,
   children,
 }: FintSheetProps) {
   const { themeMode } = useThemeMode();
@@ -57,6 +61,9 @@ export function FintSheet({
   const reduceMotion = useReducedMotion();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  // La hoja se dibuja en el portal de Tamagui, fuera de los proveedores de la app: se vuelve a proveer
+  // "Ocultar montos" para que un `Amount` dentro de la hoja lo respete.
+  const sensitiveAmounts = useContext(SensitiveAmountsContext);
 
   useSheetBackHandler(open, onClose);
 
@@ -102,6 +109,7 @@ export function FintSheet({
       snapPointsMode={snapPoints ? "percent" : "fit"}
       snapPoints={snapPoints}
       dismissOnSnapToBottom
+      disableDrag={disableDrag}
       moveOnKeyboardChange
       zIndex={110_000}
       transitionConfig={reduceMotion ? { type: "direct" } : { type: "spring", ...motion.springSheet }}
@@ -122,7 +130,9 @@ export function FintSheet({
       >
         <YStack self="center" width={38} height={5} rounded={999} bg="$lineStrong" opacity={0.45} mt={8} mb={4} />
         {header}
-        {scrollable ? <Sheet.ScrollView showsVerticalScrollIndicator={false}>{children}</Sheet.ScrollView> : children}
+        <SensitiveAmountsContext.Provider value={sensitiveAmounts}>
+          {scrollable ? <Sheet.ScrollView showsVerticalScrollIndicator={false}>{children}</Sheet.ScrollView> : children}
+        </SensitiveAmountsContext.Provider>
       </Sheet.Frame>
     </Sheet>
   );

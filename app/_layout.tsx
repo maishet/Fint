@@ -222,11 +222,17 @@ function RootLayoutNav() {
               headerShown: false,
             }}
           />
+          {/*
+            Formulario v3: modal transparente sin animación del sistema. La entrada y la salida las dibuja
+            `GrowPresence` (crece desde el botón central o sube desde abajo); debajo se sigue viendo la pantalla anterior.
+          */}
           <Stack.Screen
             name="transaction-form"
             options={{
-              title: t("forms.newMovement"),
-              contentStyle: { backgroundColor: theme.background.val },
+              headerShown: false,
+              presentation: "transparentModal",
+              animation: "none",
+              contentStyle: { backgroundColor: "transparent" },
             }}
           />
           <Stack.Screen

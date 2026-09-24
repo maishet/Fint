@@ -1,7 +1,7 @@
 import { ArrowDown, ArrowUp, Bell, ChevronDown, Ellipsis, ReceiptText, ScanLine, Search, Wallet } from "@tamagui/lucide-icons-2";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Image, type LayoutChangeEvent } from "react-native";
+import { Image, Pressable, type LayoutChangeEvent } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Extrapolation,
@@ -294,8 +294,9 @@ function SwipeableBalance({
         },
       );
     });
-  const tap = Gesture.Tap().onEnd(() => runOnJS(toggle)());
-  const gesture = Gesture.Exclusive(pan, tap);
+  // El toque para ocultar montos va en un `Pressable` de RN y no en un `Gesture.Tap`: en Android el Tap de
+  // gesture-handler se activaba aunque el dedo cayera sobre un toast encima (el "Deshacer" tras registrar).
+  // Cuando el Pan se activa, gesture-handler cancela el toque de RN, así deslizar no oculta nada.
 
   const style = useAnimatedStyle(() => {
     const w = Math.max(width, 1);
@@ -313,7 +314,7 @@ function SwipeableBalance({
   const minor = { ...textStyles["amount-hero-cents"], lineHeight: undefined, letterSpacing: -0.4 };
 
   return (
-    <GestureDetector gesture={gesture}>
+    <GestureDetector gesture={pan}>
       <Animated.View
         style={[{ alignSelf: "stretch" }, style]}
         onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
@@ -328,59 +329,61 @@ function SwipeableBalance({
           else toggle();
         }}
       >
-        {visible ? (
-          // Un solo Text con tramos anidados: el símbolo, la parte entera y los decimales comparten línea base.
-          <Animated.View key="shown" entering={FadeIn.duration(motion.fade.duration)}>
-            <Text
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.6}
-              style={{ ...hero, color: theme.slabInk.val, textAlign: "center", includeFontPadding: false, paddingHorizontal: space[4] }}
-            >
-              <Text style={{ ...minor, color: theme.slabMuted.val }}>
-                {parts.sign}
-                {parts.symbol}
-                {THIN_SPACE}
+        <Pressable onPress={toggle} accessible={false}>
+          {visible ? (
+            // Un solo Text con tramos anidados: el símbolo, la parte entera y los decimales comparten línea base.
+            <Animated.View key="shown" entering={FadeIn.duration(motion.fade.duration)}>
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.6}
+                style={{ ...hero, color: theme.slabInk.val, textAlign: "center", includeFontPadding: false, paddingHorizontal: space[4] }}
+              >
+                <Text style={{ ...minor, color: theme.slabMuted.val }}>
+                  {parts.sign}
+                  {parts.symbol}
+                  {THIN_SPACE}
+                </Text>
+                {parts.integer}
+                <Text style={{ ...minor, color: theme.slabInk.val }}>.{parts.fraction}</Text>
               </Text>
-              {parts.integer}
-              <Text style={{ ...minor, color: theme.slabInk.val }}>.{parts.fraction}</Text>
-            </Text>
-          </Animated.View>
-        ) : isHydrated ? (
-          <HiddenDigits count={digitCount} lineHeight={hero.lineHeight} reduceMotion={reduceMotion} />
-        ) : (
-          // Mientras se lee la preferencia de montos, un esqueleto del ancho del saldo: ni puntos que luego saltan ni un hueco.
-          <XStack height={hero.lineHeight} items="center" justify="center">
-            <AmountSkeleton onSlab width={skeletonWidth} height={40} />
-          </XStack>
-        )}
+            </Animated.View>
+          ) : isHydrated ? (
+            <HiddenDigits count={digitCount} lineHeight={hero.lineHeight} reduceMotion={reduceMotion} />
+          ) : (
+            // Mientras se lee la preferencia de montos, un esqueleto del ancho del saldo: ni puntos que luego saltan ni un hueco.
+            <XStack height={hero.lineHeight} items="center" justify="center">
+              <AmountSkeleton onSlab width={skeletonWidth} height={40} />
+            </XStack>
+          )}
 
-        {visible && page.monthChange != null && page.monthChange !== 0 ? (
-          <XStack justify="center" items="center" gap={6} mt={4}>
-            {page.monthChange > 0 ? (
-              <ArrowUp size={14} color="$flowInSlab" strokeWidth={2.2} />
-            ) : (
-              <ArrowDown size={14} color="$flowOutSlab" strokeWidth={2.2} />
-            )}
-            <Amount
-              value={page.monthChange}
-              currency={page.currency}
-              kind={page.monthChange > 0 ? "income" : "expense"}
-              tone={page.monthChange > 0 ? "flowInSlab" : "flowOutSlab"}
-              variant="amount-sm"
-              onSlab
-            />
-            <FText variant="caption" tone="slabMuted">
-              {t("home.thisMonth")}
-            </FText>
-          </XStack>
-        ) : !isHydrated ? (
-          <XStack height={22} mt={4} items="center" justify="center">
-            <AmountSkeleton onSlab width={150} height={12} />
-          </XStack>
-        ) : (
-          <View height={22} />
-        )}
+          {visible && page.monthChange != null && page.monthChange !== 0 ? (
+            <XStack justify="center" items="center" gap={6} mt={4}>
+              {page.monthChange > 0 ? (
+                <ArrowUp size={14} color="$flowInSlab" strokeWidth={2.2} />
+              ) : (
+                <ArrowDown size={14} color="$flowOutSlab" strokeWidth={2.2} />
+              )}
+              <Amount
+                value={page.monthChange}
+                currency={page.currency}
+                kind={page.monthChange > 0 ? "income" : "expense"}
+                tone={page.monthChange > 0 ? "flowInSlab" : "flowOutSlab"}
+                variant="amount-sm"
+                onSlab
+              />
+              <FText variant="caption" tone="slabMuted">
+                {t("home.thisMonth")}
+              </FText>
+            </XStack>
+          ) : !isHydrated ? (
+            <XStack height={22} mt={4} items="center" justify="center">
+              <AmountSkeleton onSlab width={150} height={12} />
+            </XStack>
+          ) : (
+            <View height={22} />
+          )}
+        </Pressable>
       </Animated.View>
     </GestureDetector>
   );

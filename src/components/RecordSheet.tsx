@@ -9,6 +9,9 @@ import { motion, radius, space } from "../theme/tokens";
 import { FintSheet, FText, ListRow } from "../ui";
 import { haptics } from "../ui/haptics";
 
+/** Lo que tarda la hoja en bajar antes de abrir el formulario. */
+const SHEET_OUT_MS = 220;
+
 interface SheetProps {
   open: boolean;
   onClose: () => void;
@@ -21,9 +24,11 @@ interface SheetProps {
 export function RecordSheet({ open, onClose }: SheetProps) {
   const { t } = useTranslation();
   const router = useRouter();
+  // La hoja baja primero y luego el formulario crece desde el botón central (`origin: "fab"`); si se abrían a la
+  // vez, la hoja quedaba encima del formulario mientras este se montaba.
   const go = (type: "expense" | "income" | "transfer") => {
     onClose();
-    router.push({ pathname: "/transaction-form", params: { type } });
+    setTimeout(() => router.push({ pathname: "/transaction-form", params: { type, origin: "fab" } }), SHEET_OUT_MS);
   };
 
   return (

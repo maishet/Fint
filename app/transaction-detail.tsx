@@ -97,7 +97,7 @@ export default function TransactionDetailScreen() {
     router.push({
       pathname: '/transaction-form',
       params: {
-        id, type, amount: String(amount), category, account, note, date,
+        id, type, amount: String(amount), currency, category, account, note, date,
         ...(hasLocation ? { latitude: String(latitude), longitude: String(longitude), formattedAddress: formattedAddress ?? '' } : {}),
       },
     })
@@ -106,7 +106,7 @@ export default function TransactionDetailScreen() {
     router.push({
       pathname: '/transaction-form',
       // Sin id ni fecha: crea uno nuevo prellenado, con fecha de hoy por defecto.
-      params: { type, amount: String(amount), category, account, note },
+      params: { type, amount: String(amount), currency, category, account, note },
     })
 
   return (
