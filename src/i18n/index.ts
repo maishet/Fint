@@ -4,6 +4,7 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { ptTranslation } from "./pt";
 import { setStoredCurrentLanguage, type AppLanguage } from "./current-language";
+import { homeTranslations } from "./home";
 
 export type { AppLanguage };
 
@@ -2784,6 +2785,11 @@ i18n.addResourceBundle(
   true,
   true,
 );
+
+// Inicio v3, barra de tabs y hojas de registro.
+for (const [language, bundle] of Object.entries(homeTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
 
 i18n.on("languageChanged", setStoredCurrentLanguage);
 setStoredCurrentLanguage(i18n.resolvedLanguage ?? i18n.language);

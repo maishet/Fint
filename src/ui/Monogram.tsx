@@ -12,8 +12,13 @@ export interface MonogramProps {
   color?: ColorTokens;
   /** Logo del comercio o banco. Mientras carga, o si falla, se ve la inicial. */
   logoUrl?: string | null;
-  /** Icono en lugar de la inicial (transferencias, categorías con icono). */
+  /** Icono en lugar de la inicial (transferencias). */
   icon?: ReactNode;
+  /**
+   * El emoji que la persona eligió para la categoría. Va chico dentro del disco
+   * neutro, lo que lo integra al resto de la interfaz; sin emoji, la inicial.
+   */
+  emoji?: string | null;
   size?: 32 | 38 | 52 | 64;
   /** Pequeña insignia abajo a la derecha (pendiente, automático). */
   badge?: ReactNode;
@@ -23,7 +28,7 @@ export interface MonogramProps {
  * Avatar de una fila: logo, inicial o icono sobre `surfaceSunken`. El logo que
  * termina de cargar aparece con un cruce de 180ms, nunca con un salto.
  */
-export function Monogram({ name, color = "$inkMuted", logoUrl, icon, size = 38, badge }: MonogramProps) {
+export function Monogram({ name, color = "$inkMuted", logoUrl, icon, emoji, size = 38, badge }: MonogramProps) {
   const [failed, setFailed] = useState(false);
   const logoOpacity = useSharedValue(0);
   const logoStyle = useAnimatedStyle(() => ({ opacity: logoOpacity.value }));
@@ -31,11 +36,16 @@ export function Monogram({ name, color = "$inkMuted", logoUrl, icon, size = 38, 
 
   return (
     <View width={size} height={size} rounded={999} bg="$surfaceSunken" items="center" justify="center">
-      {icon ?? (
-        <Text color={color} style={{ fontFamily: fontFace.display[600], fontSize: Math.round(size * 0.4) }}>
-          {initial}
-        </Text>
-      )}
+      {icon ??
+        (emoji ? (
+          <Text style={{ fontSize: Math.round(size * 0.47), lineHeight: Math.round(size * 0.6), includeFontPadding: false, textAlign: "center" }}>
+            {emoji}
+          </Text>
+        ) : (
+          <Text color={color} style={{ fontFamily: fontFace.display[600], fontSize: Math.round(size * 0.4) }}>
+            {initial}
+          </Text>
+        ))}
       {logoUrl && !failed ? (
         <Animated.View style={[{ position: "absolute", inset: 0, borderRadius: size / 2, overflow: "hidden" }, logoStyle]}>
           <Image

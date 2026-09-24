@@ -1,37 +1,37 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, Wallet } from "@tamagui/lucide-icons-2";
-import { useNotify } from "../../src/ui/notify";
+import { useNotify } from "../src/ui/notify";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Paragraph, XStack, YStack } from "tamagui";
-import { financeApi } from "../../src/api/finance";
-import { normalizeAccount } from "../../src/api/mappers";
-import type { Account, AccountsOverview } from "../../src/api/types";
-import { DataStateCard } from "../../src/components/DataStateCard";
-import { EmptyState } from "../../src/components/EmptyState";
-import { Screen } from "../../src/components/Screen";
-import { SwipeableRow } from "../../src/components/SwipeableRow";
+import { financeApi } from "../src/api/finance";
+import { normalizeAccount } from "../src/api/mappers";
+import type { Account, AccountsOverview } from "../src/api/types";
+import { DataStateCard } from "../src/components/DataStateCard";
+import { EmptyState } from "../src/components/EmptyState";
+import { Screen } from "../src/components/Screen";
+import { SwipeableRow } from "../src/components/SwipeableRow";
 import {
   SkeletonBlock,
   SkeletonGroup,
   SkeletonList,
-} from "../../src/components/Skeleton";
-import { getCurrencySymbol } from "../../src/finance/currencies";
+} from "../src/components/Skeleton";
+import { getCurrencySymbol } from "../src/finance/currencies";
 import {
   getAccountIcon,
   getAccountTypeLabel,
-} from "../../src/finance/accountTypes";
-import { usePressOnce } from "../../src/hooks/usePressOnce";
+} from "../src/finance/accountTypes";
+import { usePressOnce } from "../src/hooks/usePressOnce";
 import {
   FintButton,
   FintConfirmDialog,
   FintSheetSelect,
   FintSpinner,
-} from "../../src/ui";
-import { FintListGroup } from "../../src/components/FintListGroup";
-import { SensitiveAmountToggle } from "../../src/privacy/SensitiveAmountToggle";
-import { useSensitiveMoney } from "../../src/privacy/useSensitiveMoney";
+} from "../src/ui";
+import { FintListGroup } from "../src/components/FintListGroup";
+import { SensitiveAmountToggle } from "../src/privacy/SensitiveAmountToggle";
+import { useSensitiveMoney } from "../src/privacy/useSensitiveMoney";
 
 export default function AccountsScreen() {
   const { t } = useTranslation();

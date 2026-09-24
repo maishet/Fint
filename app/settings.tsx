@@ -372,7 +372,7 @@ export default function SettingsScreen() {
         <SettingsRow
           icon={<Landmark size={19} color="$primary" />}
           label={t("settings.financialAccounts")}
-          onPress={() => router.push("/(tabs)/accounts")}
+          onPress={() => router.push("/accounts")}
         />
         <SettingsRow
           icon={<Tags size={19} color="$primary" />}

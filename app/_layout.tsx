@@ -269,6 +269,13 @@ function RootLayoutNav() {
             }}
           />
           <Stack.Screen
+            name="accounts"
+            options={{
+              title: t("tabs.accounts"),
+              contentStyle: { backgroundColor: theme.background.val },
+            }}
+          />
+          <Stack.Screen
             name="account-form"
             options={{
               contentStyle: { backgroundColor: theme.background.val },
