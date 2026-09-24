@@ -284,6 +284,8 @@ function RootLayoutNav() {
           <Stack.Screen
             name="account-form"
             options={{
+              // La pantalla dibuja su propia barra con cerrar y título.
+              headerShown: false,
               contentStyle: { backgroundColor: theme.background.val },
             }}
           />
