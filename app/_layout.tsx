@@ -274,6 +274,8 @@ function RootLayoutNav() {
             name="accounts"
             options={{
               title: t("tabs.accounts"),
+              // La pantalla dibuja su propio encabezado con volver, título y crear cuenta.
+              headerShown: false,
               contentStyle: { backgroundColor: theme.background.val },
             }}
           />
