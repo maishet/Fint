@@ -1,8 +1,9 @@
 import { useTranslation } from "react-i18next";
-import { Text, type ColorTokens, type TextProps } from "tamagui";
+import { Text, View, type ColorTokens, type TextProps } from "tamagui";
 import { amountParts, THIN_SPACE, type SignMode } from "../finance/formatAmount";
 import { useSensitiveAmounts } from "../privacy/SensitiveAmountsProvider";
 import { textStyles } from "../theme/typography";
+import { AmountSkeleton } from "./AmountSkeleton";
 import type { FTextTone } from "./FText";
 
 type AmountVariant = "amount-input" | "amount-hero" | "amount-lg" | "amount" | "amount-sm" | "figure-caption";
@@ -72,16 +73,20 @@ export function Amount({
     ? t("privacy.amounts.hiddenLabel")
     : `${parts.sign}${parts.symbol} ${parts.integer.replaceAll(THIN_SPACE, "")}.${parts.fraction}`;
 
-  if (isHidden) {
-    // Mientras se lee la preferencia (`!isHydrated`) el marcador ocupa su lugar pero no se ve: si no, cada
-    // arranque mostraba puntos un instante y luego saltaba a la cifra.
+  // Mientras se lee la preferencia de montos, un esqueleto con la forma de la cifra (mismo ancho aproximado y
+  // mismo alto de línea): ni puntos que luego saltan a la cifra ni un hueco vacío.
+  if (sensitive && !isHydrated) {
+    const chars = parts.sign.length + (showSymbol ? parts.symbol.length + 1 : 0) + parts.integer.length + parts.fraction.length + 1;
     return (
-      <Text
-        color={`$${resolvedTone}` as ColorTokens}
-        style={[base, style, sensitive && !isHydrated ? { opacity: 0 } : null]}
-        aria-label={label}
-        {...props}
-      >
+      <View height={base.lineHeight} justify="center" accessible accessibilityRole="progressbar" accessibilityLabel={t("states.loading")}>
+        <AmountSkeleton width={Math.round(chars * base.fontSize * 0.6)} height={Math.round(base.fontSize * 0.75)} onSlab={onSlab} />
+      </View>
+    );
+  }
+
+  if (isHidden) {
+    return (
+      <Text color={`$${resolvedTone}` as ColorTokens} style={[base, style]} aria-label={label} {...props}>
         {hidden}
       </Text>
     );

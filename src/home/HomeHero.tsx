@@ -25,6 +25,7 @@ import { useSensitiveAmounts } from "../privacy/SensitiveAmountsProvider";
 import { motion, radius, space } from "../theme/tokens";
 import { fontFace, textStyles } from "../theme/typography";
 import { Amount, FText, PressableScale } from "../ui";
+import { AmountSkeleton } from "../ui/AmountSkeleton";
 import { riseIn } from "../ui/entering";
 import { haptics } from "../ui/haptics";
 import { HeroMesh } from "./HeroMesh";
@@ -306,6 +307,8 @@ function SwipeableBalance({
 
   const parts = amountParts(page.balance, page.currency);
   const digitCount = parts.integer.replaceAll(THIN_SPACE, "").length + parts.fraction.length;
+  // Ancho aproximado del saldo en Geist Mono: la parte entera a 48px y el símbolo y los decimales a 26px.
+  const skeletonWidth = Math.round(parts.integer.length * 48 * 0.6 + (parts.symbol.length + parts.fraction.length + 2) * 26 * 0.6);
   const hero = textStyles["amount-hero"];
   const minor = { ...textStyles["amount-hero-cents"], lineHeight: undefined, letterSpacing: -0.4 };
 
@@ -346,8 +349,10 @@ function SwipeableBalance({
         ) : isHydrated ? (
           <HiddenDigits count={digitCount} lineHeight={hero.lineHeight} reduceMotion={reduceMotion} />
         ) : (
-          // Mientras se lee la preferencia de montos, un hueco del mismo alto: ni puntos que luego saltan ni el saldo.
-          <View height={hero.lineHeight} />
+          // Mientras se lee la preferencia de montos, un esqueleto del ancho del saldo: ni puntos que luego saltan ni un hueco.
+          <XStack height={hero.lineHeight} items="center" justify="center">
+            <AmountSkeleton onSlab width={skeletonWidth} height={40} />
+          </XStack>
         )}
 
         {visible && page.monthChange != null && page.monthChange !== 0 ? (
@@ -368,6 +373,10 @@ function SwipeableBalance({
             <FText variant="caption" tone="slabMuted">
               {t("home.thisMonth")}
             </FText>
+          </XStack>
+        ) : !isHydrated ? (
+          <XStack height={22} mt={4} items="center" justify="center">
+            <AmountSkeleton onSlab width={150} height={12} />
           </XStack>
         ) : (
           <View height={22} />
