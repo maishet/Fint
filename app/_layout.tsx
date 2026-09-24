@@ -239,6 +239,8 @@ function RootLayoutNav() {
             name="transaction-detail"
             options={{
               title: t("transactionDetail.title"),
+              // La pantalla dibuja su propia barra con volver y compartir.
+              headerShown: false,
               contentStyle: { backgroundColor: theme.background.val },
             }}
           />
