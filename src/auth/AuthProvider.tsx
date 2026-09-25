@@ -7,6 +7,7 @@ import { AppState } from 'react-native'
 import { supabase } from './supabase'
 import { GOOGLE_SIGNIN_BASE_CONFIG } from './googleSignIn'
 import { requestAndRegisterPushInstallation, unregisterPushInstallation } from '../notifications/pushNotifications'
+import { publishSession } from './sessionStore'
 
 GoogleSignin.configure(GOOGLE_SIGNIN_BASE_CONFIG)
 
@@ -32,6 +33,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient()
   const [isLoading, setIsLoading] = useState(true)
   const [session, setSession] = useState<Session | null>(null)
+
+  // También fuera del contexto, para lo que se dibuja dentro de una hoja (ver `sessionStore`).
+  useEffect(() => publishSession(session), [session])
 
   useEffect(() => {
     let active = true

@@ -10,6 +10,7 @@ import { financeApi } from "../api/finance";
 import { LocationEditSheet } from "../components/LocationEditSheet";
 import { regionFor } from "../components/MiniMap";
 import { PlaceCategoryIcon } from "../components/PlaceCategoryIcon";
+import { USER_PIN_TIP, UserMapPin } from "../components/UserMapPin";
 import {
   describeLocation,
   getLastKnownPosition,
@@ -25,6 +26,7 @@ import { splitAddress } from "./logic";
 
 const MAP_ZOOM = 16;
 const MAP_HEIGHT = 170;
+const PIN_SIZE = 38;
 /** Lima, para no abrir en medio del océano si todavía no hay ubicación. */
 const FALLBACK_CENTER = { latitude: -12.0464, longitude: -77.0428 };
 
@@ -213,12 +215,13 @@ export function LocationSheet({ open, onClose, value, suggestion, onSave }: Loca
                   accessibilityLabel={t("location.mapAccessibility")}
                 />
               ) : null}
-              <View position="absolute" l="50%" t="50%" ml={-16} mt={-34} width={32} height={40} items="center" pointerEvents="none">
-                <Animated.View style={[{ position: "absolute", top: 33 }, shadowStyle]}>
+              {/* La punta del pin (la cara de la persona) cae en el centro del mapa, sobre su sombra. */}
+              <View position="absolute" l="50%" t="50%" ml={-PIN_SIZE / 2} mt={-(PIN_SIZE + USER_PIN_TIP)} width={PIN_SIZE} height={PIN_SIZE + USER_PIN_TIP} items="center" pointerEvents="none">
+                <Animated.View style={[{ position: "absolute", top: PIN_SIZE + USER_PIN_TIP - 2.5 }, shadowStyle]}>
                   <View width={14} height={5} rounded={999} bg="rgba(0,0,0,0.22)" />
                 </Animated.View>
                 <Animated.View style={pinStyle}>
-                  <MapPin size={32} color={theme.surface.val} fill={theme.brand.val} strokeWidth={1.6} />
+                  <UserMapPin size={PIN_SIZE} />
                 </Animated.View>
               </View>
               <XStack position="absolute" b={10} self="center" height={28} px={12} items="center" rounded={999} bg="$glass" borderWidth={1} borderColor="$glassLine" pointerEvents="none">

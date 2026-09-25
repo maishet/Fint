@@ -1,11 +1,12 @@
-import { MapPin, Maximize2 } from '@tamagui/lucide-icons-2'
+import { Maximize2 } from '@tamagui/lucide-icons-2'
 import { useEffect, useRef, useState } from 'react'
 import { Platform, StyleSheet } from 'react-native'
 import MapView, { PROVIDER_GOOGLE, type Region } from 'react-native-maps'
-import { Button, Paragraph, useTheme, YStack } from 'tamagui'
+import { Button, Paragraph, YStack } from 'tamagui'
+import { USER_PIN_TIP, UserMapPin } from './UserMapPin'
 
 const DEFAULT_ZOOM = 16
-const PIN_SIZE = 34
+const PIN_SIZE = 38
 
 export function regionFor(latitude: number, longitude: number, zoom: number): Region {
   const delta = 360 / 2 ** zoom
@@ -26,7 +27,6 @@ type MiniMapProps = {
 }
 
 export function MiniMap({ latitude, longitude, height, zoom = DEFAULT_ZOOM, rounded = 14, accessibilityLabel, interactive = false, onCenterChange, hintLabel, onExpand }: MiniMapProps) {
-  const theme = useTheme()
   const mapRef = useRef<MapView>(null)
   const [initialRegion] = useState(() => regionFor(latitude, longitude, zoom))
   const isFirstRender = useRef(true)
@@ -68,9 +68,10 @@ export function MiniMap({ latitude, longitude, height, zoom = DEFAULT_ZOOM, roun
         showsMyLocationButton={false}
       />
 
-      <YStack position="absolute" l="50%" t="50%" ml={-PIN_SIZE / 2} mt={-PIN_SIZE * 0.86} pointerEvents="none" items="center">
-        <YStack width={16} height={6} rounded={999} bg="rgba(4,48,54,0.32)" position="absolute" t={PIN_SIZE * 0.9} />
-        <MapPin size={PIN_SIZE} color="#FFFFFF" fill={theme.brand.val} strokeWidth={2} />
+      {/* La punta del pin (la cara de la persona) cae en el centro del mapa, sobre su sombra. */}
+      <YStack position="absolute" l="50%" t="50%" ml={-7} mt={-2.5} width={14} height={5} rounded={999} bg="rgba(0,0,0,0.22)" pointerEvents="none" />
+      <YStack position="absolute" l="50%" t="50%" ml={-PIN_SIZE / 2} mt={-(PIN_SIZE + USER_PIN_TIP)} pointerEvents="none">
+        <UserMapPin size={PIN_SIZE} />
       </YStack>
 
       {interactive && hintLabel ? (

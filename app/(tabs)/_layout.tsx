@@ -40,6 +40,8 @@ export default function TabLayout() {
             title: t("tabs.dashboard"),
             // El hero dibuja su propia barra con avatar, buscador y campana.
             headerShown: false,
+            // Mientras el Inicio monta (al salir de la pantalla de carga), detrás se ve la losa y no un destello claro.
+            sceneStyle: { backgroundColor: theme.slab.val },
             tabBarIcon: ({ color, size }) => <House color={color as any} size={size} />,
           }}
         />

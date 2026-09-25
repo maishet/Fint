@@ -11,7 +11,7 @@ export interface BrandSymbolProps {
 
 /**
  * El isotipo quieto: tres monedas sobre un disco, con los colores del tema. El
- * animado (`FintCoinStack`) es solo para pantallas de carga.
+ * animado (`FintLogoLoader`) es solo para pantallas de carga y usa las mismas medidas.
  */
 export function BrandSymbol({ size, disc = "$slab", coin = "$slabInk" }: BrandSymbolProps) {
   const theme = useTheme() as unknown as Record<string, { val: string } | undefined>;

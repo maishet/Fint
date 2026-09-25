@@ -85,7 +85,7 @@ export default function AuthCallbackScreen() {
   }, [callbackUrl, code, error_description, router, session, t])
 
   if (!errorMessage) {
-    return <FintLoadingScreen label={t('authCallback.loading')} />
+    return <FintLoadingScreen surface="slab" startComplete stage={t('loadingScreen.session')} />
   }
 
   return (

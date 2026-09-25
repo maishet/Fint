@@ -213,7 +213,11 @@ function RootLayoutNav() {
     >
       <YStack flex={1}>
       <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
+        {/*
+          La pantalla de carga y el paso al Inicio van con `fade`, como pide `PantallaCarga`. Fondo de losa: al
+          terminar, esta ruta solo redirige (no dibuja nada) y mientras el Inicio monta se veía un destello claro.
+        */}
+        <Stack.Screen name="index" options={{ headerShown: false, animation: "fade", contentStyle: { backgroundColor: theme.slab.val } }} />
         <Stack.Protected guard={!session}>
           <Stack.Screen name="login" options={{ headerShown: false }} />
           <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
@@ -226,6 +230,9 @@ function RootLayoutNav() {
             name="(tabs)"
             options={{
               headerShown: false,
+              animation: "fade",
+              // Mientras el Inicio monta, detrás se ve la losa (como la pantalla de carga y el hero), no un destello claro.
+              contentStyle: { backgroundColor: theme.slab.val },
             }}
           />
           {/*

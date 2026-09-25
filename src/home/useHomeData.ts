@@ -13,11 +13,14 @@ import { buildSpendingSeries, spendingRange } from "./spending";
  * "payment-occurrences" y "pending-movements", que las mutaciones de la app ya
  * invalidan: registrar o borrar un movimiento refresca el Inicio sin más.
  */
+/** El resumen del Inicio; lo comparte la pantalla de arranque, que lo espera antes de pasar al Inicio. */
+export const dashboardOverviewQuery = {
+  queryKey: ["dashboard", "overview"] as const,
+  queryFn: ({ signal }: { signal: AbortSignal }) => financeApi.getDashboardOverview(undefined, signal),
+};
+
 export function useHomeData(selectedAccount: { id: string; name: string } | null) {
-  const overviewQuery = useQuery({
-    queryKey: ["dashboard", "overview"],
-    queryFn: ({ signal }) => financeApi.getDashboardOverview(undefined, signal),
-  });
+  const overviewQuery = useQuery(dashboardOverviewQuery);
   const currency = overviewQuery.data?.currency;
 
   const accountsQuery = useQuery({

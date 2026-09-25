@@ -18,6 +18,7 @@ import { onboardingScreenTranslations } from "./onboardingScreen";
 import { loginScreenTranslations } from "./loginScreen";
 import { settingsScreenTranslations } from "./settingsScreen";
 import { secondaryScreensTranslations } from "./secondaryScreens";
+import { loadingScreenTranslations } from "./loadingScreen";
 
 export type { AppLanguage };
 
@@ -354,7 +355,6 @@ const resources = {
         routeTitle: "Categorías",
         title: "Tus categorías",
         subtitle: "Organiza cómo clasificas ingresos y gastos.",
-        newAction: "Nueva",
         newTitle: "Nueva categoría",
         newSubtitle: "Elige un tipo, un icono y un nombre.",
         editTitle: "Editar categoría",
@@ -392,7 +392,6 @@ const resources = {
         formSubtitle:
           "Registra el movimiento con una cuenta y categoría existentes.",
         selectAccount: "Selecciona una cuenta",
-        selectCategory: "Selecciona una categoría",
         date: "Fecha del movimiento",
         selectDate: "Seleccionar fecha",
         loadingReferences: "Cargando cuentas y categorías...",
@@ -478,10 +477,7 @@ const resources = {
           title: "Privacidad financiera",
           visible: "Montos visibles",
           hidden: "Montos ocultos",
-          show: "Mostrar montos",
-          hide: "Ocultar montos",
           hiddenLabel: "Monto oculto",
-          toggleHint: "Alterna entre mostrar y ocultar los montos.",
           description:
             "Oculta balances e importes cuando compartas tu pantalla.",
         },
@@ -625,7 +621,6 @@ const resources = {
         newMovement: "Nuevo movimiento",
         amount: "Monto",
         currency: "Moneda",
-        category: "Categoría",
         account: "Cuenta",
         note: "Nota",
         expense: "Gasto",
@@ -981,7 +976,6 @@ const resources = {
         routeTitle: "Categories",
         title: "Your categories",
         subtitle: "Organize how you classify income and expenses.",
-        newAction: "New",
         newTitle: "New category",
         newSubtitle: "Choose a type, icon, and name.",
         editTitle: "Edit category",
@@ -1019,7 +1013,6 @@ const resources = {
         formSubtitle:
           "Record the transaction using an existing account and category.",
         selectAccount: "Select an account",
-        selectCategory: "Select a category",
         date: "Transaction date",
         selectDate: "Select date",
         loadingReferences: "Loading accounts and categories...",
@@ -1104,10 +1097,7 @@ const resources = {
           title: "Financial privacy",
           visible: "Amounts visible",
           hidden: "Amounts hidden",
-          show: "Show amounts",
-          hide: "Hide amounts",
           hiddenLabel: "Hidden amount",
-          toggleHint: "Toggles between showing and hiding amounts.",
           description: "Hide balances and amounts when sharing your screen.",
         },
       },
@@ -1248,7 +1238,6 @@ const resources = {
         newMovement: "New transaction",
         amount: "Amount",
         currency: "Currency",
-        category: "Category",
         account: "Account",
         note: "Note",
         expense: "Expense",
@@ -1296,11 +1285,6 @@ i18n.addResourceBundle(
       name: "Nombre",
       signUpSuccess:
         "Cuenta creada. Si Supabase requiere confirmación, revisa tu correo antes de entrar.",
-    },
-    header: {
-      goodMorning: "Buenos días, {{name}}",
-      goodAfternoon: "Buenas tardes, {{name}}",
-      goodEvening: "Buenas noches, {{name}}",
     },
     authCallback: {
       timeout:
@@ -1583,15 +1567,10 @@ i18n.addResourceBundle(
       activate: "Guardar y activar",
     },
     location: {
-      addLabel: "Agregar ubicación",
-      addedLabel: "Ubicación",
       coordinatesOnly: "Ubicación guardada",
       remove: "Quitar ubicación",
       mapAccessibility: "Mapa de la ubicación del movimiento",
       detecting: "Detectando ubicación…",
-      autoBannerTitle: "Fint puede guardar dónde ocurre cada movimiento",
-      autoBannerBody: "Usa tu ubicación actual o búscala manualmente. Nunca se agrega sin que tú lo pidas.",
-      autoBannerConfirm: "Usar mi ubicación actual",
       dragHint: "Arrastra o pellizca para ajustar",
       searchPlaceholder: "Buscar un lugar",
       searchInlinePlaceholder: "Ej.: Plaza San Miguel",
@@ -1779,11 +1758,6 @@ i18n.addResourceBundle(
       name: "Name",
       signUpSuccess:
         "Account created. If Supabase requires confirmation, check your email before signing in.",
-    },
-    header: {
-      goodMorning: "Good morning, {{name}}",
-      goodAfternoon: "Good afternoon, {{name}}",
-      goodEvening: "Good evening, {{name}}",
     },
     authCallback: {
       timeout: "Sign-in took too long. Go back to login and try again.",
@@ -2061,15 +2035,10 @@ i18n.addResourceBundle(
       activate: "Save and activate",
     },
     location: {
-      addLabel: "Add location",
-      addedLabel: "Location",
       coordinatesOnly: "Location saved",
       remove: "Remove location",
       mapAccessibility: "Map of the movement's location",
       detecting: "Detecting location…",
-      autoBannerTitle: "Fint can save where each movement happens",
-      autoBannerBody: "Use your current location or search for it manually. It's never added without you asking.",
-      autoBannerConfirm: "Use my current location",
       dragHint: "Drag or pinch to adjust",
       searchPlaceholder: "Search a place",
       searchInlinePlaceholder: "E.g.: Plaza San Miguel",
@@ -2254,11 +2223,6 @@ i18n.addResourceBundle(
       name: "Nome",
       signUpSuccess:
         "Conta criada. Se o Supabase exigir confirmação, verifique seu e-mail antes de entrar.",
-    },
-    header: {
-      goodMorning: "Bom dia, {{name}}",
-      goodAfternoon: "Boa tarde, {{name}}",
-      goodEvening: "Boa noite, {{name}}",
     },
     authCallback: {
       timeout: "O login demorou demais. Volte ao login e tente novamente.",
@@ -2540,15 +2504,10 @@ i18n.addResourceBundle(
       activate: "Salvar e ativar",
     },
     location: {
-      addLabel: "Adicionar localização",
-      addedLabel: "Localização",
       coordinatesOnly: "Localização salva",
       remove: "Remover localização",
       mapAccessibility: "Mapa da localização do movimento",
       detecting: "Detectando localização…",
-      autoBannerTitle: "O Fint pode salvar onde acontece cada movimento",
-      autoBannerBody: "Use sua localização atual ou busque manualmente. Ela nunca é adicionada sem você pedir.",
-      autoBannerConfirm: "Usar minha localização atual",
       dragHint: "Arraste ou belisque para ajustar",
       searchPlaceholder: "Buscar um lugar",
       searchInlinePlaceholder: "Ex.: Plaza San Miguel",
@@ -2866,6 +2825,11 @@ for (const [language, bundle] of Object.entries(settingsScreenTranslations)) {
 
 // Categorías, hoja de categoría y Ayuda y soporte v3.
 for (const [language, bundle] of Object.entries(secondaryScreensTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Pantalla de carga v3.
+for (const [language, bundle] of Object.entries(loadingScreenTranslations)) {
   i18n.addResourceBundle(language, "translation", bundle, true, false);
 }
 

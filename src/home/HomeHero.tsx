@@ -18,8 +18,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, View, XStack, YStack, useTheme } from "tamagui";
-import { useAuth } from "../auth/AuthProvider";
-import { resolveDisplayName } from "../auth/displayName";
+import { useUserAvatar } from "../auth/useUserAvatar";
 import { amountParts, THIN_SPACE } from "../finance/formatAmount";
 import { useSensitiveAmounts } from "../privacy/SensitiveAmountsProvider";
 import { motion, radius, space } from "../theme/tokens";
@@ -143,18 +142,7 @@ export function HomeHero(props: HomeHeroProps) {
 /** El avatar de la persona sobre la losa: abre Ajustes y perfil. Lo usan la barra del hero y la barra colapsada. */
 export function ProfileAvatar({ onPress, size = 40 }: { onPress: () => void; size?: number }) {
   const { t } = useTranslation();
-  const { session } = useAuth();
-  const metadata = session?.user.user_metadata ?? {};
-  const avatarUrl =
-    typeof metadata.avatar_url === "string" ? metadata.avatar_url : typeof metadata.picture === "string" ? metadata.picture : null;
-  const displayName = resolveDisplayName(session);
-  const initials =
-    displayName
-      ?.split(/[\s@]+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((w) => w[0]?.toUpperCase())
-      .join("") || "F";
+  const { avatarUrl, initials } = useUserAvatar();
 
   return (
     <PressableScale onPress={onPress} haptic="tap" accessibilityRole="button" accessibilityLabel={t("home.bar.profile")}>
