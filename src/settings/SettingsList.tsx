@@ -138,11 +138,18 @@ export function OptionSheet<T extends string>({
   onClose: () => void;
   title: string;
   value: T;
-  options: { value: T; label: string; icon?: ReactNode }[];
+  options: { value: T; label: string; detail?: string; icon?: ReactNode }[];
   onChange: (value: T) => void;
 }) {
   return (
-    <FintSheet open={open} onClose={onClose} title={title} titleSize="compact">
+    <FintSheet
+      open={open}
+      onClose={onClose}
+      title={title}
+      titleSize="compact"
+      scrollable={options.length > 7}
+      snapPoints={options.length > 7 ? [70] : undefined}
+    >
       <YStack px={space[2]} pb={space[2]}>
         {options.map((option) => {
           const selected = option.value === value;
@@ -160,9 +167,16 @@ export function OptionSheet<T extends string>({
             >
               <XStack minH={52} px={space[3]} gap={12} items="center" rounded={radius.md} bg={selected ? "$surfaceSunken" : "transparent"}>
                 {option.icon}
-                <FText variant={selected ? "body-strong" : "body"} style={{ flex: 1 }}>
-                  {option.label}
-                </FText>
+                <YStack flex={1} minW={0}>
+                  <FText variant={selected ? "body-strong" : "body"} numberOfLines={1}>
+                    {option.label}
+                  </FText>
+                  {option.detail ? (
+                    <FText variant="caption" tone="inkFaint" numberOfLines={1}>
+                      {option.detail}
+                    </FText>
+                  ) : null}
+                </YStack>
                 {selected ? <Check size={18} color="$brand" strokeWidth={2.4} /> : null}
               </XStack>
             </PressableScale>

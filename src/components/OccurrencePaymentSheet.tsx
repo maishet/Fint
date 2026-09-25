@@ -1,206 +1,285 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { CalendarDays, Check, CheckCircle2, FilePenLine } from '@tamagui/lucide-icons-2'
-import { useNotify } from '../ui/notify'
-import { useCallback, useEffect, useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Input, Paragraph, Sheet, XStack, YStack } from 'tamagui'
-import { z } from 'zod'
-import { financeApi } from '../api/finance'
-import { formatMoney } from '../api/mappers'
-import type { AccountOption, PaymentOccurrence } from '../api/types'
-import { getAccountIcon, getAccountTypeLabel } from '../finance/accountTypes'
-import { useAccountDetails } from '../finance/useAccountDetails'
-import { todayDateString } from '../finance/dates'
-import { useSensitiveMoney } from '../privacy/useSensitiveMoney'
-import { getValidationMessage, parseDecimalInput, useSubmitValidation } from '../forms'
-import { useSheetBackHandler } from '../hooks/useSheetBackHandler'
-import { getInstallationId } from '../notifications/pushNotifications'
-import { FintButton, FintDateField, FintSpinner } from '../ui'
-import { MovementAmountField } from './MovementFormControls'
-import { FintListGroup, FintListRow } from './FintListGroup'
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { CalendarDays, Check, ChevronRight, CircleAlert, FileText } from "@tamagui/lucide-icons-2";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Pressable } from "react-native";
+import { View, XStack, YStack } from "tamagui";
+import { z } from "zod";
+import { financeApi } from "../api/finance";
+import type { AccountOption, PaymentOccurrence } from "../api/types";
+import { getAccountTypeLabel } from "../finance/accountTypes";
+import { parseDateString, todayDateString } from "../finance/dates";
+import { formatAmount } from "../finance/formatAmount";
+import { getValidationMessage, parseDecimalInput, useSubmitValidation } from "../forms";
+import { getAppLocale } from "../i18n";
+import { AccountMonogram } from "../movement-form/AccountSheet";
+import { DateSheet, shortDay } from "../movement-form/DateSheet";
+import { NoteSheet } from "../movement-form/NoteSheet";
+import { accountBalance } from "../movement-form/logic";
+import { getInstallationId } from "../notifications/pushNotifications";
+import { radius, space } from "../theme/tokens";
+import { fontFace } from "../theme/typography";
+import { Amount, FintButton, FintCard, FintSheet, FintSpinner, FText, SheetField, useNotify } from "../ui";
+import { BigAmountInput } from "../ui/BigAmountInput";
+import { haptics } from "../ui/haptics";
 
-export function OccurrencePaymentSheet({ accounts, occurrence, onOpenChange, open }: { accounts: AccountOption[]; occurrence: PaymentOccurrence | null; onOpenChange: (open: boolean) => void; open: boolean }) {
-  const { i18n, t } = useTranslation()
-  const toast = useNotify()
-  const queryClient = useQueryClient()
-  const insets = useSafeAreaInsets()
-  const { formatSensitiveAmount } = useSensitiveMoney()
-  const accountDetails = useAccountDetails()
-  const eligibleAccounts = occurrence ? accounts.filter((account) => account.currency === occurrence.currency) : []
-  const [amount, setAmount] = useState('')
-  const [accountId, setAccountId] = useState('')
-  const [transactionDate, setTransactionDate] = useState(() => todayDateString())
-  const [note, setNote] = useState('')
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const validation = useSubmitValidation<'accountId' | 'amount' | 'transactionDate'>()
-  const maxAmount = occurrence?.remainingAmount ?? 0
-  const amountMessage = getValidationMessage(t, i18n.resolvedLanguage, 'amount')
+/**
+ * Registrar el pago de una ocurrencia (el "Pagar" de la pestaña Pagos), en el
+ * sistema v3: el monto grande (`BigAmountInput`, como en el formulario de
+ * pago) con lo que queda por pagar debajo, las cuentas de la misma moneda en
+ * una tarjeta con su saldo y el check `brand` en la elegida, la fecha (abre
+ * `DateSheet`, sin días futuros) y una nota opcional (abre `NoteSheet`). La lógica no cambia:
+ * mismo esquema, misma mutación y mismas cuentas elegibles.
+ */
+export function OccurrencePaymentSheet({
+  accounts,
+  occurrence,
+  onOpenChange,
+  open,
+}: {
+  accounts: AccountOption[];
+  occurrence: PaymentOccurrence | null;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+}) {
+  const { i18n, t } = useTranslation();
+  const notify = useNotify();
+  const queryClient = useQueryClient();
+  const eligibleAccounts = occurrence ? accounts.filter((account) => account.currency === occurrence.currency) : [];
+  const [amount, setAmount] = useState("");
+  const [accountId, setAccountId] = useState("");
+  const [transactionDate, setTransactionDate] = useState(() => todayDateString());
+  const [note, setNote] = useState("");
+  // La fecha y la nota se eligen en su propia hoja (como en el formulario de movimiento); mientras tanto, esta cede
+  // el lugar y vuelve con todo lo escrito. La nota en su hoja sube pegada al teclado, que aquí tapaba el campo.
+  const [subSheet, setSubSheet] = useState<"date" | "note" | null>(null);
+  const [mountedSub, setMountedSub] = useState<"date" | "note" | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const validation = useSubmitValidation<"accountId" | "amount" | "transactionDate">();
+  const maxAmount = occurrence?.remainingAmount ?? 0;
+  const amountMessage = getValidationMessage(t, i18n.resolvedLanguage, "amount");
   const paymentSchema = z.object({
-    amount: z.number({ error: amountMessage }).positive(getValidationMessage(t, i18n.resolvedLanguage, 'positiveAmount')).max(maxAmount, getValidationMessage(t, i18n.resolvedLanguage, 'maxAmount')),
-    accountId: z.string().uuid(getValidationMessage(t, i18n.resolvedLanguage, 'required')),
-    transactionDate: z.string().date(getValidationMessage(t, i18n.resolvedLanguage, 'date')),
+    amount: z
+      .number({ error: amountMessage })
+      .positive(getValidationMessage(t, i18n.resolvedLanguage, "positiveAmount"))
+      .max(maxAmount, getValidationMessage(t, i18n.resolvedLanguage, "maxAmount")),
+    accountId: z.string().uuid(getValidationMessage(t, i18n.resolvedLanguage, "required")),
+    transactionDate: z.string().date(getValidationMessage(t, i18n.resolvedLanguage, "date")),
     note: z.string().trim().optional(),
-  })
+  });
 
   useEffect(() => {
-    if (!open || !occurrence) return
-    setAmount(String(occurrence.remainingAmount ?? 0))
-    setAccountId('')
-    setTransactionDate(todayDateString())
-    setNote('')
-    setErrorMessage(null)
-    validation.resetErrors()
-  }, [occurrence, open, validation.resetErrors])
+    if (!open || !occurrence) return;
+    setAmount((occurrence.remainingAmount ?? 0).toFixed(2));
+    setAccountId("");
+    setTransactionDate(todayDateString());
+    setNote("");
+    setErrorMessage(null);
+    validation.resetErrors();
+  }, [occurrence, open, validation.resetErrors]);
+
+  // La hoja de fecha o de nota se monta al abrirla y se desmonta después de cerrarse (la consulta del mes no corre de más).
+  useEffect(() => {
+    if (subSheet) return;
+    const id = setTimeout(() => setMountedSub(null), 600);
+    return () => clearTimeout(id);
+  }, [subSheet]);
+  const openSub = (next: "date" | "note") => {
+    setMountedSub(next);
+    setSubSheet(next);
+  };
 
   useEffect(() => {
-    if (!open || accountId) return
-    const first = eligibleAccounts[0]?.id
-    if (first) setAccountId(first)
-  }, [open, accountId, eligibleAccounts])
+    if (!open || accountId) return;
+    const first = eligibleAccounts[0]?.id;
+    if (first) setAccountId(first);
+  }, [open, accountId, eligibleAccounts]);
 
   const mutation = useMutation({
     mutationFn: async (payload: z.infer<typeof paymentSchema>) => {
-      if (!occurrence) throw new Error('Missing payment occurrence')
-      return financeApi.payPaymentOccurrence(occurrence.id, { ...payload, originInstallationId: await getInstallationId() })
+      if (!occurrence) throw new Error("Missing payment occurrence");
+      return financeApi.payPaymentOccurrence(occurrence.id, { ...payload, originInstallationId: await getInstallationId() });
     },
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['payment-occurrences'] }),
-        queryClient.invalidateQueries({ queryKey: ['summary'] }),
-        queryClient.invalidateQueries({ queryKey: ['accounts'] }),
-        queryClient.invalidateQueries({ queryKey: ['transactions'] }),
-        queryClient.invalidateQueries({ queryKey: ['reports'] }),
-      ])
-      onOpenChange(false)
-      toast.show(t('payments.paymentRecorded'), { message: t('payments.occurrenceUpdated'), preset: 'success', duration: 3500 })
+      await Promise.all(
+        ["payment-occurrences", "summary", "accounts", "transactions", "reports"].map((key) => queryClient.invalidateQueries({ queryKey: [key] })),
+      );
+      onOpenChange(false);
+      notify.success(t("payments.paymentRecorded"), { message: t("payments.occurrenceUpdated") });
     },
-    onError: () => setErrorMessage(t('payments.paymentError')),
-  })
+    onError: () => setErrorMessage(t("payments.paymentError")),
+  });
 
   const submit = () => {
-    setErrorMessage(null)
-    const payload = validation.validate(paymentSchema, { amount: parseDecimalInput(amount), accountId, transactionDate, note: note || undefined })
-    if (payload) mutation.mutate(payload)
-  }
-  const closeSheet = useCallback(() => { if (!mutation.isPending) onOpenChange(false) }, [mutation.isPending, onOpenChange])
-  useSheetBackHandler(open, closeSheet)
+    setErrorMessage(null);
+    const payload = validation.validate(paymentSchema, { amount: parseDecimalInput(amount), accountId, transactionDate, note: note || undefined });
+    if (payload) mutation.mutate(payload);
+  };
+
+  const locale = getAppLocale(i18n.resolvedLanguage);
+  const dateLabel = (() => {
+    const today = todayDateString();
+    const d = parseDateString(transactionDate);
+    if (!d) return transactionDate;
+    if (transactionDate === today) return t("movementForm.today");
+    const y = parseDateString(today)!;
+    const yesterday = new Date(y.getFullYear(), y.getMonth(), y.getDate() - 1);
+    if (d.getTime() === yesterday.getTime()) return t("movementForm.yesterday");
+    const weekday = new Intl.DateTimeFormat(locale, { weekday: "long" }).format(d);
+    return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${shortDay(d, locale)}`;
+  })();
+  const currency = occurrence?.currency ?? "PEN";
+  const tall = eligibleAccounts.length > 4;
 
   return (
-    <Sheet modal open={open} onOpenChange={(next) => !mutation.isPending && onOpenChange(next)} snapPoints={[76]} dismissOnSnapToBottom moveOnKeyboardChange zIndex={100_000}>
-      <Sheet.Overlay bg="rgba(4,18,28,0.64)" />
-      <Sheet.Handle bg="$color5" />
-      <Sheet.Frame bg="$popover" px="$4" pt="$4" pb={Math.max(insets.bottom, 16)} rounded={18}>
-        <Sheet.ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-          <YStack gap="$5" pb="$4">
-            <YStack gap="$1"><Paragraph color="$color12" fontFamily="$heading" fontSize="$7" fontWeight="600">{t('payments.registerPayment')}</Paragraph><Paragraph color="$color10">{occurrence?.title ?? ''}</Paragraph></YStack>
-
-            {/* El mismo campo que el formulario de movimiento: aquí era un input plano. */}
-            <MovementAmountField
-              currency={occurrence?.currency ?? 'PEN'}
-              error={validation.errors.amount}
-              helperText={occurrence ? t('payments.maxAmountHint', { amount: formatMoney(occurrence.remainingAmount ?? 0, occurrence.currency) }) : undefined}
+    <>
+      <FintSheet
+        open={open && !subSheet}
+        onClose={() => !mutation.isPending && onOpenChange(false)}
+        title={t("payments.registerPayment")}
+        subtitle={occurrence?.title ?? ""}
+        // Toma el alto de su contenido; solo con muchas cuentas pasa a un alto fijo con desplazamiento.
+        scrollable={tall}
+        snapPoints={tall ? [86] : undefined}
+      >
+        <YStack px={space[4]} pt={space[2]} pb={space[4]}>
+          <YStack items="center" mt={6}>
+            <BigAmountInput
+              currency={currency}
               value={amount}
-              onChangeText={(value) => { setAmount(value); validation.clearError('amount') }}
+              label={t("payments.amount", { defaultValue: t("forms.amount") })}
+              onChange={(value) => {
+                setAmount(value);
+                validation.clearError("amount");
+              }}
             />
-
-            {/*
-              Lista vertical con check en vez del carrusel horizontal: el
-              carrusel escondía cuántas cuentas elegibles había.
-            */}
-            <YStack gap="$2">
-              <Paragraph color="$color10" fontSize="$2" fontWeight="600" px="$1">{t('payments.paymentAccount')} *</Paragraph>
-              <FintListGroup invalid={Boolean(validation.errors.accountId)}>
-                {eligibleAccounts.map((account) => {
-                  // Con qué cuenta pagar depende del saldo, así que se ve aquí
-                  // mismo, con el glifo de su tipo — rojo si está en negativo.
-                  const { accountType, balance } = accountDetails(account)
-                  const Icon = getAccountIcon(accountType ?? '')
-                  const isSelected = account.id === accountId
-                  const isNegative = (balance ?? 0) < 0
-                  return (
-                    <XStack
-                      key={account.id}
-                      minH={64}
-                      items="center"
-                      gap="$3"
-                      px={14}
-                      py="$2"
-                      bg="transparent"
-                      cursor="pointer"
-                      role="button"
-                      aria-selected={isSelected}
-                      transition="quick"
-                      pressStyle={{ bg: '$secondary' }}
-                      onPress={() => { setAccountId(account.id); validation.clearError('accountId') }}
-                      aria-label={`${account.name} · ${account.currency}`}
-                    >
-                      <YStack
-                        width={34}
-                        height={34}
-                        rounded="$10"
-                        bg={isNegative ? '$red2' : '$secondary'}
-                        items="center"
-                        justify="center"
-                        shrink={0}
-                      >
-                        <Icon size={17} color={isNegative ? '$red10' : '$primary'} />
-                      </YStack>
-                      <YStack flex={1} minW={0} gap={2}>
-                        <Paragraph color="$color12" fontSize="$3" fontWeight="600" numberOfLines={1}>{account.name}</Paragraph>
-                        <Paragraph color="$color10" fontSize="$1" numberOfLines={1}>
-                          {accountType ? `${getAccountTypeLabel(accountType, t)} · ${account.currency}` : account.currency}
-                        </Paragraph>
-                      </YStack>
-                      {balance == null ? null : (
-                        <Paragraph color={isNegative ? '$red11' : '$color10'} fontSize="$1" fontWeight="600" shrink={0}>
-                          {formatSensitiveAmount(balance, account.currency)}
-                        </Paragraph>
-                      )}
-                      {isSelected ? <Check size={20} color="$primary" /> : <YStack width={20} />}
-                    </XStack>
-                  )
-                })}
-              </FintListGroup>
-              {validation.errors.accountId ? <Paragraph color="$red10" fontSize="$1" fontWeight="600" px="$1">{validation.errors.accountId}</Paragraph> : null}
-              {eligibleAccounts.length === 0 ? <Paragraph color="$red10" fontSize="$1">{t('payments.noAccountsForCurrency')}</Paragraph> : null}
-            </YStack>
-
-            <YStack gap="$2">
-              <FintListGroup invalid={Boolean(validation.errors.transactionDate)}>
-                <FintDateField label={t('payments.paymentDate')} showLabel={false} placeholder={t('payments.selectDate')} value={transactionDate} maxDate={todayDateString()} onValueChange={(value) => { setTransactionDate(value); validation.clearError('transactionDate') }} renderTrigger={({ onPress, selectedLabel }) => <FintListRow icon={<CalendarDays size={22} color="$primary" />} label={t('payments.paymentDate')} required onPress={onPress} value={selectedLabel} />} />
-                <FintListRow
-                  icon={<FilePenLine size={22} color="$primary" />}
-                  label={t('payments.note')}
-                  valueSlot={
-                    <Input
-                      unstyled
-                      width="100%"
-                      height={22}
-                      minH={22}
-                      p={0}
-                      m={0}
-                      color="$color12"
-                      fontFamily="$body"
-                      fontSize="$3"
-                      fontWeight="600"
-                      placeholder={t('payments.noteOptionalPlaceholder')}
-                      placeholderTextColor="$color10"
-                      value={note}
-                      onChangeText={setNote}
-                      aria-label={t('payments.note')}
-                    />
-                  }
-                />
-              </FintListGroup>
-              {validation.errors.transactionDate ? <Paragraph color="$red10" fontSize="$1" fontWeight="600" px="$1">{validation.errors.transactionDate}</Paragraph> : null}
-            </YStack>
-
-            {errorMessage ? <Paragraph color="$red10">{errorMessage}</Paragraph> : null}
-            <FintButton minH={52} disabled={mutation.isPending || eligibleAccounts.length === 0} icon={mutation.isPending ? <FintSpinner color="$primaryForeground" /> : <CheckCircle2 size={18} />} onPress={submit}>{mutation.isPending ? t('payments.registering') : t('payments.confirmPayment')}</FintButton>
+            {occurrence ? (
+              <FText variant="caption" tone="inkMuted" style={{ marginTop: 4 }}>
+                {t("payments.maxAmountHint", { amount: formatAmount(occurrence.remainingAmount ?? 0, currency) })}
+              </FText>
+            ) : null}
+            {validation.errors.amount ? <ErrorLine message={validation.errors.amount} center /> : null}
           </YStack>
-        </Sheet.ScrollView>
-      </Sheet.Frame>
-    </Sheet>
-  )
+
+          <Label>{t("payments.paymentAccount")}</Label>
+          {eligibleAccounts.length ? (
+            <FintCard p={0} overflow="hidden" borderColor={validation.errors.accountId ? "$dangerHard" : "$line"}>
+              {eligibleAccounts.map((account, i) => {
+                const selected = account.id === accountId;
+                const balance = accountBalance(account, account.currency);
+                const typeLabel = account.accountType ? getAccountTypeLabel(account.accountType, t) : null;
+                return (
+                  <Pressable
+                    key={account.id}
+                    onPress={() => {
+                      haptics.select();
+                      setAccountId(account.id);
+                      validation.clearError("accountId");
+                    }}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    accessibilityLabel={`${account.name} · ${account.currency}`}
+                  >
+                    {({ pressed }) => (
+                      <XStack
+                        items="center"
+                        gap={space[3]}
+                        px={space[4]}
+                        py={space[3]}
+                        borderTopWidth={i ? 1 : 0}
+                        borderColor="$line"
+                        bg={pressed ? "$surfaceSunken" : "transparent"}
+                      >
+                        <AccountMonogram name={account.name} />
+                        <YStack flex={1} minW={0}>
+                          <FText variant="body-strong" numberOfLines={1}>
+                            {account.name}
+                          </FText>
+                          <FText variant="caption" tone="inkFaint" numberOfLines={1}>
+                            {[typeLabel, account.currency].filter(Boolean).join(" · ")}
+                          </FText>
+                        </YStack>
+                        {balance !== null ? <Amount value={balance} currency={account.currency} variant="amount-sm" tone="inkMuted" /> : null}
+                        <View width={18}>{selected ? <Check size={18} color="$brand" strokeWidth={2.4} /> : null}</View>
+                      </XStack>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </FintCard>
+          ) : (
+            <XStack px={14} py={12} gap={10} rounded={radius.md} bg="$surfaceSunken" items="flex-start">
+              <CircleAlert size={15} color="$inkMuted" strokeWidth={2} style={{ marginTop: 1 }} />
+              <FText variant="caption" tone="inkMuted" style={{ flex: 1, lineHeight: 17 }}>
+                {t("payments.noAccountsForCurrency")}
+              </FText>
+            </XStack>
+          )}
+          {validation.errors.accountId ? <ErrorLine message={validation.errors.accountId} /> : null}
+
+          <Label>{t("payments.paymentDate")}</Label>
+          <Pressable onPress={() => openSub("date")} accessibilityRole="button" accessibilityLabel={`${t("payments.paymentDate")}: ${dateLabel}`}>
+            <SheetField invalid={Boolean(validation.errors.transactionDate)}>
+              <CalendarDays size={18} color="$inkMuted" strokeWidth={2} />
+              <FText style={{ flex: 1, paddingVertical: 12 }}>{dateLabel}</FText>
+              <ChevronRight size={16} color="$inkFaint" strokeWidth={2} />
+            </SheetField>
+          </Pressable>
+          {validation.errors.transactionDate ? <ErrorLine message={validation.errors.transactionDate} /> : null}
+
+          <Label>{t("payments.note")}</Label>
+          <Pressable onPress={() => openSub("note")} accessibilityRole="button" accessibilityLabel={t("payments.note")}>
+            <SheetField>
+              <FileText size={18} color="$inkMuted" strokeWidth={2} />
+              <FText tone={note ? "ink" : "inkFaint"} numberOfLines={1} style={{ flex: 1, paddingVertical: 12 }}>
+                {note || t("payments.noteOptionalPlaceholder")}
+              </FText>
+              <ChevronRight size={16} color="$inkFaint" strokeWidth={2} />
+            </SheetField>
+          </Pressable>
+
+          {errorMessage ? <ErrorLine message={errorMessage} /> : null}
+          <YStack mt={20}>
+            <FintButton disabled={mutation.isPending || eligibleAccounts.length === 0} onPress={submit}>
+              {mutation.isPending ? <FintSpinner color="$onBrand" /> : t("payments.confirmPayment")}
+            </FintButton>
+          </YStack>
+        </YStack>
+      </FintSheet>
+
+      {mountedSub === "date" ? (
+        <DateSheet
+          open={subSheet === "date"}
+          onClose={() => setSubSheet(null)}
+          value={transactionDate}
+          onChange={(value) => {
+            setTransactionDate(value);
+            validation.clearError("transactionDate");
+          }}
+        />
+      ) : null}
+      {mountedSub === "note" ? (
+        <NoteSheet open={subSheet === "note"} onClose={() => setSubSheet(null)} value={note} onChange={setNote} recent={[]} />
+      ) : null}
+    </>
+  );
+}
+
+function Label({ children }: { children: string }) {
+  return (
+    <FText variant="caption" tone="inkMuted" style={{ fontFamily: fontFace.sans[600], marginTop: 18, marginBottom: 8, marginLeft: 2 }}>
+      {children}
+    </FText>
+  );
+}
+
+function ErrorLine({ message, center = false }: { message: string; center?: boolean }) {
+  return (
+    <XStack items="center" justify={center ? "center" : "flex-start"} gap={5} mx={2} mt={6} accessibilityRole="alert">
+      <CircleAlert size={13} color="$dangerHard" strokeWidth={2.2} />
+      <FText variant="caption" tone="dangerHard" style={{ fontFamily: fontFace.sans[600] }}>
+        {message}
+      </FText>
+    </XStack>
+  );
 }

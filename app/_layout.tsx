@@ -247,6 +247,7 @@ function RootLayoutNav() {
           <Stack.Screen
             name="import-transactions"
             options={{
+              headerShown: false,
               title: t("import.title"),
               contentStyle: { backgroundColor: theme.background.val },
             }}
@@ -254,6 +255,7 @@ function RootLayoutNav() {
           <Stack.Screen
             name="capture-import"
             options={{
+              headerShown: false,
               title: t("capture.title"),
               contentStyle: { backgroundColor: theme.background.val },
             }}
@@ -344,6 +346,7 @@ function RootLayoutNav() {
           <Stack.Screen
             name="web-content"
             options={{
+              headerShown: false,
               title: t("webContent.title"),
               contentStyle: { backgroundColor: theme.background.val },
             }}
