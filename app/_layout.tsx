@@ -262,6 +262,8 @@ function RootLayoutNav() {
             name="pending-movements"
             options={{
               title: t("movementUx.pendingTitle"),
+              // La pantalla dibuja su propia barra.
+              headerShown: false,
               contentStyle: { backgroundColor: theme.background.val },
             }}
           />
@@ -269,6 +271,8 @@ function RootLayoutNav() {
             name="pending-review"
             options={{
               title: t("movementUx.reviewPendingTitle"),
+              // La pantalla dibuja su propia barra.
+              headerShown: false,
               contentStyle: { backgroundColor: theme.background.val },
             }}
           />

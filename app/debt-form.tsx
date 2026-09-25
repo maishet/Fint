@@ -4,10 +4,9 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { setStatusBarStyle } from "expo-status-bar";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { TextInput } from "react-native";
 import { KeyboardAwareScrollView, KeyboardStickyView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Text, View, XStack, YStack, useTheme } from "tamagui";
+import { Text, View, XStack, YStack } from "tamagui";
 import { z } from "zod";
 import { CurrencySheet } from "../src/accounts/CurrencySheet";
 import { useCapabilities } from "../src/api/capabilities";
@@ -15,9 +14,8 @@ import { financeApi } from "../src/api/finance";
 import { DataStateCard } from "../src/components/DataStateCard";
 import { UnsavedChangesDialog } from "../src/components/UnsavedChangesDialog";
 import { getCategoryLabel } from "../src/finance/categoryLabels";
-import { getCurrencySymbol } from "../src/finance/currencies";
 import { parseDateString, todayDateString } from "../src/finance/dates";
-import { getValidationMessage, parseDecimalInput, sanitizeAmountInput, useSubmitValidation } from "../src/forms";
+import { getValidationMessage, parseDecimalInput, useSubmitValidation } from "../src/forms";
 import { useUnsavedChangesGuard } from "../src/hooks/useUnsavedChangesGuard";
 import { getAppLocale } from "../src/i18n";
 import { CategorySheet } from "../src/movement-form/CategorySheet";
@@ -28,7 +26,7 @@ import { registerPushInstallation } from "../src/notifications/pushNotifications
 import { amountText, upcomingDates, type Frequency } from "../src/payments/form";
 import { useThemeMode } from "../src/theme/ThemeMode";
 import { radius, space } from "../src/theme/tokens";
-import { fontFace, textStyles } from "../src/theme/typography";
+import { fontFace } from "../src/theme/typography";
 import {
   Amount,
   FintButton,
@@ -43,6 +41,7 @@ import {
   Toggle,
 } from "../src/ui";
 import { AmountSkeleton } from "../src/ui/AmountSkeleton";
+import { BigAmountInput } from "../src/ui/BigAmountInput";
 import { useNotify } from "../src/ui/notify";
 
 // NOTE: the payments/debts module only supports 'fixed_payment' rules (single-step flow:
@@ -306,7 +305,7 @@ export default function DebtFormScreen() {
                 <FText variant="caption" tone="inkMuted">
                   {t("paymentForm.amount")}
                 </FText>
-                <AmountInput
+                <BigAmountInput
                   currency={currency}
                   value={amount}
                   locked={amountLocked}
@@ -580,56 +579,6 @@ export default function DebtFormScreen() {
 
 function capitalize(text: string) {
   return text.charAt(0).toUpperCase() + text.slice(1);
-}
-
-/**
- * El monto a 44px en `mono`, centrado con su símbolo. El campo toma el ancho
- * de lo escrito (se mide con un texto oculto) para que símbolo y cifra queden
- * juntos al centro. Bloqueado, se ve apagado y no se edita.
- */
-function AmountInput({
-  currency,
-  value,
-  locked,
-  label,
-  onChange,
-}: {
-  currency: string;
-  value: string;
-  locked: boolean;
-  label: string;
-  onChange: (value: string) => void;
-}) {
-  const theme = useTheme();
-  const [width, setWidth] = useState(0);
-  const style = [textStyles.amount, { fontFamily: fontFace.mono[500], fontSize: 44, lineHeight: 52, letterSpacing: -2 }];
-  return (
-    <XStack justify="center" items="center" gap={6} mt={4} maxW="100%">
-      <FText tone="inkFaint" style={{ fontFamily: fontFace.mono[500], fontSize: 22, lineHeight: 28, marginTop: 8 }}>
-        {getCurrencySymbol(currency)}
-      </FText>
-      <Text position="absolute" opacity={0} style={style} onLayout={(e) => setWidth(e.nativeEvent.layout.width)} pointerEvents="none">
-        {value || "0.00"}
-      </Text>
-      <View>
-        {/* El marcador va aparte: en Android el `placeholder` de un campo no usa la fuente `mono`. */}
-        {value ? null : (
-          <Text position="absolute" l={0} r={0} numberOfLines={1} color="$inkFaint" style={style} pointerEvents="none">
-            0.00
-          </Text>
-        )}
-        <TextInput
-          value={value}
-          onChangeText={(next) => onChange(sanitizeAmountInput(next))}
-          editable={!locked}
-          keyboardType="decimal-pad"
-          selectionColor={theme.brand.val}
-          accessibilityLabel={`${label} (${currency})`}
-          style={[style, { color: locked ? theme.inkMuted.val : theme.ink.val, width: width ? width + 6 : undefined, minWidth: 40, padding: 0 }]}
-        />
-      </View>
-    </XStack>
-  );
 }
 
 function NameField({

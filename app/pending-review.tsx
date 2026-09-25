@@ -1,325 +1,285 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowLeftRight,
-  CalendarClock,
+  ArrowDownLeft,
+  ArrowUpRight,
   CalendarDays,
   Check,
+  ChevronRight,
   Coins,
-  Save,
+  FileText,
+  Landmark,
+  Mail,
+  MapPin,
+  Repeat,
   Shapes,
-  Trash2,
-  WalletCards,
+  X,
 } from "@tamagui/lucide-icons-2";
-import { useNotify } from "../src/ui/notify";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { setStatusBarStyle } from "expo-status-bar";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Button, Paragraph, XStack, YStack } from "tamagui";
-import { z } from "zod";
+import { Pressable } from "react-native";
+import { KeyboardAwareScrollView, KeyboardStickyView } from "react-native-keyboard-controller";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Text, View, XStack, YStack } from "tamagui";
 import { useCapabilities } from "../src/api/capabilities";
 import { financeApi } from "../src/api/finance";
-import { formatMoney } from "../src/api/mappers";
-import type {
-  AccountOption,
-  PendingMovementDetail,
-  PaymentOccurrence,
-  TransactionType,
-} from "../src/api/types";
-import { CategoryPickerSheet } from "../src/components/CategoryPickerSheet";
+import type { PendingMovementDetail, TransactionType } from "../src/api/types";
 import { DataStateCard } from "../src/components/DataStateCard";
-import { LocationField } from "../src/components/LocationField";
-import type { CapturedLocation } from "../src/location/captureLocation";
-import {
-  MovementAmountField,
-  MovementNoteField,
-  MovementPickerTrigger,
-  MovementTypeSelector,
-} from "../src/components/MovementFormControls";
 import { balanceCurrencies } from "../src/finance/accountBalances";
-import { useAccountPickerOptions } from "../src/finance/useAccountPickerOptions";
+import { getCategoryLabel } from "../src/finance/categoryLabels";
+import { formatMoney } from "../src/api/mappers";
+import { parseDateString, todayDateString } from "../src/finance/dates";
+import { parseDecimalInput } from "../src/forms";
+import { getAppLocale } from "../src/i18n";
+import type { CapturedLocation } from "../src/location/captureLocation";
+import { AccountSheet } from "../src/movement-form/AccountSheet";
+import { CategorySheet } from "../src/movement-form/CategorySheet";
+import { DateSheet, shortDay } from "../src/movement-form/DateSheet";
+import { LocationSheet } from "../src/movement-form/LocationSheet";
+import { NoteSheet } from "../src/movement-form/NoteSheet";
+import { getInstallationId } from "../src/notifications/pushNotifications";
+import { compatibleOccurrences, matchingOccurrence } from "../src/pending/logic";
+import { useThemeMode } from "../src/theme/ThemeMode";
+import { radius, space } from "../src/theme/tokens";
+import { fontFace } from "../src/theme/typography";
 import {
-  normalMovementOption,
-  useOccurrencePickerOptions,
-} from "../src/finance/useOccurrencePickerOptions";
-import { Screen } from "../src/components/Screen";
-import { SkeletonForm } from "../src/components/Skeleton";
-import { todayDateString } from "../src/finance/dates";
-import {
-  getValidationMessage,
-  parseDecimalInput,
-  useSubmitValidation,
-} from "../src/forms";
-import {
+  Amount,
   FintButton,
   FintCard,
-  FintConfirmDialog,
-  FintDateField,
-  FintFormField,
-  FintSheetSelect,
+  FintSheet,
   FintSpinner,
+  FText,
+  IconButton,
+  ListRow,
+  SegmentedControl,
 } from "../src/ui";
-import { getInstallationId } from "../src/notifications/pushNotifications";
+import { AmountSkeleton } from "../src/ui/AmountSkeleton";
+import { BigAmountInput } from "../src/ui/BigAmountInput";
+import { haptics } from "../src/ui/haptics";
+import { useNotify } from "../src/ui/notify";
 
-type PendingField = "accountId" | "amount" | "categoryId" | "transactionDate";
-const NORMAL_MOVEMENT = "__transaction__";
+type Sheet = "account" | "origin" | "destination" | "category" | "date" | "note" | "location" | "payment" | null;
+const SHEET_UNMOUNT_MS = 600;
+const KEYBOARD_GAP = 24;
+const NORMAL = "__transaction__";
 
-type TransferScenario = 1 | 2 | 3;
-
-function transferScenario(
-  detail: PendingMovementDetail | undefined,
-): TransferScenario | null {
-  if (!detail?.transfer) return null;
-  if (detail.amount === null || !detail.currency) return null;
-  const { originMatch, destinationMatch } = detail.transfer;
-  if (originMatch && destinationMatch) return 1;
-  if (originMatch || destinationMatch) return 2;
-  return 3;
-}
-
+/**
+ * Revisar un pendiente v3: arriba lo que se detectó (para comparar), el monto
+ * grande que se corrige tocándolo, y la lista de Cuenta, Pago (si coincide con
+ * uno), Categoría, Fecha, Nota y Ubicación; cada fila abre la hoja
+ * del formulario de movimiento. Lo que falta va en `brandWash` con "Elegir", y
+ * "Confirmar" espera con la pista de qué falta.
+ *
+ * Una transferencia muestra Desde y Hacia. Con las dos cuentas se registra la
+ * transferencia; con una sola, la salida o la entrada de esa cuenta (el otro
+ * lado está fuera de My Fint). "¿No es una transferencia?" pasa al formulario
+ * normal y "Es una transferencia entre mis cuentas" vuelve.
+ *
+ * Conserva la lógica anterior: confirmar como movimiento o como pago, el aviso
+ * de saldo en otra moneda (y habilitarlo en una tarjeta), transferencias y
+ * descartar (sin `danger`: no borra nada).
+ */
 export default function PendingReviewScreen() {
-  const toAccountOption = useAccountPickerOptions();
-  const toOccurrenceOption = useOccurrencePickerOptions();
-  const { capabilities } = useCapabilities();
-  const router = useRouter();
   const { i18n, t } = useTranslation();
+  const locale = getAppLocale(i18n.resolvedLanguage);
+  const router = useRouter();
   const toast = useNotify();
   const queryClient = useQueryClient();
+  const insets = useSafeAreaInsets();
+  const { themeMode } = useThemeMode();
+  const { capabilities } = useCapabilities();
   const params = useLocalSearchParams<{ id?: string }>();
   const pendingId = params.id ?? "";
+
+  useFocusEffect(
+    useCallback(() => {
+      setStatusBarStyle(themeMode === "dark" ? "light" : "dark");
+      return () => setStatusBarStyle("light");
+    }, [themeMode]),
+  );
+
   const hydratedId = useRef<string | null>(null);
+  const [mode, setMode] = useState<"normal" | "transfer">("normal");
   const [type, setType] = useState<TransactionType>("expense");
   const [amount, setAmount] = useState("");
-  const [transactionDate, setTransactionDate] = useState(() => todayDateString());
+  const [date, setDate] = useState(() => todayDateString());
   const [accountId, setAccountId] = useState("");
   const [category, setCategory] = useState("");
-  const [paymentOccurrenceId, setPaymentOccurrenceId] =
-    useState(NORMAL_MOVEMENT);
+  const [occurrenceId, setOccurrenceId] = useState(NORMAL);
   const [note, setNote] = useState("");
   const [location, setLocation] = useState<CapturedLocation | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [discardOpen, setDiscardOpen] = useState(false);
-  // "Editar" (any scenario) reveals a compact origin/destination account editor instead of the
-  // full form -- even when we couldn't match one or both sides by name, the user can still pick
-  // both real accounts here and confirm it as a proper transfer.
-  const [transferEditOpen, setTransferEditOpen] = useState(false);
-  const [transferOriginAccountId, setTransferOriginAccountId] = useState("");
-  const [transferDestinationAccountId, setTransferDestinationAccountId] =
-    useState("");
-  // Escape hatch from the transfer editor: "esto no es una transferencia" falls back to the full
-  // single-account form (normal expense/income).
-  const [manualFallbackOpen, setManualFallbackOpen] = useState(false);
+  const [originId, setOriginId] = useState("");
+  const [destinationId, setDestinationId] = useState("");
   const [missingBalanceCurrency, setMissingBalanceCurrency] = useState<string | null>(null);
-  const validation = useSubmitValidation<PendingField>();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [footerHeight, setFooterHeight] = useState(0);
+
+  const [sheet, setSheetState] = useState<Sheet>(null);
+  const [mountedSheet, setMountedSheet] = useState<Sheet>(null);
+  const setSheet = (next: Sheet) => {
+    if (next) {
+      setMountedSheet(next);
+      requestAnimationFrame(() => setSheetState(next));
+    } else setSheetState(null);
+  };
+  useEffect(() => {
+    if (sheet) return;
+    const id = setTimeout(() => setMountedSheet(null), SHEET_UNMOUNT_MS);
+    return () => clearTimeout(id);
+  }, [sheet]);
 
   const detailQuery = useQuery({
     queryKey: ["pending-movements", "detail", pendingId],
     queryFn: ({ signal }) => financeApi.getPendingMovement(pendingId, signal),
-    enabled: Boolean(pendingId),  });
+    enabled: Boolean(pendingId),
+  });
   const detail = detailQuery.data;
-  const scenario = transferScenario(detail);
+  const currency = detail?.currency ?? null;
   const accountsQuery = useQuery({
-    queryKey: ["account-options", detail?.currency ?? null],
-    queryFn: () => financeApi.listAccountOptions(detail?.currency ? { currency: detail.currency } : undefined),
-    enabled: Boolean(detailQuery.data),  });
-  const transferCurrencyAccountsQuery = useQuery({
-    queryKey: ["account-options", detail?.currency ?? null],
-    queryFn: () => financeApi.listAccountOptions({ currency: detail!.currency! }),
-    enabled: Boolean(detail?.transfer) && Boolean(detail?.currency),  });
-  const categoriesQuery = useQuery({
-    queryKey: ["categories", type],
-    queryFn: () => financeApi.listCategories(type),
-    enabled: Boolean(detailQuery.data),  });
+    queryKey: ["account-options", currency],
+    queryFn: () => financeApi.listAccountOptions(currency ? { currency } : undefined),
+    enabled: Boolean(detail),
+  });
+  const categoriesQuery = useQuery({ queryKey: ["categories", type], queryFn: () => financeApi.listCategories(type), enabled: Boolean(detail) });
   const occurrencesQuery = useQuery({
     queryKey: ["payment-occurrences", "open"],
-    queryFn: ({ signal }) =>
-      financeApi.listPaymentOccurrences({ status: "open" }, signal),
-    enabled: Boolean(detailQuery.data),  });
-  const accounts = accountsQuery.data ?? [];
-  const categories = categoriesQuery.data ?? [];
-  const selectedAccount = accounts.find((item) => item.id === accountId);
-  const selectedCategory = categories.find((item) => item.name === category);
-  const selectedOccurrence = occurrencesQuery.data?.find(
-    (occurrence) => occurrence.id === paymentOccurrenceId,
-  );
-  const paymentOccurrences = compatibleOccurrences(
-    occurrencesQuery.data ?? [],
-    detailQuery.data,
-  );
-  const isReferenceLoading =
-    accountsQuery.isLoading || categoriesQuery.isLoading;
-  const isFormLoading =
-    detailQuery.isLoading || (Boolean(detailQuery.data) && isReferenceLoading);
-
-  const requiredMessage = getValidationMessage(
-    t,
-    i18n.resolvedLanguage,
-    "required",
-  );
-  const schema = z.object({
-    amount: z
-      .number({
-        error: getValidationMessage(t, i18n.resolvedLanguage, "amount"),
-      })
-      .positive(
-        getValidationMessage(t, i18n.resolvedLanguage, "positiveAmount"),
-      ),
-    transactionDate: z
-      .string()
-      .regex(
-        /^\d{4}-\d{2}-\d{2}$/,
-        getValidationMessage(t, i18n.resolvedLanguage, "date"),
-      ),
-    accountId: z.string().uuid(requiredMessage),
-    categoryId:
-      paymentOccurrenceId === NORMAL_MOVEMENT
-        ? z.string().uuid(requiredMessage)
-        : z.string().optional(),
+    queryFn: ({ signal }) => financeApi.listPaymentOccurrences({ status: "open" }, signal),
+    enabled: Boolean(detail) && capabilities.features.pendingToPayment,
   });
+  const accounts = accountsQuery.data ?? [];
+  // Ninguna cuenta en la moneda del pendiente: la hoja saldría vacía, así que se ofrece crear una.
+  const noAccounts = accountsQuery.isSuccess && accounts.length === 0 && Boolean(currency);
+  const categories = categoriesQuery.data ?? [];
+  const parsedAmount = amount.trim() ? parseDecimalInput(amount) : NaN;
+  const account = accounts.find((a) => a.id === accountId);
+  const origin = accounts.find((a) => a.id === originId);
+  const destination = accounts.find((a) => a.id === destinationId);
+  const selectedCategory = categories.find((c) => c.name === category);
+  const occurrences = capabilities.features.pendingToPayment
+    ? compatibleOccurrences(occurrencesQuery.data ?? [], { type, amount: Number.isFinite(parsedAmount) ? parsedAmount : null, currency })
+    : [];
+  const occurrence = occurrences.find((o) => o.id === occurrenceId);
 
   useEffect(() => {
-    const current = detailQuery.data;
-    if (!current || hydratedId.current === current.id) return;
-    hydratedId.current = current.id;
-    setType(current.type ?? "expense");
-    setAmount(current.amount === null ? "" : String(current.amount));
-    setTransactionDate(current.transactionDate);
-    setAccountId(current.accountSuggestion?.id ?? "");
-    setTransferOriginAccountId(current.transfer?.originMatch?.accountId ?? "");
-    setTransferDestinationAccountId(
-      current.transfer?.destinationMatch?.accountId ?? "",
-    );
-  }, [detailQuery.data]);
+    if (!detail || hydratedId.current === detail.id) return;
+    hydratedId.current = detail.id;
+    setMode(detail.transfer && detail.amount !== null && detail.currency ? "transfer" : "normal");
+    setType(detail.type ?? "expense");
+    setAmount(detail.amount === null ? "" : detail.amount.toFixed(2));
+    setDate(detail.transactionDate);
+    setAccountId(detail.accountSuggestion?.id ?? "");
+    setOriginId(detail.transfer?.originMatch?.accountId ?? "");
+    setDestinationId(detail.transfer?.destinationMatch?.accountId ?? "");
+  }, [detail]);
 
+  // Lo elegido que deja de servir (otra moneda, otro tipo) se limpia.
   useEffect(() => {
-    if (accountId && !accounts.some((account) => account.id === accountId))
-      setAccountId("");
-  }, [accountId, accounts]);
-
+    if (accountId && accountsQuery.isSuccess && !accounts.some((a) => a.id === accountId)) setAccountId("");
+  }, [accountId, accounts, accountsQuery.isSuccess]);
   useEffect(() => {
-    if (category && !categories.some((item) => item.name === category))
-      setCategory("");
-  }, [categories, category]);
+    if (category && categoriesQuery.isSuccess && !categories.some((c) => c.name === category)) setCategory("");
+  }, [categories, category, categoriesQuery.isSuccess]);
+  useEffect(() => {
+    if (occurrenceId !== NORMAL && occurrencesQuery.isSuccess && !occurrences.some((o) => o.id === occurrenceId)) setOccurrenceId(NORMAL);
+  }, [occurrenceId, occurrences, occurrencesQuery.isSuccess]);
+  // Al abrir: si a un pago le falta exactamente el monto detectado, "Pago" viene con ese pago elegido (como en la lista).
+  const paymentDefaulted = useRef(false);
+  useEffect(() => {
+    if (paymentDefaulted.current || !detail || !occurrencesQuery.isSuccess) return;
+    paymentDefaulted.current = true;
+    const match = matchingOccurrence(occurrences, detail.amount);
+    if (match && type === "expense") setOccurrenceId(match.id);
+  }, [detail, occurrences, occurrencesQuery.isSuccess, type]);
 
-  const invalidateAndClose = async () => {
-    await invalidatePendingAndFinance(queryClient);
-    toast.show(t("movements.createdToast"), {
-      message: t("movements.createdMessage"),
-      preset: "success",
-    });
+  // Primero se sale y después se refresca: con la pantalla abierta, refrescar volvía a pedir este pendiente
+  // (ya confirmado), el servidor respondía "no encontrado" y se veía un error antes de volver.
+  const done = () => {
     router.back();
+    toast.show(t("movements.createdToast"), { message: t("movements.createdMessage"), preset: "success" });
+    void Promise.all(
+      ["pending-movements", "transactions", "dashboard", "summary", "accounts", "reports", "payment-occurrences"].map((key) =>
+        queryClient.invalidateQueries({ queryKey: [key] }),
+      ),
+    );
   };
+  const fail = (error: unknown) => setErrorMessage(error instanceof Error ? error.message : t("states.error"));
 
   const confirmMutation = useMutation({
-    mutationFn: async (
-      payload: z.infer<typeof schema> & {
-        currency: string;
-        categoryId?: string | null;
-      },
-    ) => {
-      const current = detailQuery.data;
-      if (!current) throw new Error(t("states.error"));
-      const originInstallationId = await getInstallationId();
+    mutationFn: async () => {
       const locationFields = location
         ? { latitude: location.latitude, longitude: location.longitude, formattedAddress: location.formattedAddress ?? undefined }
         : {};
-      if (selectedOccurrence)
+      if (occurrence) {
         return financeApi.confirmPendingMovement(pendingId, {
           mode: "payment",
-          paymentOccurrenceId: selectedOccurrence.id,
-          title: current.title,
+          paymentOccurrenceId: occurrence.id,
+          title: detail!.title,
           type: "expense",
-          amount: payload.amount,
-          currency: selectedOccurrence.currency,
-          transactionDate: payload.transactionDate,
-          accountId: payload.accountId,
+          amount: parsedAmount,
+          currency: occurrence.currency,
+          transactionDate: date,
+          accountId,
           categoryId: null,
           note: note.trim() || null,
-          originInstallationId,
+          originInstallationId: await getInstallationId(),
           ...locationFields,
         });
+      }
       return financeApi.confirmPendingMovement(pendingId, {
         mode: "transaction",
-        title: current.title,
+        title: detail!.title,
         type,
-        ...payload,
-        categoryId: payload.categoryId!,
+        amount: parsedAmount,
+        currency: currency ?? account!.currency,
+        transactionDate: date,
+        accountId,
+        categoryId: selectedCategory!.id,
         note: note.trim() || null,
         ...locationFields,
       });
     },
-    onSuccess: invalidateAndClose,
-    onError: (error) =>
-      setErrorMessage(
-        error instanceof Error ? error.message : t("states.error"),
-      ),
+    onSuccess: done,
+    onError: fail,
   });
 
-  const quickSideConfirmMutation = useMutation({
-    mutationFn: async (input: {
-      accountId: string;
-      side: "origin" | "destination";
-      title: string;
-    }) => {
-      const current = detailQuery.data;
-      if (!current || current.amount === null)
-        throw new Error(t("states.error"));
+  const transferMutation = useMutation({
+    mutationFn: async () => {
+      if (originId && destinationId) {
+        return financeApi.createTransfer({
+          originAccountId: originId,
+          destinationAccountId: destinationId,
+          amount: parsedAmount,
+          currency: currency!,
+          transactionDate: date,
+          pendingMovementId: pendingId,
+        });
+      }
+      // Un solo lado es tuyo: la salida o la entrada de esa cuenta, sin categoría.
+      const side = originId ? "origin" : "destination";
+      const sideAccount = side === "origin" ? origin : destination;
       return financeApi.confirmPendingMovement(pendingId, {
         mode: "transaction",
-        title: input.title,
-        type: input.side === "origin" ? "expense" : "income",
-        amount: current.amount,
-        transactionDate: current.transactionDate,
-        accountId: input.accountId,
+        title: t(side === "origin" ? "movementUx.transferOutTitle" : "movementUx.transferInTitle", { account: sideAccount?.name ?? "" }),
+        type: side === "origin" ? "expense" : "income",
+        amount: parsedAmount,
+        transactionDate: date,
+        accountId: side === "origin" ? originId : destinationId,
         note: null,
       });
     },
-    onSuccess: invalidateAndClose,
-    onError: (error) =>
-      setErrorMessage(
-        error instanceof Error ? error.message : t("states.error"),
-      ),
-  });
-
-  const transferConfirmMutation = useMutation({
-    mutationFn: async (input: {
-      originAccountId: string;
-      destinationAccountId: string;
-    }) => {
-      const current = detailQuery.data;
-      if (!current || current.amount === null || !current.currency)
-        throw new Error(t("states.error"));
-      return financeApi.createTransfer({
-        originAccountId: input.originAccountId,
-        destinationAccountId: input.destinationAccountId,
-        amount: current.amount,
-        currency: current.currency,
-        transactionDate: current.transactionDate,
-        pendingMovementId: current.id,
-      });
-    },
-    onSuccess: invalidateAndClose,
-    onError: (error) =>
-      setErrorMessage(
-        error instanceof Error ? error.message : t("states.error"),
-      ),
+    onSuccess: done,
+    onError: fail,
   });
 
   const discardMutation = useMutation({
     mutationFn: () => financeApi.discardPendingMovement(pendingId),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["pending-movements"] }),
-        queryClient.invalidateQueries({
-          queryKey: ["pending-movements", "summary"],
-        }),
-      ]);
-      toast.show(t("movementUx.pendingDiscarded"), { preset: "success" });
+    onSuccess: () => {
       router.back();
+      toast.show(t("movementUx.pendingDiscarded"), { preset: "success" });
+      void queryClient.invalidateQueries({ queryKey: ["pending-movements"] });
     },
-    onError: (error) =>
-      setErrorMessage(
-        error instanceof Error ? error.message : t("states.error"),
-      ),
+    onError: fail,
   });
 
   const enableBalanceMutation = useMutation({
@@ -328,907 +288,531 @@ export default function PendingReviewScreen() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["account-options"] });
       setMissingBalanceCurrency(null);
-      toast.show(t("accounts.balanceEnabledToast"), {
-        message: t("movementUx.balanceEnabledRetryHint"),
-        preset: "success",
-        duration: 4000,
-      });
+      toast.show(t("accounts.balanceEnabledToast"), { message: t("movementUx.balanceEnabledRetryHint"), preset: "success", duration: 4000 });
     },
-    onError: (error) =>
-      setErrorMessage(
-        error instanceof Error ? error.message : t("states.error"),
-      ),
+    onError: fail,
   });
+
+  const isPending = confirmMutation.isPending || transferMutation.isPending || discardMutation.isPending;
+
+  // Qué falta para confirmar (la primera cosa), o nada.
+  const amountOk = Number.isFinite(parsedAmount) && parsedAmount > 0;
+  const missing =
+    mode === "transfer"
+      ? !amountOk
+        ? t("pendingScreen.needAmount")
+        : !originId && !destinationId
+          ? t("pendingScreen.needTransferAccount")
+          : originId && originId === destinationId
+            ? t("pendingScreen.sameAccounts")
+            : null
+      : !amountOk
+        ? t("pendingScreen.needAmount")
+        : !accountId
+          ? noAccounts
+            ? t("pendingScreen.needAccountCreate", { currency })
+            : t("pendingScreen.needAccount")
+          : !occurrence && !selectedCategory
+            ? t("pendingScreen.needCategory")
+            : null;
 
   const submit = () => {
     setErrorMessage(null);
     setMissingBalanceCurrency(null);
-    const payload = validation.validate(schema, {
-      amount: parseDecimalInput(amount),
-      transactionDate,
-      accountId,
-      categoryId:
-        paymentOccurrenceId === NORMAL_MOVEMENT
-          ? (selectedCategory?.id ?? "")
-          : undefined,
-    });
-    if (!payload || !selectedAccount) return;
-    const movementCurrency =
-      selectedOccurrence?.currency ??
-      detail?.currency ??
-      selectedAccount.currency;
-    if (
-      !selectedOccurrence &&
-      detail?.currency &&
-      !balanceCurrencies(selectedAccount).includes(detail.currency)
-    ) {
-      setMissingBalanceCurrency(detail.currency);
+    if (missing || isPending) return;
+    if (mode === "transfer") {
+      transferMutation.mutate();
       return;
     }
-    confirmMutation.mutate({ ...payload, currency: movementCurrency });
+    // La cuenta tiene que tener saldo en la moneda del pendiente.
+    if (!occurrence && currency && account && !balanceCurrencies(account).includes(currency)) {
+      setMissingBalanceCurrency(currency);
+      return;
+    }
+    confirmMutation.mutate();
   };
 
-  const isPending =
-    confirmMutation.isPending ||
-    discardMutation.isPending ||
-    quickSideConfirmMutation.isPending ||
-    transferConfirmMutation.isPending;
-
-  const showFullForm =
-    !detail?.transfer || scenario === null || manualFallbackOpen;
-  const showTransferEditor =
-    Boolean(detail?.transfer) &&
-    scenario !== null &&
-    transferEditOpen &&
-    !manualFallbackOpen;
-  const showScenario1Summary =
-    Boolean(detail?.transfer) &&
-    scenario === 1 &&
-    !transferEditOpen &&
-    !manualFallbackOpen;
-  const showScenario2Summary =
-    Boolean(detail?.transfer) &&
-    scenario === 2 &&
-    !transferEditOpen &&
-    !manualFallbackOpen;
-  const showScenario3Summary =
-    Boolean(detail?.transfer) &&
-    scenario === 3 &&
-    !transferEditOpen &&
-    !manualFallbackOpen;
+  const loading = detailQuery.isLoading || (Boolean(detail) && (accountsQuery.isLoading || categoriesQuery.isLoading));
+  const dateLabel = (iso: string) => {
+    const d = parseDateString(iso);
+    if (!d) return iso;
+    const weekday = new Intl.DateTimeFormat(locale, { weekday: "long" }).format(d);
+    return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${shortDay(d, locale)}`;
+  };
+  const sign = mode === "transfer" ? "" : type === "expense" ? "−" : "+";
+  // Un lado que no es tuyo: el nombre que trae el correo, marcado como externo.
+  const outsideName = (raw: string | null | undefined) => (raw ? t("pendingScreen.outsideNamed", { name: raw }) : t("pendingScreen.outside"));
 
   return (
-    <>
-      <Stack.Screen options={{ title: t("movementUx.reviewPendingTitle") }} />
-      <Screen>
-        {isFormLoading ? (
-          <SkeletonForm
-            label={t("states.loading")}
-            showSegment
-            fieldCount={3}
-          />
-        ) : null}
+    <YStack flex={1} bg="$canvas" pt={insets.top}>
+      <XStack items="center" gap={space[3]} px={space[4]} pt={space[2]}>
+        <IconButton label={t("pendingScreen.close")} icon={<X size={18} color="$ink" strokeWidth={2} />} onPress={() => router.back()} />
+        <FText
+          variant="title"
+          accessibilityRole="header"
+          numberOfLines={1}
+          style={{ flex: 1, textAlign: "center", fontSize: 20, lineHeight: 25, letterSpacing: -0.4 }}
+        >
+          {t("pendingScreen.reviewTitle")}
+        </FText>
+        <View width={40} />
+      </XStack>
+
+      <KeyboardAwareScrollView
+        style={{ flex: 1 }}
+        bottomOffset={footerHeight + KEYBOARD_GAP}
+        contentContainerStyle={{ paddingHorizontal: space[4], paddingBottom: space[6] }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {loading ? <ReviewSkeleton /> : null}
         {detailQuery.error ? (
-          <DataStateCard
-            message={
-              detailQuery.error instanceof Error
-                ? detailQuery.error.message
-                : t("states.error")
-            }
-            onRetry={() => {
-              void detailQuery.refetch();
-            }}
-          />
+          <View mt={space[5]}>
+            <DataStateCard
+              message={detailQuery.error instanceof Error ? detailQuery.error.message : t("states.error")}
+              onRetry={() => void detailQuery.refetch()}
+            />
+          </View>
         ) : null}
 
-        {detail && !isFormLoading ? (
-          <YStack gap="$4" pb="$5">
-            {errorMessage ? (
-              <Paragraph color="$red10">{errorMessage}</Paragraph>
-            ) : null}
+        {detail && !loading ? (
+          <>
+            <SourceBox detail={detail} dateLabel={inSentence(dateLabel(detail.transactionDate), i18n.resolvedLanguage)} />
 
-            {showScenario1Summary && detail.transfer?.originMatch && detail.transfer.destinationMatch ? (
-              <TransferScenario1Summary
-                detail={detail}
-                origin={detail.transfer.originMatch}
-                destination={detail.transfer.destinationMatch}
-                isPending={isPending}
-                onConfirm={() =>
-                  transferConfirmMutation.mutate({
-                    originAccountId: detail.transfer!.originMatch!.accountId,
-                    destinationAccountId:
-                      detail.transfer!.destinationMatch!.accountId,
-                  })
-                }
-                onEdit={() => setTransferEditOpen(true)}
-                onDiscard={() => setDiscardOpen(true)}
-              />
-            ) : null}
-
-            {showTransferEditor && transferCurrencyAccountsQuery.isLoading ? (
-              <SkeletonForm label={t("states.loading")} fieldCount={2} />
-            ) : null}
-            {showTransferEditor && !transferCurrencyAccountsQuery.isLoading ? (
-              <TransferAccountsEditor
-                accounts={transferCurrencyAccountsQuery.data ?? []}
-                originAccountId={transferOriginAccountId}
-                destinationAccountId={transferDestinationAccountId}
-                onOriginChange={setTransferOriginAccountId}
-                onDestinationChange={setTransferDestinationAccountId}
-                isPending={isPending}
-                onCancel={() => setTransferEditOpen(false)}
-                onConfirm={() =>
-                  transferConfirmMutation.mutate({
-                    originAccountId: transferOriginAccountId,
-                    destinationAccountId: transferDestinationAccountId,
-                  })
-                }
-                onFallbackToManual={() => {
-                  setTransferEditOpen(false);
-                  setManualFallbackOpen(true);
-                }}
-              />
-            ) : null}
-
-            {showScenario2Summary && detail.transfer ? (
-              <TransferScenario2Summary
-                detail={detail}
-                transfer={detail.transfer}
-                isPending={isPending}
-                onConfirm={(input) => quickSideConfirmMutation.mutate(input)}
-                onEdit={() => setTransferEditOpen(true)}
-                onDiscard={() => setDiscardOpen(true)}
-              />
-            ) : null}
-
-            {showScenario3Summary ? (
-              <TransferScenario3Summary
-                isPending={isPending}
-                onDiscard={() => setDiscardOpen(true)}
-                onRegisterManually={() => setTransferEditOpen(true)}
-              />
-            ) : null}
-
-            {showFullForm && !isReferenceLoading ? (
-              <YStack gap="$5">
-                {detail.transfer ? (
-                  <Paragraph color="$color10" fontSize="$1">
-                    {t("movementUx.transferManualFallbackHint")}
-                  </Paragraph>
-                ) : null}
-                <MovementTypeSelector
+            {mode === "normal" ? (
+              <View mt={18}>
+                <SegmentedControl
+                  options={[
+                    { value: "expense" as const, label: t("forms.expense") },
+                    { value: "income" as const, label: t("forms.income") },
+                  ]}
                   value={type}
-                  onValueChange={(value) => {
-                    setType(value);
+                  onChange={(next) => {
+                    setType(next);
                     setCategory("");
-                    setPaymentOccurrenceId(NORMAL_MOVEMENT);
-                    validation.clearError("categoryId");
+                    setOccurrenceId(NORMAL);
                     setErrorMessage(null);
                   }}
                 />
+              </View>
+            ) : null}
 
-                <YStack gap="$1" px="$1">
-                  <Paragraph color="$color10" fontSize="$1" fontWeight="600">
-                    {t("forms.title")}
-                  </Paragraph>
-                  <Paragraph
-                    color="$color12"
-                    fontFamily="$heading"
-                    fontSize="$5"
-                    fontWeight="600"
-                    lineHeight="$6"
-                  >
-                    {detail.title}
-                  </Paragraph>
-                </YStack>
+            {/* El monto: se corrige tocándolo. */}
+            <YStack items="center" mt={18}>
+              <BigAmountInput
+                currency={currency ?? account?.currency ?? "PEN"}
+                value={amount}
+                sign={amount ? sign : undefined}
+                label={t("forms.amount")}
+                onChange={setAmount}
+              />
+              <FText variant="caption" tone="inkMuted" style={{ marginTop: 4 }}>
+                {t("pendingScreen.amountHint")}
+              </FText>
+            </YStack>
 
-                <MovementAmountField
-                  currency={detail.currency ?? selectedAccount?.currency ?? "PEN"}
-                  error={validation.errors.amount}
-                  value={amount}
-                  onChangeText={(value) => {
-                    setAmount(value);
-                    validation.clearError("amount");
-                  }}
-                />
-
-                <YStack gap="$4">
-                  <FintFormField
-                    label={t("forms.account")}
-                    required
-                    error={validation.errors.accountId}
-                    showLabel={false}
-                  >
-                    <FintSheetSelect
-                      label={t("forms.account")}
-                      showLabel={false}
-                      placeholder={
-                        accounts.length
-                          ? t("movements.selectAccount")
-                          : t("debts.noPaymentAccounts")
-                      }
-                      value={accountId}
-                      onValueChange={(value) => {
-                        setAccountId(value);
-                        validation.clearError("accountId");
-                        setMissingBalanceCurrency(null);
-                      }}
-                      options={accounts.map((item) => toAccountOption(item))}
-                      renderTrigger={({ onPress, selectedLabel }) => (
-                        <MovementPickerTrigger
-                          icon={<WalletCards size={22} color="$primary" />}
-                          invalid={Boolean(validation.errors.accountId)}
-                          label={t("forms.account")}
-                          required
-                          onPress={onPress}
-                          value={selectedLabel}
-                        />
-                      )}
-                    />
-                  </FintFormField>
-                  {missingBalanceCurrency && selectedAccount ? (
-                    <MissingBalanceCard
-                      currency={missingBalanceCurrency}
-                      canEnable={
-                        capabilities.features.accountCurrencyBalances &&
-                        selectedAccount.accountType === "credit_card" &&
-                        balanceCurrencies(selectedAccount).length < 2
-                      }
-                      isPending={enableBalanceMutation.isPending}
-                      onEnable={() =>
-                        enableBalanceMutation.mutate({ accountId: selectedAccount.id, currency: missingBalanceCurrency })
-                      }
-                    />
-                  ) : null}
-                  {type === "expense" && paymentOccurrences.length ? (
-                    <FintFormField
-                      label={t("movementUx.applyToPayment")}
-                      showLabel={false}
-                    >
-                      <FintSheetSelect
-                        label={t("movementUx.applyToPayment")}
-                        showLabel={false}
-                        placeholder={t("movementUx.normalMovement")}
-                        value={paymentOccurrenceId}
-                        onValueChange={(value) => {
-                          setPaymentOccurrenceId(value);
-                          validation.clearError("categoryId");
-                        }}
-                        options={[
-                          normalMovementOption(NORMAL_MOVEMENT, t("movementUx.normalMovement")),
-                          ...paymentOccurrences.map(toOccurrenceOption),
-                        ]}
-                        renderTrigger={({ onPress, selectedLabel }) => (
-                          <MovementPickerTrigger
-                            icon={<CalendarClock size={22} color="$primary" />}
-                            label={t("movementUx.applyToPayment")}
-                            onPress={onPress}
-                            value={selectedLabel}
-                          />
-                        )}
-                      />
-                    </FintFormField>
-                  ) : null}
-                  {paymentOccurrenceId === NORMAL_MOVEMENT ? (
-                    <FintFormField
-                      label={t("forms.category")}
-                      required
-                      error={validation.errors.categoryId}
-                      showLabel={false}
-                    >
-                      <CategoryPickerSheet
-                        categories={categories}
-                        showLabel={false}
-                        type={type}
-                        value={category}
-                        onValueChange={(value) => {
-                          setCategory(value);
-                          validation.clearError("categoryId");
-                        }}
-                        renderTrigger={({ onPress, selectedLabel }) => (
-                          <MovementPickerTrigger
-                            icon={<Shapes size={22} color="$primary" />}
-                            invalid={Boolean(validation.errors.categoryId)}
-                            label={t("forms.category")}
-                            required
-                            onPress={onPress}
-                            value={selectedLabel}
-                          />
-                        )}
-                      />
-                    </FintFormField>
-                  ) : (
-                    <Paragraph color="$color10" fontSize="$1">
-                      {t("movementUx.paymentAppliedHint")}
-                    </Paragraph>
-                  )}
-                </YStack>
-
-                <FintFormField
-                  label={t("movements.date")}
-                  required
-                  error={validation.errors.transactionDate}
-                  showLabel={false}
-                >
-                  <FintDateField
-                    label={t("movements.date")}
-                    showLabel={false}
-                    placeholder={t("movements.selectDate")}
-                    value={transactionDate}
-                    maxDate={todayDateString()}
-                    onValueChange={(value) => {
-                      setTransactionDate(value);
-                      validation.clearError("transactionDate");
-                    }}
-                    renderTrigger={({ onPress, selectedLabel }) => (
-                      <MovementPickerTrigger
-                        icon={<CalendarDays size={22} color="$primary" />}
-                        invalid={Boolean(validation.errors.transactionDate)}
-                        label={t("movements.date")}
-                        required
-                        onPress={onPress}
-                        value={selectedLabel}
-                      />
-                    )}
+            <FintCard mt={18} p={0} overflow="hidden">
+              {mode === "transfer" ? (
+                <>
+                  <DataRow
+                    icon={<ArrowUpRight size={16} color="$inkMuted" strokeWidth={2} />}
+                    label={t("pendingScreen.from")}
+                    value={origin?.name ?? outsideName(detail.transfer?.originAccountName)}
+                    muted={!origin}
+                    onPress={() => setSheet("origin")}
+                    onClear={origin ? () => setOriginId("") : undefined}
+                    clearLabel={t("pendingScreen.clearSide")}
                   />
-                </FintFormField>
-                <MovementNoteField
-                  label={t("movementUx.noteOptional")}
-                  placeholder={t("movementUx.notePlaceholder")}
-                  value={note}
-                  onChangeText={setNote}
-                />
-
-                <LocationField value={location} onChange={setLocation} />
-
-                {accountsQuery.error || categoriesQuery.error ? (
-                  <Paragraph color="$red10">
-                    {t("movements.referencesError")}
-                  </Paragraph>
-                ) : null}
-
-                <YStack gap="$2">
-                  <FintButton
-                    width="100%"
-                    minH={52}
-                    disabled={isPending || isReferenceLoading}
-                    icon={
-                      confirmMutation.isPending ? (
-                        <FintSpinner color="$primaryForeground" />
-                      ) : (
-                        <Save size={18} />
-                      )
-                    }
-                    onPress={submit}
-                  >
-                    {confirmMutation.isPending
-                      ? t("movements.creating")
-                      : t("movementUx.confirmPending")}
-                  </FintButton>
-                  {detail.transfer && scenario !== null ? (
-                    <FintButton
-                      width="100%"
-                      minH={44}
-                      variant="outlined"
-                      disabled={isPending}
-                      onPress={() => setManualFallbackOpen(false)}
-                    >
-                      {t("actions.cancel")}
-                    </FintButton>
+                  <DataRow
+                    divider
+                    icon={<ArrowDownLeft size={16} color="$inkMuted" strokeWidth={2} />}
+                    label={t("pendingScreen.to")}
+                    value={destination?.name ?? outsideName(detail.transfer?.destinationAccountName)}
+                    muted={!destination}
+                    onPress={() => setSheet("destination")}
+                    onClear={destination ? () => setDestinationId("") : undefined}
+                    clearLabel={t("pendingScreen.clearSide")}
+                  />
+                </>
+              ) : (
+                <>
+                  <DataRow
+                    icon={<Landmark size={16} color="$inkMuted" strokeWidth={2} />}
+                    label={t("pendingScreen.account")}
+                    value={noAccounts ? t("pendingScreen.noAccountsIn", { currency }) : account?.name}
+                    muted={noAccounts}
+                    missing={!account && !noAccounts}
+                    chooseLabel={t("pendingScreen.choose")}
+                    onPress={() => (noAccounts ? router.push("/account-form") : setSheet("account"))}
+                  />
+                  {type === "expense" && occurrences.length ? (
+                    <DataRow
+                      divider
+                      icon={<Repeat size={16} color="$inkMuted" strokeWidth={2} />}
+                      label={t("pendingScreen.payment")}
+                      value={occurrence?.title ?? t("pendingScreen.normalMovement")}
+                      muted={!occurrence}
+                      onPress={() => setSheet("payment")}
+                    />
                   ) : null}
-                  <FintButton
-                    width="100%"
-                    minH={48}
-                    variant="outlined"
-                    color="$red10"
-                    borderColor="$red6"
-                    disabled={isPending || !pendingId}
-                    icon={<Trash2 size={16} />}
-                    onPress={() => setDiscardOpen(true)}
-                  >
-                    {t("movementUx.discardPending")}
-                  </FintButton>
-                </YStack>
+                  {occurrence ? null : (
+                    <DataRow
+                      divider
+                      icon={
+                        selectedCategory?.icon ? (
+                          <Text style={{ fontSize: 16, lineHeight: 20, includeFontPadding: false }}>{selectedCategory.icon}</Text>
+                        ) : (
+                          <Shapes size={16} color="$inkMuted" strokeWidth={2} />
+                        )
+                      }
+                      label={t("pendingScreen.category")}
+                      value={selectedCategory ? getCategoryLabel(selectedCategory.name, t) : undefined}
+                      missing={!selectedCategory}
+                      chooseLabel={t("pendingScreen.choose")}
+                      onPress={() => setSheet("category")}
+                    />
+                  )}
+                </>
+              )}
+              <DataRow
+                divider
+                icon={<CalendarDays size={16} color="$inkMuted" strokeWidth={2} />}
+                label={t("pendingScreen.date")}
+                value={dateLabel(date)}
+                onPress={() => setSheet("date")}
+              />
+              {mode === "normal" ? (
+                <>
+                  <DataRow
+                    divider
+                    icon={<FileText size={16} color="$inkMuted" strokeWidth={2} />}
+                    label={t("pendingScreen.note")}
+                    value={note.trim() || t("pendingScreen.optional")}
+                    muted={!note.trim()}
+                    onPress={() => setSheet("note")}
+                  />
+                  <DataRow
+                    divider
+                    icon={<MapPin size={16} color="$inkMuted" strokeWidth={2} />}
+                    label={t("pendingScreen.location")}
+                    value={location?.formattedAddress?.split(",")[0] || (location ? "·" : t("pendingScreen.optional"))}
+                    muted={!location}
+                    onPress={() => setSheet("location")}
+                  />
+                </>
+              ) : null}
+            </FintCard>
+
+            {mode === "normal" && noAccounts ? (
+              <YStack mt={16} p={14} gap={12} rounded={radius.lg} bg="$surfaceSunken">
+                <FText variant="body" style={{ fontSize: 14 }}>
+                  {t("pendingScreen.noAccountsHint", { currency })}
+                </FText>
+                <FintButton variant="outlined" minH={40} onPress={() => router.push("/account-form")}>
+                  {t("payments.autoPayCreateAccount")}
+                </FintButton>
               </YStack>
             ) : null}
-          </YStack>
+
+            {missingBalanceCurrency && account ? (
+              <MissingBalance
+                currency={missingBalanceCurrency}
+                canEnable={
+                  capabilities.features.accountCurrencyBalances && account.accountType === "credit_card" && balanceCurrencies(account).length < 2
+                }
+                pending={enableBalanceMutation.isPending}
+                onEnable={() => enableBalanceMutation.mutate({ accountId: account.id, currency: missingBalanceCurrency })}
+              />
+            ) : null}
+
+            {detail.transfer && currency && detail.amount !== null ? (
+              <Pressable
+                onPress={() => {
+                  haptics.select();
+                  setMode(mode === "transfer" ? "normal" : "transfer");
+                  setErrorMessage(null);
+                }}
+                accessibilityRole="button"
+                style={{ alignSelf: "center", marginTop: 16, paddingVertical: 6, paddingHorizontal: 8 }}
+              >
+                <FText variant="body-strong" tone="brand" style={{ fontSize: 14, textAlign: "center" }}>
+                  {t(mode === "transfer" ? "movementUx.transferNotATransfer" : "pendingScreen.asTransfer")}
+                </FText>
+              </Pressable>
+            ) : null}
+
+            {errorMessage ? (
+              <View mt={16} p={space[3]} rounded={radius.md} bg="$red2">
+                <FText variant="body" tone="dangerHard" style={{ fontSize: 14 }}>
+                  {errorMessage}
+                </FText>
+              </View>
+            ) : null}
+          </>
         ) : null}
-      </Screen>
-      <DiscardPendingDialog
-        isPending={discardMutation.isPending}
-        open={discardOpen}
-        onCancel={() => setDiscardOpen(false)}
-        onConfirm={() => discardMutation.mutate()}
-      />
-    </>
+      </KeyboardAwareScrollView>
+
+      {detail && !loading ? (
+        <KeyboardStickyView offset={{ opened: Math.max(insets.bottom, 16) - 2 }}>
+          <YStack
+            px={space[4]}
+            pt={space[3]}
+            pb={Math.max(insets.bottom, 16) + 10}
+            bg="$canvas"
+            gap={10}
+            onLayout={(event) => setFooterHeight(event.nativeEvent.layout.height)}
+          >
+            {missing ? (
+              <FText variant="caption" tone="inkMuted" style={{ textAlign: "center" }}>
+                {missing}
+              </FText>
+            ) : null}
+            <XStack gap={10}>
+              <FintButton
+                variant="outlined"
+                minH={52}
+                rounded={radius.md}
+                px={18}
+                disabled={isPending}
+                icon={discardMutation.isPending ? <FintSpinner color="$ink" /> : undefined}
+                onPress={() => discardMutation.mutate()}
+              >
+                {t("pendingScreen.discard")}
+              </FintButton>
+              <FintButton
+                flex={1}
+                minH={52}
+                rounded={radius.md}
+                fontSize={16}
+                opacity={missing ? 0.45 : 1}
+                disabled={Boolean(missing) || isPending}
+                icon={confirmMutation.isPending || transferMutation.isPending ? <FintSpinner color="$onBrand" /> : undefined}
+                onPress={submit}
+              >
+                {t(mode === "transfer" && originId && destinationId ? "movementUx.transferConfirmAction" : "pendingScreen.confirm")}
+              </FintButton>
+            </XStack>
+          </YStack>
+        </KeyboardStickyView>
+      ) : null}
+
+      {mountedSheet === "account" ? (
+        <AccountSheet
+          open={sheet === "account"}
+          onClose={() => setSheet(null)}
+          title={t("pendingScreen.account")}
+          accounts={accounts}
+          perBalance={false}
+          selected={account ? { id: account.id } : null}
+          onSelect={({ account: next }) => {
+            setAccountId(next.id);
+            setMissingBalanceCurrency(null);
+          }}
+        />
+      ) : null}
+      {mountedSheet === "origin" || mountedSheet === "destination" ? (
+        <AccountSheet
+          open={sheet === "origin" || sheet === "destination"}
+          onClose={() => setSheet(null)}
+          title={t(sheet === "destination" || mountedSheet === "destination" ? "pendingScreen.to" : "pendingScreen.from")}
+          accounts={accounts}
+          perBalance={false}
+          selected={mountedSheet === "destination" ? (destination ? { id: destination.id } : null) : origin ? { id: origin.id } : null}
+          onSelect={({ account: next }) => {
+            // Elegir la cuenta del otro lado las invierte, en lugar de dejar la misma en los dos.
+            if (mountedSheet === "destination") {
+              if (next.id === originId) setOriginId(destinationId);
+              setDestinationId(next.id);
+            } else {
+              if (next.id === destinationId) setDestinationId(originId);
+              setOriginId(next.id);
+            }
+          }}
+        />
+      ) : null}
+      {mountedSheet === "category" ? (
+        <CategorySheet
+          open={sheet === "category"}
+          onClose={() => setSheet(null)}
+          type={type}
+          categories={categories}
+          frequent={[]}
+          value={category}
+          onSelect={setCategory}
+        />
+      ) : null}
+      {mountedSheet === "date" ? <DateSheet open={sheet === "date"} onClose={() => setSheet(null)} value={date} onChange={setDate} /> : null}
+      {mountedSheet === "note" ? <NoteSheet open={sheet === "note"} onClose={() => setSheet(null)} value={note} onChange={setNote} recent={[]} /> : null}
+      {mountedSheet === "location" ? (
+        <LocationSheet open={sheet === "location"} onClose={() => setSheet(null)} value={location} suggestion={null} onSave={setLocation} />
+      ) : null}
+      {mountedSheet === "payment" ? (
+        <FintSheet open={sheet === "payment"} onClose={() => setSheet(null)} title={t("pendingScreen.paymentSheet")}>
+          <View height={8} />
+          {[{ id: NORMAL, title: t("pendingScreen.normalMovement"), dueDate: null as string | null, remainingAmount: null as number | null, currency: "" }, ...occurrences].map(
+            (o, i) => (
+              <ListRow
+                key={o.id}
+                divider={i > 0}
+                title={o.title}
+                subtitle={o.dueDate ? t("pendingScreen.due", { date: shortDay(parseDateString(o.dueDate)!, locale) }) : undefined}
+                trailing={
+                  <XStack items="center" gap={10}>
+                    {o.remainingAmount !== null ? <Amount value={o.remainingAmount} currency={o.currency} variant="amount-sm" tone="inkMuted" /> : null}
+                    {occurrenceId === o.id ? <Check size={18} color="$brand" strokeWidth={2.4} /> : null}
+                  </XStack>
+                }
+                onPress={() => {
+                  haptics.select();
+                  setOccurrenceId(o.id);
+                  setSheet(null);
+                }}
+              />
+            ),
+          )}
+        </FintSheet>
+      ) : null}
+    </YStack>
   );
 }
 
-function MissingBalanceCard({
-  canEnable,
-  currency,
-  isPending,
-  onEnable,
+/** "Miércoles 23 set" dentro de una frase: en español y portugués, el día va en minúscula. */
+function inSentence(label: string, language?: string) {
+  return language === "en" ? label : label.charAt(0).toLowerCase() + label.slice(1);
+}
+
+/**
+ * Lo que se detectó, en `surfaceSunken`: la descripción que arma el lector del
+ * correo ("Consumo con Tarjeta de Crédito BCP") y los datos leídos en `mono`,
+ * para comparar con lo corregido. La descripción no se edita: se guarda como
+ * nota del movimiento si la persona no escribe una.
+ */
+function SourceBox({ detail, dateLabel }: { detail: PendingMovementDetail; dateLabel: string }) {
+  const { t } = useTranslation();
+  const [y, m, d] = detail.transactionDate.split("-");
+  const raw = [detail.amount !== null && detail.currency ? formatMoney(detail.amount, detail.currency) : null, y && m && d ? `${d}/${m}/${y}` : null]
+    .filter(Boolean)
+    .join(" · ");
+  return (
+    <YStack mt={18} p={14} gap={6} rounded={radius.lg} bg="$surfaceSunken">
+      <XStack items="center" gap={6}>
+        <Mail size={13} color="$inkFaint" strokeWidth={2} />
+        <FText variant="caption" tone="inkFaint" style={{ fontSize: 12 }}>
+          {t("pendingScreen.source", { date: dateLabel })}
+        </FText>
+      </XStack>
+      <FText variant="body-strong" numberOfLines={2}>
+        {detail.title}
+      </FText>
+      {raw ? (
+        <FText variant="caption" tone="inkMuted" style={{ fontFamily: fontFace.mono[400], fontSize: 12, letterSpacing: 0.2 }}>
+          {raw}
+        </FText>
+      ) : null}
+    </YStack>
+  );
+}
+
+/**
+ * Fila de dato: icono en `surfaceSunken`, etiqueta, valor y flecha. Lo que
+ * falta va en `brandWash` con "Elegir" en `brand`.
+ */
+function DataRow({
+  icon,
+  label,
+  value,
+  muted,
+  missing,
+  chooseLabel,
+  divider,
+  onPress,
+  onClear,
+  clearLabel,
 }: {
-  canEnable: boolean;
-  currency: string;
-  isPending: boolean;
-  onEnable: () => void;
+  icon: ReactNode;
+  label: string;
+  value?: string;
+  muted?: boolean;
+  missing?: boolean;
+  chooseLabel?: string;
+  divider?: boolean;
+  onPress: () => void;
+  onClear?: () => void;
+  clearLabel?: string;
 }) {
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${label}: ${missing ? chooseLabel : value}`}>
+      {({ pressed }) => (
+        <XStack
+          items="center"
+          gap={12}
+          px={14}
+          py={13}
+          borderTopWidth={divider ? 1 : 0}
+          borderColor="$line"
+          bg={missing ? "$brandWash" : pressed ? "$surfaceSunken" : "transparent"}
+        >
+          <View width={32} height={32} rounded={radius.sm} bg="$surfaceSunken" items="center" justify="center">
+            {icon}
+          </View>
+          <FText variant="body" tone="inkMuted" style={{ fontSize: 14 }}>
+            {label}
+          </FText>
+          <FText
+            variant="body"
+            tone={missing ? "brand" : muted ? "inkFaint" : "ink"}
+            numberOfLines={1}
+            style={{ flex: 1, textAlign: "right", fontSize: 14, fontFamily: fontFace.sans[missing ? 600 : 500] }}
+          >
+            {missing ? chooseLabel : value}
+          </FText>
+          {onClear ? (
+            <IconButton label={clearLabel ?? ""} tone="sunken" size={34} icon={<X size={14} color="$inkMuted" strokeWidth={2.2} />} onPress={onClear} />
+          ) : (
+            <ChevronRight size={16} color={missing ? "$brand" : "$inkFaint"} strokeWidth={2} />
+          )}
+        </XStack>
+      )}
+    </Pressable>
+  );
+}
+
+function MissingBalance({ currency, canEnable, pending, onEnable }: { currency: string; canEnable: boolean; pending: boolean; onEnable: () => void }) {
   const { t } = useTranslation();
   return (
-    <FintCard bg="$secondary" gap="$3" p="$3">
-      <XStack items="center" gap="$3">
-        <YStack width={36} height={36} rounded="$10" bg="$card" items="center" justify="center">
-          <Coins size={17} color="$primary" />
-        </YStack>
-        <YStack flex={1} minW={0} gap="$1">
-          <Paragraph color="$color12" fontFamily="$heading" fontSize="$3" fontWeight="600">
+    <YStack mt={16} p={14} gap={12} rounded={radius.lg} bg="$surfaceSunken">
+      <XStack items="center" gap={12}>
+        <View width={32} height={32} rounded={radius.sm} bg="$surface" items="center" justify="center">
+          <Coins size={16} color="$inkMuted" strokeWidth={2} />
+        </View>
+        <YStack flex={1} minW={0} gap={2}>
+          <FText variant="body-strong" style={{ fontSize: 14 }}>
             {t("movementUx.missingBalanceTitle", { currency })}
-          </Paragraph>
-          <Paragraph color="$color10" fontSize="$1">
-            {/* Solo una tarjeta de crédito puede habilitar una segunda moneda -- para el
-                resto de tipos de cuenta la única salida es elegir otra cuenta arriba. */}
+          </FText>
+          {/* Solo una tarjeta de crédito puede habilitar una segunda moneda: para el resto, elegir otra cuenta. */}
+          <FText variant="caption" tone="inkMuted">
             {canEnable ? t("movementUx.missingBalanceDescription", { currency }) : t("movementUx.missingBalanceOtherAccountOnly", { currency })}
-          </Paragraph>
+          </FText>
         </YStack>
       </XStack>
       {canEnable ? (
-        <FintButton
-          size="$3"
-          variant="outlined"
-          disabled={isPending}
-          icon={isPending ? <FintSpinner size="small" color="$primary" /> : <Check size={16} />}
-          onPress={onEnable}
-        >
-          {isPending ? t("accounts.enablingBalance") : t("movementUx.enableBalanceForCurrency", { currency })}
+        <FintButton variant="outlined" minH={40} disabled={pending} icon={pending ? <FintSpinner color="$ink" /> : undefined} onPress={onEnable}>
+          {pending ? t("accounts.enablingBalance") : t("movementUx.enableBalanceForCurrency", { currency })}
         </FintButton>
       ) : null}
-    </FintCard>
+    </YStack>
   );
 }
 
-function TransferScenario1Summary({
-  detail,
-  destination,
-  isPending,
-  onConfirm,
-  onDiscard,
-  onEdit,
-  origin,
-}: {
-  detail: PendingMovementDetail;
-  destination: { accountId: string; accountName: string };
-  isPending: boolean;
-  onConfirm: () => void;
-  onDiscard: () => void;
-  onEdit: () => void;
-  origin: { accountId: string; accountName: string };
-}) {
-  const { t, i18n } = useTranslation();
-  const dateLabel = new Intl.DateTimeFormat(i18n.language, {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(`${detail.transactionDate}T00:00:00`));
+function ReviewSkeleton() {
   return (
-    <FintCard bg="$accent1" borderColor="$accent4" gap="$4" p="$4">
-      <XStack items="center" gap="$3">
-        <YStack
-          width={44}
-          height={44}
-          rounded="$10"
-          bg="$accent3"
-          items="center"
-          justify="center"
-        >
-          <ArrowLeftRight size={20} color="$primary" />
-        </YStack>
-        <YStack flex={1} minW={0} gap="$1">
-          <Paragraph
-            color="$color12"
-            fontFamily="$heading"
-            fontSize="$4"
-            fontWeight="600"
-          >
-            {t("movementUx.transferCardTitle", {
-              origin: origin.accountName,
-              destination: destination.accountName,
-            })}
-          </Paragraph>
-          <Paragraph color="$color10" fontSize="$2">
-            {formatMoney(detail.amount ?? 0, detail.currency ?? "PEN")} ·{" "}
-            {dateLabel}
-          </Paragraph>
-        </YStack>
-      </XStack>
-
-      <YStack gap="$2">
-        <FintButton
-          width="100%"
-          minH={52}
-          disabled={isPending}
-          icon={
-            isPending ? (
-              <FintSpinner color="$primaryForeground" />
-            ) : (
-              <Check size={18} />
-            )
-          }
-          onPress={onConfirm}
-        >
-          {t("movementUx.confirmPending")}
-        </FintButton>
-        <FintButton
-          width="100%"
-          minH={44}
-          variant="outlined"
-          disabled={isPending}
-          onPress={onEdit}
-        >
-          {t("actions.edit")}
-        </FintButton>
-        <FintButton
-          width="100%"
-          minH={48}
-          variant="outlined"
-          color="$red10"
-          borderColor="$red6"
-          disabled={isPending}
-          icon={<Trash2 size={16} />}
-          onPress={onDiscard}
-        >
-          {t("movementUx.discardShort")}
-        </FintButton>
+    <YStack gap={18} mt={18}>
+      <View height={96} rounded={radius.lg} bg="$surfaceSunken" />
+      <YStack items="center" gap={8}>
+        <AmountSkeleton width={180} height={40} />
+        <AmountSkeleton width={140} height={10} />
       </YStack>
-    </FintCard>
-  );
-}
-
-function TransferAccountsEditor({
-  accounts,
-  destinationAccountId,
-  isPending,
-  onCancel,
-  onConfirm,
-  onDestinationChange,
-  onFallbackToManual,
-  onOriginChange,
-  originAccountId,
-}: {
-  accounts: AccountOption[];
-  destinationAccountId: string;
-  isPending: boolean;
-  onCancel: () => void;
-  onConfirm: () => void;
-  onDestinationChange: (value: string) => void;
-  onFallbackToManual: () => void;
-  onOriginChange: (value: string) => void;
-  originAccountId: string;
-}) {
-  const { t } = useTranslation();
-  const toAccountOption = useAccountPickerOptions();
-  const canConfirm =
-    Boolean(originAccountId) &&
-    Boolean(destinationAccountId) &&
-    originAccountId !== destinationAccountId;
-  return (
-    <FintCard gap="$4" p="$4">
-      <Paragraph color="$color10" fontSize="$2">
-        {t("movementUx.transferEditHint")}
-      </Paragraph>
-      <FintFormField label={t("movementUx.transferPickOrigin")} required showLabel={false}>
-        <FintSheetSelect
-          label={t("movementUx.transferPickOrigin")}
-          showLabel={false}
-          placeholder={t("movements.selectAccount")}
-          value={originAccountId}
-          onValueChange={onOriginChange}
-          options={accounts
-            .filter((account) => account.id !== destinationAccountId)
-            .map((item) => toAccountOption(item))}
-          renderTrigger={({ onPress, selectedLabel }) => (
-            <MovementPickerTrigger
-              icon={<WalletCards size={22} color="$primary" />}
-              label={t("movementUx.transferPickOrigin")}
-              required
-              onPress={onPress}
-              value={selectedLabel}
-            />
-          )}
-        />
-      </FintFormField>
-      <FintFormField label={t("movementUx.transferPickDestination")} required showLabel={false}>
-        <FintSheetSelect
-          label={t("movementUx.transferPickDestination")}
-          showLabel={false}
-          placeholder={t("movements.selectAccount")}
-          value={destinationAccountId}
-          onValueChange={onDestinationChange}
-          options={accounts
-            .filter((account) => account.id !== originAccountId)
-            .map((item) => toAccountOption(item))}
-          renderTrigger={({ onPress, selectedLabel }) => (
-            <MovementPickerTrigger
-              icon={<WalletCards size={22} color="$primary" />}
-              label={t("movementUx.transferPickDestination")}
-              required
-              onPress={onPress}
-              value={selectedLabel}
-            />
-          )}
-        />
-      </FintFormField>
-      <YStack gap="$2">
-        <FintButton
-          width="100%"
-          minH={50}
-          disabled={isPending || !canConfirm}
-          icon={
-            isPending ? <FintSpinner color="$primaryForeground" /> : <Check size={18} />
-          }
-          onPress={onConfirm}
-        >
-          {t("movementUx.transferConfirmAction")}
-        </FintButton>
-        <FintButton
-          width="100%"
-          minH={44}
-          variant="outlined"
-          disabled={isPending}
-          onPress={onCancel}
-        >
-          {t("actions.cancel")}
-        </FintButton>
-      </YStack>
-      <XStack justify="center">
-        <Button
-          chromeless
-          size="$2"
-          disabled={isPending}
-          onPress={onFallbackToManual}
-        >
-          <Paragraph color="$color10" fontSize="$2" fontWeight="600">
-            {t("movementUx.transferNotATransfer")}
-          </Paragraph>
-        </Button>
-      </XStack>
-    </FintCard>
-  );
-}
-
-function TransferScenario2Summary({
-  detail,
-  isPending,
-  onConfirm,
-  onDiscard,
-  onEdit,
-  transfer,
-}: {
-  detail: PendingMovementDetail;
-  isPending: boolean;
-  onConfirm: (input: {
-    accountId: string;
-    side: "origin" | "destination";
-    title: string;
-  }) => void;
-  onDiscard: () => void;
-  onEdit: () => void;
-  transfer: NonNullable<PendingMovementDetail["transfer"]>;
-}) {
-  const { t, i18n } = useTranslation();
-  const side: "origin" | "destination" = transfer.originMatch
-    ? "origin"
-    : "destination";
-  const match = transfer.originMatch ?? transfer.destinationMatch;
-  if (!match) return null;
-  const dateLabel = new Intl.DateTimeFormat(i18n.language, {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(`${detail.transactionDate}T00:00:00`));
-  const title = t(
-    side === "origin" ? "movementUx.transferOutTitle" : "movementUx.transferInTitle",
-    { account: match.accountName },
-  );
-  const note = t(
-    side === "origin"
-      ? "movementUx.transferNoteToOutside"
-      : "movementUx.transferNoteFromOutside",
-  );
-  return (
-    <FintCard bg="$accent1" borderColor="$accent4" gap="$4" p="$4">
-      <XStack items="center" gap="$3">
-        <YStack
-          width={44}
-          height={44}
-          rounded="$10"
-          bg="$accent3"
-          items="center"
-          justify="center"
-        >
-          <ArrowLeftRight size={20} color="$primary" />
-        </YStack>
-        <YStack flex={1} minW={0} gap="$1">
-          <Paragraph
-            color="$color12"
-            fontFamily="$heading"
-            fontSize="$4"
-            fontWeight="600"
-          >
-            {title}
-          </Paragraph>
-          <Paragraph color="$color10" fontSize="$2">
-            {formatMoney(detail.amount ?? 0, detail.currency ?? "PEN")} ·{" "}
-            {dateLabel}
-          </Paragraph>
-          <Paragraph color="$color9" fontSize="$1">
-            {note}
-          </Paragraph>
-        </YStack>
-      </XStack>
-
-      <YStack gap="$2">
-        <FintButton
-          width="100%"
-          minH={52}
-          disabled={isPending}
-          icon={
-            isPending ? (
-              <FintSpinner color="$primaryForeground" />
-            ) : (
-              <Check size={18} />
-            )
-          }
-          onPress={() => onConfirm({ accountId: match.accountId, side, title })}
-        >
-          {t("movementUx.confirmPending")}
-        </FintButton>
-        <FintButton
-          width="100%"
-          minH={44}
-          variant="outlined"
-          disabled={isPending}
-          onPress={onEdit}
-        >
-          {t("actions.edit")}
-        </FintButton>
-        <FintButton
-          width="100%"
-          minH={48}
-          variant="outlined"
-          color="$red10"
-          borderColor="$red6"
-          disabled={isPending}
-          icon={<Trash2 size={16} />}
-          onPress={onDiscard}
-        >
-          {t("movementUx.discardShort")}
-        </FintButton>
-      </YStack>
-    </FintCard>
-  );
-}
-
-function TransferScenario3Summary({
-  isPending,
-  onDiscard,
-  onRegisterManually,
-}: {
-  isPending: boolean;
-  onDiscard: () => void;
-  onRegisterManually: () => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <FintCard gap="$4" p="$4">
-      <XStack items="center" gap="$3">
-        <YStack
-          width={44}
-          height={44}
-          rounded="$10"
-          bg="$muted"
-          items="center"
-          justify="center"
-        >
-          <ArrowLeftRight size={20} color="$color10" />
-        </YStack>
-        <YStack flex={1} minW={0} gap="$1">
-          <Paragraph
-            color="$color12"
-            fontFamily="$heading"
-            fontSize="$4"
-            fontWeight="600"
-          >
-            {t("movementUx.transferUnknownTitle")}
-          </Paragraph>
-          <Paragraph color="$color10" fontSize="$2">
-            {t("movementUx.transferUnknownHint")}
-          </Paragraph>
-        </YStack>
-      </XStack>
-
-      <YStack gap="$2">
-        <FintButton
-          width="100%"
-          minH={50}
-          disabled={isPending}
-          icon={<Trash2 size={17} />}
-          onPress={onDiscard}
-        >
-          {t("movementUx.discardShort")}
-        </FintButton>
-        <FintButton
-          width="100%"
-          minH={44}
-          variant="outlined"
-          disabled={isPending}
-          onPress={onRegisterManually}
-        >
-          {t("movementUx.transferRegisterManually")}
-        </FintButton>
-      </YStack>
-    </FintCard>
-  );
-}
-
-async function invalidatePendingAndFinance(
-  queryClient: ReturnType<typeof useQueryClient>,
-) {
-  await Promise.all([
-    queryClient.invalidateQueries({ queryKey: ["pending-movements"] }),
-    queryClient.invalidateQueries({ queryKey: ["transactions"] }),
-    queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
-    queryClient.invalidateQueries({ queryKey: ["summary"] }),
-    queryClient.invalidateQueries({ queryKey: ["accounts"] }),
-    queryClient.invalidateQueries({ queryKey: ["reports"] }),
-    queryClient.invalidateQueries({ queryKey: ["payment-occurrences"] }),
-  ]);
-}
-
-function compatibleOccurrences(
-  occurrences: PaymentOccurrence[],
-  detail: PendingMovementDetail | undefined,
-) {
-  if (
-    !detail ||
-    detail.type !== "expense" ||
-    detail.amount === null ||
-    !detail.currency
-  )
-    return [];
-  return occurrences.filter(
-    (occurrence) =>
-      occurrence.currency === detail.currency &&
-      occurrence.amountStatus === "confirmed" &&
-      (occurrence.remainingAmount ?? 0) >= detail.amount!,
-  );
-}
-
-function DiscardPendingDialog({
-  isPending,
-  onCancel,
-  onConfirm,
-  open,
-}: {
-  isPending: boolean;
-  onCancel: () => void;
-  onConfirm: () => void;
-  open: boolean;
-}) {
-  const { t } = useTranslation();
-  return (
-    <FintConfirmDialog
-      open={open}
-      isPending={isPending}
-      title={t("movementUx.discardPendingTitle")}
-      description={t("movementUx.discardPendingDescription")}
-      cancelLabel={t("actions.cancel")}
-      confirmLabel={t("movementUx.discardPending")}
-      destructive
-      icon={<Trash2 size={17} color="$primaryForeground" />}
-      onCancel={onCancel}
-      onConfirm={onConfirm}
-    />
+      <View height={260} rounded={radius.lg} bg="$surfaceSunken" />
+    </YStack>
   );
 }
