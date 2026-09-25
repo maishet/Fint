@@ -1,57 +1,57 @@
-import {
-  Eye,
-  EyeOff,
-  LockKeyhole,
-  Mail,
-  UserRound,
-} from "@tamagui/lucide-icons-2";
-import { useEffect, useRef, useState } from "react";
-import { Image, Platform, useWindowDimensions } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-import Svg, { Path } from "react-native-svg";
+import { CircleAlert, Eye, EyeOff, MailCheck } from "@tamagui/lucide-icons-2";
 import * as AppleAuthentication from "expo-apple-authentication";
-import { Redirect } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import {
-  Button,
-  H1,
-  H2,
-  Paragraph,
-  Separator,
-  XStack,
-  YStack,
-  useTheme,
-  useThemeName,
-} from "tamagui";
+import { Redirect, useFocusEffect } from "expo-router";
+import { setStatusBarStyle } from "expo-status-bar";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { Keyboard, Platform, Pressable, TextInput, type TextInputProps } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import Animated, { Extrapolation, interpolate, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Svg, { Path } from "react-native-svg";
+import { Text, useTheme, useThemeName, View, XStack, YStack } from "tamagui";
 import { z } from "zod";
 import { useAuth } from "../src/auth/AuthProvider";
+import { authErrorFor, type AuthErrorField } from "../src/auth/authErrors";
 import { getValidationMessage, useSubmitValidation } from "../src/forms";
-import { useThemeMode } from "../src/theme/ThemeMode";
-import { FormTextField } from "../src/components/MovementFormControls";
-import { FintButton } from "../src/ui";
+import { HeroMesh } from "../src/home/HeroMesh";
+import { radius, space } from "../src/theme/tokens";
+import { fontFace, textStyles } from "../src/theme/typography";
+import { FintButton, FintSpinner, FText, PressableScale, SheetField, SheetTextInput } from "../src/ui";
+import { BrandSymbol } from "../src/ui/BrandSymbol";
 
+type Field = "confirmPassword" | "displayName" | "email" | "password";
+type ServerError = { field: AuthErrorField; message: string };
+
+/**
+ * Entrar y crear cuenta. La losa de marca arriba (isotipo, titular y frase,
+ * con la malla del Inicio) y el formulario en una hoja que sube sobre ella.
+ * "Continuar con Google" va primero: es un toque y no pide recordar nada; el
+ * correo queda debajo para quien lo prefiera. Los errores aparecen al tocar el
+ * botón, no mientras se escribe: el campo toma borde `dangerHard` y el mensaje
+ * va debajo con el icono de alerta.
+ */
 export default function LoginScreen() {
   const { i18n, t } = useTranslation();
-  const { themeMode } = useThemeMode();
-  const { session, signIn, signInWithApple, signInWithGoogle, signUp } =
-    useAuth();
+  const insets = useSafeAreaInsets();
+  const { session, signIn, signInWithApple, signInWithGoogle, signUp } = useAuth();
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<ServerError | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [groundHeight, setGroundHeight] = useState(0);
-  const { height: windowHeight } = useWindowDimensions();
-  const theme = useTheme();
-  const validation = useSubmitValidation<
-    "confirmPassword" | "displayName" | "email" | "password"
-  >();
+  const [focused, setFocused] = useState<Field | null>(null);
+  const [heroSize, setHeroSize] = useState({ width: 0, height: 0 });
+  const validation = useSubmitValidation<Field>();
   const isMountedRef = useRef(true);
+  const theme = useTheme();
+  const isLogin = authMode === "login";
+  const scrollY = useSharedValue(0);
+  const statusStrip = useAnimatedStyle(() => ({ opacity: interpolate(scrollY.value, [0, 24], [0, 1], Extrapolation.CLAMP) }));
 
   useEffect(
     () => () => {
@@ -60,63 +60,50 @@ export default function LoginScreen() {
     [],
   );
 
+  // Al cerrar el teclado (atrás del sistema) el campo suelta el foco: si no, su borde `brand` sigue sin estar escribiendo.
+  useEffect(() => {
+    const sub = Keyboard.addListener("keyboardDidHide", () => {
+      TextInput.State.currentlyFocusedInput()?.blur();
+      setFocused(null);
+    });
+    return () => sub.remove();
+  }, []);
+
+  // La losa va arriba en los dos temas: la barra de estado siempre clara.
+  useFocusEffect(
+    useCallback(() => {
+      setStatusBarStyle("light");
+    }, []),
+  );
+
   if (session) return <Redirect href="/" />;
 
-  const runAuthAction = async (
-    action: "signin" | "signup" | "google" | "apple",
-  ) => {
+  const runAuthAction = async (action: "signin" | "signup" | "google" | "apple") => {
     let submittedEmail = email.trim();
     let submittedDisplayName = displayName.trim();
     let submittedPassword = password;
     if (action !== "google" && action !== "apple") {
       const authSchema = z
         .object({
-          displayName:
-            action === "signup"
-              ? z
-                  .string()
-                  .trim()
-                  .min(2, t("profile.invalid"))
-                  .max(80, t("profile.invalid"))
-              : z.string(),
+          displayName: action === "signup" ? z.string().trim().min(2, t("profile.invalid")).max(80, t("profile.invalid")) : z.string(),
           email: z
             .string()
             .trim()
             .email(getValidationMessage(t, i18n.resolvedLanguage, "email")),
-          password: z
-            .string()
-            .min(
-              6,
-              getValidationMessage(t, i18n.resolvedLanguage, "passwordMin"),
-            ),
-          confirmPassword:
+          // Al crear cuenta, 8 caracteres como mínimo; al entrar solo se pide que no esté vacía, para no dejar afuera a
+          // quien ya tiene una contraseña más corta.
+          password:
             action === "signup"
-              ? z
-                  .string()
-                  .min(
-                    1,
-                    getValidationMessage(t, i18n.resolvedLanguage, "required"),
-                  )
-              : z.string(),
+              ? z.string().min(8, getValidationMessage(t, i18n.resolvedLanguage, "passwordMin"))
+              : z.string().min(1, getValidationMessage(t, i18n.resolvedLanguage, "required")),
+          confirmPassword: action === "signup" ? z.string().min(1, getValidationMessage(t, i18n.resolvedLanguage, "required")) : z.string(),
         })
         .superRefine((values, context) => {
-          if (
-            action === "signup" &&
-            values.password !== values.confirmPassword
-          ) {
-            context.addIssue({
-              code: "custom",
-              message: t("auth.passwordMismatch"),
-              path: ["confirmPassword"],
-            });
+          if (action === "signup" && values.password !== values.confirmPassword) {
+            context.addIssue({ code: "custom", message: t("auth.passwordMismatch"), path: ["confirmPassword"] });
           }
         });
-      const payload = validation.validate(authSchema, {
-        displayName,
-        email,
-        password,
-        confirmPassword,
-      });
+      const payload = validation.validate(authSchema, { displayName, email, password, confirmPassword });
       if (!payload) return;
       submittedEmail = payload.email;
       submittedDisplayName = payload.displayName;
@@ -124,190 +111,189 @@ export default function LoginScreen() {
     }
 
     setIsSubmitting(true);
-    setErrorMessage(null);
+    setServerError(null);
     setSuccessMessage(null);
     const result =
       action === "signin"
         ? await signIn(submittedEmail, submittedPassword)
         : action === "signup"
-          ? await signUp(
-              submittedEmail,
-              submittedPassword,
-              submittedDisplayName,
-            )
+          ? await signUp(submittedEmail, submittedPassword, submittedDisplayName)
           : action === "apple"
             ? await signInWithApple()
             : await signInWithGoogle();
 
     if (!isMountedRef.current) return;
     if (result.error) {
-      setErrorMessage(getFriendlyAuthError(result.error.message, t));
+      const known = authErrorFor(result.error.message);
+      setServerError({ field: known.field, message: known.key ? t(known.key) : result.error.message });
     } else if (action === "signup") {
       setSuccessMessage(t("auth.signUpSuccess"));
     }
     setIsSubmitting(false);
   };
 
+  const switchMode = () => {
+    setAuthMode((current) => (current === "login" ? "register" : "login"));
+    setServerError(null);
+    setSuccessMessage(null);
+    validation.resetErrors();
+  };
+
+  // El error de un campo: primero el de la validación; si no, el del servidor que le corresponde.
+  const errorFor = (field: Field) => validation.errors[field] ?? (serverError?.field === field ? serverError.message : undefined);
+  const generalError = serverError && serverError.field === null ? serverError.message : null;
+
   return (
-    <YStack flex={1}>
-      <StatusBar style="light" />
-      {/* Mismo sistema que el resto de la app: el bloque de marca va a sangre
-          sobre el suelo y el formulario sube como una hoja. Antes esta era la
-          unica pantalla sin suelo, siendo la primera que ve alguien. */}
-      {/* En edge-to-edge la ventana no se encoge al abrir el teclado, asi que
-          el desplazamiento hasta el campo enfocado lo hace esta vista. */}
+    <View flex={1} bg="$slab">
       <KeyboardAwareScrollView
         bottomOffset={24}
-        style={{ flex: 1, backgroundColor: theme.headerBackground.val }}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        bounces={false}
+        overScrollMode="never"
+        onScroll={(e) => {
+          scrollY.value = e.nativeEvent.contentOffset.y;
+        }}
+        scrollEventThrottle={16}
       >
+        {/* Losa: isotipo y logotipo, titular a 30px y la frase en `slabMuted`. */}
         <YStack
-          bg="$headerBackground"
-          items="center"
-          gap="$3"
-          px="$5"
-          pt="$7"
-          pb="$8"
-          onLayout={(event) => setGroundHeight(event.nativeEvent.layout.height)}
+          pt={insets.top + 18}
+          px={space[5]}
+          pb={28 + 30}
+          overflow="hidden"
+          onLayout={(e) => setHeroSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
         >
-          {/* El isotipo comparte color con el suelo, asi que sin este circulo
-              -el mismo que usan los heroes de Gmail y Soporte- las piedras
-              quedaban flotando sueltas sobre el fondo. */}
-          <YStack
-            width={84}
-            height={84}
-            rounded={42}
-            bg="rgba(246,251,252,0.10)"
-            borderColor="rgba(246,251,252,0.16)"
-            borderWidth={1}
-            items="center"
-            justify="center"
-          >
-            <Image
-              source={require("../assets/images/icon.png")}
-              style={{ width: 72, height: 72, borderRadius: 36 }}
-              resizeMode="cover"
-            />
-          </YStack>
-          <YStack items="center" gap="$2">
-            <H1
-              color="$heroForeground"
-              fontFamily="$heading"
-              size="$8"
-              text="center"
-              maxW={330}
-            >
-              {t("auth.headline")}
-            </H1>
-            <Paragraph
-              color="$heroMuted"
-              text="center"
-              maxW={300}
-              lineHeight="$5"
-            >
-              {t("auth.intro")}
-            </Paragraph>
-          </YStack>
+          <HeroMesh width={heroSize.width} height={heroSize.height} />
+          <XStack items="center" gap={10}>
+            <BrandSymbol size={34} disc="$glassSlab" />
+            <Text style={{ fontFamily: fontFace.display[600], fontSize: 22, letterSpacing: -0.8 }}>
+              <Text color="$slabMuted">My </Text>
+              <Text color="$slabInk">Fint</Text>
+            </Text>
+          </XStack>
+          <Text color="$slabInk" mt={26} style={{ ...textStyles["display-lg"], letterSpacing: -1 }} accessibilityRole="header">
+            {isLogin ? t("loginScreen.headline") : t("loginScreen.registerHeadline")}
+          </Text>
+          <FText tone="slabMuted" style={{ fontSize: 14, lineHeight: 20, marginTop: 8, maxWidth: 320 }}>
+            {isLogin ? t("auth.intro") : t("loginScreen.registerIntro")}
+          </FText>
         </YStack>
 
+        {/* Hoja: en `background`, sube 28px sobre la losa y llega hasta abajo. */}
         <YStack
-          // La hoja llega hasta abajo aunque el formulario sea corto; si no,
-          // asoma el suelo bajo el ultimo boton.
-          minH={Math.max(0, windowHeight - groundHeight + 26)}
+          grow={1}
+          mt={-28}
           bg="$background"
-          mt={-26}
-          pt="$6"
-          px="$5"
-          pb="$8"
-          items="center"
-          style={{ borderTopLeftRadius: 28, borderTopRightRadius: 28 }}
+          pt={space[6]}
+          px={space[5]}
+          pb={Math.max(insets.bottom, space[4]) + 18}
+          style={{ borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl }}
         >
-          <YStack width="100%" maxW={360} gap="$4">
-            <YStack items="center" gap="$1">
-              <H2 color="$color12" fontFamily="$heading" size="$7">
-                {authMode === "login"
-                  ? t("auth.welcome")
-                  : t("auth.registerTitle")}
-              </H2>
-              <Paragraph color="$color10" text="center">
-                {authMode === "login"
-                  ? t("auth.loginHint")
-                  : t("auth.registerHint")}
-              </Paragraph>
+          <YStack width="100%" maxW={420} self="center" grow={1}>
+            <Text color="$ink" style={{ ...textStyles.title, fontSize: 22, lineHeight: 28, letterSpacing: -0.5 }}>
+              {isLogin ? t("auth.welcome") : t("auth.registerTitle")}
+            </Text>
+            {isLogin ? (
+              <FText variant="label" tone="inkMuted" style={{ marginTop: 2 }}>
+                {t("auth.loginHint")}
+              </FText>
+            ) : null}
+
+            <YStack mt={18} gap={10}>
+              <GoogleButton disabled={isSubmitting} onPress={() => void runAuthAction("google")} />
+              <AppleSignInButton authMode={authMode} disabled={isSubmitting} onPress={() => void runAuthAction("apple")} />
             </YStack>
 
-            <YStack gap="$3">
-              {authMode === "register" ? (
-                <FormTextField
-                  label={t("auth.name")}
+            <XStack items="center" gap={10} mt={16} mb={12}>
+              <View flex={1} height={1} bg="$line" />
+              <FText variant="caption" tone="inkFaint">
+                {t("loginScreen.orEmail")}
+              </FText>
+              <View flex={1} height={1} bg="$line" />
+            </XStack>
+
+            <YStack gap={10}>
+              {isLogin ? null : (
+                <AuthField
+                  error={errorFor("displayName")}
+                  focused={focused === "displayName"}
+                  onFocus={() => setFocused("displayName")}
+                  onBlur={() => setFocused(null)}
                   placeholder={t("auth.namePlaceholder")}
-                  icon={<UserRound size={21} color="$primary" />}
-                  error={validation.errors.displayName}
+                  accessibilityLabel={t("auth.name")}
                   autoCapitalize="words"
                   autoComplete="name"
+                  textContentType="name"
                   value={displayName}
                   onChangeText={(value) => {
                     setDisplayName(value);
                     validation.clearError("displayName");
                   }}
                 />
-              ) : null}
-              <FormTextField
-                label={t("auth.email")}
+              )}
+              <AuthField
+                error={errorFor("email")}
+                focused={focused === "email"}
+                onFocus={() => setFocused("email")}
+                onBlur={() => setFocused(null)}
                 placeholder={t("auth.emailPlaceholder")}
-                icon={<Mail size={21} color="$primary" />}
-                error={validation.errors.email}
+                accessibilityLabel={t("auth.email")}
                 autoCapitalize="none"
+                autoCorrect={false}
                 autoComplete="email"
+                textContentType="emailAddress"
                 keyboardType="email-address"
                 value={email}
                 onChangeText={(value) => {
                   setEmail(value);
                   validation.clearError("email");
+                  if (serverError?.field === "email") setServerError(null);
                 }}
               />
-              <FormTextField
-                label={t("auth.password")}
+              <AuthField
+                error={errorFor("password")}
+                focused={focused === "password"}
+                onFocus={() => setFocused("password")}
+                onBlur={() => setFocused(null)}
                 placeholder={t("auth.passwordPlaceholder")}
-                icon={<LockKeyhole size={21} color="$primary" />}
-                error={validation.errors.password}
+                accessibilityLabel={t("auth.password")}
                 autoCapitalize="none"
-                autoComplete="password"
+                autoCorrect={false}
+                autoComplete={isLogin ? "password" : "password-new"}
+                textContentType={isLogin ? "password" : "newPassword"}
                 secureTextEntry={!isPasswordVisible}
                 value={password}
                 onChangeText={(value) => {
                   setPassword(value);
                   validation.clearError("password", "confirmPassword");
+                  if (serverError?.field === "password") setServerError(null);
                 }}
                 trailing={
-                  <Button
-                    chromeless
-                    circular
-                    size="$2.5"
-                    aria-label={
-                      isPasswordVisible
-                        ? t("auth.hidePassword")
-                        : t("auth.showPassword")
-                    }
+                  <Pressable
+                    hitSlop={10}
+                    accessibilityRole="button"
+                    accessibilityLabel={isPasswordVisible ? t("auth.hidePassword") : t("auth.showPassword")}
                     onPress={() => setIsPasswordVisible((current) => !current)}
                   >
-                    {isPasswordVisible ? (
-                      <EyeOff size={18} color="$color9" />
-                    ) : (
-                      <Eye size={18} color="$color9" />
-                    )}
-                  </Button>
+                    {isPasswordVisible ? <EyeOff size={18} color="$inkFaint" strokeWidth={2} /> : <Eye size={18} color="$inkFaint" strokeWidth={2} />}
+                  </Pressable>
                 }
               />
-              {authMode === "register" ? (
-                <FormTextField
-                  label={t("auth.confirmPassword")}
+              {isLogin ? null : (
+                <AuthField
+                  error={errorFor("confirmPassword")}
+                  focused={focused === "confirmPassword"}
+                  onFocus={() => setFocused("confirmPassword")}
+                  onBlur={() => setFocused(null)}
                   placeholder={t("auth.confirmPasswordPlaceholder")}
-                  icon={<LockKeyhole size={21} color="$primary" />}
-                  error={validation.errors.confirmPassword}
+                  accessibilityLabel={t("auth.confirmPassword")}
                   autoCapitalize="none"
+                  autoCorrect={false}
                   autoComplete="password-new"
+                  textContentType="newPassword"
                   secureTextEntry={!isPasswordVisible}
                   value={confirmPassword}
                   onChangeText={(value) => {
@@ -315,95 +301,102 @@ export default function LoginScreen() {
                     validation.clearError("confirmPassword");
                   }}
                 />
-              ) : null}
+              )}
+              {generalError ? <ErrorLine message={generalError} /> : null}
             </YStack>
 
-            {errorMessage ? (
-              <MessageCard tone="error" message={errorMessage} />
-            ) : null}
             {successMessage ? (
-              <MessageCard tone="success" message={successMessage} />
-            ) : null}
-            <FintButton
-              disabled={isSubmitting}
-              onPress={() =>
-                runAuthAction(authMode === "login" ? "signin" : "signup")
-              }
-            >
-              {isSubmitting
-                ? t("auth.processing")
-                : authMode === "login"
-                  ? t("auth.signIn")
-                  : t("auth.signUp")}
-            </FintButton>
-
-            <XStack items="center" gap="$3">
-              <Separator flex={1} />
-              <Paragraph color="$color9" fontSize="$2" fontWeight="600">
-                {t("auth.continueWith")}
-              </Paragraph>
-              <Separator flex={1} />
-            </XStack>
-            <FintButton
-              variant="outlined"
-              disabled={isSubmitting}
-              onPress={() => runAuthAction("google")}
-            >
-              <XStack items="center" justify="center" gap="$2">
-                <GoogleMark />
-                <Paragraph color="$primary" fontWeight="600">
-                  {t("auth.google")}
-                </Paragraph>
+              <XStack mt={16} p={14} gap={10} rounded={radius.md} bg="$brandWash" items="flex-start">
+                <MailCheck size={18} color="$brand" strokeWidth={2} style={{ marginTop: 1 }} />
+                <FText variant="label" style={{ flex: 1, fontSize: 14, lineHeight: 20 }}>
+                  {successMessage}
+                </FText>
               </XStack>
-            </FintButton>
-            <AppleSignInButton
-              authMode={authMode}
-              disabled={isSubmitting}
-              onPress={() => runAuthAction("apple")}
-            />
+            ) : null}
 
-            <XStack items="center" justify="center" gap="$1.5">
-              <Paragraph color="$color9">
-                {authMode === "login"
-                  ? t("auth.noAccount")
-                  : t("auth.hasAccount")}
-              </Paragraph>
-              <Button
-                chromeless
-                p={0}
-                height="auto"
-                onPress={() => {
-                  setAuthMode((current) =>
-                    current === "login" ? "register" : "login",
-                  );
-                  setErrorMessage(null);
-                  setSuccessMessage(null);
-                  validation.resetErrors();
-                }}
+            <View mt={16}>
+              <FintButton
+                disabled={isSubmitting}
+                accessibilityLabel={isLogin ? t("auth.signIn") : t("auth.signUp")}
+                onPress={() => runAuthAction(isLogin ? "signin" : "signup")}
               >
-                <Paragraph color="$primary" fontWeight="600">
-                  {authMode === "login"
-                    ? t("auth.registerLink")
-                    : t("auth.loginLink")}
-                </Paragraph>
-              </Button>
+                {isSubmitting ? <FintSpinner color="$onBrand" /> : isLogin ? t("auth.signIn") : t("auth.signUp")}
+              </FintButton>
+            </View>
+
+            {/* Al pie: cambiar entre entrar y crear cuenta. */}
+            <XStack mt="auto" pt={space[6]} items="center" justify="center" gap={5}>
+              <FText tone="inkMuted" style={{ fontSize: 14 }}>
+                {isLogin ? t("auth.noAccount") : t("auth.hasAccount")}
+              </FText>
+              <Pressable onPress={switchMode} hitSlop={10} accessibilityRole="button" disabled={isSubmitting}>
+                <FText tone="brand" style={{ fontSize: 14, fontFamily: fontFace.sans[600] }}>
+                  {isLogin ? t("auth.registerLink") : t("auth.loginLink")}
+                </FText>
+              </Pressable>
             </XStack>
           </YStack>
         </YStack>
       </KeyboardAwareScrollView>
+      {/* Franja del color de la losa detrás de la barra de estado: aparece al desplazar (con el teclado abierto),
+          para que el titular no pase por debajo de la hora y los iconos. Quieta, no se ve: no corta el resplandor. */}
+      <Animated.View
+        pointerEvents="none"
+        style={[{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top, backgroundColor: theme.slab.val }, statusStrip]}
+      />
+    </View>
+  );
+}
+
+function AuthField({ error, focused, trailing, ...input }: TextInputProps & { error?: string; focused: boolean; trailing?: ReactNode }) {
+  return (
+    <YStack gap={6}>
+      <SheetField focused={focused} invalid={Boolean(error)}>
+        <SheetTextInput {...input} />
+        {trailing}
+      </SheetField>
+      {error ? <ErrorLine message={error} /> : null}
     </YStack>
   );
 }
 
-function AppleSignInButton({
-  authMode,
-  disabled,
-  onPress,
-}: {
-  authMode: "login" | "register";
-  disabled: boolean;
-  onPress: () => void;
-}) {
+function ErrorLine({ message }: { message: string }) {
+  return (
+    <XStack items="center" gap={5} mx={2} accessibilityRole="alert">
+      <CircleAlert size={13} color="$dangerHard" strokeWidth={2.2} />
+      <FText variant="caption" tone="dangerHard" style={{ flex: 1, fontFamily: fontFace.sans[600] }}>
+        {message}
+      </FText>
+    </XStack>
+  );
+}
+
+/** "Continuar con Google" con el logo oficial, como pide la guía de marca de Google. */
+function GoogleButton({ disabled, onPress }: { disabled: boolean; onPress: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <PressableScale onPress={onPress} disabled={disabled} haptic="tap" accessibilityRole="button" accessibilityLabel={t("auth.google")}>
+      <XStack
+        height={50}
+        rounded={radius.md}
+        bg="$surface"
+        borderWidth={1}
+        borderColor="$lineStrong"
+        items="center"
+        justify="center"
+        gap={10}
+        opacity={disabled ? 0.42 : 1}
+      >
+        <GoogleMark />
+        <FText variant="body-strong" style={{ fontSize: 15 }}>
+          {t("auth.google")}
+        </FText>
+      </XStack>
+    </PressableScale>
+  );
+}
+
+function AppleSignInButton({ authMode, disabled, onPress }: { authMode: "login" | "register"; disabled: boolean; onPress: () => void }) {
   const themeName = useThemeName();
   const [isAvailable, setIsAvailable] = useState(false);
 
@@ -425,17 +418,13 @@ function AppleSignInButton({
   return (
     <AppleAuthentication.AppleAuthenticationButton
       buttonType={
-        authMode === "login"
-          ? AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN
-          : AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP
+        authMode === "login" ? AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN : AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP
       }
       buttonStyle={
-        themeName === "dark"
-          ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
-          : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+        themeName === "dark" ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
       }
-      cornerRadius={11}
-      style={{ height: 50, width: "100%", opacity: disabled ? 0.5 : 1 }}
+      cornerRadius={radius.md}
+      style={{ height: 50, width: "100%", opacity: disabled ? 0.42 : 1 }}
       onPress={() => {
         if (!disabled) onPress();
       }}
@@ -443,43 +432,9 @@ function AppleSignInButton({
   );
 }
 
-function AuthValidationMessage({ message }: { message?: string }) {
-  return message ? (
-    <Paragraph color="$red10" fontSize="$1" fontWeight="600" px="$1">
-      {message}
-    </Paragraph>
-  ) : null;
-}
-
-function MessageCard({
-  message,
-  tone,
-}: {
-  message: string;
-  tone: "error" | "success";
-}) {
-  return (
-    <YStack
-      bg={tone === "error" ? "$red2" : "$green2"}
-      borderColor={tone === "error" ? "$red6" : "$green6"}
-      borderWidth={1}
-      p="$3"
-      rounded="$5"
-    >
-      <Paragraph
-        color={tone === "error" ? "$red11" : "$green11"}
-        fontSize="$3"
-        fontWeight="600"
-      >
-        {message}
-      </Paragraph>
-    </YStack>
-  );
-}
-
 function GoogleMark() {
   return (
-    <Svg width={20} height={20} viewBox="0 0 48 48">
+    <Svg width={18} height={18} viewBox="0 0 48 48">
       <Path
         fill="#FFC107"
         d="M43.611 20.083H42V20H24v8h11.303C33.654 32.657 29.223 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"
@@ -498,14 +453,4 @@ function GoogleMark() {
       />
     </Svg>
   );
-}
-
-function getFriendlyAuthError(message: string, t: (key: string) => string) {
-  const normalized = message.toLowerCase();
-  if (normalized.includes("invalid login")) return t("auth.invalidCredentials");
-  if (normalized.includes("email not confirmed"))
-    return t("auth.emailNotConfirmed");
-  if (normalized.includes("already registered"))
-    return t("auth.alreadyRegistered");
-  return message;
 }

@@ -18,7 +18,6 @@ import Animated, {
   type SharedValue,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Circle, Ellipse } from "react-native-svg";
 import { Text, useTheme, View, XStack, YStack } from "tamagui";
 import { financeApi } from "../src/api/finance";
 import { HeroMesh } from "../src/home/HeroMesh";
@@ -31,6 +30,7 @@ import { useThemeMode } from "../src/theme/ThemeMode";
 import { radius, shadows, space } from "../src/theme/tokens";
 import { fontFace, textStyles } from "../src/theme/typography";
 import { FintButton, FintCard, FintSpinner, FText, IconButton, Monogram, notify, PressableScale } from "../src/ui";
+import { BrandSymbol } from "../src/ui/BrandSymbol";
 
 /** Las cifras de las ilustraciones son de ejemplo y siempre en soles, como en el diseño. */
 const SAMPLE_CURRENCY = "PEN";
@@ -299,21 +299,6 @@ function SlideFrame({
         ) : null}
       </YStack>
     </YStack>
-  );
-}
-
-/** El isotipo quieto: tres monedas sobre un disco. El animado es solo para pantallas de carga. */
-function BrandSymbol({ size, disc = "$slab", coin = "$slabInk" }: { size: number; disc?: string; coin?: string }) {
-  const theme = useTheme() as unknown as Record<string, { val: string }>;
-  const d = theme[disc.slice(1)]?.val;
-  const c = theme[coin.slice(1)]?.val;
-  return (
-    <Svg width={size} height={size} viewBox="0 0 120 120">
-      <Circle cx={60} cy={60} r={58} fill={d} />
-      <Ellipse cx={60} cy={78} rx={34} ry={11} fill={c} opacity={0.55} />
-      <Ellipse cx={60} cy={62} rx={28} ry={10} fill={c} opacity={0.78} />
-      <Ellipse cx={60} cy={47} rx={20} ry={9} fill={c} />
-    </Svg>
   );
 }
 

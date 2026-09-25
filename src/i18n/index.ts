@@ -15,6 +15,7 @@ import { accountFormTranslations } from "./accountForm";
 import { paymentFormTranslations } from "./paymentForm";
 import { pendingReviewTranslations } from "./pendingReview";
 import { onboardingScreenTranslations } from "./onboardingScreen";
+import { loginScreenTranslations } from "./loginScreen";
 
 export type { AppLanguage };
 
@@ -2848,6 +2849,11 @@ for (const [language, bundle] of Object.entries(pendingReviewTranslations)) {
 
 // Onboarding v3.
 for (const [language, bundle] of Object.entries(onboardingScreenTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Login v3.
+for (const [language, bundle] of Object.entries(loginScreenTranslations)) {
   i18n.addResourceBundle(language, "translation", bundle, true, false);
 }
 

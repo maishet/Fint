@@ -81,7 +81,7 @@ export default function ProfileScreen() {
           .min(1, getValidationMessage(t, i18n.resolvedLanguage, "required")),
         newPassword: z
           .string()
-          .min(6, getValidationMessage(t, i18n.resolvedLanguage, "passwordMin")),
+          .min(8, getValidationMessage(t, i18n.resolvedLanguage, "passwordMin")),
         confirmPassword: z
           .string()
           .min(1, getValidationMessage(t, i18n.resolvedLanguage, "required")),

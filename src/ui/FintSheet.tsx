@@ -152,8 +152,16 @@ export function FintSheet({
  * `surfaceSunken` y `surfaceOverlay` casi no se distinguen, así que lleva
  * además un filete `line` de 1px.
  */
-export function SheetField({ children, focused = false }: { children: ReactNode; focused?: boolean }) {
+export function SheetField({ children, focused = false, invalid = false }: { children: ReactNode; focused?: boolean; invalid?: boolean }) {
   const { themeMode } = useThemeMode();
+  // Con error, borde `dangerHard` de 1.5px aunque tenga el foco: el error se ve hasta que la persona corrige.
+  if (invalid) {
+    return (
+      <XStack minH={48} px={14} gap={10} items="center" rounded={radius.md} bg="$surfaceSunken" borderWidth={1.5} borderColor="$dangerHard">
+        {children}
+      </XStack>
+    );
+  }
   return (
     <XStack
       minH={48}
