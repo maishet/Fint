@@ -18,6 +18,7 @@ import {
   type CapturedLocation,
 } from "../location/captureLocation";
 import { suggestionKey, useLocationSearch } from "../location/useLocationSearch";
+import { useThemeMode } from "../theme/ThemeMode";
 import { motion, opacity, radius } from "../theme/tokens";
 import { fontFace } from "../theme/typography";
 import { FintButton, FintSheet, FintSpinner, FText, SheetField, SheetTextInput } from "../ui";
@@ -27,6 +28,8 @@ import { splitAddress } from "./logic";
 const MAP_ZOOM = 16;
 const MAP_HEIGHT = 170;
 const PIN_SIZE = 38;
+/** Lo que tarda la hoja en asentarse (`spring-sheet`). */
+const MAP_MOUNT_DELAY_MS = 450;
 /** Lima, para no abrir en medio del océano si todavía no hay ubicación. */
 const FALLBACK_CENTER = { latitude: -12.0464, longitude: -77.0428 };
 
@@ -51,12 +54,25 @@ export interface LocationSheetProps {
 export function LocationSheet({ open, onClose, value, suggestion, onSave }: LocationSheetProps) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const { themeMode } = useThemeMode();
   const mapRef = useRef<MapView | null>(null);
   const [draft, setDraft] = useState<CapturedLocation | null>(value ?? suggestion);
   const [initial, setInitial] = useState(() => value ?? suggestion ?? FALLBACK_CENTER);
   const [isResolving, setIsResolving] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  // El mapa nace cuando la hoja ya terminó de subir. Si nace durante la animación, Google Maps (Android) deja
+  // congelada la primera imagen (el mundo entero) aunque su cámara esté en el lugar: la hoja lo muestra "sobre
+  // África" hasta que se lo toca. Mientras tanto se ve el fondo `surfaceSunken` del marco.
+  const [mapMounted, setMapMounted] = useState(false);
+  useEffect(() => {
+    if (!open || expanded) {
+      setMapMounted(false);
+      return;
+    }
+    const id = setTimeout(() => setMapMounted(true), MAP_MOUNT_DELAY_MS);
+    return () => clearTimeout(id);
+  }, [open, expanded]);
   const search = useLocationSearch(open);
   const frequentQuery = useQuery({
     queryKey: ["frequent-locations"],
@@ -199,9 +215,12 @@ export function LocationSheet({ open, onClose, value, suggestion, onSave }: Loca
         ) : (
           <>
             <View mx={16} mt={14} height={MAP_HEIGHT} rounded={radius.lg} overflow="hidden" borderWidth={1} borderColor="$line" bg="$surfaceSunken">
-              {open ? (
+              {mapMounted ? (
                 <MapView
+                  key={themeMode}
                   ref={mapRef}
+                  // El estilo del mapa sigue la apariencia de la app, no la del sistema; Google solo lo lee al crearlo.
+                  userInterfaceStyle={themeMode}
                   style={StyleSheet.absoluteFill}
                   provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
                   initialRegion={regionFor(initial.latitude, initial.longitude, MAP_ZOOM)}

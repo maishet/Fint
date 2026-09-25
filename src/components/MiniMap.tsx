@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Platform, StyleSheet } from 'react-native'
 import MapView, { PROVIDER_GOOGLE, type Region } from 'react-native-maps'
 import { Button, Paragraph, YStack } from 'tamagui'
+import { useThemeMode } from '../theme/ThemeMode'
 import { USER_PIN_TIP, UserMapPin } from './UserMapPin'
 
 const DEFAULT_ZOOM = 16
@@ -27,6 +28,7 @@ type MiniMapProps = {
 }
 
 export function MiniMap({ latitude, longitude, height, zoom = DEFAULT_ZOOM, rounded = 14, accessibilityLabel, interactive = false, onCenterChange, hintLabel, onExpand }: MiniMapProps) {
+  const { themeMode } = useThemeMode()
   const mapRef = useRef<MapView>(null)
   const [initialRegion] = useState(() => regionFor(latitude, longitude, zoom))
   const isFirstRender = useRef(true)
@@ -52,8 +54,11 @@ export function MiniMap({ latitude, longitude, height, zoom = DEFAULT_ZOOM, roun
 
   return (
     <YStack width="100%" height={height} rounded={rounded} overflow="hidden" bg="$elevated" accessibilityLabel={accessibilityLabel}>
+      {/* El estilo del mapa sigue la apariencia de la app, no la del sistema; Google solo lo lee al crear el mapa. */}
       <MapView
+        key={themeMode}
         ref={mapRef}
+        userInterfaceStyle={themeMode}
         style={StyleSheet.absoluteFill}
         provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
         initialRegion={initialRegion}
