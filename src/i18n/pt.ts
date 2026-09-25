@@ -469,7 +469,7 @@ export const ptTranslation = {
       enable: "Ativar notificações",
       requesting: "Solicitando...",
       enabled:
-        "Notificações ativas. Avisaremos sem mostrar valores ou detalhes sensíveis.",
+        "Notificações ativas. Avisaremos sobre seus pagamentos e o que detectarmos.",
       denied:
         "Permissão negada. Você pode ativar depois nas configurações do sistema.",
       unsupported: "Notificações não estão disponíveis neste dispositivo.",

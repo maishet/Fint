@@ -98,7 +98,9 @@ export default function PendingReviewScreen() {
     }, [themeMode]),
   );
 
-  const hydratedId = useRef<string | null>(null);
+  // El pendiente cuyos datos ya se copiaron al formulario: hasta entonces sigue el esqueleto (si no, un instante sale el
+  // monto vacío "0.00" y el tipo por defecto antes de los datos reales).
+  const [hydratedId, setHydratedId] = useState<string | null>(null);
   const [mode, setMode] = useState<"normal" | "transfer">("normal");
   const [type, setType] = useState<TransactionType>("expense");
   const [amount, setAmount] = useState("");
@@ -161,8 +163,8 @@ export default function PendingReviewScreen() {
   const occurrence = occurrences.find((o) => o.id === occurrenceId);
 
   useEffect(() => {
-    if (!detail || hydratedId.current === detail.id) return;
-    hydratedId.current = detail.id;
+    if (!detail || hydratedId === detail.id) return;
+    setHydratedId(detail.id);
     setMode(detail.transfer && detail.amount !== null && detail.currency ? "transfer" : "normal");
     setType(detail.type ?? "expense");
     setAmount(detail.amount === null ? "" : detail.amount.toFixed(2));
@@ -170,7 +172,7 @@ export default function PendingReviewScreen() {
     setAccountId(detail.accountSuggestion?.id ?? "");
     setOriginId(detail.transfer?.originMatch?.accountId ?? "");
     setDestinationId(detail.transfer?.destinationMatch?.accountId ?? "");
-  }, [detail]);
+  }, [detail, hydratedId]);
 
   // Lo elegido que deja de servir (otra moneda, otro tipo) se limpia.
   useEffect(() => {
@@ -185,11 +187,12 @@ export default function PendingReviewScreen() {
   // Al abrir: si a un pago le falta exactamente el monto detectado, "Pago" viene con ese pago elegido (como en la lista).
   const paymentDefaulted = useRef(false);
   useEffect(() => {
-    if (paymentDefaulted.current || !detail || !occurrencesQuery.isSuccess) return;
+    // Espera a que el formulario tenga los datos del pendiente: antes, moneda y monto vacíos no dejan ver la coincidencia.
+    if (paymentDefaulted.current || !detail || hydratedId !== detail.id || !occurrencesQuery.isSuccess) return;
     paymentDefaulted.current = true;
     const match = matchingOccurrence(occurrences, detail.amount);
     if (match && type === "expense") setOccurrenceId(match.id);
-  }, [detail, occurrences, occurrencesQuery.isSuccess, type]);
+  }, [detail, hydratedId, occurrences, occurrencesQuery.isSuccess, type]);
 
   // Primero se sale y después se refresca: con la pantalla abierta, refrescar volvía a pedir este pendiente
   // (ya confirmado), el servidor respondía "no encontrado" y se veía un error antes de volver.
@@ -331,7 +334,8 @@ export default function PendingReviewScreen() {
     confirmMutation.mutate();
   };
 
-  const loading = detailQuery.isLoading || (Boolean(detail) && (accountsQuery.isLoading || categoriesQuery.isLoading));
+  const loading =
+    detailQuery.isLoading || (Boolean(detail) && (hydratedId !== detail?.id || accountsQuery.isLoading || categoriesQuery.isLoading));
   const dateLabel = (iso: string) => {
     const d = parseDateString(iso);
     if (!d) return iso;

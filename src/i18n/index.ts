@@ -14,6 +14,7 @@ import { movementDetailTranslations } from "./movementDetail";
 import { accountFormTranslations } from "./accountForm";
 import { paymentFormTranslations } from "./paymentForm";
 import { pendingReviewTranslations } from "./pendingReview";
+import { onboardingScreenTranslations } from "./onboardingScreen";
 
 export type { AppLanguage };
 
@@ -502,7 +503,7 @@ const resources = {
           enable: "Activar notificaciones",
           requesting: "Solicitando...",
           enabled:
-            "Notificaciones activas. Te avisaremos sin mostrar montos ni detalles sensibles.",
+            "Notificaciones activas. Te avisaremos de tus pagos y de lo que detectemos.",
           denied:
             "Permiso rechazado. Podrás activarlo luego desde Configuración del sistema.",
           unsupported:
@@ -1126,7 +1127,7 @@ const resources = {
           enable: "Enable notifications",
           requesting: "Requesting...",
           enabled:
-            "Notifications are active. We will notify you without showing amounts or sensitive details.",
+            "Notifications are active. We'll let you know about your payments and what we detect.",
           denied:
             "Permission denied. You can enable it later from system settings.",
           unsupported: "Notifications are not available on this device.",
@@ -2842,6 +2843,11 @@ for (const [language, bundle] of Object.entries(paymentFormTranslations)) {
 
 // Por revisar v3.
 for (const [language, bundle] of Object.entries(pendingReviewTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Onboarding v3.
+for (const [language, bundle] of Object.entries(onboardingScreenTranslations)) {
   i18n.addResourceBundle(language, "translation", bundle, true, false);
 }
 
