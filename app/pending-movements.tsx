@@ -198,7 +198,8 @@ export default function PendingMovementsScreen() {
   // Si coincide con un pago, por defecto se aplica a ese pago (decisión de Cristhofer); "Movimiento normal" lo cambia.
   const applyPayment = (item: PendingMovementCard) => payMode[item.id] ?? true;
 
-  const openReview = (item: PendingMovementCard) => router.push({ pathname: "/pending-review", params: { id: item.id } });
+  // `detectedAt` va como parámetro: el detalle del backend no lo trae y la revisión lo muestra con la hora.
+  const openReview = (item: PendingMovementCard) => router.push({ pathname: "/pending-review", params: { id: item.id, detectedAt: item.detectedAt } });
 
   /** Si "Confirmar" registraría el movimiento ahora (y no abre la revisión o la hoja de categorías). */
   const wouldConfirm = (item: PendingMovementCard) => {

@@ -28,7 +28,6 @@ import type { PendingMovementDetail, TransactionType } from "../src/api/types";
 import { DataStateCard } from "../src/components/DataStateCard";
 import { balanceCurrencies } from "../src/finance/accountBalances";
 import { getCategoryLabel } from "../src/finance/categoryLabels";
-import { formatMoney } from "../src/api/mappers";
 import { parseDateString, todayDateString } from "../src/finance/dates";
 import { parseDecimalInput } from "../src/forms";
 import { getAppLocale } from "../src/i18n";
@@ -89,7 +88,7 @@ export default function PendingReviewScreen() {
   const insets = useSafeAreaInsets();
   const { themeMode } = useThemeMode();
   const { capabilities } = useCapabilities();
-  const params = useLocalSearchParams<{ id?: string }>();
+  const params = useLocalSearchParams<{ id?: string; detectedAt?: string }>();
   const pendingId = params.id ?? "";
 
   useFocusEffect(
@@ -339,6 +338,17 @@ export default function PendingReviewScreen() {
     const weekday = new Intl.DateTimeFormat(locale, { weekday: "long" }).format(d);
     return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${shortDay(d, locale)}`;
   };
+  // "Detectado el jueves 24 set a las 14:32": con la hora si se llegó desde la lista (el detalle no la trae); si no, solo el día.
+  const sourceLabel = (() => {
+    const at = params.detectedAt ? new Date(params.detectedAt) : null;
+    if (at && !Number.isNaN(at.getTime())) {
+      const weekday = new Intl.DateTimeFormat(locale, { weekday: "long" }).format(at);
+      const day = inSentence(`${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${shortDay(at, locale)}`, i18n.resolvedLanguage);
+      const time = new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" }).format(at);
+      return t("pendingScreen.sourceAt", { date: day, time });
+    }
+    return detail ? t("pendingScreen.source", { date: inSentence(dateLabel(detail.transactionDate), i18n.resolvedLanguage) }) : "";
+  })();
   const sign = mode === "transfer" ? "" : type === "expense" ? "−" : "+";
   // Un lado que no es tuyo: el nombre que trae el correo, marcado como externo.
   const outsideName = (raw: string | null | undefined) => (raw ? t("pendingScreen.outsideNamed", { name: raw }) : t("pendingScreen.outside"));
@@ -377,7 +387,7 @@ export default function PendingReviewScreen() {
 
         {detail && !loading ? (
           <>
-            <SourceBox detail={detail} dateLabel={inSentence(dateLabel(detail.transactionDate), i18n.resolvedLanguage)} />
+            <SourceBox detail={detail} label={sourceLabel} />
 
             {mode === "normal" ? (
               <View mt={18}>
@@ -682,33 +692,23 @@ function inSentence(label: string, language?: string) {
 }
 
 /**
- * Lo que se detectó, en `surfaceSunken`: la descripción que arma el lector del
- * correo ("Consumo con Tarjeta de Crédito BCP") y los datos leídos en `mono`,
- * para comparar con lo corregido. La descripción no se edita: se guarda como
- * nota del movimiento si la persona no escribe una.
+ * Lo que se detectó, en `surfaceSunken`: cuándo y la descripción que arma el
+ * lector del correo ("Consumo con Tarjeta de Crédito BCP"). El monto y la fecha
+ * no se repiten aquí: ya están en el formulario. La descripción no se edita: se
+ * guarda como nota del movimiento si la persona no escribe una.
  */
-function SourceBox({ detail, dateLabel }: { detail: PendingMovementDetail; dateLabel: string }) {
-  const { t } = useTranslation();
-  const [y, m, d] = detail.transactionDate.split("-");
-  const raw = [detail.amount !== null && detail.currency ? formatMoney(detail.amount, detail.currency) : null, y && m && d ? `${d}/${m}/${y}` : null]
-    .filter(Boolean)
-    .join(" · ");
+function SourceBox({ detail, label }: { detail: PendingMovementDetail; label: string }) {
   return (
     <YStack mt={18} p={14} gap={6} rounded={radius.lg} bg="$surfaceSunken">
       <XStack items="center" gap={6}>
         <Mail size={13} color="$inkFaint" strokeWidth={2} />
         <FText variant="caption" tone="inkFaint" style={{ fontSize: 12 }}>
-          {t("pendingScreen.source", { date: dateLabel })}
+          {label}
         </FText>
       </XStack>
       <FText variant="body-strong" numberOfLines={2}>
         {detail.title}
       </FText>
-      {raw ? (
-        <FText variant="caption" tone="inkMuted" style={{ fontFamily: fontFace.mono[400], fontSize: 12, letterSpacing: 0.2 }}>
-          {raw}
-        </FText>
-      ) : null}
     </YStack>
   );
 }
