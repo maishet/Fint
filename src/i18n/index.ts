@@ -16,6 +16,8 @@ import { paymentFormTranslations } from "./paymentForm";
 import { pendingReviewTranslations } from "./pendingReview";
 import { onboardingScreenTranslations } from "./onboardingScreen";
 import { loginScreenTranslations } from "./loginScreen";
+import { settingsScreenTranslations } from "./settingsScreen";
+import { secondaryScreensTranslations } from "./secondaryScreens";
 
 export type { AppLanguage };
 
@@ -2854,6 +2856,16 @@ for (const [language, bundle] of Object.entries(onboardingScreenTranslations)) {
 
 // Login v3.
 for (const [language, bundle] of Object.entries(loginScreenTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Ajustes, Mi perfil y Cuentas Gmail v3.
+for (const [language, bundle] of Object.entries(settingsScreenTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Categorías, hoja de categoría y Ayuda y soporte v3.
+for (const [language, bundle] of Object.entries(secondaryScreensTranslations)) {
   i18n.addResourceBundle(language, "translation", bundle, true, false);
 }
 

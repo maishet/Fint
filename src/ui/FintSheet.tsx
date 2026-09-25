@@ -1,5 +1,5 @@
 import { X } from "@tamagui/lucide-icons-2";
-import { useContext, type ReactNode } from "react";
+import { useContext, type ReactNode, type Ref } from "react";
 import { useTranslation } from "react-i18next";
 import { TextInput, useWindowDimensions, type TextInputProps } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
@@ -179,7 +179,8 @@ export function SheetField({ children, focused = false, invalid = false }: { chi
 }
 
 /** Campo de texto para usar dentro de `FintSheet` (la hoja sube con el teclado). */
-export function SheetTextInput(props: TextInputProps) {
+/** Acepta `ref` (React 19 lo pasa como prop) para poder darle el foco al abrir la hoja. */
+export function SheetTextInput(props: TextInputProps & { ref?: Ref<TextInput> }) {
   const theme = useTheme();
   return (
     <TextInput

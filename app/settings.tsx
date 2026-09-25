@@ -1,65 +1,41 @@
-import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { AppState, Image, Linking, Share } from "react-native";
-import { useRouter } from "expo-router";
-import { useTranslation } from "react-i18next";
 import {
+  Bell,
+  ChevronLeft,
   ChevronRight,
-  Download,
+  Clock,
+  Code,
+  EyeOff,
   FileText,
-  Globe2,
-  Github,
+  Globe,
   HelpCircle,
-  Languages,
-  Landmark,
+  Lightbulb,
   LogOut,
   Mail,
   MapPin,
   MonitorSmartphone,
   Moon,
-  Bell,
-  Clock,
-  AlarmClock,
-  Eye,
-  EyeOff,
-  ImageUp,
-  ShieldCheck,
   Share2,
+  ShieldCheck,
+  Star,
   Sun,
-  Tags,
+  Tag,
   Trash2,
-  Upload,
-  UserRound,
+  Wallet,
 } from "@tamagui/lucide-icons-2";
-import {
-  Button,
-  Dialog,
-  Input,
-  Paragraph,
-  Separator,
-  XStack,
-  YStack,
-} from "tamagui";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useFocusEffect, useRouter } from "expo-router";
+import { setStatusBarStyle } from "expo-status-bar";
+import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { AppState, Linking, ScrollView, Share } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { View, XStack, YStack } from "tamagui";
 import { financeApi } from "../src/api/finance";
-import { useCapabilities } from "../src/api/capabilities";
 import { useAuth } from "../src/auth/AuthProvider";
 import { resolveDisplayName } from "../src/auth/displayName";
-import { Screen } from "../src/components/Screen";
 import { changeAppLanguage, getAppLocale, type AppLanguage } from "../src/i18n";
-import { getSupportDiagnostics } from "../src/support/diagnostics";
-import { useThemeMode } from "../src/theme/ThemeMode";
-import {
-  FintButton,
-  FintCard,
-  FintConfirmDialog,
-  FintSheetSelect,
-  FintSpinner,
-  FintSwitchRow,
-  FintTimeField,
-  useNotify,
-} from "../src/ui";
-import { exportBackupXlsx } from "../src/finance/backup-export";
+import { useLocationPreference } from "../src/location/LocationPreferenceProvider";
+import { useDailyReminders } from "../src/notifications/DailyRemindersProvider";
 import {
   refreshPushRegistration,
   registerPushInstallation,
@@ -68,720 +44,492 @@ import {
   type PushPermissionState,
 } from "../src/notifications/pushNotifications";
 import { useSensitiveAmounts } from "../src/privacy/SensitiveAmountsProvider";
-import { useDailyReminders } from "../src/notifications/DailyRemindersProvider";
-import { useLocationPreference } from "../src/location/LocationPreferenceProvider";
+import { activeGmailCount } from "../src/settings/logic";
+import { Avatar, Group, GroupTitle, Item, OptionSheet } from "../src/settings/SettingsList";
+import { getSupportDiagnostics } from "../src/support/diagnostics";
+import { useThemeMode } from "../src/theme/ThemeMode";
+import { radius, space } from "../src/theme/tokens";
+import { fontFace, textStyles } from "../src/theme/typography";
+import {
+  FintButton,
+  FintCard,
+  FintSheet,
+  FintSpinner,
+  FintTimeField,
+  FText,
+  IconButton,
+  PressableScale,
+  SheetField,
+  SheetTextInput,
+  Toggle,
+  useNotify,
+} from "../src/ui";
 
+type Sheet = "language" | "appearance" | "notifications" | "delete" | null;
+const SHEET_UNMOUNT_MS = 600;
+const LANGUAGES: { value: AppLanguage; label: string }[] = [
+  { value: "es", label: "Español" },
+  { value: "en", label: "English" },
+  { value: "pt", label: "Português" },
+];
+
+/**
+ * Ajustes v3: la tarjeta de perfil y listas agrupadas (Preferencias,
+ * Notificaciones, Tus datos, Ayuda, Compartir y comunidad, Legal, Cuenta), con
+ * la versión en `mono` al final. Cada fila: icono sobre `surfaceSunken`,
+ * etiqueta, valor en `inkFaint` y chevron, o un interruptor si es un sí o no.
+ * El único acento es el `brand` de los interruptores encendidos.
+ */
 export default function SettingsScreen() {
   const { i18n, t } = useTranslation();
-  const language = (
-    i18n.resolvedLanguage === "en" || i18n.resolvedLanguage === "pt"
-      ? i18n.resolvedLanguage
-      : "es"
-  ) as AppLanguage;
-  const { session, signOut } = useAuth();
+  const language: AppLanguage = i18n.resolvedLanguage === "en" || i18n.resolvedLanguage === "pt" ? i18n.resolvedLanguage : "es";
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const notify = useNotify();
+  const { session, signOut } = useAuth();
   const { themeMode, themePreference, setThemePreference } = useThemeMode();
   const { amountsVisible, toggleAmountsVisibility } = useSensitiveAmounts();
-  const { enabled: locationCaptureEnabled, setEnabled: setLocationCaptureEnabled } = useLocationPreference();
-  const {
-    enabled: dailyRemindersEnabled,
-    setEnabled: setDailyRemindersEnabled,
-    hour: reminderHour,
-    minute: reminderMinute,
-    setReminderTime,
-  } = useDailyReminders();
-  const router = useRouter();
-  const { capabilities } = useCapabilities();
+  const { enabled: locationEnabled, setEnabled: setLocationEnabled } = useLocationPreference();
+  const { enabled: remindersEnabled, setEnabled: setRemindersEnabled, hour, minute, setReminderTime } = useDailyReminders();
   const diagnostics = getSupportDiagnostics();
-  const [pushState, setPushState] =
-    useState<PushPermissionState>("undetermined");
+  const [pushState, setPushState] = useState<PushPermissionState>("undetermined");
   const [pushSyncing, setPushSyncing] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deleteConfirmation, setDeleteConfirmation] = useState("");
-  const [exportDialogOpen, setExportDialogOpen] = useState(false);
-  const metadata = session?.user.user_metadata ?? {};
-  const displayName = resolveDisplayName(session) ?? "My Fint";
-  const avatarUrl =
-    typeof metadata.avatar_url === "string"
-      ? metadata.avatar_url
-      : typeof metadata.picture === "string"
-        ? metadata.picture
-        : null;
-  const shareApp = () => {
-    void Share.share({ message: t("settings.shareMessage"), url: "https://myfint.app" });
+  const [sheet, setSheet] = useState<Sheet>(null);
+  const [mountedSheet, setMountedSheet] = useState<Sheet>(null);
+  const [signingOut, setSigningOut] = useState(false);
+
+  const accountsQuery = useQuery({ queryKey: ["account-options"], queryFn: () => financeApi.listAccountOptions() });
+  const categoriesQuery = useQuery({ queryKey: ["categories"], queryFn: () => financeApi.listCategories(), staleTime: 5 * 60_000 });
+  const gmailQuery = useQuery({ queryKey: ["gmail-sources"], queryFn: financeApi.listGmailSources });
+
+  useFocusEffect(
+    useCallback(() => {
+      setStatusBarStyle(themeMode === "dark" ? "light" : "dark");
+      return () => setStatusBarStyle("light");
+    }, [themeMode]),
+  );
+
+  const openSheet = (next: Exclude<Sheet, null>) => {
+    setMountedSheet(next);
+    setSheet(next);
   };
-  const syncPushState = () => {
+  useEffect(() => {
+    if (sheet) return;
+    const id = setTimeout(() => setMountedSheet(null), SHEET_UNMOUNT_MS);
+    return () => clearTimeout(id);
+  }, [sheet]);
+
+  const syncPushState = useCallback(() => {
     setPushSyncing(true);
     refreshPushRegistration()
       .then(setPushState)
       .catch(() => setPushState("unsupported"))
       .finally(() => setPushSyncing(false));
-  };
-  useEffect(syncPushState, []);
+  }, []);
+  useEffect(syncPushState, [syncPushState]);
+  // Al volver de los ajustes del teléfono el permiso pudo cambiar: se relee y se completa el registro.
   useEffect(() => {
-    // Completes registration automatically when we resume from the device Settings screen:
-    // the OS permission may have just been granted there, but nothing else triggers the
-    // token/installation upsert on return, which used to leave the toggle looking "stuck" off.
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active") syncPushState();
     });
     return () => subscription.remove();
-  }, []);
-  const handleNotificationsToggle = async (next: boolean) => {
-    if (!next) {
-      setPushState("undetermined");
-      if (dailyRemindersEnabled) setDailyRemindersEnabled(false);
-      try {
-        await unregisterPushInstallation();
-      } catch {
-      }
-      return;
-    }
+  }, [syncPushState]);
+
+  const turnNotificationsOn = async () => {
     if (pushState === "denied") {
       await Linking.openSettings();
       return;
     }
     setPushSyncing(true);
     try {
-      const nextState = await requestAndRegisterPushInstallation();
-      setPushState(nextState);
-      if (nextState !== "granted")
-        notify.error(t("settings.notifications"), {
-          message: t("settings.notificationsError"),
-        });
+      const next = await requestAndRegisterPushInstallation();
+      setPushState(next);
+      if (next === "granted") setSheet(null);
+      else notify.error(t("settings.notifications"), { message: t("settings.notificationsError") });
     } catch (error) {
-      setPushState("undetermined");
-      notify.error(t("settings.notifications"), {
-        message:
-          error instanceof Error
-            ? error.message
-            : t("settings.notificationsError"),
-      });
+      notify.error(t("settings.notifications"), { message: error instanceof Error ? error.message : t("settings.notificationsError") });
     } finally {
       setPushSyncing(false);
     }
   };
-  const exportMutation = useMutation({
-    mutationFn: async () => {
-      const [accounts, categories, transactions] = await Promise.all([
-        financeApi.listAccounts(),
-        financeApi.listCategories(),
-        financeApi.listAllTransactions(),
-      ]);
-      if (!accounts.length && !categories.length && !transactions.length) {
-        throw new Error(t("settings.export.empty"));
-      }
-      await exportBackupXlsx(
-        { accounts, categories, transactions },
-        {
-          sheets: {
-            accounts: t("settings.export.sheets.accounts"),
-            categories: t("settings.export.sheets.categories"),
-            movements: t("settings.export.sheets.movements"),
-          },
-          columns: {
-            name: t("settings.export.columns.name"),
-            type: t("settings.export.columns.type"),
-            currency: t("settings.export.columns.currency"),
-            balance: t("settings.export.columns.balance"),
-            icon: t("settings.export.columns.icon"),
-            date: t("settings.export.columns.date"),
-            category: t("settings.export.columns.category"),
-            account: t("settings.export.columns.account"),
-            amount: t("settings.export.columns.amount"),
-            note: t("settings.export.columns.note"),
-          },
-          types: {
-            income: t("forms.income"),
-            expense: t("forms.expense"),
-            transfer: t("forms.transfer"),
-          },
-          accountTypes: {
-            cash: t("accountTypes.cash"),
-            credit_card: t("accountTypes.creditCard"),
-            checking_account: t("accountTypes.checkingAccount"),
-            savings_account: t("accountTypes.savingsAccount"),
-          },
-        },
-        t("settings.export.action"),
-        new Date().toISOString(),
-      );
-    },
-    onSuccess: () => {
-      setExportDialogOpen(false);
-      notify.success(t("settings.export.success"), {
-        message: t("settings.export.successMessage"),
-      });
-    },
-    onError: (error) => {
-      setExportDialogOpen(false);
-      notify.error(t("settings.export.error"), {
-        message: error instanceof Error ? error.message : undefined,
-      });
-    },
-  });
+  const turnNotificationsOff = async () => {
+    setPushState("undetermined");
+    if (remindersEnabled) setRemindersEnabled(false);
+    setSheet(null);
+    await unregisterPushInstallation().catch(() => undefined);
+  };
 
-  const deleteConfirmationToken = t("settings.deleteAccountConfirmationToken");
-  const canDeleteAccount =
-    normalizeConfirmation(deleteConfirmation) ===
-    normalizeConfirmation(deleteConfirmationToken);
-  const deleteAccountMutation = useMutation({
-    mutationFn: () => {
-      if (!canDeleteAccount)
-        throw new Error(t("settings.deleteAccountConfirmationError"));
-      return financeApi.deleteCurrentUser(deleteConfirmationToken);
-    },
-    onSuccess: async () => {
-      setDeleteDialogOpen(false);
-      setDeleteConfirmation("");
-      await signOut().catch(() => undefined);
-    },
-    onError: (error) =>
-      notify.error(t("settings.deleteAccount"), {
-        message:
-          error instanceof Error
-            ? error.message
-            : t("settings.deleteAccountError"),
-      }),
-  });
+  const displayName = resolveDisplayName(session) ?? "My Fint";
+  const metadata = session?.user.user_metadata ?? {};
+  const photoUrl = typeof metadata.avatar_url === "string" ? metadata.avatar_url : typeof metadata.picture === "string" ? metadata.picture : null;
+  const notificationsValue =
+    pushState === "granted"
+      ? t("settings.notificationsOn")
+      : pushState === "denied"
+        ? t("settingsScreen.notificationsBlocked")
+        : pushState === "unsupported"
+          ? t("settings.notificationsUnsupported")
+          : t("settings.notificationsOff");
+  const reminderTime = formatTime(hour, minute, getAppLocale(language));
+  const gmailCount = activeGmailCount(gmailQuery.data ?? []);
+  const appearanceLabel = themePreference === "light" ? t("settings.light") : themePreference === "dark" ? t("settings.dark") : t("settings.system");
+
+  const endSession = async () => {
+    setSigningOut(true);
+    try {
+      await signOut();
+    } catch {
+      notify.error(t("profile.signOutError"));
+      setSigningOut(false);
+    }
+  };
 
   return (
-    <Screen>
-      <FintCard p={0} overflow="hidden">
-        <SettingsRow
-          icon={
-            avatarUrl ? (
-              <Image
-                source={{ uri: avatarUrl }}
-                style={{ width: 48, height: 48, borderRadius: 24 }}
-              />
-            ) : (
-              <IconBubble>
-                <UserRound size={21} color="$primary" />
-              </IconBubble>
-            )
-          }
-          label={displayName}
-          detail={session?.user.email ?? t("settings.editProfile")}
+    <YStack flex={1} bg="$canvas" pt={insets.top}>
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + space[8] }} showsVerticalScrollIndicator={false}>
+        <XStack items="center" gap={space[3]} px={space[4]} pt={space[2]}>
+          <IconButton label={t("settingsScreen.back")} icon={<ChevronLeft size={20} color="$ink" strokeWidth={2} />} onPress={() => router.back()} />
+          <FText variant="title" accessibilityRole="header" style={{ fontSize: 24, lineHeight: 30, letterSpacing: -0.5, flex: 1 }} numberOfLines={1}>
+            {t("settingsScreen.title")}
+          </FText>
+        </XStack>
+
+        {/* Perfil: abre Mi perfil. */}
+        <PressableScale
           onPress={() => router.push("/profile")}
-          tall
-        />
-      </FintCard>
+          accessibilityRole="button"
+          accessibilityLabel={`${displayName}, ${t("settings.profile")}`}
+        >
+          <FintCard mx={space[4]} mt={space[4]} p={14}>
+            <XStack items="center" gap={12}>
+              <Avatar name={displayName} photoUrl={photoUrl} size={52} />
+              <YStack flex={1} minW={0}>
+                <FText variant="body-strong" numberOfLines={1} style={{ fontSize: 16, letterSpacing: -0.2 }}>
+                  {displayName}
+                </FText>
+                <FText variant="label" tone="inkFaint" numberOfLines={1}>
+                  {session?.user.email ?? ""}
+                </FText>
+              </YStack>
+              <ChevronRight size={18} color="$inkFaint" strokeWidth={2} />
+            </XStack>
+          </FintCard>
+        </PressableScale>
 
-      <SettingsGroup title={t("settings.configuration")}>
-        <FintSheetSelect
-          label={t("settings.language")}
-          placeholder={t("settings.language")}
-          value={language}
-          options={[
-            {
-              value: "es",
-              label: "Español",
-              icon: <Paragraph fontSize="$5">🇪🇸</Paragraph>,
-            },
-            {
-              value: "en",
-              label: "English",
-              icon: <Paragraph fontSize="$5">🇺🇸</Paragraph>,
-            },
-            {
-              value: "pt",
-              label: "Português",
-              icon: <Paragraph fontSize="$5">🇧🇷</Paragraph>,
-            },
-          ]}
-          onValueChange={(value) => {
-            void changeAppLanguage(value as AppLanguage)
-              .then(() => registerPushInstallation())
-              .catch(() => undefined);
-          }}
-          renderTrigger={({ onPress, selectedLabel }) => (
-            <SettingsRow
-              icon={<Languages size={19} color="$primary" />}
-              label={t("settings.language")}
-              value={selectedLabel}
-              onPress={onPress}
-            />
-          )}
-        />
-        <FintSheetSelect
-          label={t("settings.appearance")}
-          placeholder={t("settings.appearance")}
-          value={themePreference}
-          options={[
-            {
-              value: "system",
-              label: t("settings.system"),
-              icon: <MonitorSmartphone size={19} color="$primary" />,
-            },
-            {
-              value: "light",
-              label: t("settings.light"),
-              icon: <Sun size={19} color="$primary" />,
-            },
-            {
-              value: "dark",
-              label: t("settings.dark"),
-              icon: <Moon size={19} color="$primary" />,
-            },
-          ]}
-          onValueChange={(value) =>
-            setThemePreference(value as "system" | "light" | "dark")
-          }
-          renderTrigger={({ onPress, selectedLabel }) => (
-            <SettingsRow
-              icon={
-                themePreference === "system" ? (
-                  <MonitorSmartphone size={19} color="$primary" />
-                ) : themeMode === "dark" ? (
-                  <Moon size={19} color="$primary" />
-                ) : (
-                  <Sun size={19} color="$primary" />
-                )
-              }
-              label={t("settings.appearance")}
-              value={selectedLabel}
-              onPress={onPress}
-            />
-          )}
-        />
-        <FintSwitchRow
-          icon={
-            amountsVisible ? (
-              <Eye size={19} color="$primary" />
-            ) : (
-              <EyeOff size={19} color="$primary" />
-            )
-          }
-          label={t("privacy.amounts.title")}
-          detail={
-            amountsVisible
-              ? t("privacy.amounts.visible")
-              : t("privacy.amounts.hidden")
-          }
-          checked={!amountsVisible}
-          onCheckedChange={toggleAmountsVisibility}
-        />
-        <FintSwitchRow
-          icon={<MapPin size={19} color="$primary" />}
-          label={t("settings.locationCapture")}
-          detail={t("settings.locationCaptureDetail")}
-          checked={locationCaptureEnabled}
-          onCheckedChange={setLocationCaptureEnabled}
-        />
-        <SettingsRow
-          icon={<Landmark size={19} color="$primary" />}
-          label={t("settings.financialAccounts")}
-          onPress={() => router.push("/accounts")}
-        />
-        <SettingsRow
-          icon={<Tags size={19} color="$primary" />}
-          label={t("settings.categories")}
-          onPress={() => router.push("/categories")}
-        />
-        <SettingsRow
-          icon={<Mail size={19} color="$primary" />}
-          label={t("settings.gmail")}
-          // detail={t("settings.gmailDetail")}
-          onPress={() => router.push("/gmail-settings")}
-        />
-      </SettingsGroup>
-
-      {/* <SettingsGroup title={t("settings.dataSection")}>
-        {capabilities.features.captureImport ? (
-          <SettingsRow
-            icon={<ImageUp size={19} color="$primary" />}
-            label={t("capture.settingsAction")}
-            detail={t("capture.settingsHint")}
-            onPress={() => router.push("/capture-import")}
+        <GroupTitle>{t("settingsScreen.preferences")}</GroupTitle>
+        <Group>
+          <Item
+            icon={themePreference === "system" ? MonitorSmartphone : themeMode === "dark" ? Moon : Sun}
+            label={t("settings.appearance")}
+            value={appearanceLabel}
+            onPress={() => openSheet("appearance")}
           />
-        ) : null}
-        <SettingsRow
-          icon={<Upload size={19} color="$primary" />}
-          label={t("import.action")}
-          detail={t("import.hint")}
-          onPress={() => router.push("/import-transactions")}
-        />
-        <SettingsRow
-          icon={<Download size={19} color="$primary" />}
-          label={t("settings.export.action")}
-          detail={t("settings.export.hint")}
-          onPress={() => setExportDialogOpen(true)}
-        />
-      </SettingsGroup> */}
+          <Item
+            icon={Globe}
+            label={t("settings.language")}
+            value={LANGUAGES.find((l) => l.value === language)?.label}
+            onPress={() => openSheet("language")}
+          />
+          <Item
+            icon={EyeOff}
+            label={t("settingsScreen.hideAmounts")}
+            detail={t("settingsScreen.hideAmountsDetail")}
+            onPress={toggleAmountsVisibility}
+            right={<Toggle value={!amountsVisible} onValueChange={toggleAmountsVisibility} accessibilityLabel={t("settingsScreen.hideAmounts")} />}
+          />
+          <Item
+            icon={MapPin}
+            label={t("settings.locationCapture")}
+            detail={t("settingsScreen.locationDetail")}
+            onPress={() => setLocationEnabled(!locationEnabled)}
+            right={<Toggle value={locationEnabled} onValueChange={setLocationEnabled} accessibilityLabel={t("settings.locationCapture")} />}
+          />
+        </Group>
 
-      <SettingsGroup title={t("settings.notificationsSection")}>
-        <FintSwitchRow
-          icon={<Bell size={19} color="$primary" />}
-          label={t("settings.notifications")}
-          checked={pushState === "granted"}
-          disabled={pushState === "unsupported" || pushSyncing}
-          onCheckedChange={(next) => {
-            void handleNotificationsToggle(next);
-          }}
-        />
-        <FintSwitchRow
-          icon={<AlarmClock size={19} color="$primary" />}
-          label={t("settings.dailyReminders")}
-          detail={t("settings.dailyRemindersDetail")}
-          checked={dailyRemindersEnabled}
-          disabled={pushState !== "granted"}
-          onCheckedChange={setDailyRemindersEnabled}
-        />
-        {dailyRemindersEnabled ? (
+        <GroupTitle>{t("settings.notificationsSection")}</GroupTitle>
+        <Group>
+          <Item
+            icon={Bell}
+            label={t("settings.notifications")}
+            value={notificationsValue}
+            right={pushSyncing ? <FintSpinner color="$inkFaint" /> : "chevron"}
+            onPress={() => openSheet("notifications")}
+          />
           <FintTimeField
-            hour={reminderHour}
-            minute={reminderMinute}
+            hour={hour}
+            minute={minute}
             onChange={setReminderTime}
             title={t("settings.dailyReminderTime")}
             doneLabel={t("actions.done")}
             renderTrigger={({ onPress }) => (
-              <SettingsRow
-                icon={<Clock size={19} color="$primary" />}
-                label={t("settings.dailyReminderTime")}
-                value={formatReminderTime(reminderHour, reminderMinute, language)}
-                onPress={onPress}
+              <Item
+                icon={Clock}
+                label={t("settingsScreen.dailyReminder")}
+                value={remindersEnabled ? reminderTime : undefined}
+                valueMono
+                tone={pushState === "granted" ? "default" : "dim"}
+                disabled={pushState !== "granted"}
+                // Encendido, tocar la fila cambia la hora; apagado, lo enciende.
+                onPress={() => (remindersEnabled ? onPress() : setRemindersEnabled(true))}
+                right={
+                  <Toggle
+                    value={remindersEnabled}
+                    onValueChange={setRemindersEnabled}
+                    disabled={pushState !== "granted"}
+                    accessibilityLabel={t("settingsScreen.dailyReminder")}
+                  />
+                }
               />
             )}
           />
-        ) : null}
-      </SettingsGroup>
+        </Group>
 
-      <SettingsGroup title={t("settings.contact")}>
-        <SettingsRow
-          icon={<HelpCircle size={19} color="$primary" />}
-          label={t("settings.help")}
-          onPress={() => router.push("/support")}
-        />
-        <SettingsRow
-          icon={<Globe2 size={19} color="$primary" />}
-          label={t("settings.suggestion")}
-          onPress={() => router.push("/improvements")}
-        />
-      </SettingsGroup>
+        <GroupTitle>{t("settingsScreen.yourData")}</GroupTitle>
+        <Group>
+          <Item
+            icon={Wallet}
+            label={t("settingsScreen.accounts")}
+            value={countLabel(accountsQuery.data?.length)}
+            valueMono
+            onPress={() => router.push("/accounts")}
+          />
+          <Item
+            icon={Tag}
+            label={t("settings.categories")}
+            value={countLabel(categoriesQuery.data?.length)}
+            valueMono
+            onPress={() => router.push("/categories")}
+          />
+          <Item
+            icon={Mail}
+            label={t("settings.gmail")}
+            value={
+              gmailQuery.data ? (gmailCount ? t("settingsScreen.gmailActive", { count: gmailCount }) : t("settingsScreen.gmailNone")) : undefined
+            }
+            onPress={() => router.push("/gmail-settings")}
+          />
+        </Group>
 
-      <SettingsGroup title={t("settings.shareSection")}>
-        <SettingsRow
-          icon={<Share2 size={19} color="$primary" />}
-          label={t("settings.shareApp")}
-          onPress={shareApp}
+        <GroupTitle>{t("settingsScreen.help")}</GroupTitle>
+        <Group>
+          <Item icon={HelpCircle} label={t("settings.help")} onPress={() => router.push("/support")} />
+          <Item icon={Lightbulb} label={t("settings.suggestion")} onPress={() => router.push("/improvements")} />
+        </Group>
+
+        <GroupTitle>{t("settings.shareSection")}</GroupTitle>
+        <Group>
+          <Item
+            icon={Share2}
+            label={t("settings.shareApp")}
+            detail={t("settingsScreen.shareDetail")}
+            onPress={() => void Share.share({ message: t("settings.shareMessage"), url: "https://myfint.app" })}
+          />
+          <Item icon={Code} label={t("settings.github")} onPress={() => void Linking.openURL("https://github.com/maishet/Fint")} />
+          {/* Mientras la app no esté publicada: apagada, con la razón debajo. */}
+          <Item icon={Star} label={t("settings.rateStore")} detail={t("settingsScreen.rateDetail")} tone="dim" right="none" />
+        </Group>
+
+        <GroupTitle>{t("settings.legal")}</GroupTitle>
+        <Group>
+          <Item
+            icon={ShieldCheck}
+            label={t("settings.privacy")}
+            onPress={() => router.push({ pathname: "/web-content", params: { content: "privacy" } })}
+          />
+          <Item icon={FileText} label={t("settings.terms")} onPress={() => router.push({ pathname: "/web-content", params: { content: "terms" } })} />
+        </Group>
+
+        <GroupTitle>{t("settingsScreen.account")}</GroupTitle>
+        <Group>
+          <Item
+            icon={LogOut}
+            label={t("settings.signOut")}
+            right={signingOut ? <FintSpinner color="$inkFaint" /> : "none"}
+            disabled={signingOut}
+            onPress={() => void endSession()}
+          />
+          <Item
+            icon={Trash2}
+            label={t("settings.deleteAccount")}
+            detail={t("settingsScreen.deleteDetail")}
+            tone="danger"
+            right="none"
+            onPress={() => openSheet("delete")}
+          />
+        </Group>
+
+        <FText variant="caption" tone="inkFaint" style={{ textAlign: "center", marginTop: 22, ...textStyles["figure-caption"], fontSize: 12 }}>
+          {t("settingsScreen.version", { version: diagnostics.appVersion, build: diagnostics.buildNumber })}
+        </FText>
+      </ScrollView>
+
+      {mountedSheet === "appearance" ? (
+        <OptionSheet
+          open={sheet === "appearance"}
+          onClose={() => setSheet(null)}
+          title={t("settings.appearance")}
+          value={themePreference}
+          options={[
+            { value: "system", label: t("settings.system"), icon: <MonitorSmartphone size={18} color="$inkMuted" strokeWidth={2} /> },
+            { value: "light", label: t("settings.light"), icon: <Sun size={18} color="$inkMuted" strokeWidth={2} /> },
+            { value: "dark", label: t("settings.dark"), icon: <Moon size={18} color="$inkMuted" strokeWidth={2} /> },
+          ]}
+          onChange={setThemePreference}
         />
-        <SettingsRow
-          icon={<Github size={19} color="$primary" />}
-          label={t("settings.github")}
-          onPress={() => {
-            void Linking.openURL("https://github.com/maishet/Fint");
+      ) : null}
+      {mountedSheet === "language" ? (
+        <OptionSheet
+          open={sheet === "language"}
+          onClose={() => setSheet(null)}
+          title={t("settings.language")}
+          value={language}
+          options={LANGUAGES}
+          onChange={(next) => {
+            // El idioma también va al registro de notificaciones: el backend escribe los avisos en ese idioma.
+            void changeAppLanguage(next)
+              .then(() => registerPushInstallation())
+              .catch(() => undefined);
           }}
         />
-      </SettingsGroup>
-
-      <SettingsGroup title={t("settings.legal")}>
-        <SettingsRow
-          icon={<ShieldCheck size={19} color="$primary" />}
-          label={t("settings.privacy")}
-          onPress={() => router.push({ pathname: "/web-content", params: { content: "privacy" } })}
+      ) : null}
+      {mountedSheet === "notifications" ? (
+        <NotificationsSheet
+          open={sheet === "notifications"}
+          onClose={() => setSheet(null)}
+          state={pushState}
+          pending={pushSyncing}
+          onTurnOn={() => void turnNotificationsOn()}
+          onTurnOff={() => void turnNotificationsOff()}
         />
-        <SettingsRow
-          icon={<FileText size={19} color="$primary" />}
-          label={t("settings.terms")}
-          onPress={() => router.push({ pathname: "/web-content", params: { content: "terms" } })}
-        />
-      </SettingsGroup>
-
-      <SettingsGroup title={t("settings.accountManagement")}>
-        <SettingsRow
-          icon={<Trash2 size={19} color="$red10" />}
-          label={t("settings.deleteAccount")}
-          // detail={t("settings.deleteAccountHint")}
-          onPress={() => setDeleteDialogOpen(true)}
-        />
-      </SettingsGroup>
-
-      <FintConfirmDialog
-        open={exportDialogOpen}
-        isPending={exportMutation.isPending}
-        title={t("settings.export.warningTitle")}
-        description={t("settings.export.warningDescription")}
-        cancelLabel={t("actions.cancel")}
-        confirmLabel={t("settings.export.confirm")}
-        pendingLabel={t("settings.export.exporting")}
-        icon={<Download size={17} color="$primaryForeground" />}
-        onCancel={() => setExportDialogOpen(false)}
-        onConfirm={() => exportMutation.mutate()}
-      />
-
-      <DeleteAccountDialog
-        confirmation={deleteConfirmation}
-        isPending={deleteAccountMutation.isPending}
-        open={deleteDialogOpen}
-        requiredConfirmation={deleteConfirmationToken}
-        onCancel={() => {
-          setDeleteDialogOpen(false);
-          setDeleteConfirmation("");
-        }}
-        onChangeConfirmation={setDeleteConfirmation}
-        onConfirm={() => {
-          if (canDeleteAccount) deleteAccountMutation.mutate();
-        }}
-      />
-
-      <YStack gap="$2">
-        <Paragraph
-          color="$color9"
-          fontSize="$1"
-          fontWeight="600"
-          textTransform="uppercase"
-        >
-          {t("settings.session")}
-        </Paragraph>
-        <FintButton
-          variant="outlined"
-          color="$red10"
-          borderColor="$red6"
-          icon={<LogOut size={18} color="$red10" />}
-          onPress={() => {
-            void signOut();
-          }}
-        >
-          {t("settings.signOut")}
-        </FintButton>
-      </YStack>
-
-      <XStack justify="center">
-        <Paragraph color="$color9" fontSize="$1">
-          {t("settings.version")} {diagnostics.appVersion} ·{" "}
-          {t("settings.build")} {diagnostics.buildNumber}
-        </Paragraph>
-      </XStack>
-    </Screen>
+      ) : null}
+      {mountedSheet === "delete" ? (
+        <DeleteAccountSheet open={sheet === "delete"} onClose={() => setSheet(null)} onDeleted={() => void signOut().catch(() => undefined)} />
+      ) : null}
+    </YStack>
   );
 }
 
-function DeleteAccountDialog({
-  confirmation,
-  isPending,
-  onCancel,
-  onChangeConfirmation,
-  onConfirm,
-  open,
-  requiredConfirmation,
-}: {
-  confirmation: string;
-  isPending: boolean;
-  onCancel: () => void;
-  onChangeConfirmation: (value: string) => void;
-  onConfirm: () => void;
-  open: boolean;
-  requiredConfirmation: string;
-}) {
-  const { t } = useTranslation();
-  const canDelete =
-    normalizeConfirmation(confirmation) ===
-    normalizeConfirmation(requiredConfirmation);
-  return (
-    <Dialog
-      modal
-      open={open}
-      onOpenChange={(nextOpen) => !nextOpen && !isPending && onCancel()}
-    >
-      <Dialog.Portal>
-        <Dialog.Overlay bg="rgba(4,18,28,0.68)" />
-        <Dialog.Content
-          bordered
-          elevate
-          bg="$popover"
-          borderColor="$borderColor"
-          rounded="$7"
-          width="88%"
-          maxW={420}
-          p="$5"
-          gap="$4"
-        >
-          <Dialog.Title
-            color="$color12"
-            fontFamily="$heading"
-            fontSize="$6"
-            fontWeight="600"
-          >
-            {t("settings.deleteAccountTitle")}
-          </Dialog.Title>
-          <Dialog.Description color="$color10" fontSize="$3">
-            {t("settings.deleteAccountDescription", {
-              confirmation: requiredConfirmation,
-            })}
-          </Dialog.Description>
-          <YStack gap="$2">
-            <Paragraph color="$color11" fontSize="$2" fontWeight="600">
-              {t("settings.deleteAccountTypeConfirm", {
-                confirmation: requiredConfirmation,
-              })}
-            </Paragraph>
-            <Input
-              autoCapitalize="none"
-              autoCorrect={false}
-              bg="$muted"
-              borderColor={confirmation && !canDelete ? "$red8" : "$color5"}
-              color="$color12"
-              placeholder={requiredConfirmation}
-              placeholderTextColor="$color8"
-              value={confirmation}
-              onChangeText={onChangeConfirmation}
-            />
-          </YStack>
-          <XStack gap="$3">
-            <Button flex={1} chromeless disabled={isPending} onPress={onCancel}>
-              {t("actions.cancel")}
-            </Button>
-            <Button
-              flex={1}
-              bg={canDelete ? "$destructive" : "$muted"}
-              color={canDelete ? "$primaryForeground" : "$color8"}
-              fontWeight="600"
-              disabled={!canDelete || isPending}
-              opacity={canDelete ? 1 : 0.58}
-              icon={
-                isPending ? (
-                  <FintSpinner color="$primaryForeground" />
-                ) : (
-                  <Trash2
-                    size={17}
-                    color={canDelete ? "$primaryForeground" : "$color8"}
-                  />
-                )
-              }
-              onPress={onConfirm}
-            >
-              {isPending
-                ? t("settings.deletingAccount")
-                : t("settings.deleteAccountButton")}
-            </Button>
-          </XStack>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog>
-  );
+function countLabel(count?: number) {
+  return count === undefined ? undefined : String(count);
 }
 
-function normalizeConfirmation(value: string) {
-  return value.trim().toLocaleLowerCase();
-}
-
-function formatReminderTime(
-  hour: number,
-  minute: number,
-  language: AppLanguage,
-) {
+function formatTime(hour: number, minute: number, locale: string) {
   const date = new Date();
   date.setHours(hour, minute, 0, 0);
   try {
-    return date.toLocaleTimeString(getAppLocale(language), {
-      hour: "numeric",
-      minute: "2-digit",
-    });
+    return new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" }).format(date);
   } catch {
-    return `${hour.toString().padStart(2, "0")}:${minute
-      .toString()
-      .padStart(2, "0")}`;
+    return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
   }
 }
 
-function SettingsGroup({
-  children,
-  title,
+/** El estado del permiso y la acción que corresponde: activar, desactivar o abrir los ajustes del teléfono si están bloqueadas. */
+function NotificationsSheet({
+  open,
+  onClose,
+  state,
+  pending,
+  onTurnOn,
+  onTurnOff,
 }: {
-  children: ReactNode;
-  title: string;
+  open: boolean;
+  onClose: () => void;
+  state: PushPermissionState;
+  pending: boolean;
+  onTurnOn: () => void;
+  onTurnOff: () => void;
 }) {
-  const items = (Array.isArray(children) ? children : [children]).filter(
-    Boolean,
-  );
+  const { t } = useTranslation();
+  const body =
+    state === "granted"
+      ? t("settingsScreen.notifSheet.onBody")
+      : state === "denied"
+        ? t("settingsScreen.notifSheet.blockedBody")
+        : state === "unsupported"
+          ? t("settingsScreen.notifSheet.unsupportedBody")
+          : t("settingsScreen.notifSheet.offBody");
   return (
-    <YStack gap="$2">
-      <Paragraph
-        color="$color9"
-        fontSize="$1"
-        fontWeight="600"
-        textTransform="uppercase"
-      >
-        {title}
-      </Paragraph>
-      <FintCard p={0} overflow="hidden">
-        {items.map((item, index) => (
-          <YStack key={index}>
-            {index > 0 ? <Separator ml={52} /> : null}
-            {item}
-          </YStack>
-        ))}
-      </FintCard>
-    </YStack>
-  );
-}
-
-function SettingsRow({
-  detail,
-  icon,
-  label,
-  onPress,
-  tall = false,
-  value,
-}: {
-  detail?: string;
-  icon: ReactNode;
-  label: string;
-  onPress: () => void;
-  tall?: boolean;
-  value?: string;
-}) {
-  return (
-    <XStack
-      minH={tall ? 82 : 58}
-      px="$4"
-      py="$3"
-      items="center"
-      gap="$3"
-      bg="transparent"
-      transition="quick"
-      pressStyle={{ bg: "$secondary", scale: 0.99 }}
-      onPress={onPress}
-    >
-      {icon}
-      <YStack flex={1} minW={0} gap={detail ? "$1" : 0}>
-        <Paragraph
-          color="$color12"
-          fontSize={tall ? "$4" : "$3"}
-          fontWeight="600"
-          letterSpacing={-0.2}
-          numberOfLines={1}
-        >
-          {label}
-        </Paragraph>
-        {detail ? (
-          <Paragraph color="$color9" fontSize="$1" numberOfLines={1}>
-            {detail}
-          </Paragraph>
-        ) : null}
+    <FintSheet open={open} onClose={onClose} title={t("settings.notifications")} titleSize="compact">
+      <YStack px={space[5]} pb={space[2]} gap={18}>
+        <FText tone="inkMuted" style={{ fontSize: 14, lineHeight: 21 }}>
+          {body}
+        </FText>
+        {state === "unsupported" ? null : state === "granted" ? (
+          <FintButton variant="outlined" disabled={pending} onPress={onTurnOff}>
+            {t("settingsScreen.notifSheet.turnOff")}
+          </FintButton>
+        ) : (
+          <FintButton disabled={pending} icon={pending ? <FintSpinner color="$onBrand" /> : undefined} onPress={onTurnOn}>
+            {state === "denied" ? t("settingsScreen.notifSheet.openSystem") : t("settingsScreen.notifSheet.turnOn")}
+          </FintButton>
+        )}
       </YStack>
-      {value ? (
-        <Paragraph color="$color9" fontSize="$2">
-          {value}
-        </Paragraph>
-      ) : null}
-      <ChevronRight size={18} color="$color8" />
-    </XStack>
+    </FintSheet>
   );
 }
 
-function IconBubble({ children }: { children: ReactNode }) {
+/** Eliminar la cuenta: hay que escribir la palabra de confirmación ("confirmar") para habilitar el botón, como antes. */
+function DeleteAccountSheet({ open, onClose, onDeleted }: { open: boolean; onClose: () => void; onDeleted: () => void }) {
+  const { t } = useTranslation();
+  const notify = useNotify();
+  const [text, setText] = useState("");
+  const [focused, setFocused] = useState(false);
+  const word = t("settings.deleteAccountConfirmationToken");
+  const canDelete = text.trim().toLocaleLowerCase() === word.toLocaleLowerCase();
+  const mutation = useMutation({
+    mutationFn: () => financeApi.deleteCurrentUser(word),
+    onSuccess: () => {
+      onClose();
+      onDeleted();
+    },
+    onError: (error) =>
+      notify.error(t("settings.deleteAccount"), { message: error instanceof Error ? error.message : t("settings.deleteAccountError") }),
+  });
   return (
-    <YStack
-      width={48}
-      height={48}
-      rounded="$10"
-      bg="$secondary"
-      items="center"
-      justify="center"
-    >
-      {children}
-    </YStack>
+    <FintSheet open={open} onClose={() => !mutation.isPending && onClose()}>
+      <YStack items="center" px={space[5]} pt={space[4]}>
+        <View width={56} height={56} rounded={999} bg="$red2" items="center" justify="center">
+          <Trash2 size={24} color="$dangerHard" strokeWidth={2} />
+        </View>
+        <FText variant="title" style={{ fontSize: 22, lineHeight: 28, marginTop: 14, textAlign: "center" }}>
+          {t("settingsScreen.deleteSheet.title")}
+        </FText>
+        <FText tone="inkMuted" style={{ fontSize: 14, lineHeight: 21, marginTop: 6, textAlign: "center" }}>
+          {t("settingsScreen.deleteSheet.body")}
+        </FText>
+        <YStack self="stretch" mt={18} gap={6}>
+          <FText variant="caption" tone="inkMuted" style={{ marginLeft: 2 }}>
+            {t("settingsScreen.deleteSheet.typeToConfirm", { word })}
+          </FText>
+          <SheetField focused={focused}>
+            <SheetTextInput
+              value={text}
+              onChangeText={setText}
+              placeholder={word}
+              autoCapitalize="none"
+              autoCorrect={false}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              accessibilityLabel={t("settingsScreen.deleteSheet.typeToConfirm", { word })}
+              style={{ fontFamily: fontFace.mono[400] }}
+            />
+          </SheetField>
+        </YStack>
+        <YStack self="stretch" gap={10} mt={18}>
+          <FintButton
+            variant="danger"
+            haptic="warning"
+            disabled={!canDelete || mutation.isPending}
+            opacity={canDelete ? 1 : 0.42}
+            onPress={() => mutation.mutate()}
+          >
+            {mutation.isPending ? <FintSpinner color="$onDanger" /> : t("settings.deleteAccountButton")}
+          </FintButton>
+          <FintButton variant="ghost" bg="$surfaceSunken" color="$ink" disabled={mutation.isPending} onPress={onClose}>
+            {t("actions.cancel")}
+          </FintButton>
+        </YStack>
+      </YStack>
+    </FintSheet>
   );
 }

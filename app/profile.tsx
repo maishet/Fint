@@ -1,29 +1,39 @@
-import { useState } from "react";
-import { Image } from "react-native";
-import {
-  Eye,
-  EyeOff,
-  Lock,
-  LockKeyhole,
-  LogOut,
-  Mail,
-  Save,
-  ShieldCheck,
-  UserRound,
-} from "@tamagui/lucide-icons-2";
-import { useNotify } from "../src/ui/notify";
+import { ChevronLeft, CircleAlert, Eye, EyeOff, KeyRound, Lock } from "@tamagui/lucide-icons-2";
+import { useFocusEffect, useRouter } from "expo-router";
+import { setStatusBarStyle } from "expo-status-bar";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Button, Input, Paragraph, XStack, YStack } from "tamagui";
+import { Pressable, type TextInputProps } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { XStack, YStack } from "tamagui";
 import { z } from "zod";
 import { useAuth } from "../src/auth/AuthProvider";
-import { Screen } from "../src/components/Screen";
 import { getValidationMessage, useSubmitValidation } from "../src/forms";
-import { FintButton, FintCard, FintSpinner } from "../src/ui";
+import { Avatar, Group, GroupTitle, Item } from "../src/settings/SettingsList";
+import { useThemeMode } from "../src/theme/ThemeMode";
+import { radius, space } from "../src/theme/tokens";
+import { fontFace, textStyles } from "../src/theme/typography";
+import { FintButton, FintSheet, FintSpinner, FText, IconButton, SheetField, SheetTextInput, useNotify } from "../src/ui";
+import { GoogleMark } from "../src/ui/GoogleMark";
 
+type PasswordField = "currentPassword" | "newPassword" | "confirmPassword";
+const SHEET_UNMOUNT_MS = 600;
+
+/**
+ * Mi perfil v3: el avatar grande, el nombre y desde cuándo usa la app; el
+ * nombre se edita y el correo se muestra bloqueado ("No editable"). En
+ * Seguridad, "Cambiar contraseña" abre una hoja con los tres campos. Si la
+ * cuenta también tiene Google, una nota lo dice; si solo entra con Google, no
+ * hay fila de contraseña y la nota explica que se gestiona en Google.
+ */
 export default function ProfileScreen() {
   const { i18n, t } = useTranslation();
-  const { session, signOut, updateDisplayName, changePassword } = useAuth();
-  const toast = useNotify();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const notify = useNotify();
+  const { themeMode } = useThemeMode();
+  const { session, updateDisplayName } = useAuth();
   const appMetadata = session?.user.app_metadata ?? {};
   const providers = Array.isArray(appMetadata.providers)
     ? (appMetadata.providers as string[])
@@ -31,7 +41,7 @@ export default function ProfileScreen() {
       ? [appMetadata.provider]
       : [];
   const hasPassword = providers.includes("email");
-  const hasGoogleLinked = providers.includes("google");
+  const hasGoogle = providers.includes("google");
   const metadata = session?.user.user_metadata ?? {};
   const currentName =
     typeof metadata.display_name === "string"
@@ -41,631 +51,265 @@ export default function ProfileScreen() {
         : typeof metadata.name === "string"
           ? metadata.name
           : "";
-  const avatarUrl =
-    typeof metadata.avatar_url === "string"
-      ? metadata.avatar_url
-      : typeof metadata.picture === "string"
-        ? metadata.picture
-        : null;
+  const photoUrl = typeof metadata.avatar_url === "string" ? metadata.avatar_url : typeof metadata.picture === "string" ? metadata.picture : null;
   const [displayName, setDisplayName] = useState(currentName);
+  const [savedName, setSavedName] = useState(currentName);
+  const [nameFocused, setNameFocused] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isSigningOut, setIsSigningOut] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [passwordMounted, setPasswordMounted] = useState(false);
   const validation = useSubmitValidation<"displayName">();
-  const shownName = displayName.trim() || currentName || t("profile.title");
+  const changed = displayName.trim() !== savedName.trim();
+  const shownName = displayName.trim() || savedName || t("profile.title");
 
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
-  const passwordValidation = useSubmitValidation<
-    "confirmPassword" | "currentPassword" | "newPassword"
-  >();
+  useFocusEffect(
+    useCallback(() => {
+      setStatusBarStyle(themeMode === "dark" ? "light" : "dark");
+      return () => setStatusBarStyle("light");
+    }, [themeMode]),
+  );
+  useEffect(() => {
+    if (passwordOpen) return;
+    const id = setTimeout(() => setPasswordMounted(false), SHEET_UNMOUNT_MS);
+    return () => clearTimeout(id);
+  }, [passwordOpen]);
 
-  const resetPasswordForm = () => {
-    setIsChangingPassword(false);
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-    setIsPasswordVisible(false);
-    passwordValidation.resetErrors();
-  };
-
-  const submitPassword = async () => {
-    const schema = z
-      .object({
-        currentPassword: z
-          .string()
-          .min(1, getValidationMessage(t, i18n.resolvedLanguage, "required")),
-        newPassword: z
-          .string()
-          .min(8, getValidationMessage(t, i18n.resolvedLanguage, "passwordMin")),
-        confirmPassword: z
-          .string()
-          .min(1, getValidationMessage(t, i18n.resolvedLanguage, "required")),
-      })
-      .superRefine((values, context) => {
-        if (values.newPassword !== values.confirmPassword) {
-          context.addIssue({
-            code: "custom",
-            message: t("auth.passwordMismatch"),
-            path: ["confirmPassword"],
-          });
-        }
-      });
-    const payload = passwordValidation.validate(schema, {
-      currentPassword,
-      newPassword,
-      confirmPassword,
-    });
-    if (!payload) return;
-    setIsUpdatingPassword(true);
-    const { error } = await changePassword(
-      payload.currentPassword,
-      payload.newPassword,
-    );
-    setIsUpdatingPassword(false);
-    if (error) {
-      const normalized = error.message.toLowerCase();
-      if (normalized.includes("invalid login")) {
-        passwordValidation.setError(
-          "currentPassword",
-          t("profile.currentPasswordWrong"),
-        );
-        return;
-      }
-      if (normalized.includes("different from the old")) {
-        passwordValidation.setError(
-          "newPassword",
-          t("profile.newPasswordSame"),
-        );
-        return;
-      }
-      toast.show(t("profile.passwordUpdateError"), { preset: "error" });
-      return;
-    }
-    resetPasswordForm();
-    toast.show(t("profile.passwordUpdated"), { preset: "success" });
-  };
+  // "Desde marzo de 2026": el mes en que se creó la cuenta.
+  const since = session?.user.created_at
+    ? new Intl.DateTimeFormat(i18n.resolvedLanguage === "en" ? "en-US" : i18n.resolvedLanguage === "pt" ? "pt-BR" : "es-PE", {
+        month: "long",
+        year: "numeric",
+      }).format(new Date(session.user.created_at))
+    : null;
 
   const save = async () => {
-    setServerError(null);
     const schema = z.object({
       displayName: z
         .string()
         .trim()
-        .min(
-          2,
-          t("validation.profileName", { defaultValue: t("profile.invalid") }),
-        )
-        .max(
-          80,
-          t("validation.profileName", { defaultValue: t("profile.invalid") }),
-        ),
+        .min(2, t("validation.profileName", { defaultValue: t("profile.invalid") }))
+        .max(80, t("validation.profileName", { defaultValue: t("profile.invalid") })),
     });
     const payload = validation.validate(schema, { displayName });
-    if (!payload || payload.displayName === currentName.trim()) return;
+    if (!payload || !changed) return;
     setIsSaving(true);
     const { error } = await updateDisplayName(payload.displayName);
     setIsSaving(false);
     if (error) {
-      setServerError(t("profile.error"));
-      toast.show(t("profile.error"), { preset: "error" });
-    } else toast.show(t("profile.success"), { preset: "success" });
-  };
-
-  const endSession = async () => {
-    setIsSigningOut(true);
-    try {
-      await signOut();
-    } catch {
-      toast.show(t("profile.signOutError"), { preset: "error" });
-      setIsSigningOut(false);
+      notify.error(t("profile.error"));
+      return;
     }
+    setSavedName(payload.displayName);
+    notify.success(t("profile.success"));
   };
 
   return (
-    <Screen
-      ground={
-        <YStack gap="$4" items="center">
-          <YStack
-            width={104}
-            height={104}
-            rounded={52}
-            bg="rgba(246,251,252,0.10)"
-            borderColor="rgba(246,251,252,0.16)"
-            borderWidth={1}
-            items="center"
-            justify="center"
-            overflow="hidden"
-          >
-            {avatarUrl ? (
-              <Image
-                source={{ uri: avatarUrl }}
-                style={{ width: 104, height: 104, borderRadius: 52 }}
-              />
-            ) : (
-              <UserRound size={42} color="$heroAccent" />
-            )}
-          </YStack>
-          <YStack items="center" gap="$1">
-            <Paragraph
-              color="$heroForeground"
-              fontFamily="$heading"
-              fontSize="$7"
-              fontWeight="600"
-              letterSpacing={-0.5}
-              text="center"
-              numberOfLines={1}
-              adjustsFontSizeToFit
-            >
-              {shownName}
-            </Paragraph>
-            <Paragraph color="$heroMuted" fontSize="$2" text="center">
-              {t("profile.subtitle")}
-            </Paragraph>
-          </YStack>
-        </YStack>
-      }
-    >
-
-      <FintCard gap="$3">
-        <XStack items="center" gap="$3">
-          <YStack
-            width={42}
-            height={42}
-            rounded="$10"
-            bg="$accent2"
-            items="center"
-            justify="center"
-          >
-            <UserRound size={20} color="$primary" />
-          </YStack>
-          {/* Titulo de seccion, no accion: en el resto de la app estos van en
-              $color12. En $primary se leian como enlaces. */}
-          <Paragraph
-            color="$color12"
-            fontFamily="$heading"
-            fontSize="$5"
-            fontWeight="600"
-          >
-            {t("profile.section")}
-          </Paragraph>
-        </XStack>
-
-        <ProfileInputRow
-          error={validation.errors.displayName}
-          icon={<UserRound size={22} color="$primary" />}
-          label={t("profile.name")}
-          onChangeText={(value) => {
-            setDisplayName(value);
-            validation.clearError("displayName");
-          }}
-          placeholder={t("profile.namePlaceholder")}
-          value={displayName}
-        />
-        <ReadOnlyRow
-          badge={t("profile.notEditable")}
-          icon={<Mail size={22} color="$primary" />}
-          label={t("profile.email")}
-          value={session?.user.email ?? "-"}
-        />
-        {serverError ? (
-          <Paragraph color="$red10" fontSize="$2">
-            {serverError}
-          </Paragraph>
-        ) : null}
-      </FintCard>
-
-      {!hasPassword ? (
-        <FintCard gap="$3" bg="$accent1" borderColor="$accent4">
-          <XStack gap="$3" items="center">
-            <YStack
-              width={46}
-              height={46}
-              rounded="$10"
-              bg="$accent2"
-              items="center"
-              justify="center"
-            >
-              <ShieldCheck size={24} color="$primary" />
-            </YStack>
-            <Paragraph color="$color10" flex={1} fontSize="$3">
-              {t("profile.authGoogle")}
-            </Paragraph>
-          </XStack>
-        </FintCard>
-      ) : (
-        <FintCard gap="$3">
-          <XStack items="center" gap="$3">
-            <YStack
-              width={42}
-              height={42}
-              rounded="$10"
-              bg="$accent2"
-              items="center"
-              justify="center"
-            >
-              <ShieldCheck size={20} color="$primary" />
-            </YStack>
-            <YStack flex={1} minW={0}>
-              <Paragraph
-                color="$color12"
-                fontFamily="$heading"
-                fontSize="$5"
-                fontWeight="600"
-              >
-                {t("profile.security")}
-              </Paragraph>
-              <Paragraph color="$color10" fontSize="$2">
-                {t("profile.changePasswordHint")}
-              </Paragraph>
-            </YStack>
-          </XStack>
-
-          {hasGoogleLinked ? (
-            <XStack
-              items="center"
-              gap="$2"
-              bg="$accent1"
-              borderColor="$accent4"
-              borderWidth={1}
-              rounded="$5"
-              px="$3"
-              py="$2"
-            >
-              <ShieldCheck size={16} color="$primary" />
-              <Paragraph color="$color10" flex={1} fontSize="$2">
-                {t("profile.googleLinked")}
-              </Paragraph>
-            </XStack>
-          ) : null}
-
-          {isChangingPassword ? (
-            <YStack gap="$3">
-              <PasswordField
-                autoComplete="current-password"
-                error={passwordValidation.errors.currentPassword}
-                label={t("profile.currentPassword")}
-                onChangeText={(value) => {
-                  setCurrentPassword(value);
-                  passwordValidation.clearError("currentPassword");
-                }}
-                onToggleVisible={() =>
-                  setIsPasswordVisible((current) => !current)
-                }
-                placeholder={t("profile.currentPassword")}
-                t={t}
-                value={currentPassword}
-                visible={isPasswordVisible}
-              />
-              <PasswordField
-                autoComplete="password-new"
-                error={passwordValidation.errors.newPassword}
-                label={t("profile.newPassword")}
-                onChangeText={(value) => {
-                  setNewPassword(value);
-                  passwordValidation.clearError("newPassword");
-                }}
-                onToggleVisible={() =>
-                  setIsPasswordVisible((current) => !current)
-                }
-                placeholder={t("profile.newPassword")}
-                t={t}
-                value={newPassword}
-                visible={isPasswordVisible}
-              />
-              <PasswordField
-                autoComplete="password-new"
-                error={passwordValidation.errors.confirmPassword}
-                label={t("profile.confirmNewPassword")}
-                onChangeText={(value) => {
-                  setConfirmPassword(value);
-                  passwordValidation.clearError("confirmPassword");
-                }}
-                onToggleVisible={() =>
-                  setIsPasswordVisible((current) => !current)
-                }
-                placeholder={t("profile.confirmNewPassword")}
-                t={t}
-                value={confirmPassword}
-                visible={isPasswordVisible}
-              />
-              <XStack gap="$3">
-                <FintButton
-                  flex={1}
-                  minH={52}
-                  variant="outlined"
-                  color="$primary"
-                  borderColor="$primary"
-                  disabled={isUpdatingPassword}
-                  onPress={resetPasswordForm}
-                >
-                  {t("profile.cancel")}
-                </FintButton>
-                <FintButton
-                  flex={1}
-                  minH={52}
-                  disabled={isUpdatingPassword}
-                  icon={
-                    isUpdatingPassword ? (
-                      <FintSpinner size="small" color="$primaryForeground" />
-                    ) : undefined
-                  }
-                  onPress={() => {
-                    void submitPassword();
-                  }}
-                >
-                  {isUpdatingPassword
-                    ? t("profile.updatingPassword")
-                    : t("profile.updatePassword")}
-                </FintButton>
-              </XStack>
-            </YStack>
-          ) : (
-            <FintButton
-              width="100%"
-              minH={54}
-              variant="outlined"
-              color="$primary"
-              borderColor="$primary"
-              icon={<LockKeyhole size={19} color="$primary" />}
-              onPress={() => setIsChangingPassword(true)}
-            >
-              {t("profile.changePassword")}
-            </FintButton>
-          )}
-        </FintCard>
-      )}
-
-      <YStack gap="$3">
-        <FintButton
-          width="100%"
-          minH={56}
-          disabled={isSaving || isSigningOut}
-          icon={
-            isSaving ? (
-              <FintSpinner size="small" color="$primaryForeground" />
-            ) : (
-              <Save size={19} color="$primaryForeground" />
-            )
-          }
-          onPress={() => {
-            void save();
-          }}
-        >
-          {isSaving ? t("profile.saving") : t("profile.save")}
-        </FintButton>
-        <FintButton
-          width="100%"
-          minH={54}
-          variant="outlined"
-          disabled={isSaving || isSigningOut}
-          color="$primary"
-          borderColor="$primary"
-          icon={
-            isSigningOut ? (
-              <FintSpinner size="small" color="$primary" />
-            ) : (
-              <LogOut size={20} color="$primary" />
-            )
-          }
-          onPress={() => {
-            void endSession();
-          }}
-        >
-          {t("profile.signOut")}
-        </FintButton>
-      </YStack>
-    </Screen>
-  );
-}
-
-function ProfileInputRow({
-  error,
-  icon,
-  label,
-  onChangeText,
-  placeholder,
-  value,
-}: {
-  error?: string;
-  icon: React.ReactNode;
-  label: string;
-  onChangeText: (value: string) => void;
-  placeholder: string;
-  value: string;
-}) {
-  return (
-    <YStack gap="$1">
-      <XStack
-        minH={78}
-        items="center"
-        gap="$3"
-        bg="$card"
-        borderColor={error ? "$red8" : "$borderColor"}
-        borderWidth={1}
-        rounded="$6"
-        px="$3"
-      >
-        <YStack
-          width={46}
-          height={46}
-          rounded="$10"
-          bg="$accent2"
-          items="center"
-          justify="center"
-        >
-          {icon}
-        </YStack>
-        <YStack flex={1} minW={0} gap={2}>
-          <Paragraph color="$color10" fontSize="$2">
-            {label}
-          </Paragraph>
-          <Input
-            unstyled
-            height={28}
-            p={0}
-            m={0}
-            color="$color12"
-            fontSize="$4"
-            fontWeight="600"
-            placeholder={placeholder}
-            placeholderTextColor="$color8"
-            value={value}
-            onChangeText={onChangeText}
-            autoCapitalize="words"
-            maxLength={80}
-            aria-label={label}
-          />
-        </YStack>
+    <YStack flex={1} bg="$canvas" pt={insets.top}>
+      <XStack items="center" px={space[4]} pt={space[2]} minH={48}>
+        <IconButton label={t("settingsScreen.back")} icon={<ChevronLeft size={20} color="$ink" strokeWidth={2} />} onPress={() => router.back()} />
+        <FText variant="heading" accessibilityRole="header" style={{ flex: 1, textAlign: "center", marginRight: 40 }} numberOfLines={1}>
+          {t("profile.title")}
+        </FText>
       </XStack>
-      {error ? (
-        <Paragraph color="$red10" fontSize="$1" px="$2">
-          {error}
-        </Paragraph>
-      ) : null}
+
+      <KeyboardAwareScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: Math.max(insets.bottom, space[4]) + 18 }}
+        bottomOffset={24}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <YStack items="center" mt={14}>
+          <Avatar name={shownName} photoUrl={photoUrl} size={84} />
+          <FText variant="title" numberOfLines={1} style={{ marginTop: 12, letterSpacing: -0.5, paddingHorizontal: space[5] }}>
+            {shownName}
+          </FText>
+          {since ? (
+            <FText variant="label" tone="inkFaint">
+              {t("profileScreen.since", { date: since })}
+            </FText>
+          ) : null}
+        </YStack>
+
+        <YStack px={space[4]} mt={space[2]}>
+          <FieldLabel>{t("profile.name")}</FieldLabel>
+          <SheetField focused={nameFocused} invalid={Boolean(validation.errors.displayName)}>
+            <SheetTextInput
+              value={displayName}
+              onChangeText={(value) => {
+                setDisplayName(value);
+                validation.clearError("displayName");
+              }}
+              placeholder={t("profile.namePlaceholder")}
+              autoCapitalize="words"
+              autoComplete="name"
+              maxLength={80}
+              accessibilityLabel={t("profile.name")}
+              onFocus={() => setNameFocused(true)}
+              onBlur={() => setNameFocused(false)}
+            />
+          </SheetField>
+          {validation.errors.displayName ? <ErrorLine message={validation.errors.displayName} /> : null}
+
+          <FieldLabel>{t("profile.email")}</FieldLabel>
+          <SheetField>
+            <FText tone="inkMuted" numberOfLines={1} style={{ flex: 1, paddingVertical: 12, paddingLeft: 4 }}>
+              {session?.user.email ?? "—"}
+            </FText>
+            <XStack items="center" gap={4}>
+              <Lock size={13} color="$inkFaint" strokeWidth={2} />
+              <FText variant="caption" tone="inkFaint">
+                {t("profile.notEditable")}
+              </FText>
+            </XStack>
+          </SheetField>
+        </YStack>
+
+        {hasPassword ? (
+          <>
+            <GroupTitle>{t("profileScreen.security")}</GroupTitle>
+            <Group>
+              <Item
+                icon={KeyRound}
+                label={t("profile.changePassword")}
+                detail={t("profile.changePasswordHint")}
+                onPress={() => {
+                  setPasswordMounted(true);
+                  setPasswordOpen(true);
+                }}
+              />
+            </Group>
+          </>
+        ) : null}
+
+        {hasGoogle ? (
+          <XStack mx={space[4]} mt={hasPassword ? 10 : space[5]} px={14} py={12} gap={10} rounded={radius.md} bg="$surfaceSunken" items="flex-start">
+            <YStack mt={1}>
+              <GoogleMark size={16} />
+            </YStack>
+            <FText variant="caption" tone="inkMuted" style={{ flex: 1, lineHeight: 17 }}>
+              {hasPassword ? t("profileScreen.googleNote") : t("profileScreen.googleOnlyNote")}
+            </FText>
+          </XStack>
+        ) : null}
+
+        <YStack mt="auto" pt={space[6]} px={space[4]}>
+          <FintButton disabled={!changed || isSaving} opacity={changed ? 1 : 0.42} onPress={() => void save()}>
+            {isSaving ? <FintSpinner color="$onBrand" /> : t("profile.save")}
+          </FintButton>
+        </YStack>
+      </KeyboardAwareScrollView>
+
+      {passwordMounted ? <ChangePasswordSheet open={passwordOpen} onClose={() => setPasswordOpen(false)} /> : null}
     </YStack>
   );
 }
 
-function ReadOnlyRow({
-  badge,
-  icon,
-  label,
-  value,
-}: {
-  badge: string;
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
+function FieldLabel({ children }: { children: string }) {
   return (
-    <XStack
-      minH={78}
-      gap="$3"
-      items="center"
-      bg="$card"
-      borderColor="$borderColor"
-      borderWidth={1}
-      rounded="$6"
-      px="$3"
-    >
-      <YStack
-        width={46}
-        height={46}
-        rounded="$10"
-        bg="$accent2"
-        items="center"
-        justify="center"
-      >
-        {icon}
-      </YStack>
-      <YStack flex={1} minW={0} gap={2}>
-        <Paragraph color="$color10" fontSize="$2">
-          {label}
-        </Paragraph>
-        <Paragraph
-          color="$color12"
-          fontSize="$3"
-          fontWeight="600"
-          numberOfLines={1}
-        >
-          {value}
-        </Paragraph>
-      </YStack>
-      {/* <YStack bg="$accent2" rounded="$10" px="$3" py="$1"><Paragraph color="$primary" fontSize="$1" fontWeight="600">{badge}</Paragraph></YStack> */}
-      <Lock size={20} color="$primary" />
+    <FText variant="caption" tone="inkMuted" style={{ marginTop: 16, marginBottom: 6, marginLeft: 2 }}>
+      {children}
+    </FText>
+  );
+}
+
+function ErrorLine({ message }: { message: string }) {
+  return (
+    <XStack items="center" gap={5} mx={2} mt={6} accessibilityRole="alert">
+      <CircleAlert size={13} color="$dangerHard" strokeWidth={2.2} />
+      <FText variant="caption" tone="dangerHard" style={{ flex: 1, fontFamily: fontFace.sans[600] }}>
+        {message}
+      </FText>
     </XStack>
   );
 }
 
-function PasswordField({
-  autoComplete,
-  error,
-  label,
-  onChangeText,
-  onToggleVisible,
-  placeholder,
-  t,
-  value,
-  visible,
-}: {
-  autoComplete: "current-password" | "password-new";
-  error?: string;
-  label: string;
-  onChangeText: (value: string) => void;
-  onToggleVisible: () => void;
-  placeholder: string;
-  t: (key: string) => string;
-  value: string;
-  visible: boolean;
-}) {
-  return (
-    <YStack gap="$1">
-      <XStack
-        minH={78}
-        items="center"
-        gap="$3"
-        bg="$card"
-        borderColor={error ? "$red8" : "$borderColor"}
-        borderWidth={1}
-        rounded="$6"
-        px="$3"
-      >
-        <YStack
-          width={46}
-          height={46}
-          rounded="$10"
-          bg="$accent2"
-          items="center"
-          justify="center"
-        >
-          <LockKeyhole size={22} color="$primary" />
-        </YStack>
-        <YStack flex={1} minW={0} gap={2}>
-          <Paragraph color="$color10" fontSize="$2">
-            {label}
-          </Paragraph>
-          <Input
-            unstyled
-            height={28}
-            p={0}
-            m={0}
-            color="$color12"
-            fontSize="$4"
-            fontWeight="600"
-            placeholder={placeholder}
-            placeholderTextColor="$color8"
-            value={value}
-            onChangeText={onChangeText}
-            secureTextEntry={!visible}
-            autoCapitalize="none"
-            autoComplete={autoComplete}
-            aria-label={label}
-          />
-        </YStack>
-        <Button
-          chromeless
-          circular
-          size="$2.5"
-          aria-label={visible ? t("auth.hidePassword") : t("auth.showPassword")}
-          onPress={onToggleVisible}
-        >
-          {visible ? (
-            <EyeOff size={18} color="$color9" />
-          ) : (
-            <Eye size={18} color="$color9" />
-          )}
-        </Button>
-      </XStack>
-      {error ? (
-        <Paragraph color="$red10" fontSize="$1" px="$2">
-          {error}
-        </Paragraph>
-      ) : null}
+/** Cambiar contraseña: actual, nueva (8 caracteres como mínimo) y su confirmación, con un solo ojo para las tres. */
+function ChangePasswordSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { i18n, t } = useTranslation();
+  const notify = useNotify();
+  const { changePassword } = useAuth();
+  const [values, setValues] = useState<Record<PasswordField, string>>({ currentPassword: "", newPassword: "", confirmPassword: "" });
+  const [visible, setVisible] = useState(false);
+  const [focused, setFocused] = useState<PasswordField | null>(null);
+  const [pending, setPending] = useState(false);
+  const validation = useSubmitValidation<PasswordField>();
+
+  const submit = async () => {
+    const schema = z
+      .object({
+        currentPassword: z.string().min(1, getValidationMessage(t, i18n.resolvedLanguage, "required")),
+        newPassword: z.string().min(8, getValidationMessage(t, i18n.resolvedLanguage, "passwordMin")),
+        confirmPassword: z.string().min(1, getValidationMessage(t, i18n.resolvedLanguage, "required")),
+      })
+      .superRefine((v, context) => {
+        if (v.newPassword !== v.confirmPassword) context.addIssue({ code: "custom", message: t("auth.passwordMismatch"), path: ["confirmPassword"] });
+      });
+    const payload = validation.validate(schema, values);
+    if (!payload) return;
+    setPending(true);
+    const { error } = await changePassword(payload.currentPassword, payload.newPassword);
+    setPending(false);
+    if (error) {
+      const normalized = error.message.toLowerCase();
+      if (normalized.includes("invalid login")) return validation.setError("currentPassword", t("profile.currentPasswordWrong"));
+      if (normalized.includes("different from the old")) return validation.setError("newPassword", t("profile.newPasswordSame"));
+      notify.error(t("profile.passwordUpdateError"));
+      return;
+    }
+    notify.success(t("profile.passwordUpdated"));
+    onClose();
+  };
+
+  const field = (name: PasswordField, label: string, autoComplete: TextInputProps["autoComplete"], trailing?: ReactNode) => (
+    <YStack gap={6}>
+      <SheetField focused={focused === name} invalid={Boolean(validation.errors[name])}>
+        <SheetTextInput
+          value={values[name]}
+          onChangeText={(value) => {
+            setValues((current) => ({ ...current, [name]: value }));
+            validation.clearError(name);
+          }}
+          placeholder={label}
+          accessibilityLabel={label}
+          secureTextEntry={!visible}
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete={autoComplete}
+          textContentType={name === "currentPassword" ? "password" : "newPassword"}
+          onFocus={() => setFocused(name)}
+          onBlur={() => setFocused(null)}
+        />
+        {trailing}
+      </SheetField>
+      {validation.errors[name] ? <ErrorLine message={validation.errors[name] as string} /> : null}
     </YStack>
+  );
+
+  return (
+    <FintSheet open={open} onClose={() => !pending && onClose()} title={t("profileScreen.passwordSheetTitle")}>
+      <YStack px={space[5]} pb={space[2]} gap={10}>
+        {field(
+          "currentPassword",
+          t("profile.currentPassword"),
+          "current-password",
+          <Pressable
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={visible ? t("auth.hidePassword") : t("auth.showPassword")}
+            onPress={() => setVisible((v) => !v)}
+          >
+            {visible ? <EyeOff size={18} color="$inkFaint" strokeWidth={2} /> : <Eye size={18} color="$inkFaint" strokeWidth={2} />}
+          </Pressable>,
+        )}
+        {field("newPassword", t("profile.newPassword"), "password-new")}
+        {field("confirmPassword", t("profile.confirmNewPassword"), "password-new")}
+        <YStack mt={8}>
+          <FintButton disabled={pending} onPress={() => void submit()}>
+            {pending ? <FintSpinner color="$onBrand" /> : t("profile.updatePassword")}
+          </FintButton>
+        </YStack>
+      </YStack>
+    </FintSheet>
   );
 }

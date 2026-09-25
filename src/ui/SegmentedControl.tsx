@@ -11,6 +11,8 @@ import { haptics } from "./haptics";
 export interface SegmentOption<T extends string> {
   value: T;
   label: string;
+  /** Cantidad junto a la etiqueta, en `mono` y `inkFaint` ("Egresos 8"). */
+  count?: number;
 }
 
 export interface SegmentedControlProps<T extends string> {
@@ -28,17 +30,14 @@ const PAD = 3;
  * Selector segmentado. El fondo `segmentThumb` se desliza con `spring-ui` y el
  * texto cambia de peso en el mismo frame, con `haptics.select()`.
  */
-export function SegmentedControl<T extends string>({
-  options,
-  value,
-  onChange,
-  size = "md",
-  accessibilityLabel,
-}: SegmentedControlProps<T>) {
+export function SegmentedControl<T extends string>({ options, value, onChange, size = "md", accessibilityLabel }: SegmentedControlProps<T>) {
   const theme = useTheme();
   const { themeMode } = useThemeMode();
   const [width, setWidth] = useState(0);
-  const index = Math.max(0, options.findIndex((o) => o.value === value));
+  const index = Math.max(
+    0,
+    options.findIndex((o) => o.value === value),
+  );
   const segment = width > 0 ? (width - PAD * 2) / options.length : 0;
   const x = useSharedValue(0);
   const height = size === "md" ? 38 : 34;
@@ -100,6 +99,11 @@ export function SegmentedControl<T extends string>({
               numberOfLines={1}
             >
               {option.label}
+              {option.count !== undefined ? (
+                <FText variant="label" tone="inkFaint" style={{ fontFamily: fontFace.mono[500], fontSize: 12 }}>
+                  {`  ${option.count}`}
+                </FText>
+              ) : null}
             </FText>
           </Pressable>
         );

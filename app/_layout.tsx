@@ -304,6 +304,7 @@ function RootLayoutNav() {
           <Stack.Screen
             name="settings"
             options={{
+              headerShown: false,
               title: t("header.menuTitle"),
               contentStyle: { backgroundColor: theme.background.val },
             }}
@@ -311,6 +312,7 @@ function RootLayoutNav() {
           <Stack.Screen
             name="profile"
             options={{
+              headerShown: false,
               title: t("profile.title"),
               contentStyle: { backgroundColor: theme.background.val },
             }}
@@ -318,6 +320,7 @@ function RootLayoutNav() {
           <Stack.Screen
             name="gmail-settings"
             options={{
+              headerShown: false,
               title: t("gmail.title"),
               contentStyle: { backgroundColor: theme.background.val },
             }}
@@ -325,6 +328,7 @@ function RootLayoutNav() {
           <Stack.Screen
             name="support"
             options={{
+              headerShown: false,
               title: t("support.title"),
               contentStyle: { backgroundColor: theme.background.val },
             }}
@@ -332,6 +336,7 @@ function RootLayoutNav() {
           <Stack.Screen
             name="improvements"
             options={{
+              headerShown: false,
               title: t("improvements.title"),
               contentStyle: { backgroundColor: theme.background.val },
             }}
@@ -346,6 +351,7 @@ function RootLayoutNav() {
           <Stack.Screen
             name="categories"
             options={{
+              headerShown: false,
               title: t("categories.routeTitle"),
               contentStyle: { backgroundColor: theme.background.val },
             }}
