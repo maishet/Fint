@@ -1,8 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Banknote, ChevronLeft, Pencil, Plus, Trash2, Wallet } from "@tamagui/lucide-icons-2";
-import { useFocusEffect, useRouter } from "expo-router";
-import { setStatusBarStyle } from "expo-status-bar";
-import { useCallback, useMemo, useState } from "react";
+import { useRouter } from "expo-router";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, RefreshControl, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -15,8 +14,8 @@ import { DataStateCard } from "../src/components/DataStateCard";
 import { getAccountTypeLabel } from "../src/finance/accountTypes";
 import { usePressOnce } from "../src/hooks/usePressOnce";
 import { AccountMonogram } from "../src/movement-form/AccountSheet";
-import { useThemeMode } from "../src/theme/ThemeMode";
 import { radius, space } from "../src/theme/tokens";
+import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
 import { Amount, FintButton, FintCard, FintConfirmDialog, FText, IconButton, SegmentedControl } from "../src/ui";
 import { AmountSkeleton } from "../src/ui/AmountSkeleton";
 import { GroupedCell } from "../src/ui/GroupedCell";
@@ -40,18 +39,12 @@ export default function AccountsScreen() {
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const { themeMode } = useThemeMode();
   const pressOnce = usePressOnce();
   const [currency, setCurrency] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Account | null>(null);
   const [pulling, setPulling] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      setStatusBarStyle(themeMode === "dark" ? "light" : "dark");
-      return () => setStatusBarStyle("light");
-    }, [themeMode]),
-  );
+  useScreenStatusBar();
 
   const accountsQuery = useQuery({
     queryKey: ["accounts", "overview", currency],

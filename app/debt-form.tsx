@@ -1,8 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, ChevronDown, ChevronRight, Landmark, Lock, Repeat, Shapes, Zap, X } from "@tamagui/lucide-icons-2";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { setStatusBarStyle } from "expo-status-bar";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { KeyboardAwareScrollView, KeyboardStickyView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -24,9 +23,9 @@ import { AccountSheet } from "../src/movement-form/AccountSheet";
 import { accountBalance } from "../src/movement-form/logic";
 import { registerPushInstallation } from "../src/notifications/pushNotifications";
 import { amountText, upcomingDates, type Frequency } from "../src/payments/form";
-import { useThemeMode } from "../src/theme/ThemeMode";
 import { radius, space } from "../src/theme/tokens";
 import { fontFace } from "../src/theme/typography";
+import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
 import {
   Amount,
   FintButton,
@@ -75,15 +74,9 @@ export default function DebtFormScreen() {
   const toast = useNotify();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
-  const { themeMode } = useThemeMode();
   const { capabilities } = useCapabilities();
 
-  useFocusEffect(
-    useCallback(() => {
-      setStatusBarStyle(themeMode === "dark" ? "light" : "dark");
-      return () => setStatusBarStyle("light");
-    }, [themeMode]),
-  );
+  useScreenStatusBar();
 
   const categoriesQuery = useQuery({ queryKey: ["categories", "expense"], queryFn: () => financeApi.listCategories("expense") });
   const rulesQuery = useQuery({ queryKey: ["payment-rules"], queryFn: financeApi.listPaymentRules });

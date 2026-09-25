@@ -23,8 +23,7 @@ import {
   Wallet,
 } from "@tamagui/lucide-icons-2";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useFocusEffect, useRouter } from "expo-router";
-import { setStatusBarStyle } from "expo-status-bar";
+import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AppState, Linking, ScrollView, Share } from "react-native";
@@ -50,6 +49,7 @@ import { getSupportDiagnostics } from "../src/support/diagnostics";
 import { useThemeMode } from "../src/theme/ThemeMode";
 import { radius, space } from "../src/theme/tokens";
 import { fontFace, textStyles } from "../src/theme/typography";
+import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
 import {
   FintButton,
   FintCard,
@@ -102,12 +102,7 @@ export default function SettingsScreen() {
   const categoriesQuery = useQuery({ queryKey: ["categories"], queryFn: () => financeApi.listCategories(), staleTime: 5 * 60_000 });
   const gmailQuery = useQuery({ queryKey: ["gmail-sources"], queryFn: financeApi.listGmailSources });
 
-  useFocusEffect(
-    useCallback(() => {
-      setStatusBarStyle(themeMode === "dark" ? "light" : "dark");
-      return () => setStatusBarStyle("light");
-    }, [themeMode]),
-  );
+  useScreenStatusBar();
 
   const openSheet = (next: Exclude<Sheet, null>) => {
     setMountedSheet(next);

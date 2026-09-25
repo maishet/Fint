@@ -1,12 +1,11 @@
 import { ChevronLeft } from "@tamagui/lucide-icons-2";
-import { useFocusEffect, useRouter } from "expo-router";
-import { setStatusBarStyle } from "expo-status-bar";
-import { useCallback, type ReactNode } from "react";
+import { useRouter } from "expo-router";
+import { type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { XStack, YStack } from "tamagui";
-import { useThemeMode } from "../theme/ThemeMode";
 import { space } from "../theme/tokens";
+import { useScreenStatusBar } from "../theme/useScreenStatusBar";
 import { FText, IconButton } from "../ui";
 
 /**
@@ -18,13 +17,7 @@ export function StackFrame({ title, children }: { title: string; children: React
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { themeMode } = useThemeMode();
-  useFocusEffect(
-    useCallback(() => {
-      setStatusBarStyle(themeMode === "dark" ? "light" : "dark");
-      return () => setStatusBarStyle("light");
-    }, [themeMode]),
-  );
+  useScreenStatusBar();
   return (
     <YStack flex={1} bg="$canvas" pt={insets.top}>
       <XStack items="center" gap={space[3]} px={space[4]} pt={space[2]} pb={space[2]}>

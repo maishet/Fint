@@ -27,6 +27,7 @@ import { RecentMovementsCard } from "../../src/home/RecentMovementsCard";
 import { SpendingCard } from "../../src/home/SpendingCard";
 import { useHomeData } from "../../src/home/useHomeData";
 import { motion, radius, space } from "../../src/theme/tokens";
+import { useScreenStatusBar } from "../../src/theme/useScreenStatusBar";
 import { Amount, FintSpinner, FText, PressableScale } from "../../src/ui";
 import { riseIn } from "../../src/ui/entering";
 import { haptics } from "../../src/ui/haptics";
@@ -100,6 +101,8 @@ export default function DashboardScreen() {
       if (active !== previous) runOnJS(setCompactActive)(active);
     },
   );
+  // El hero y la barra compacta son oscuros en los dos temas: iconos claros.
+  useScreenStatusBar("light");
   // Con la pestaña en segundo plano la pantalla se congela y ese aviso puede perderse: al volver, se resincroniza.
   useFocusEffect(
     useCallback(() => {

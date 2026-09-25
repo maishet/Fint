@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Keyboard, Platform, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import MapView, { type Region, PROVIDER_GOOGLE } from 'react-native-maps'
-import { Button, Input, Paragraph, Sheet, XStack, YStack } from 'tamagui'
+import { Button, Input, Paragraph, Sheet, useTheme, XStack, YStack } from 'tamagui'
 import { useSheetBackHandler } from '../hooks/useSheetBackHandler'
 import { describeLocation, getLastKnownPosition, requestAndCaptureLocation, type CapturedLocation } from '../location/captureLocation'
 import { suggestionKey, useLocationSearch } from '../location/useLocationSearch'
@@ -37,6 +37,7 @@ export function LocationEditSheet({
 }) {
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
+  const theme = useTheme()
   const mapRef = useRef<MapView>(null)
   const isFirstRegion = useRef(true)
   const isProgrammaticMove = useRef(false)
@@ -165,7 +166,7 @@ export function LocationEditSheet({
               {t('location.dragHint')}
             </Paragraph>
           </YStack>
-          <MapPin size={PIN_SIZE} color="#FFFFFF" fill="#0F6E76" strokeWidth={2} />
+          <MapPin size={PIN_SIZE} color="#FFFFFF" fill={theme.brand.val} strokeWidth={2} />
           <YStack width={18} height={7} rounded={999} bg="rgba(4,48,54,0.32)" mt={-6} />
         </YStack>
 

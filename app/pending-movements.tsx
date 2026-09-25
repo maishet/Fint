@@ -1,8 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeftRight, Check, ChevronLeft, Inbox, Mail, Repeat, X } from "@tamagui/lucide-icons-2";
-import { useFocusEffect, useRouter } from "expo-router";
-import { setStatusBarStyle } from "expo-status-bar";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "expo-router";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, Pressable, RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -23,6 +22,7 @@ import { canConfirmFromList, compatibleOccurrences, detectedWhen, isMatchedTrans
 import { useThemeMode } from "../src/theme/ThemeMode";
 import { radius, shadows, space } from "../src/theme/tokens";
 import { fontFace } from "../src/theme/typography";
+import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
 import { Amount, FintButton, FintCard, FintSheet, FintSpinner, FText, IconButton, Monogram, PressableScale, SegmentedControl } from "../src/ui";
 import { AmountSkeleton } from "../src/ui/AmountSkeleton";
 import { useNotify } from "../src/ui/notify";
@@ -83,12 +83,7 @@ export default function PendingMovementsScreen() {
     return () => clearTimeout(id);
   }, [sheetOpen]);
 
-  useFocusEffect(
-    useCallback(() => {
-      setStatusBarStyle(themeMode === "dark" ? "light" : "dark");
-      return () => setStatusBarStyle("light");
-    }, [themeMode]),
-  );
+  useScreenStatusBar();
 
   const pendingQuery = useInfiniteQuery({
     queryKey: ["pending-movements", "pages"],

@@ -16,10 +16,9 @@ import {
   Table2,
   Wallet,
 } from "@tamagui/lucide-icons-2";
-import { useFocusEffect, useRouter } from "expo-router";
-import { setStatusBarStyle } from "expo-status-bar";
+import { useRouter } from "expo-router";
 import type { TFunction } from "i18next";
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshControl, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -49,9 +48,9 @@ import {
   type CategoryRow,
   type PeriodKind,
 } from "../../src/reports/logic";
-import { useThemeMode } from "../../src/theme/ThemeMode";
 import { radius, space } from "../../src/theme/tokens";
 import { fontFace } from "../../src/theme/typography";
+import { useScreenStatusBar } from "../../src/theme/useScreenStatusBar";
 import { Amount, FintCard, FintSheet, FText, IconButton, ListRow, Monogram, PressableScale, SegmentedControl } from "../../src/ui";
 import { AmountSkeleton } from "../../src/ui/AmountSkeleton";
 import { useNotify } from "../../src/ui/notify";
@@ -121,7 +120,6 @@ export default function ReportsScreen() {
   const toast = useNotify();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const { themeMode } = useThemeMode();
   const iconFor = useCategoryIcons();
 
   const [kind, setKind] = useState<PeriodKind>("month");
@@ -132,12 +130,7 @@ export default function ReportsScreen() {
   const [isExporting, setIsExporting] = useState(false);
   const [pulling, setPulling] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      setStatusBarStyle(themeMode === "dark" ? "light" : "dark");
-      return () => setStatusBarStyle("light");
-    }, [themeMode]),
-  );
+  useScreenStatusBar();
 
   const today = new Date();
   const current = isCurrentPeriod(kind, start, today);

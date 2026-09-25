@@ -4,7 +4,7 @@ import { setupGestureHandler } from "@tamagui/native/setup-gesture-handler";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { StatusBar } from "expo-status-bar";
+import { setStatusBarStyle } from "expo-status-bar";
 import {
   DarkTheme,
   DefaultTheme,
@@ -162,6 +162,14 @@ function RootLayoutNav() {
   const { hasShareIntent, shareIntent, resetShareIntent } = useShareIntent({ resetOnBackground: false });
   const setupComplete = meQuery.data?.setupComplete;
 
+  // Iconos claros al arrancar (carga e Inicio); después cada pantalla fija los suyos con `useScreenStatusBar`.
+  // Sin el componente `<StatusBar>`: en Android, cada vez que esta raíz se volvía a renderizar (al llegar una
+  // consulta) reaplicaba su estilo encima del de la pantalla, y la primera visita a Movimientos o Reportes
+  // quedaba con iconos blancos sobre fondo claro.
+  useEffect(() => {
+    setStatusBarStyle("light");
+  }, []);
+
   useEffect(() => {
     if (setupComplete !== true) return;
     return attachNotificationResponseListener(router);
@@ -203,8 +211,6 @@ function RootLayoutNav() {
     <ThemeProvider
       value={themeMode === "dark" ? darkNavigationTheme : lightNavigationTheme}
     >
-      {}
-      <StatusBar style="light" backgroundColor={fintPalette.light.headerBackground} />
       <YStack flex={1}>
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />

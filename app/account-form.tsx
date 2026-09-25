@@ -1,9 +1,8 @@
 import { Canvas, Circle, RadialGradient, vec } from "@shopify/react-native-skia";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Banknote, ChevronDown, Lock, Plus, Trash2, X } from "@tamagui/lucide-icons-2";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { setStatusBarStyle } from "expo-status-bar";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, TextInput } from "react-native";
 import { KeyboardAwareScrollView, KeyboardStickyView } from "react-native-keyboard-controller";
@@ -26,6 +25,7 @@ import { useUnsavedChangesGuard } from "../src/hooks/useUnsavedChangesGuard";
 import { useThemeMode } from "../src/theme/ThemeMode";
 import { radius, space } from "../src/theme/tokens";
 import { fontFace, textStyles } from "../src/theme/typography";
+import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
 import { Amount, FintButton, FintSheet, FintSpinner, FText, IconButton, PressableScale, SheetField, SheetTextInput } from "../src/ui";
 import { AmountSkeleton } from "../src/ui/AmountSkeleton";
 import { haptics } from "../src/ui/haptics";
@@ -61,12 +61,7 @@ export default function AccountFormScreen() {
   const { capabilities } = useCapabilities();
   const currencyName = useCurrencyName();
 
-  useFocusEffect(
-    useCallback(() => {
-      setStatusBarStyle(themeMode === "dark" ? "light" : "dark");
-      return () => setStatusBarStyle("light");
-    }, [themeMode]),
-  );
+  useScreenStatusBar();
 
   const accountQuery = useQuery({
     queryKey: ["accounts", "detail", accountId],

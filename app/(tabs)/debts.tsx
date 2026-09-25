@@ -1,8 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CalendarCheck, Check, ChevronDown, Plus, Repeat, Trash2 } from "@tamagui/lucide-icons-2";
-import { useFocusEffect, useRouter } from "expo-router";
-import { setStatusBarStyle } from "expo-status-bar";
-import { useCallback, useMemo, useState } from "react";
+import { useRouter } from "expo-router";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshControl, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,9 +17,9 @@ import { usePressOnce } from "../../src/hooks/usePressOnce";
 import { getAppLocale } from "../../src/i18n";
 import { buildPendingItems, groupHistory, groupPending, leadOccurrence, monthSummaries, type PendingGroupKey } from "../../src/payments/logic";
 import { HistoryRow, PaymentRow } from "../../src/payments/PaymentRow";
-import { useThemeMode } from "../../src/theme/ThemeMode";
 import { radius, space } from "../../src/theme/tokens";
 import { fontFace } from "../../src/theme/typography";
+import { useScreenStatusBar } from "../../src/theme/useScreenStatusBar";
 import { Amount, FintButton, FintCard, FintConfirmDialog, FintSheet, FText, IconButton, ListRow, PressableScale, SegmentedControl } from "../../src/ui";
 import { AmountSkeleton } from "../../src/ui/AmountSkeleton";
 import { useNotify } from "../../src/ui/notify";
@@ -48,7 +47,6 @@ export default function PaymentsScreen() {
   const toast = useNotify();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const { themeMode } = useThemeMode();
   const { capabilities } = useCapabilities();
   const iconFor = useCategoryIcons();
   const pressOnce = usePressOnce();
@@ -60,13 +58,7 @@ export default function PaymentsScreen() {
   const [currencySheet, setCurrencySheet] = useState(false);
   const [pulling, setPulling] = useState(false);
 
-  // El fondo de esta pantalla es `canvas`: la barra de estado va con iconos oscuros en claro.
-  useFocusEffect(
-    useCallback(() => {
-      setStatusBarStyle(themeMode === "dark" ? "light" : "dark");
-      return () => setStatusBarStyle("light");
-    }, [themeMode]),
-  );
+  useScreenStatusBar();
 
   const openQuery = useQuery({
     queryKey: ["payment-occurrences", "open"],

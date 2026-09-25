@@ -1,7 +1,6 @@
 import { ChevronLeft, CircleAlert, Eye, EyeOff, KeyRound, Lock } from "@tamagui/lucide-icons-2";
-import { useFocusEffect, useRouter } from "expo-router";
-import { setStatusBarStyle } from "expo-status-bar";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useRouter } from "expo-router";
+import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, type TextInputProps } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
@@ -11,9 +10,9 @@ import { z } from "zod";
 import { useAuth } from "../src/auth/AuthProvider";
 import { getValidationMessage, useSubmitValidation } from "../src/forms";
 import { Avatar, Group, GroupTitle, Item } from "../src/settings/SettingsList";
-import { useThemeMode } from "../src/theme/ThemeMode";
 import { radius, space } from "../src/theme/tokens";
 import { fontFace, textStyles } from "../src/theme/typography";
+import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
 import { FintButton, FintSheet, FintSpinner, FText, IconButton, SheetField, SheetTextInput, useNotify } from "../src/ui";
 import { GoogleMark } from "../src/ui/GoogleMark";
 
@@ -32,7 +31,6 @@ export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const notify = useNotify();
-  const { themeMode } = useThemeMode();
   const { session, updateDisplayName } = useAuth();
   const appMetadata = session?.user.app_metadata ?? {};
   const providers = Array.isArray(appMetadata.providers)
@@ -62,12 +60,7 @@ export default function ProfileScreen() {
   const changed = displayName.trim() !== savedName.trim();
   const shownName = displayName.trim() || savedName || t("profile.title");
 
-  useFocusEffect(
-    useCallback(() => {
-      setStatusBarStyle(themeMode === "dark" ? "light" : "dark");
-      return () => setStatusBarStyle("light");
-    }, [themeMode]),
-  );
+  useScreenStatusBar();
   useEffect(() => {
     if (passwordOpen) return;
     const id = setTimeout(() => setPasswordMounted(false), SHEET_UNMOUNT_MS);

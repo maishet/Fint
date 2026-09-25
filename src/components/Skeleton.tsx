@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { Animated } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
 import { Separator, XStack, YStack, type YStackProps } from "tamagui";
 import { FintCard } from "../ui";
 
@@ -15,8 +16,11 @@ interface SkeletonListProps {
 
 export function SkeletonGroup({ children, label }: SkeletonGroupProps) {
   const opacity = useRef(new Animated.Value(0.5)).current;
+  // Con movimiento reducido el esqueleto se queda quieto (como `AmountSkeleton`).
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
+    if (reduceMotion) return;
     const animation = Animated.loop(
       Animated.sequence([
         Animated.timing(opacity, {
@@ -33,7 +37,7 @@ export function SkeletonGroup({ children, label }: SkeletonGroupProps) {
     );
     animation.start();
     return () => animation.stop();
-  }, [opacity]);
+  }, [opacity, reduceMotion]);
 
   return (
     <Animated.View

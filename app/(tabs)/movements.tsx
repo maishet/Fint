@@ -1,9 +1,8 @@
 import { FlashList } from "@shopify/flash-list";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowLeftRight, ArrowUp, CalendarDays, Check, ChevronDown, ChevronRight, Mail, ScanLine, Search, Trash2, X } from "@tamagui/lucide-icons-2";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { setStatusBarStyle } from "expo-status-bar";
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, RefreshControl, ScrollView, TextInput } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -31,9 +30,9 @@ import {
   type ListEntry,
   type MovementFilter,
 } from "../../src/movements/logic";
-import { useThemeMode } from "../../src/theme/ThemeMode";
 import { radius, space } from "../../src/theme/tokens";
 import { fontFace, textStyles } from "../../src/theme/typography";
+import { useScreenStatusBar } from "../../src/theme/useScreenStatusBar";
 import { Amount, Chip, FintButton, FintCard, FintConfirmDialog, FintSheet, FintSpinner, FText, IconButton, ListRow, PressableScale } from "../../src/ui";
 import { AmountSkeleton } from "../../src/ui/AmountSkeleton";
 import { useNotify } from "../../src/ui/notify";
@@ -90,7 +89,6 @@ export default function MovementsScreen() {
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const { themeMode } = useThemeMode();
   const { capabilities } = useCapabilities();
   const iconFor = useCategoryIcons();
 
@@ -113,13 +111,7 @@ export default function MovementsScreen() {
     }
   }, [params.q, params.qt]);
 
-  // El fondo de esta pantalla es `canvas`: la barra de estado va con iconos oscuros en claro.
-  useFocusEffect(
-    useCallback(() => {
-      setStatusBarStyle(themeMode === "dark" ? "light" : "dark");
-      return () => setStatusBarStyle("light");
-    }, [themeMode]),
-  );
+  useScreenStatusBar();
 
   const range = monthRange(month);
   const deferredSearch = useDeferredValue(search);

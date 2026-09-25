@@ -1,9 +1,8 @@
 import { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } from "@react-native-google-signin/google-signin";
 import { ChevronLeft, CircleAlert, Ellipsis, Plus, RefreshCw, Trash2, X } from "@tamagui/lucide-icons-2";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useFocusEffect, useRouter } from "expo-router";
-import { setStatusBarStyle } from "expo-status-bar";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, RefreshControl, TextInput } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
@@ -18,6 +17,7 @@ import { addSenders, GMAIL_MAX_SOURCES, gmailCardState, sameSenders, syncDay, vi
 import { useThemeMode } from "../src/theme/ThemeMode";
 import { radius, space } from "../src/theme/tokens";
 import { fontFace, textStyles } from "../src/theme/typography";
+import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
 import { FintButton, FintCard, FintSheet, FintSpinner, FText, IconButton, PressableScale, useNotify } from "../src/ui";
 import { DashedOutline } from "../src/ui/DashedOutline";
 import { GoogleMark } from "../src/ui/GoogleMark";
@@ -71,12 +71,7 @@ export default function GmailSettingsScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      setStatusBarStyle(themeMode === "dark" ? "light" : "dark");
-      return () => setStatusBarStyle("light");
-    }, [themeMode]),
-  );
+  useScreenStatusBar();
 
   const connectMutation = useMutation({
     mutationFn: connectGmailNative,

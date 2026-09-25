@@ -14,9 +14,8 @@ import {
   Shapes,
   X,
 } from "@tamagui/lucide-icons-2";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { setStatusBarStyle } from "expo-status-bar";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable } from "react-native";
 import { KeyboardAwareScrollView, KeyboardStickyView } from "react-native-keyboard-controller";
@@ -39,9 +38,9 @@ import { LocationSheet } from "../src/movement-form/LocationSheet";
 import { NoteSheet } from "../src/movement-form/NoteSheet";
 import { getInstallationId } from "../src/notifications/pushNotifications";
 import { compatibleOccurrences, matchingOccurrence } from "../src/pending/logic";
-import { useThemeMode } from "../src/theme/ThemeMode";
 import { radius, space } from "../src/theme/tokens";
 import { fontFace } from "../src/theme/typography";
+import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
 import {
   Amount,
   FintButton,
@@ -86,17 +85,11 @@ export default function PendingReviewScreen() {
   const toast = useNotify();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
-  const { themeMode } = useThemeMode();
   const { capabilities } = useCapabilities();
   const params = useLocalSearchParams<{ id?: string; detectedAt?: string }>();
   const pendingId = params.id ?? "";
 
-  useFocusEffect(
-    useCallback(() => {
-      setStatusBarStyle(themeMode === "dark" ? "light" : "dark");
-      return () => setStatusBarStyle("light");
-    }, [themeMode]),
-  );
+  useScreenStatusBar();
 
   // El pendiente cuyos datos ya se copiaron al formulario: hasta entonces sigue el esqueleto (si no, un instante sale el
   // monto vacío "0.00" y el tipo por defecto antes de los datos reales).

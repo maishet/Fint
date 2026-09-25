@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { CalendarDays, ChevronDown, FileText, MapPin, Plus, X } from "@tamagui/lucide-icons-2";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BackHandler, ScrollView } from "react-native";
@@ -38,9 +37,9 @@ import {
 } from "../src/movement-form/logic";
 import { NoteSheet } from "../src/movement-form/NoteSheet";
 import { TransferAccounts } from "../src/movement-form/TransferAccounts";
-import { useThemeMode } from "../src/theme/ThemeMode";
 import { radius } from "../src/theme/tokens";
 import { fontFace } from "../src/theme/typography";
+import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
 import {
   Amount,
   AmountDisplay,
@@ -84,7 +83,7 @@ export default function TransactionFormScreen() {
   const { t, i18n } = useTranslation();
   const locale = getAppLocale(i18n.resolvedLanguage);
   const insets = useSafeAreaInsets();
-  const { themeMode } = useThemeMode();
+  useScreenStatusBar();
   const reduceMotion = useReducedMotion();
   const toast = useNotify();
   const queryClient = useQueryClient();
@@ -427,7 +426,6 @@ export default function TransactionFormScreen() {
 
   return (
     <>
-      <StatusBar style={themeMode === "dark" ? "light" : "dark"} />
       <UnsavedChangesDialog
         open={guard.open}
         onCancel={guard.onCancel}

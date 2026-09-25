@@ -1,7 +1,6 @@
 import { ChevronLeft, ChevronRight, CircleAlert, Mail, ShieldCheck } from "@tamagui/lucide-icons-2";
-import { useFocusEffect, useRouter } from "expo-router";
-import { setStatusBarStyle } from "expo-status-bar";
-import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import { Pressable } from "react-native";
 import Animated, { FadeIn, LinearTransition, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
@@ -14,10 +13,10 @@ import { UnsavedChangesDialog } from "../src/components/UnsavedChangesDialog";
 import { useUnsavedChangesGuard } from "../src/hooks/useUnsavedChangesGuard";
 import { deviceLine } from "../src/support/deviceLine";
 import { getSupportDiagnostics } from "../src/support/diagnostics";
-import { useThemeMode } from "../src/theme/ThemeMode";
 import { motion, radius, space } from "../src/theme/tokens";
 import { GroupTitle } from "../src/settings/SettingsList";
 import { fontFace, textStyles } from "../src/theme/typography";
+import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
 import { Chip, FintButton, FintCard, FintSheet, FintSpinner, FText, IconButton, SheetField, SheetTextInput, useNotify } from "../src/ui";
 
 const KEYBOARD_GAP = 24;
@@ -42,7 +41,6 @@ export default function SupportScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const notify = useNotify();
-  const { themeMode } = useThemeMode();
   const topics = t("support.categories", { returnObjects: true }) as string[];
   const faqs = t("helpScreen.faqs", { returnObjects: true }) as Faq[];
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -59,12 +57,7 @@ export default function SupportScreen() {
   const diagnostics = { ...getSupportDiagnostics(), platform: deviceLine() };
   const diagnosticLine = `My Fint ${diagnostics.appVersion} (${diagnostics.buildNumber}) · ${diagnostics.platform}`;
 
-  useFocusEffect(
-    useCallback(() => {
-      setStatusBarStyle(themeMode === "dark" ? "light" : "dark");
-      return () => setStatusBarStyle("light");
-    }, [themeMode]),
-  );
+  useScreenStatusBar();
   useEffect(() => {
     if (confirmOpen) return;
     const id = setTimeout(() => setConfirmMounted(false), SHEET_UNMOUNT_MS);

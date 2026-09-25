@@ -1,8 +1,7 @@
 import { ChevronLeft, ChevronRight, Pencil, Plus, Search, Tag, Trash2, X } from "@tamagui/lucide-icons-2";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useFocusEffect, useRouter } from "expo-router";
-import { setStatusBarStyle } from "expo-status-bar";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "expo-router";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, RefreshControl, ScrollView, Text as RNText } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -15,8 +14,8 @@ import { DataStateCard } from "../src/components/DataStateCard";
 import { suggestedCategoryIcons } from "../src/finance/categoryIcons";
 import { getCategoryLabel } from "../src/finance/categoryLabels";
 import { categoryColorIndex, spendingRange } from "../src/home/spending";
-import { useThemeMode } from "../src/theme/ThemeMode";
 import { radius, space } from "../src/theme/tokens";
+import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
 import { Amount, FintButton, FintSheet, FintSpinner, FText, IconButton, SegmentedControl, SheetField, SheetTextInput, useNotify } from "../src/ui";
 import { AmountSkeleton } from "../src/ui/AmountSkeleton";
 import { GroupedCell } from "../src/ui/GroupedCell";
@@ -42,7 +41,6 @@ export default function CategoriesScreen() {
   const theme = useTheme();
   const notify = useNotify();
   const queryClient = useQueryClient();
-  const { themeMode } = useThemeMode();
   const [type, setType] = useState<TransactionType>("expense");
   const [query, setQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
@@ -74,12 +72,7 @@ export default function CategoriesScreen() {
     enabled: type === "income",
   });
 
-  useFocusEffect(
-    useCallback(() => {
-      setStatusBarStyle(themeMode === "dark" ? "light" : "dark");
-      return () => setStatusBarStyle("light");
-    }, [themeMode]),
-  );
+  useScreenStatusBar();
   useEffect(() => {
     if (deleteTarget) return;
     const id = setTimeout(() => setDeleteMounted(null), SHEET_UNMOUNT_MS);
