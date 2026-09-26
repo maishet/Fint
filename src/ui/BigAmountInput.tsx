@@ -37,7 +37,7 @@ export function BigAmountInput({
     const sub = Keyboard.addListener("keyboardDidHide", () => input.current?.blur());
     return () => sub.remove();
   }, []);
-  const style = [textStyles.amount, { fontFamily: fontFace.mono[500], fontSize: 44, lineHeight: 52, letterSpacing: -2 }];
+  const style = [textStyles.amount, { fontFamily: fontFace.mono[600], fontSize: 44, lineHeight: 52, letterSpacing: -1 }];
   return (
     <XStack justify="center" items="center" gap={6} mt={4} maxW="100%">
       <FText tone="inkFaint" style={{ fontFamily: fontFace.mono[500], fontSize: 22, lineHeight: 28, marginTop: 8 }}>

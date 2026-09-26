@@ -351,10 +351,10 @@ const trackingBySize = {
 
 const weightScale = { 1: "400", 4: "400", 5: "500", 6: "600", 7: "700", 8: "700", 9: "700" } as const;
 
-/** Geist: cuerpo, etiquetas, botones y navegación. El 700 cae en SemiBold: sans vive en 400 y 600. */
+/** Figtree: cuerpo, etiquetas, botones y navegación. El 700 cae en SemiBold: sans vive en 400, 500 y 600. */
 const bodyFont = createSystemFont({
   font: {
-    family: "Geist",
+    family: "Figtree",
     face: {
       400: { normal: fontFace.sans[400] },
       500: { normal: fontFace.sans[500] },
@@ -366,10 +366,10 @@ const bodyFont = createSystemFont({
   },
 });
 
-/** Schibsted Grotesk: marca y títulos. Vive en 600; 400 y 500 también caen en SemiBold. */
+/** Figtree en títulos: la misma familia del cuerpo, en 600 y 700; 400 y 500 caen en SemiBold. */
 const headingFont = createSystemFont({
   font: {
-    family: "SchibstedGrotesk",
+    family: "FigtreeDisplay",
     face: {
       400: { normal: fontFace.display[600] },
       500: { normal: fontFace.display[600] },
@@ -382,12 +382,12 @@ const headingFont = createSystemFont({
 });
 
 /**
- * Geist Mono: toda cifra. Úsala como `fontFamily="$mono"` junto con
+ * IBM Plex Sans: toda cifra (el nombre `$mono` es histórico). Úsala como `fontFamily="$mono"` junto con
  * `fontVariant={["tabular-nums"]}`, o mejor con el componente `Amount`.
  */
 const monoFont = createSystemFont({
   font: {
-    family: "GeistMono",
+    family: "IBMPlexSans",
     face: {
       400: { normal: fontFace.mono[400] },
       500: { normal: fontFace.mono[500] },

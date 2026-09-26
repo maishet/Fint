@@ -546,7 +546,7 @@ function NotificationsIllustration() {
   return (
     <YStack gap={12} px={18}>
       <YStack items="center" mb={10}>
-        <Text color="$brand" style={{ fontFamily: fontFace.mono[500], fontSize: 60, lineHeight: 66, letterSpacing: -3, opacity: 0.9 }}>
+        <Text color="$brand" style={{ fontFamily: fontFace.mono[500], fontSize: 60, lineHeight: 66, letterSpacing: -1.5, opacity: 0.9 }}>
           {clock}
         </Text>
         <FText variant="label" tone="inkMuted">

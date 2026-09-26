@@ -296,7 +296,7 @@ function SwipeableBalance({
 
   const parts = amountParts(page.balance, page.currency);
   const digitCount = parts.integer.replaceAll(THIN_SPACE, "").length + parts.fraction.length;
-  // Ancho aproximado del saldo en Geist Mono: la parte entera a 48px y el símbolo y los decimales a 26px.
+  // Ancho aproximado del saldo (los dígitos de Plex miden 0.6em): la parte entera a 48px y el símbolo y los decimales a 26px.
   const skeletonWidth = Math.round(parts.integer.length * 48 * 0.6 + (parts.symbol.length + parts.fraction.length + 2) * 26 * 0.6);
   const hero = textStyles["amount-hero"];
   const minor = { ...textStyles["amount-hero-cents"], lineHeight: undefined, letterSpacing: -0.4 };

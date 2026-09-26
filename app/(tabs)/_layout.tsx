@@ -1,5 +1,6 @@
-import { Tabs } from "expo-router";
-import { useState } from "react";
+import { Tabs, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { InteractionManager } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "tamagui";
 import { ArrowLeftRight, ChartColumn, CreditCard, House } from "@tamagui/lucide-icons-2";
@@ -11,10 +12,32 @@ import { RecordSheet } from "../../src/components/RecordSheet";
  * único que se hace varias veces al día, así que es lo único con botón propio.
  * Cuentas dejó de ser un tab: se abre desde el saldo del Inicio.
  */
+/** Los tabs que se montan por adelantado, en este orden, uno cada `PRELOAD_GAP_MS`. */
+const PRELOADED_TABS = ["/(tabs)/movements", "/(tabs)/debts", "/(tabs)/reports"] as const;
+const PRELOAD_DELAY_MS = 1200;
+const PRELOAD_GAP_MS = 400;
+
 export default function TabLayout() {
   const { t } = useTranslation();
   const theme = useTheme();
+  const router = useRouter();
   const [recordOpen, setRecordOpen] = useState(false);
+
+  // Montar un tab por primera vez tarda (en desarrollo, cerca de un segundo) y durante el `fade` solo se veía el
+  // fondo vacío. Con el Inicio ya abierto se montan los demás por detrás, de a uno: al tocarlos ya están, con sus
+  // datos o con su skeleton mientras llegan.
+  useEffect(() => {
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const start = setTimeout(() => {
+      PRELOADED_TABS.forEach((href, i) => {
+        timers.push(setTimeout(() => InteractionManager.runAfterInteractions(() => router.prefetch(href)), i * PRELOAD_GAP_MS));
+      });
+    }, PRELOAD_DELAY_MS);
+    return () => {
+      clearTimeout(start);
+      timers.forEach(clearTimeout);
+    };
+  }, [router]);
 
   return (
     <>

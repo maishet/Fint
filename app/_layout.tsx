@@ -231,8 +231,9 @@ function RootLayoutNav() {
             options={{
               headerShown: false,
               animation: "fade",
-              // Mientras el Inicio monta, detrás se ve la losa (como la pantalla de carga y el hero), no un destello claro.
-              contentStyle: { backgroundColor: theme.slab.val },
+              // Detrás de los tabs va el fondo de la app: es lo que asoma en el `fade` al cambiar de tab. El Inicio pone
+              // su propia losa (`sceneStyle`) para salir de la pantalla de carga sin destello claro.
+              contentStyle: { backgroundColor: theme.background.val },
             }}
           />
           {/*

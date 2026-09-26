@@ -37,7 +37,7 @@ export interface AmountProps extends Omit<TextProps, "children"> {
 const hidden = "••••••";
 
 /**
- * Toda cifra de la app pasa por aquí: Geist Mono con cifras tabulares, signo
+ * Toda cifra de la app pasa por aquí: IBM Plex Sans con cifras tabulares, signo
  * menos tipográfico, espacio fino de miles y el símbolo un poco más chico.
  * El símbolo va del mismo color que la cifra (`+S/ 4 200.00` entero en
  * `flowIn`), como en los previews; el único símbolo apagado es el del saldo
