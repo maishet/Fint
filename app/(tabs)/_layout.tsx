@@ -1,47 +1,78 @@
-import { Tabs, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { Easing, InteractionManager } from "react-native";
+import { Tabs, useIsFocused, useNavigation } from "expo-router";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { Easing } from "react-native";
 import { useTranslation } from "react-i18next";
+import { Freeze } from "react-freeze";
 import { useTheme } from "tamagui";
 import { ArrowLeftRight, ChartColumn, CreditCard, House } from "@tamagui/lucide-icons-2";
 import { FintTabBar } from "../../src/components/FintTabBar";
 import { RecordSheet } from "../../src/components/RecordSheet";
+import { TabFirstMount } from "../../src/components/TabFirstMount";
 
 /**
  * Cuatro tabs y un botón central que abre la hoja de registro. Registrar es lo
  * único que se hace varias veces al día, así que es lo único con botón propio.
  * Cuentas dejó de ser un tab: se abre desde el saldo del Inicio.
  */
-/** Los tabs que se montan por adelantado, en este orden, uno cada `PRELOAD_GAP_MS`. */
-const PRELOADED_TABS = ["/(tabs)/movements", "/(tabs)/debts", "/(tabs)/reports"] as const;
-const PRELOAD_DELAY_MS = 1200;
-const PRELOAD_GAP_MS = 400;
+/** Pantallas encima de los tabs que los dejan ver (el formulario crece sobre la pantalla anterior). */
+const SEE_THROUGH_ROUTES = ["transaction-form"];
 
 export default function TabLayout() {
   const { t } = useTranslation();
   const theme = useTheme();
-  const router = useRouter();
+  const tabsFocused = useIsFocused();
+  const navigation = useNavigation();
+  // Tapados del todo por una pantalla opaca (Ajustes, un detalle…): cuando termina la transición del stack con los
+  // tabs sin foco, la pantalla nueva ya entró y recién ahí se puede congelar hasta el tab activo. Un tiempo fijo no
+  // sirve: si la pantalla nueva tarda en montar, se congelaba antes de que entrara y se veía el fondo vacío. Lo de
+  // arriba se lee del estado del stack en ese momento: `usePathname` cambia con cada tab y redibujaba las cuatro.
+  const [covered, setCovered] = useState(false);
+  useEffect(() => {
+    const offEnd = navigation.addListener("transitionEnd" as never, (() => {
+      if (navigation.isFocused()) return;
+      const stack = navigation.getState();
+      const top = stack?.routes[stack.index]?.name;
+      if (top && !SEE_THROUGH_ROUTES.includes(top)) setCovered(true);
+    }) as never);
+    const offFocus = navigation.addListener("focus", () => setCovered(false));
+    return () => {
+      offEnd();
+      offFocus();
+    };
+  }, [navigation]);
   const [recordOpen, setRecordOpen] = useState(false);
 
-  // Montar un tab por primera vez tarda (en desarrollo, cerca de un segundo) y durante el `fade` solo se veía el
-  // fondo vacío. Con el Inicio ya abierto se montan los demás por detrás, de a uno: al tocarlos ya están, con sus
-  // datos o con su skeleton mientras llegan.
-  useEffect(() => {
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    const start = setTimeout(() => {
-      PRELOADED_TABS.forEach((href, i) => {
-        timers.push(setTimeout(() => InteractionManager.runAfterInteractions(() => router.prefetch(href)), i * PRELOAD_GAP_MS));
-      });
-    }, PRELOAD_DELAY_MS);
-    return () => {
-      clearTimeout(start);
-      timers.forEach(clearTimeout);
-    };
-  }, [router]);
+  // Estable mientras no cambie el foco: si cambiara con cada render, cada cambio de tab volvería a renderizar las cuatro.
+  const screenLayout = useCallback(
+    ({
+      children,
+      navigation: tab,
+      route,
+      options,
+    }: {
+      children: ReactNode;
+      navigation: { getState(): { index: number; routes: { key: string }[] } };
+      route: { key: string; name: string };
+      options: { title?: string };
+    }) => {
+      const state = tab.getState();
+      const selected = state.routes[state.index]?.key === route.key;
+      // El Inicio llega montado desde la pantalla de carga; los demás muestran su esqueleto en la primera visita.
+      const content = route.name === "dashboard" ? children : <TabFirstMount name={route.name} title={options.title ?? ""}>{children}</TabFirstMount>;
+      return <Freeze freeze={!tabsFocused && (!selected || covered)}>{content}</Freeze>;
+    },
+    [covered, tabsFocused],
+  );
 
   return (
     <>
       <Tabs
+        // Con una pantalla encima de los tabs se congelan los que no se ven, y no se vuelven a renderizar hasta
+        // volver: cambiar tema o idioma en Ajustes redibujaba todos los tabs ya visitados (~2.000 vistas) y el
+        // teléfono se quedaba pegado varios segundos. Los inactivos se congelan enseguida (están ocultos); el elegido, solo
+        // cuando lo tapa del todo una pantalla opaca ya asentada: el formulario transparente lo deja ver.
+        // "Elegido" se lee del estado de este navegador: `navigation.isFocused()` da falso con algo encima.
+        screenLayout={screenLayout}
         tabBar={(props) => (
           <FintTabBar {...props} centerAction={{ label: t("home.record.fab"), onPress: () => setRecordOpen(true) }} />
         )}
