@@ -93,6 +93,11 @@ export interface FintLogoLoaderProps {
   startComplete?: boolean;
   /** Llegaron los datos: termina de armar el logo (rápido), sale y llama `onDone`. */
   ready?: boolean;
+  /**
+   * Con `false`, al llegar los datos el logo se completa y se queda quieto (sin salir) y `onDone` se llama ahí:
+   * lo que viene después lo tapa con su propia transición. Por defecto sale con `fade`.
+   */
+  exitOnReady?: boolean;
   /** Empieza la salida (el logo ya está completo): para que la frase salga junto con él. */
   onLeave?: () => void;
   onDone?: () => void;
@@ -106,7 +111,7 @@ export interface FintLogoLoaderProps {
  * velocidad y recién ahí sale con `fade` y escala 0.96. Con movimiento
  * reducido, el logo completo late en opacidad.
  */
-export function FintLogoLoader({ size, surface = "canvas", startComplete = false, ready = false, onLeave, onDone }: FintLogoLoaderProps) {
+export function FintLogoLoader({ size, surface = "canvas", startComplete = false, ready = false, exitOnReady = true, onLeave, onDone }: FintLogoLoaderProps) {
   const theme = useTheme();
   const reduceMotion = useReducedMotion();
   const t = useSharedValue(startComplete || reduceMotion ? LOGO_DONE : 0);
@@ -143,6 +148,10 @@ export function FintLogoLoader({ size, surface = "canvas", startComplete = false
     cancelAnimation(pulse);
     const leave = () => {
       "worklet";
+      if (!exitOnReady) {
+        if (onDone) runOnJS(onDone)();
+        return;
+      }
       if (onLeave) runOnJS(onLeave)();
       exit.value = withTiming(1, { duration: EXIT_MS, easing: Easing.out(Easing.cubic), reduceMotion: ReduceMotion.Never }, (finished) => {
         if (finished && onDone) runOnJS(onDone)();

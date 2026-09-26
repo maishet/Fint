@@ -7,6 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "finanzasmobilev2",
     "userInterfaceStyle": "automatic",
+    "backgroundColor": "#14172B",
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "bundleIdentifier": "com.fint.finanzasmobilev2",
@@ -49,18 +50,17 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
+          "image": "./assets/images/splash-logo.png",
+          "imageWidth": 132,
           "resizeMode": "contain",
-          "backgroundColor": "#043036",
-          "ios": {
-            "backgroundColor": "#043036",
-            "dark": {
-              "backgroundColor": "#0A1214"
-            }
+          "backgroundColor": "#14172B",
+          "dark": {
+            "image": "./assets/images/splash-logo-dark.png",
+            "backgroundColor": "#1A2040"
           }
         }
       ],
+      ["./plugins/withNightWindowBackground", { "color": "#1A2040" }],
       "@react-native-google-signin/google-signin",
       "expo-apple-authentication",
       [

@@ -49,6 +49,7 @@ export const unstable_settings = {
 setupGestureHandler({ sheet: true, pressEvents: false });
 
 SplashScreen.preventAutoHideAsync();
+const SPLASH_FALLBACK_MS = 3000;
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
@@ -116,10 +117,13 @@ const darkNavigationTheme = {
 function RootLayout() {
   const [fontsLoaded, fontsError] = useFonts(fontFiles);
 
+  // La pantalla nativa de arranque (la losa con el logo) la oculta la pantalla de carga cuando ya está dibujada
+  // (`FintLoadingScreen` con `startComplete`): así no asoma un cuadro vacío entre las dos. Si el arranque no pasa
+  // por ella (un enlace directo a otra pantalla), se oculta igual al rato.
   useEffect(() => {
-    if (fontsLoaded || fontsError) {
-      SplashScreen.hideAsync();
-    }
+    if (!fontsLoaded && !fontsError) return;
+    const fallback = setTimeout(() => void SplashScreen.hideAsync(), SPLASH_FALLBACK_MS);
+    return () => clearTimeout(fallback);
   }, [fontsLoaded, fontsError]);
 
   if (!fontsLoaded && !fontsError) {

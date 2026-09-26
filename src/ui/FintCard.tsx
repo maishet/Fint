@@ -16,8 +16,9 @@ export function FintCard({ raised = false, style, ...props }: FintCardProps) {
   const { themeMode } = useThemeMode();
 
   return (
+    // Sin `transition`: nada en la tarjeta se anima, y como componente animado (Reanimated) dejaba pegada la
+    // sombra con la que nació (la oscura, si el tema se resolvía después) y sumaba trabajo a cada commit.
     <Card
-      transition="quick"
       bg="$surface"
       borderColor="$line"
       borderWidth={1}

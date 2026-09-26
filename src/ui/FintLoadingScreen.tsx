@@ -1,4 +1,5 @@
 import { Repeat } from "@tamagui/lucide-icons-2";
+import { SplashScreen } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useWindowDimensions } from "react-native";
@@ -27,8 +28,17 @@ export interface FintLoadingScreenProps extends YStackProps {
   onDone?: () => void;
   /** Con más de 8 s, "Reintentar" debajo de la frase. Sin esto, solo el aviso. */
   onRetry?: () => void;
-  /** Arranca desde el logo completo (al relevar a la pantalla nativa de arranque). */
+  /**
+   * Releva a la pantalla nativa de arranque (la losa lisa con el logo completo, 132 px, en el centro): se ve
+   * desde el primer cuadro con el logo completo en el mismo lugar, la malla aparece con `fade` y, ya dibujada,
+   * oculta la pantalla nativa.
+   */
   startComplete?: boolean;
+  /**
+   * Con `false`, al llegar los datos el logo se completa y se queda (no sale) y `onDone` se llama enseguida: la
+   * pantalla que sigue lo tapa con su `fade` cuando ya está montada. Así no queda la losa vacía mientras monta.
+   */
+  exitOnReady?: boolean;
 }
 
 /**
@@ -36,7 +46,7 @@ export interface FintLoadingScreenProps extends YStackProps {
  * con `FintLogoLoader` y debajo va la frase de la etapa. Sobre la losa lleva la
  * malla del hero y "My Fint" al pie; dentro de una pantalla, el logo chico en
  * el centro del área de contenido. Si la espera dura menos de 400 ms no se ve
- * nada y `onDone` se llama enseguida. Para contenido cuya forma se conoce (listas,
+ * nada y `onDone` se llama enseguida (salvo con `startComplete`: el logo ya estaba en la pantalla nativa). Para contenido cuya forma se conoce (listas,
  * tarjetas) van los esqueletos de `src/components/Skeleton.tsx`.
  */
 export function FintLoadingScreen({
@@ -46,12 +56,13 @@ export function FintLoadingScreen({
   onDone,
   onRetry,
   startComplete,
+  exitOnReady = true,
   ...props
 }: FintLoadingScreenProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
-  const [shown, setShown] = useState(false);
+  const [shown, setShown] = useState(!!startComplete);
   const [slow, setSlow] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const doneRef = useRef(false);
@@ -91,20 +102,32 @@ export function FintLoadingScreen({
       overflow="hidden"
       {...props}
     >
-      {onSlab ? <HeroMesh width={width} height={height} /> : null}
+      {onSlab ? (
+        <Animated.View entering={startComplete ? FadeIn.duration(motion.fade.duration) : undefined} style={{ position: "absolute", inset: 0 }}>
+          <HeroMesh width={width} height={height} />
+        </Animated.View>
+      ) : null}
       {shown ? (
         <YStack items="center" width="100%" px={28}>
           {/* El logo y la frase se anuncian juntos como barra de progreso; "Reintentar" queda aparte. */}
-          <YStack items="center" gap={onSlab ? 22 : 16} accessible accessibilityRole="progressbar" accessibilityLabel={text}>
+          {/* El logo queda en el centro exacto (donde lo deja la pantalla nativa); la frase cuelga debajo. */}
+          <YStack
+            items="center"
+            accessible
+            accessibilityRole="progressbar"
+            accessibilityLabel={text}
+            onLayout={startComplete ? () => void SplashScreen.hideAsync() : undefined}
+          >
             <FintLogoLoader
               size={onSlab ? 132 : 76}
               surface={surface}
               startComplete={startComplete}
               ready={ready}
+              exitOnReady={exitOnReady}
               onLeave={() => setLeaving(true)}
               onDone={finish}
             />
-            <Animated.View style={captionStyle}>
+            <Animated.View style={[{ position: "absolute", top: "100%", marginTop: onSlab ? 22 : 16, width: width - 56, alignItems: "center" }, captionStyle]}>
               <Animated.View key={text} entering={FadeIn.duration(motion.fade.duration)}>
                 <FText variant="caption" tone={onSlab ? "slabMuted" : "inkMuted"} style={{ fontSize: 13, lineHeight: 20, textAlign: "center" }}>
                   {text}
@@ -116,7 +139,7 @@ export function FintLoadingScreen({
             // Debajo del grupo, sin empujarlo: el logo no se mueve cuando aparece el aviso.
             <Animated.View
               entering={FadeIn.duration(motion.fade.duration)}
-              style={{ position: "absolute", top: "100%", left: 28, right: 28, alignItems: "center", marginTop: 24 }}
+              style={{ position: "absolute", top: "100%", left: 28, right: 28, alignItems: "center", marginTop: (onSlab ? 22 : 16) + 20 + 24 }}
             >
               <FText tone={onSlab ? "slabMuted" : "inkMuted"} style={{ fontSize: 13, lineHeight: 19, textAlign: "center" }}>
                 {t("loadingScreen.slow")}

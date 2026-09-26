@@ -1,6 +1,6 @@
 import { Tabs, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { InteractionManager } from "react-native";
+import { Easing, InteractionManager } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "tamagui";
 import { ArrowLeftRight, ChartColumn, CreditCard, House } from "@tamagui/lucide-icons-2";
@@ -54,7 +54,9 @@ export default function TabLayout() {
             borderBottomColor: theme.borderColor.val,
           },
           headerTintColor: theme.color.val,
+          // `fade` cruzado de 180 ms (20-movimiento, "Cambio de tab"); el de la librería dura 150 ms y es lineal.
           animation: "fade",
+          transitionSpec: { animation: "timing", config: { duration: 180, easing: Easing.out(Easing.cubic) } },
         }}
       >
         <Tabs.Screen

@@ -55,12 +55,13 @@ export default function IndexScreen() {
       : t("loadingScreen.summary");
   const retry = waitingProfile ? () => void meQuery.refetch() : waitingSummary ? () => void overviewQuery.refetch() : undefined;
 
-  // Al terminar, la pantalla de carga (ya sin logo: la malla y "My Fint") se queda debajo mientras monta el destino.
+  // Al terminar, el logo completo se queda quieto y el destino, cuando ya montó, lo cubre con su `fade`.
   return (
     <>
       <FintLoadingScreen
         surface="slab"
         startComplete
+        exitOnReady={false}
         stage={stage}
         ready={!waitingSession && !waitingProfile && !waitingSummary}
         onDone={() => setDone(true)}

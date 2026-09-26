@@ -100,5 +100,11 @@
     "emojibase-data": "^17.0.0",
     "typescript": "~5.9.2"
   },
-  "packageManager": "bun@1.3.9"
+  "packageManager": "bun@1.3.9",
+  "reanimated": {
+    "staticFeatureFlags": {
+      "ANDROID_SYNCHRONOUSLY_UPDATE_UI_PROPS": true,
+      "FORCE_REACT_RENDER_FOR_SETTLED_ANIMATIONS": true
+    }
+  }
 }
