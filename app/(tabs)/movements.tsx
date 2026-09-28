@@ -37,6 +37,7 @@ import { useScreenStatusBar } from "../../src/theme/useScreenStatusBar";
 import { Amount, Chip, FintButton, FintCard, FintConfirmDialog, FintSheet, FintSpinner, FText, IconButton, ListRow, PressableScale } from "../../src/ui";
 import { AmountSkeleton } from "../../src/ui/AmountSkeleton";
 import { useNotify } from "../../src/ui/notify";
+import { detailParams } from "../../src/movements/detailParams";
 
 const PAGE_SIZE = 30;
 const FILTERS: MovementFilter[] = ["all", "expense", "income", "transfer"];
@@ -57,21 +58,6 @@ function capitalize(text: string) {
 }
 
 /** Los parámetros para abrir el detalle o el formulario de edición de un movimiento. */
-function movementParams(m: Transaction) {
-  return {
-    id: m.id,
-    type: m.type as "income" | "expense",
-    amount: String(m.amount),
-    currency: m.currency,
-    category: m.category,
-    account: m.account,
-    note: m.note ?? "",
-    date: m.date,
-    ...(m.latitude != null && m.longitude != null
-      ? { latitude: String(m.latitude), longitude: String(m.longitude), formattedAddress: m.formattedAddress ?? "" }
-      : {}),
-  };
-}
 
 /**
  * Tab Movimientos v3: título con Escanear, buscador en todo el historial,
@@ -338,8 +324,8 @@ export default function MovementsScreen() {
           first={entry.first}
           last={entry.last}
           emoji={iconFor(m.category, m.type)}
-          onOpen={isPayment || stranded ? undefined : () => router.push({ pathname: "/transaction-detail", params: movementParams(m) })}
-          onEdit={isPayment || stranded ? undefined : () => router.push({ pathname: "/transaction-form", params: movementParams(m) })}
+          onOpen={isPayment || stranded ? undefined : () => router.push({ pathname: "/transaction-detail", params: detailParams(m) })}
+          onEdit={isPayment || stranded ? undefined : () => router.push({ pathname: "/transaction-form", params: detailParams(m) })}
           destroyKind={canReverse ? "revert" : "delete"}
           onDestroy={canReverse ? () => setReverseTarget(m) : isPayment || stranded ? undefined : () => setDeleteTarget(m)}
         />

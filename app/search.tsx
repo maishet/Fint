@@ -27,6 +27,7 @@ import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
 import { Amount, Chip, FintButton, FText, Monogram, PressableScale } from "../src/ui";
 import { AmountSkeleton } from "../src/ui/AmountSkeleton";
 import { GroupedCell } from "../src/ui/GroupedCell";
+import { detailParams } from "../src/movements/detailParams";
 
 /** Los resultados se actualizan este tiempo después de la última tecla. */
 const DEBOUNCE_MS = 250;
@@ -187,22 +188,7 @@ export default function SearchScreen() {
   const openMovement = (tx: Transaction) => {
     remember(query);
     if (tx.paymentOccurrenceId || tx.type === "transfer") return;
-    router.push({
-      pathname: "/transaction-detail",
-      params: {
-        id: tx.id,
-        type: tx.type,
-        amount: String(tx.amount),
-        currency: tx.currency,
-        category: tx.category,
-        account: tx.account,
-        note: tx.note ?? "",
-        date: tx.date,
-        ...(tx.latitude != null && tx.longitude != null
-          ? { latitude: String(tx.latitude), longitude: String(tx.longitude), formattedAddress: tx.formattedAddress ?? "" }
-          : {}),
-      },
-    });
+    router.push({ pathname: "/transaction-detail", params: detailParams(tx) });
   };
 
   // El mes va en minúscula dentro de la frase ("desde setiembre"), salvo en inglés.

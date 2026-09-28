@@ -9,6 +9,7 @@ import { Amount, FText, Monogram } from "../ui";
 import { GroupedCell } from "../ui/GroupedCell";
 import { SwipeActions, type SwipeAction } from "../ui/SwipeActions";
 import type { MovementItem } from "./logic";
+import { movementText } from "./text";
 
 export interface MovementRowProps {
   item: MovementItem;
@@ -45,8 +46,8 @@ export function MovementRow({ item, first, last, emoji, onOpen, onEdit, onDestro
     item.kind === "transfer"
       ? t("movementsTab.transfer")
       : tx!.paymentOccurrenceId
-        ? [t("movementsTab.payment"), tx!.note || tx!.account].filter(Boolean).join(" · ")
-        : tx!.note || tx!.account;
+        ? [t("movementsTab.payment"), movementText(tx!) || tx!.account].filter(Boolean).join(" · ")
+        : movementText(tx!) || tx!.account;
   const amount = item.kind === "transfer" ? item.amount : tx!.amount;
   const currency = item.kind === "transfer" ? item.currency : tx!.currency;
   const kind = transfer ? "transfer" : tx!.type === "income" ? "income" : "expense";

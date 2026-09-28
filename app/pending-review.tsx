@@ -335,9 +335,11 @@ export default function PendingReviewScreen() {
     const weekday = new Intl.DateTimeFormat(locale, { weekday: "long" }).format(d);
     return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${shortDay(d, locale)}`;
   };
-  // "Detectado el jueves 24 set a las 14:32": con la hora si se llegó desde la lista (el detalle no la trae); si no, solo el día.
+  // "Detectado el jueves 24 set a las 14:32": la hora del correo que manda el detalle (backend nuevo), la que llegó de la
+  // lista o, abierto por otro camino con el backend anterior, solo el día.
   const sourceLabel = (() => {
-    const at = params.detectedAt ? new Date(params.detectedAt) : null;
+    const iso = detail?.occurredAt ?? params.detectedAt ?? detail?.detectedAt ?? null;
+    const at = iso ? new Date(iso) : null;
     if (at && !Number.isNaN(at.getTime())) {
       const weekday = new Intl.DateTimeFormat(locale, { weekday: "long" }).format(at);
       const day = inSentence(`${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${shortDay(at, locale)}`, i18n.resolvedLanguage);

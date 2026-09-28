@@ -46,6 +46,8 @@ interface HomeHeroProps {
   /** Tirón hacia abajo desde el tope, para que la malla se estire con el hero. */
   pull?: SharedValue<number>;
   attentionCount: number;
+  /** Sin nada por hacer, un punto en la campana si hay avisos informativos sin leer. */
+  hasUnread?: boolean;
   onProfile: () => void;
   onSearch: () => void;
   onNotifications: () => void;
@@ -159,7 +161,7 @@ export function ProfileAvatar({ onPress, size = 40 }: { onPress: () => void; siz
   );
 }
 
-function TopBar({ onProfile, onSearch, onNotifications, attentionCount }: HomeHeroProps) {
+function TopBar({ onProfile, onSearch, onNotifications, attentionCount, hasUnread = false }: HomeHeroProps) {
   const { t } = useTranslation();
 
   return (
@@ -202,6 +204,8 @@ function TopBar({ onProfile, onSearch, onNotifications, attentionCount }: HomeHe
                 {attentionCount > 9 ? "9+" : attentionCount}
               </Text>
             </View>
+          ) : hasUnread ? (
+            <View position="absolute" t={3} r={3} width={10} height={10} rounded={999} bg="$slabInk" borderWidth={2} borderColor="$slab" />
           ) : null}
         </View>
       </PressableScale>

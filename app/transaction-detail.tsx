@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, ChevronLeft, ChevronRight, Copy, FileText, Landmark, MapPin, Pencil, Receipt, Share as ShareIcon, Tag, Trash2 } from "@tamagui/lucide-icons-2";
+import { CalendarDays, ChevronLeft, ChevronRight, Copy, FileText, Landmark, Mail, MapPin, Pencil, Receipt, Share as ShareIcon, Tag, Trash2 } from "@tamagui/lucide-icons-2";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -35,6 +35,10 @@ type DetailParams = {
   category?: string;
   account?: string;
   note?: string;
+  /** Backend nuevo: solo la nota, la descripción detectada y la hora de la operación. */
+  userNote?: string;
+  sourceTitle?: string;
+  occurredAt?: string;
   date?: string;
   latitude?: string;
   longitude?: string;
@@ -78,7 +82,10 @@ export default function TransactionDetailScreen() {
   const [currency, setCurrency] = useState(params.currency ?? "PEN");
   const [category, setCategory] = useState(params.category ?? "");
   const [date, setDate] = useState(rawDate.slice(0, 10));
-  const [note, setNote] = useState(params.note ?? "");
+  // La nota es solo lo que escribió la persona; la descripción del correo va aparte (con el backend anterior, `note`
+  // trae una o la otra).
+  const [note, setNote] = useState(params.userNote ?? params.note ?? "");
+  const sourceTitle = params.sourceTitle?.trim() || null;
   const [location, setLocation] = useState<CapturedLocation | null>(() =>
     params.latitude && params.longitude
       ? { latitude: Number(params.latitude), longitude: Number(params.longitude), formattedAddress: params.formattedAddress || null }
@@ -178,7 +185,9 @@ export default function TransactionDetailScreen() {
   // "Hoy, 13:42" / "Ayer" / "Viernes 18 set": la hora solo si el movimiento la trae.
   const day = transactionDay(date);
   const dayDate = day ? new Date(day.y, day.m, day.d) : null;
-  const time = rawDate.includes("T") && rawDate.slice(0, 10) === date ? new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(rawDate)) : null;
+  // La hora del correo (o de la operación) si es del mismo día que el movimiento: si se cambió la fecha, ya no aplica.
+  const when = params.occurredAt ? new Date(params.occurredAt) : rawDate.includes("T") ? new Date(rawDate) : null;
+  const time = when && !Number.isNaN(when.getTime()) && localDay(when) === date ? new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit", hour12: false }).format(when) : null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const diff = dayDate ? Math.round((today.getTime() - dayDate.getTime()) / 86_400_000) : null;
@@ -206,7 +215,7 @@ export default function TransactionDetailScreen() {
   const goDuplicate = () => router.push({ pathname: "/transaction-form", params: { type, amount: String(amount), currency, category, account, note } });
   const share = () => {
     const signed = `${type === "expense" ? "−" : "+"}${formatMoney(amount, currency)}`;
-    void Share.share({ message: [title, signed, `${longDay}${time ? `, ${time}` : ""}`, note].filter(Boolean).join(" · ") });
+    void Share.share({ message: [title, signed, `${longDay}${time ? `, ${time}` : ""}`, sourceTitle, note].filter(Boolean).join(" · ") });
   };
 
   return (
@@ -247,7 +256,15 @@ export default function TransactionDetailScreen() {
 
         {/* Datos: cada fila abre la hoja del formulario y guarda al elegir. */}
         <FintCard mx={space[4]} mt={22} p={0} overflow="hidden">
-          <DataRow icon={<Landmark size={16} color="$inkMuted" strokeWidth={2} />} label={t("movementDetail.account")} value={account || "—"} onPress={() => setSheet("account")} />
+          {/* Lo que trajo el correo o el comprobante: no se edita (la nota va abajo, aparte). */}
+          {sourceTitle ? <SourceRow label={t("movementDetail.detected")} value={sourceTitle} /> : null}
+          <DataRow
+            divider={Boolean(sourceTitle)}
+            icon={<Landmark size={16} color="$inkMuted" strokeWidth={2} />}
+            label={t("movementDetail.account")}
+            value={account || "—"}
+            onPress={() => setSheet("account")}
+          />
           <DataRow
             divider
             icon={<Tag size={16} color="$inkMuted" strokeWidth={2} />}
@@ -414,6 +431,30 @@ function Action({ label, icon, danger, onPress }: { label: string; icon: ReactNo
 }
 
 /** Fila de datos: icono en `surfaceSunken`, etiqueta, valor a la derecha y la flecha que dice que se puede cambiar. */
+/** "2026-09-24" del día local de una hora. */
+function localDay(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+/** La descripción detectada: etiqueta y el texto completo debajo (hasta tres líneas), sin acción. */
+function SourceRow({ label, value }: { label: string; value: string }) {
+  return (
+    <XStack gap={12} px={space[4]} py={13} items="flex-start" accessible accessibilityLabel={`${label}: ${value}`}>
+      <View width={32} height={32} rounded={radius.sm} bg="$surfaceSunken" items="center" justify="center">
+        <Mail size={16} color="$inkMuted" strokeWidth={2} />
+      </View>
+      <YStack flex={1} minW={0}>
+        <FText variant="caption" tone="inkMuted" style={{ fontSize: 13 }}>
+          {label}
+        </FText>
+        <FText variant="body" numberOfLines={3} style={{ fontSize: 15, fontFamily: fontFace.sans[500], marginTop: 1 }}>
+          {value}
+        </FText>
+      </YStack>
+    </XStack>
+  );
+}
+
 function DataRow({
   icon,
   label,

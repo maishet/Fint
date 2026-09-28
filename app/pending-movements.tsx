@@ -193,8 +193,9 @@ export default function PendingMovementsScreen() {
   // Si coincide con un pago, por defecto se aplica a ese pago (decisión de Cristhofer); "Movimiento normal" lo cambia.
   const applyPayment = (item: PendingMovementCard) => payMode[item.id] ?? true;
 
-  // `detectedAt` va como parámetro: el detalle del backend no lo trae y la revisión lo muestra con la hora.
-  const openReview = (item: PendingMovementCard) => router.push({ pathname: "/pending-review", params: { id: item.id, detectedAt: item.detectedAt } });
+  // La hora va como parámetro por si el backend es anterior (su detalle no la trae): la del correo o, sin ella, la de
+  // detección.
+  const openReview = (item: PendingMovementCard) => router.push({ pathname: "/pending-review", params: { id: item.id, detectedAt: item.occurredAt ?? item.detectedAt } });
 
   /** Si "Confirmar" registraría el movimiento ahora (y no abre la revisión o la hoja de categorías). */
   const wouldConfirm = (item: PendingMovementCard) => {
@@ -290,7 +291,8 @@ export default function PendingMovementsScreen() {
   };
 
   const detectedLabel = (item: PendingMovementCard) => {
-    const { day, date } = detectedWhen(item.detectedAt, new Date());
+    // La hora del correo (operación o recepción); los pendientes antiguos solo tienen la de detección.
+    const { day, date } = detectedWhen(item.occurredAt ?? item.detectedAt, new Date());
     const time = new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" }).format(date);
     const when = day === "date" ? shortDay(date, locale) : t(`pendingScreen.${day}`, { time });
     return t("pendingScreen.detected", { when });

@@ -94,7 +94,14 @@ export interface Transaction {
   currency: string
   category: string
   account: string
+  /** Lo que se muestra: la nota o, sin ella, la descripción detectada. */
   note?: string
+  /** La descripción del correo o comprobante, aparte de la nota (backend nuevo). */
+  sourceTitle?: string | null
+  /** Solo la nota que escribió la persona (backend nuevo). */
+  userNote?: string
+  /** Hora de la operación o de recepción del correo (backend nuevo). */
+  occurredAt?: string | null
   paymentOccurrenceId?: string | null
   paymentOccurrencePaymentId?: string | null
   transferGroupId?: string | null
@@ -133,6 +140,28 @@ export interface PaymentOccurrence {
   autoPayEnabled: boolean
   paidAt: string | null
   paidAccount: string | null
+  /** "Ya lo pagué": pagada fuera de Fint, sin movimiento. Opcional hasta que el backend lo mande. */
+  settledAt?: string | null
+  /** "Recordar el día que vence": sin avisos hasta esta fecha. */
+  reminderSnoozedUntil?: string | null
+}
+
+/** Un aviso informativo de la pantalla Avisos (`GET /api/me/notifications`). La app arma el texto. */
+export type UserNotification =
+  | { id: string; kind: 'gmail_imported'; data: { count: number; titles: string[] }; createdAt: string; readAt: string | null; link: string }
+  | {
+      id: string
+      kind: 'payment_recorded'
+      data: { occurrenceId: string; paymentId: string; title: string; amount: number; currency: string; account: string | null }
+      createdAt: string
+      readAt: string | null
+      link: string
+    }
+
+export interface NotificationPage {
+  items: UserNotification[]
+  nextCursor: string | null
+  unread: number
 }
 
 export interface PaymentRule {
@@ -211,6 +240,8 @@ export interface PendingMovementTransferInfo {
 export interface PendingMovementCard {
   id: string
   detectedAt: string
+  /** Hora de la operación leída del correo o, si no la trae, la de recepción (backend nuevo). */
+  occurredAt?: string | null
   transactionDate: string
   title: string
   type: TransactionType | null
@@ -232,6 +263,8 @@ export interface PendingMovementPage {
 
 export interface PendingMovementDetail {
   id: string
+  detectedAt?: string
+  occurredAt?: string | null
   title: string
   type: TransactionType | null
   amount: number | null

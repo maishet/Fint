@@ -3,7 +3,7 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import * as SecureStore from 'expo-secure-store'
 import { useEffect, useState } from 'react'
 import { useColorScheme } from 'react-native'
-import { TamaguiProvider, Theme, type TamaguiProviderProps } from 'tamagui'
+import { Portal, TamaguiProvider, Theme, type TamaguiProviderProps } from 'tamagui'
 import { config } from '../../tamagui.config'
 import { loadStoredLanguage } from '../i18n'
 import { ApiRequestError } from '../api/client'
@@ -89,7 +89,13 @@ export function AppProviders({ children, ...rest }: Omit<TamaguiProviderProps, '
           >
             <AuthProvider><SensitiveAmountsProvider><DailyRemindersProvider><LocationPreferenceProvider>{children}</LocationPreferenceProvider></DailyRemindersProvider></SensitiveAmountsProvider></AuthProvider>
           </PersistQueryClientProvider>
-          <FintToaster />
+          {/*
+            Los avisos van al mismo portal que las hojas (`FintSheet`, zIndex 110 000) y encima: montados aquí quedaban
+            debajo del portal y un toast lanzado con una hoja abierta ("Deshacer", un error) salía detrás de ella.
+          */}
+          <Portal zIndex={200_000}>
+            <FintToaster />
+          </Portal>
         </Theme>
       </TamaguiProvider>
     </ThemeModeContext.Provider>

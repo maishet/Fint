@@ -46,6 +46,8 @@ export function buildAttention(
 
   for (const o of occurrences) {
     if (o.paymentStatus === "paid" || o.autoPayEnabled || o.kind !== "fixed_payment") continue;
+    // "Recordar el día que vence": fuera de "Por hacer" (y de la campana) hasta ese día.
+    if (o.reminderSnoozedUntil && (daysUntil(o.reminderSnoozedUntil, now) ?? 0) > 0) continue;
     const days = daysUntil(o.dueDate, now);
     let kind: AttentionKind | null = null;
     if (o.temporalStatus === "overdue" || (days !== null && days < 0)) kind = "overdue";

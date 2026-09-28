@@ -30,6 +30,8 @@ import { motion, radius, space } from "../../src/theme/tokens";
 import { useScreenStatusBar } from "../../src/theme/useScreenStatusBar";
 import { Amount, FintSpinner, FText, PressableScale } from "../../src/ui";
 import { riseIn } from "../../src/ui/entering";
+import { bellState } from "../../src/notifications/logic";
+import { useNotificationsFeed } from "../../src/notifications/useNotificationsFeed";
 import { haptics } from "../../src/ui/haptics";
 
 /** Tirón (ya con goma) que dispara el refresco. */
@@ -63,6 +65,9 @@ export default function DashboardScreen() {
   const [accountsForPages, setAccountsForPages] = useState<{ id: string; name: string }[]>([]);
   const selectedAccount = pageIndex > 0 ? (accountsForPages[pageIndex - 1] ?? null) : null;
   const home = useHomeData(selectedAccount);
+  // La campana cuenta lo por hacer; sin nada, un punto si hay avisos informativos sin leer.
+  const feed = useNotificationsFeed();
+  const bell = bellState(home.attention.length, feed.unread);
   const { overview } = home;
 
   const sortedAccounts = useMemo(() => [...home.accounts].sort((a, b) => b.balance - a.balance), [home.accounts]);
@@ -192,7 +197,8 @@ export default function DashboardScreen() {
               onIndexChange={setPageIndex}
               scrollY={scrollY}
               pull={pull}
-              attentionCount={home.attention.length}
+              attentionCount={bell.count}
+              hasUnread={bell.dot}
               onProfile={() => router.push("/settings")}
               onSearch={() => router.push("/search")}
               onNotifications={() => router.push("/notifications")}

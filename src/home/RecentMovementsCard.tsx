@@ -11,6 +11,8 @@ import { space } from "../theme/tokens";
 import { Amount, FintCard, FText, ListRow, Monogram, SectionHeader } from "../ui";
 import { riseIn } from "../ui/entering";
 import { categoryColorIndex, transactionDay } from "./spending";
+import { detailParams } from "../movements/detailParams";
+import { movementText } from "../movements/text";
 
 const ROWS = 3;
 
@@ -35,7 +37,7 @@ export function RecentMovementsCard({ transactions }: { transactions: Transactio
           rows.map((tx, i) => {
             const transfer = tx.type === "transfer";
             const title = transfer ? t("forms.transfer") : getCategoryLabel(tx.category, t);
-            const subtitle = [relativeDay(tx.date, locale, t), tx.note || tx.account].filter(Boolean).join(" · ");
+            const subtitle = [relativeDay(tx.date, locale, t), movementText(tx) || tx.account].filter(Boolean).join(" · ");
             // Las filas entran con `fade` escalonado 30ms.
             return (
               <Animated.View key={tx.id} entering={riseIn({ distance: 0, delay: i * 30, reduceMotion })}>
@@ -63,22 +65,7 @@ export function RecentMovementsCard({ transactions }: { transactions: Transactio
 }
 
 function openDetail(router: ReturnType<typeof useRouter>, tx: Transaction) {
-  router.push({
-    pathname: "/transaction-detail",
-    params: {
-      id: tx.id,
-      type: tx.type as "income" | "expense",
-      amount: String(tx.amount),
-      currency: tx.currency,
-      category: tx.category,
-      account: tx.account,
-      note: tx.note ?? "",
-      date: tx.date,
-      ...(tx.latitude != null && tx.longitude != null
-        ? { latitude: String(tx.latitude), longitude: String(tx.longitude), formattedAddress: tx.formattedAddress ?? "" }
-        : {}),
-    },
-  });
+  router.push({ pathname: "/transaction-detail", params: detailParams(tx) });
 }
 
 /** "Hoy", "Ayer" o la fecha corta. */

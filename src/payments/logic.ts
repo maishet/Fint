@@ -117,6 +117,15 @@ export interface MonthSummary {
   total: number;
 }
 
+/** El día en que quedó pagada: el del último pago o, con "Ya lo pagué", el día en que se marcó. */
+export function paidDay(occurrence: PaymentOccurrence): Date | null {
+  const paid = parseDateString(occurrence.paidAt);
+  if (paid) return paid;
+  if (!occurrence.settledAt) return null;
+  const settled = new Date(occurrence.settledAt);
+  return new Date(settled.getFullYear(), settled.getMonth(), settled.getDate());
+}
+
 function sameMonth(date: Date | null, today: Date) {
   return date !== null && date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth();
 }
@@ -151,7 +160,7 @@ export function monthSummaries(open: readonly PaymentOccurrence[], paid: readonl
     summary.paid += occurrence.paidAmount;
   }
   for (const occurrence of paid) {
-    if (!sameMonth(parseDateString(occurrence.dueDate), today) && !sameMonth(parseDateString(occurrence.paidAt), today)) continue;
+    if (!sameMonth(parseDateString(occurrence.dueDate), today) && !sameMonth(paidDay(occurrence), today)) continue;
     entry(occurrence.currency).paid += occurrence.totalAmount ?? occurrence.paidAmount;
   }
   return [...byCurrency.values()].map((s) => ({ ...s, remaining: round(s.remaining), paid: round(s.paid), total: round(s.remaining + s.paid) }));
@@ -165,10 +174,11 @@ export interface HistoryGroup {
 
 /** El historial por mes de pago, del más reciente al más antiguo. */
 export function groupHistory(occurrences: readonly PaymentOccurrence[]): HistoryGroup[] {
-  const sorted = [...occurrences].sort((a, b) => (b.paidAt ?? b.dueDate ?? "").localeCompare(a.paidAt ?? a.dueDate ?? ""));
+  const dayOf = (occurrence: PaymentOccurrence) => paidDay(occurrence) ?? parseDateString(occurrence.dueDate);
+  const sorted = [...occurrences].sort((a, b) => (dayOf(b)?.getTime() ?? 0) - (dayOf(a)?.getTime() ?? 0));
   const groups: HistoryGroup[] = [];
   for (const occurrence of sorted) {
-    const date = parseDateString(occurrence.paidAt ?? occurrence.dueDate);
+    const date = dayOf(occurrence);
     const key = date ? `${date.getFullYear()}-${date.getMonth()}` : "unknown";
     const last = groups[groups.length - 1];
     if (last && last.key === key) last.items.push(occurrence);

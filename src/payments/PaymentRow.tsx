@@ -12,7 +12,7 @@ import { fontFace } from "../theme/typography";
 import { Amount, FText, PressableScale } from "../ui";
 import { GroupedCell } from "../ui/GroupedCell";
 import { SwipeActions, type SwipeAction } from "../ui/SwipeActions";
-import { dueText, leadOccurrence, partialProgress, type PendingItem } from "./logic";
+import { dueText, leadOccurrence, paidDay, partialProgress, type PendingItem } from "./logic";
 
 function capitalize(text: string) {
   return text.charAt(0).toUpperCase() + text.slice(1);
@@ -213,10 +213,16 @@ export function PaymentRow({ item, rule, emoji, first, last, late, today, onPay,
 export function HistoryRow({ occurrence, emoji, first, last }: { occurrence: PaymentOccurrence; emoji: string | null; first: boolean; last: boolean }) {
   const { t, i18n } = useTranslation();
   const locale = getAppLocale(i18n.resolvedLanguage);
-  const paidAt = parseDateString(occurrence.paidAt);
+  const paidAt = paidDay(occurrence);
+  // "Ya lo pagué": se pagó fuera de Fint, sin cuenta ni movimiento.
+  const settled = Boolean(occurrence.settledAt) && !occurrence.paidAt;
   const meta = [
-    paidAt ? t("paymentsTab.paidOn", { date: shortDate(paidAt, locale) }) : t("payments.statusPaid"),
-    occurrence.kind === "credit_card" ? t("paymentsTab.legacy") : occurrence.paidAccount,
+    settled && paidAt
+      ? t("paymentsTab.settledOn", { date: shortDate(paidAt, locale) })
+      : paidAt
+        ? t("paymentsTab.paidOn", { date: shortDate(paidAt, locale) })
+        : t("payments.statusPaid"),
+    occurrence.kind === "credit_card" ? t("paymentsTab.legacy") : settled ? null : occurrence.paidAccount,
   ]
     .filter(Boolean)
     .join(" · ");
