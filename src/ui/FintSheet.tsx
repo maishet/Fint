@@ -32,6 +32,8 @@ export interface FintSheetProps {
   titleSize?: "title" | "compact";
   /** Sin arrastre para cerrar: la hoja lleva un mapa que se arrastra. Se cierra con el velo, la X o "atrás". */
   disableDrag?: boolean;
+  /** Sin la X de la cabecera, mientras una tarea corre y se ofrece "Cancelar" al pie. El velo y "atrás" siguen cerrando. */
+  hideClose?: boolean;
   children: ReactNode;
 }
 
@@ -54,6 +56,7 @@ export function FintSheet({
   snapPoints,
   titleSize = "title",
   disableDrag = false,
+  hideClose = false,
   children,
 }: FintSheetProps) {
   const { themeMode } = useThemeMode();
@@ -94,6 +97,8 @@ export function FintSheet({
               {headerAction.label}
             </FText>
           </PressableScale>
+        ) : hideClose ? (
+          <YStack height={34} />
         ) : (
           <IconButton label={t("actions.close")} tone="sunken" size={34} icon={<X size={16} color="$inkMuted" strokeWidth={2.2} />} onPress={onClose} />
         )}

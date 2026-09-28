@@ -155,3 +155,22 @@ export function categoryRows(
   }
   return rows;
 }
+
+/** Tamaño de un archivo para leer: "186 KB" o "1.2 MB" (mínimo 1 KB). */
+export function formatFileSize(bytes: number, locale: string) {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(bytes / (1024 * 1024))} MB`;
+}
+
+/**
+ * Páginas de un PDF, leídas del archivo: los objetos `/Type /Page` o, si no están a la vista, el `/Count` del árbol de
+ * páginas. `printToFileAsync` en Android informa de más (7 para un PDF de 5). Sin ninguno de los dos, `undefined`.
+ */
+export function countPdfPages(bytes: Uint8Array) {
+  let text = "";
+  for (let i = 0; i < bytes.length; i += 8192) text += String.fromCharCode(...bytes.subarray(i, i + 8192));
+  const pages = text.match(/\/Type\s*\/Page(?![s\w])/g)?.length ?? 0;
+  if (pages) return pages;
+  const counts = [...text.matchAll(/\/Count\s+(\d+)/g)].map((m) => Number(m[1]));
+  return counts.length ? Math.max(...counts) : undefined;
+}

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import type { Transaction } from '../../src/api/types'
-import { categoryRows, changePercent, dailyFlow, fillSeries, isCurrentPeriod, periodRange, periodStart, shiftPeriod } from '../../src/reports/logic'
+import { categoryRows, changePercent, countPdfPages, dailyFlow, fillSeries, formatFileSize, isCurrentPeriod, periodRange, periodStart, shiftPeriod } from '../../src/reports/logic'
 
 // Jueves 24 de setiembre de 2026.
 const today = new Date(2026, 8, 24, 15)
@@ -81,5 +81,25 @@ describe('fillSeries', () => {
 
   test('si el backend agrupa con otro inicio de semana, se usa su serie', () => {
     expect(fillSeries('month', new Date(2026, 8, 1), [{ period: '2026-09-01', income: 1, expenses: 0 }], today).map((c) => c.start)).toEqual(['2026-09-01'])
+  })
+})
+
+describe('tamaño del archivo exportado', () => {
+  test('KB redondeados (mínimo 1) y MB con un decimal, con el separador del idioma', () => {
+    expect(formatFileSize(190_464, 'es-PE')).toBe('186 KB')
+    expect(formatFileSize(200, 'es-PE')).toBe('1 KB')
+    expect(formatFileSize(1_258_291, 'pt-BR')).toBe('1,2 MB')
+    expect(formatFileSize(1_258_291, 'en-US')).toBe('1.2 MB')
+  })
+})
+
+describe('páginas del PDF exportado', () => {
+  const pdf = (body: string) => new TextEncoder().encode(body)
+  test('cuenta los objetos /Page, no /Pages', () => {
+    expect(countPdfPages(pdf('1 0 obj << /Type /Pages /Count 3 >> 2 0 obj << /Type /Page >> 3 0 obj <</Type/Page>> 4 0 obj << /Type /Page /Parent 1 0 R >>'))).toBe(3)
+  })
+  test('sin objetos a la vista usa el /Count mayor; sin nada, undefined', () => {
+    expect(countPdfPages(pdf('<< /Type /Pages /Count 2 >> << /Count 5 >>'))).toBe(5)
+    expect(countPdfPages(pdf('%PDF-1.7 nada'))).toBeUndefined()
   })
 })

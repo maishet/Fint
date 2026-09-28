@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import * as Sentry from "@sentry/react-native";
 import {
   AlertTriangle,
   ArrowDown,
@@ -8,12 +7,10 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  FileText,
   Info,
   Minus,
   Share,
   RotateCcw,
-  Table2,
   Wallet,
 } from "@tamagui/lucide-icons-2";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -29,12 +26,13 @@ import { DataStateCard } from "../../src/components/DataStateCard";
 import { floatingTabBarHeight } from "../../src/components/FintTabBar";
 import { suggestedCategoryIcons } from "../../src/finance/categoryIcons";
 import { getCategoryLabel } from "../../src/finance/categoryLabels";
-import { exportFinancialReportPdf, exportFinancialReportXlsx, type ReportExportLabels } from "../../src/finance/report-export";
+import type { ReportExportLabels, ReportExportOptions } from "../../src/finance/report-export";
 import { useCategoryIcons } from "../../src/finance/useCategoryIcons";
 import { categoryColorIndex } from "../../src/home/spending";
 import { getAppLocale } from "../../src/i18n";
 import { CategoryBreakdown } from "../../src/reports/CategoryBreakdown";
 import { FlowChart, type FlowChartColumn } from "../../src/reports/FlowChart";
+import { ReportExportSheet } from "../../src/reports/ReportExportSheet";
 import {
   categoryRows,
   changePercent,
@@ -53,7 +51,6 @@ import { fontFace } from "../../src/theme/typography";
 import { useScreenStatusBar } from "../../src/theme/useScreenStatusBar";
 import { Amount, FintCard, FintSheet, FText, IconButton, ListRow, Monogram, PressableScale, SegmentedControl } from "../../src/ui";
 import { AmountSkeleton } from "../../src/ui/AmountSkeleton";
-import { useNotify } from "../../src/ui/notify";
 
 const ALL_ACCOUNTS = "__all__";
 const PERIODS: PeriodKind[] = ["week", "month", "year"];
@@ -117,7 +114,6 @@ export default function ReportsScreen() {
   const { t, i18n } = useTranslation();
   const locale = getAppLocale(i18n.resolvedLanguage);
   const router = useRouter();
-  const toast = useNotify();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const iconFor = useCategoryIcons();
@@ -127,7 +123,6 @@ export default function ReportsScreen() {
   const [accountId, setAccountId] = useState(ALL_ACCOUNTS);
   const [currency, setCurrency] = useState("");
   const [sheet, setSheet] = useState<"account" | "currency" | "export" | "top" | null>(null);
-  const [isExporting, setIsExporting] = useState(false);
   const [pulling, setPulling] = useState(false);
 
   // "Exportar" de la hoja Más llega con `open=export`: se abre la hoja de descarga y el parámetro se limpia.
@@ -252,38 +247,32 @@ export default function ReportsScreen() {
   );
   const topExpenses = (topQuery.data ?? []).filter((x) => x.type === "expense");
 
-  const exportReport = async (format: "pdf" | "xlsx") => {
-    setIsExporting(true);
-    const labels = Object.fromEntries(REPORT_TEXT_KEYS.map((key) => [key, t(`reports.${key}`)]));
-    const options = {
-      locale,
-      labels: {
-        ...labels,
-        statuses: t("reports.statuses", { returnObjects: true }),
-        statusMessages: t("reports.statusMessages", { returnObjects: true }),
-        generated: t("reports.updated"),
-        accountTypes: {
-          cash: t("accountTypes.cash"),
-          credit_card: t("accountTypes.creditCard"),
-          checking_account: t("accountTypes.checkingAccount"),
-          savings_account: t("accountTypes.savingsAccount"),
-        },
-      } as unknown as ReportExportLabels,
-    };
-    const task = (async () => {
-      const data = localizeReport(await financeApi.getFinancialReportExportData(filters), t);
-      if (format === "pdf") await exportFinancialReportPdf(data, options);
-      else await exportFinancialReportXlsx(data, options);
-    })();
-    toast.promise(task, { loading: t("reports.exporting"), success: t("reports.exported"), error: t("reports.exportError") });
-    try {
-      await task;
-    } catch (error) {
-      Sentry.captureException(error, { tags: { operation: `report_export_${format}` } });
-    } finally {
-      setIsExporting(false);
-    }
-  };
+  // La descarga (`ReportExportSheet`): etapa 1 (traer los datos) y los textos del documento, igual que antes.
+  const exportOptions = (): ReportExportOptions => ({
+    locale,
+    labels: {
+      ...Object.fromEntries(REPORT_TEXT_KEYS.map((key) => [key, t(`reports.${key}`)])),
+      statuses: t("reports.statuses", { returnObjects: true }),
+      statusMessages: t("reports.statusMessages", { returnObjects: true }),
+      generated: t("reports.updated"),
+      accountTypes: {
+        cash: t("accountTypes.cash"),
+        credit_card: t("accountTypes.creditCard"),
+        checking_account: t("accountTypes.checkingAccount"),
+        savings_account: t("accountTypes.savingsAccount"),
+      },
+    } as unknown as ReportExportLabels,
+  });
+  const prepareExport = async () => localizeReport(await financeApi.getFinancialReportExportData(filters), t);
+  const exportCurrency = report?.filters.currency ?? selectedCurrency;
+  const exportSubtitle = [
+    periodTitle(kind, start, locale),
+    // En la píldora basta "Todas"; aquí se lee suelto: "Todas las cuentas".
+    accountId === ALL_ACCOUNTS ? t("reports.allAccounts") : accountLabel,
+    exportCurrency ? t(`accountForm.currencyNames.${exportCurrency}`, { defaultValue: exportCurrency }) : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   const openCategory = (row: CategoryRow) => {
     if (!row.key) return;
@@ -320,8 +309,8 @@ export default function ReportsScreen() {
           <IconButton
             label={t("reportsTab.share")}
             icon={<Share size={18} color="$ink" strokeWidth={2} />}
-            disabled={!hasMovements || isExporting}
-            style={{ opacity: !hasMovements || isExporting ? 0.42 : 1 }}
+            disabled={!hasMovements}
+            style={{ opacity: !hasMovements ? 0.42 : 1 }}
             onPress={() => setSheet("export")}
           />
         </XStack>
@@ -512,26 +501,16 @@ export default function ReportsScreen() {
           />
         ))}
       </FintSheet>
-      <FintSheet open={sheet === "export"} onClose={() => setSheet(null)} title={t("reports.exportTitle")}>
-        <View height={8} />
-        <ListRow
-          title={t("reports.exportPdf")}
-          leading={<FileText size={20} color="$ink" />}
-          onPress={() => {
-            setSheet(null);
-            void exportReport("pdf");
-          }}
-        />
-        <ListRow
-          divider
-          title={t("reports.exportExcel")}
-          leading={<Table2 size={20} color="$ink" />}
-          onPress={() => {
-            setSheet(null);
-            void exportReport("xlsx");
-          }}
-        />
-      </FintSheet>
+      <ReportExportSheet
+        open={sheet === "export"}
+        onClose={() => setSheet(null)}
+        subtitle={exportSubtitle}
+        transactionCount={report?.summary.transactionCount ?? 0}
+        fileBaseName={t("reports.export.fileName", { period: periodTitle(kind, start, locale) })}
+        locale={locale}
+        prepare={prepareExport}
+        options={exportOptions}
+      />
       <FintSheet open={sheet === "top"} onClose={() => setSheet(null)} title={t("reportsTab.topExpenses")} subtitle={periodTitle(kind, start, locale)} scrollable snapPoints={[70]}>
         <View height={4} />
         {topExpenses.map((item, i) => (
