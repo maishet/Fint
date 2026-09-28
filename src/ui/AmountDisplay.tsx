@@ -51,7 +51,18 @@ export interface AmountDisplayProps {
   kind?: "expense" | "income" | "transfer";
   /** Muestra el cursor `brand` de 3px: el campo está activo. */
   active?: boolean;
+  /**
+   * El ancho que va a tener, si se sabe antes de medirlo. La cifra se dibuja recién con un ancho: sin esto, en la
+   * primera apertura esperaba la medida (`onLayout`, que pasa por JS) y aparecía después que el resto del formulario.
+   */
+  expectedWidth?: number;
 }
+
+/**
+ * Lo medido en el dispositivo se recuerda durante la sesión: al volver a abrir el formulario la cifra sale en su
+ * lugar desde el primer cuadro, sin esperar las sondas.
+ */
+const measures = { width: 0, advance: ADVANCE, symbols: new Map<string, number>() };
 
 interface Geometry {
   width: SharedValue<number>;
@@ -97,16 +108,19 @@ function rowStart(g: Geometry) {
  * corren con el mismo resorte; al borrar, el dígito sale hacia abajo. Si deja
  * de caber, el tamaño baja un paso con `spring-ui`.
  */
-export function AmountDisplay({ input, currency = "PEN", kind = "expense", active = true }: AmountDisplayProps) {
+export function AmountDisplay({ input, currency = "PEN", kind = "expense", active = true, expectedWidth = 0 }: AmountDisplayProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const reduceMotion = useReducedMotion();
-  const [measured, setMeasured] = useState(0);
-  const [advanceEm, setAdvanceEm] = useState(ADVANCE);
-  const [symbolWidth, setSymbolWidth] = useState<{ symbol: string; em: number } | null>(null);
+  const symbol = getCurrencySymbol(currency);
+  const [measured, setMeasured] = useState(() => measures.width || expectedWidth);
+  const [advanceEm, setAdvanceEm] = useState(measures.advance);
+  const [symbolWidth, setSymbolWidth] = useState<{ symbol: string; em: number } | null>(() => {
+    const em = measures.symbols.get(symbol);
+    return em ? { symbol, em } : null;
+  });
 
   const text = displayAmountInput(input);
-  const symbol = getCurrencySymbol(currency);
   const sign = kind === "expense" ? MINUS : kind === "income" ? "+" : "";
   const empty = input === "";
   // El símbolo no es tabular ("S/" mide menos que dos dígitos): se mide en el dispositivo como el avance.
@@ -131,8 +145,8 @@ export function AmountDisplay({ input, currency = "PEN", kind = "expense", activ
     prefixWidth(s, sign ? 1 : 0, symbolEm, advanceEm) + glyphs.units * digitAdvance(s, advanceEm) + 7 + 12 <= measured;
   const target = measured === 0 ? SIZES[0] : (SIZES.find(fits) ?? SIZES[SIZES.length - 1]);
 
-  const width = useSharedValue(0);
-  const advance = useSharedValue(ADVANCE);
+  const width = useSharedValue(measured);
+  const advance = useSharedValue(advanceEm);
   const size = useSharedValue<number>(target);
   const units = useSharedValue(glyphs.units);
   const signOn = useSharedValue(sign ? 1 : 0);
@@ -220,6 +234,7 @@ export function AmountDisplay({ input, currency = "PEN", kind = "expense", activ
       height={HEIGHT}
       onLayout={(e: LayoutChangeEvent) => {
         const w = e.nativeEvent.layout.width;
+        measures.width = w;
         width.value = w;
         setMeasured(w);
       }}
@@ -234,6 +249,7 @@ export function AmountDisplay({ input, currency = "PEN", kind = "expense", activ
         onLayout={(e: LayoutChangeEvent) => {
           const em = e.nativeEvent.layout.width / (PROBE_SIZE * 10);
           if (em > 0.3 && em < 1) {
+            measures.advance = em;
             advance.value = em;
             setAdvanceEm(em);
           }
@@ -248,7 +264,10 @@ export function AmountDisplay({ input, currency = "PEN", kind = "expense", activ
         style={{ position: "absolute", opacity: 0, fontFamily: FACE, fontSize: PROBE_SIZE, includeFontPadding: false }}
         onLayout={(e: LayoutChangeEvent) => {
           const em = e.nativeEvent.layout.width / PROBE_SIZE;
-          if (em > 0) setSymbolWidth({ symbol, em });
+          if (em > 0) {
+            measures.symbols.set(symbol, em);
+            setSymbolWidth({ symbol, em });
+          }
         }}
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"

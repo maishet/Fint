@@ -3,7 +3,7 @@ import { CalendarDays, ChevronDown, FileText, MapPin, Plus, X } from "@tamagui/l
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BackHandler, ScrollView } from "react-native";
+import { BackHandler, ScrollView, useWindowDimensions } from "react-native";
 import Animated, { FadeOut, LinearTransition, useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { View, XStack, YStack, type ColorTokens } from "tamagui";
@@ -83,6 +83,7 @@ export default function TransactionFormScreen() {
   const { t, i18n } = useTranslation();
   const locale = getAppLocale(i18n.resolvedLanguage);
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
   useScreenStatusBar();
   const reduceMotion = useReducedMotion();
   const toast = useNotify();
@@ -144,6 +145,9 @@ export default function TransactionFormScreen() {
   }, [sheet]);
   const [errors, setErrors] = useState<Errors>({});
   const [saved, setSaved] = useState(false);
+  // Categoría, fecha, ubicación y nota se montan cuando la pantalla terminó de entrar. El primer cuadro lleva lo
+  // indispensable (tipo, cuenta, monto, teclado y botón): así crece antes, y lo demás no se dibuja a mitad del crecimiento.
+  const [entered, setEntered] = useState(false);
 
   const isDirty =
     !saved && (amount !== normalizeAmountParam(params.amount) || note !== (params.note ?? "") || category !== (params.category ?? ""));
@@ -169,9 +173,11 @@ export default function TransactionFormScreen() {
 
   const accounts = accountsQuery.data ?? [];
   const categories = categoriesQuery.data ?? [];
-  const account = accounts.find((a) => a.name === accountName);
-  const origin = accounts.find((a) => a.id === originId);
-  const destination = accounts.find((a) => a.id === destinationId);
+  // Sin elección todavía, ya se muestran las cuentas por defecto (el efecto de abajo las fija después del primer
+  // render): el formulario entra con "Elegir cuenta" y enseguida cambiaba a la cuenta, a la vista durante el crecimiento.
+  const account = accountName ? accounts.find((a) => a.name === accountName) : accounts[0];
+  const origin = originId ? accounts.find((a) => a.id === originId) : accounts[0];
+  const destination = destinationId ? accounts.find((a) => a.id === destinationId) : accounts[1];
 
   const movementCurrency = account ? (accountCurrencies(account).includes(currency) ? currency : account.currency) : currency || "PEN";
   const shared = useMemo(() => sharedCurrencies(origin, destination), [origin, destination]);
@@ -432,7 +438,7 @@ export default function TransactionFormScreen() {
         onConfirm={() => guard.confirmWith((proceed) => (grow.current ? grow.current.close(proceed) : proceed()))}
       />
 
-      <GrowPresence ref={grow} fromFab={params.origin === "fab"}>
+      <GrowPresence ref={grow} fromFab={params.origin === "fab"} onEntered={() => setEntered(true)}>
         <YStack flex={1} bg="$canvas" pt={insets.top}>
           {/* Barra superior: cerrar y tipo. */}
           <XStack items="center" gap={10} px={16} pt={8}>
@@ -498,7 +504,7 @@ export default function TransactionFormScreen() {
             <Animated.View layout={layout}>
               {/* Monto. */}
               <View mt={kind === "transfer" ? 22 : 18} px={16}>
-                <AmountDisplay input={amount} currency={displayCurrency} kind={kind} />
+                <AmountDisplay input={amount} currency={displayCurrency} kind={kind} expectedWidth={screenWidth - 32} />
               </View>
 
               {/* Debajo del monto: cómo queda la cuenta, la moneda de la transferencia o el error. */}
@@ -518,71 +524,75 @@ export default function TransactionFormScreen() {
                 ) : null}
               </View>
 
-              {/* Categoría: las frecuentes y "Más", todas a la vista (sin deslizar): los chips pasan a la fila siguiente. */}
-              {kind !== "transfer" ? (
-                <YStack mt={22}>
-                  <FText variant="caption" tone="inkMuted" style={{ paddingHorizontal: 16, marginBottom: 8 }}>
-                    {t("movementForm.category")}
-                  </FText>
-                  <XStack flexWrap="wrap" gap={8} px={16}>
-                    {categoriesQuery.isLoading
-                      ? [120, 104, 96].map((w) => <AmountSkeleton key={w} width={w} height={32} />)
-                      : chipCategories.map((c) => (
-                          <Chip
-                            key={c.id}
-                            variant="choice"
-                            label={getCategoryLabel(c.name, t)}
-                            emoji={c.icon}
-                            dotColor={`$chart${categoryColorIndex(c.name)}` as ColorTokens}
-                            selected={c.name === category}
-                            onPress={() => {
-                              setCategory(c.name);
-                              clearError("category");
-                            }}
-                          />
-                        ))}
-                    <Chip
-                      variant="choice"
-                      dashed
-                      label={t("movementForm.more")}
-                      icon={<Plus size={14} color="$inkMuted" strokeWidth={2.2} />}
-                      onPress={() => setSheet("category")}
-                    />
-                  </XStack>
-                  {errors.category ? (
-                    <View px={16} mt={6}>
-                      <ErrorText align="left">{errors.category}</ErrorText>
-                    </View>
+              {entered ? (
+                <Animated.View entering={riseIn({ distance: 8, reduceMotion })}>
+                  {/* Categoría: las frecuentes y "Más", todas a la vista (sin deslizar): los chips pasan a la fila siguiente. */}
+                  {kind !== "transfer" ? (
+                    <YStack mt={22}>
+                      <FText variant="caption" tone="inkMuted" style={{ paddingHorizontal: 16, marginBottom: 8 }}>
+                        {t("movementForm.category")}
+                      </FText>
+                      <XStack flexWrap="wrap" gap={8} px={16}>
+                        {categoriesQuery.isLoading
+                          ? [120, 104, 96].map((w) => <AmountSkeleton key={w} width={w} height={32} />)
+                          : chipCategories.map((c) => (
+                              <Chip
+                                key={c.id}
+                                variant="choice"
+                                label={getCategoryLabel(c.name, t)}
+                                emoji={c.icon}
+                                dotColor={`$chart${categoryColorIndex(c.name)}` as ColorTokens}
+                                selected={c.name === category}
+                                onPress={() => {
+                                  setCategory(c.name);
+                                  clearError("category");
+                                }}
+                              />
+                            ))}
+                        <Chip
+                          variant="choice"
+                          dashed
+                          label={t("movementForm.more")}
+                          icon={<Plus size={14} color="$inkMuted" strokeWidth={2.2} />}
+                          onPress={() => setSheet("category")}
+                        />
+                      </XStack>
+                      {errors.category ? (
+                        <View px={16} mt={6}>
+                          <ErrorText align="left">{errors.category}</ErrorText>
+                        </View>
+                      ) : null}
+                    </YStack>
                   ) : null}
-                </YStack>
+
+                  {/* Detalles: fecha y ubicación, de igual ancho. */}
+                  <XStack gap={8} px={16} mt={22}>
+                    <Chip
+                      variant="detail"
+                      grow
+                      label={dateLabel}
+                      icon={<CalendarDays size={15} color="$ink" />}
+                      onPress={() => setSheet("date")}
+                    />
+                    {showLocation ? (
+                      <Chip
+                        variant="detail"
+                        grow
+                        empty={!location}
+                        label={locationName(location) ?? locationName(suggestion) ?? t("movementForm.location")}
+                        icon={<MapPin size={15} color={location ? "$ink" : "$inkMuted"} />}
+                        onPress={() => setSheet("location")}
+                      />
+                    ) : null}
+                  </XStack>
+
+                  {/*
+                    La nota va aparte, a lo ancho y completa (hasta tres líneas): en un chip se cortaba y, al volver de la
+                    hoja, no se veía lo escrito. Ocupa el espacio que quedaba vacío sobre el teclado.
+                  */}
+                  <NoteField note={note} onPress={() => setSheet("note")} />
+                </Animated.View>
               ) : null}
-
-              {/* Detalles: fecha y ubicación, de igual ancho. */}
-              <XStack gap={8} px={16} mt={22}>
-                <Chip
-                  variant="detail"
-                  grow
-                  label={dateLabel}
-                  icon={<CalendarDays size={15} color="$ink" />}
-                  onPress={() => setSheet("date")}
-                />
-                {showLocation ? (
-                  <Chip
-                    variant="detail"
-                    grow
-                    empty={!location}
-                    label={locationName(location) ?? locationName(suggestion) ?? t("movementForm.location")}
-                    icon={<MapPin size={15} color={location ? "$ink" : "$inkMuted"} />}
-                    onPress={() => setSheet("location")}
-                  />
-                ) : null}
-              </XStack>
-
-              {/*
-                La nota va aparte, a lo ancho y completa (hasta tres líneas): en un chip se cortaba y, al volver de la
-                hoja, no se veía lo escrito. Ocupa el espacio que quedaba vacío sobre el teclado.
-              */}
-              <NoteField note={note} onPress={() => setSheet("note")} />
             </Animated.View>
           </ScrollView>
 
