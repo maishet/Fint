@@ -18,6 +18,7 @@ import { getCategoryLabel } from "../../src/finance/categoryLabels";
 import { useCategoryIcons } from "../../src/finance/useCategoryIcons";
 import { transactionDay } from "../../src/home/spending";
 import { getAppLocale } from "../../src/i18n";
+import { DayHeader } from "../../src/movements/DayHeader";
 import { MovementRow } from "../../src/movements/MovementRow";
 import {
   buildEntries,
@@ -598,36 +599,6 @@ function SummaryCard({
 }
 
 /** Encabezado del día: "Hoy · jueves 18" o "15 set · lunes", con el neto del día a la derecha. Queda pegado arriba. */
-function DayHeader({ day, net, locale }: { day: string; net: { currency: string; value: number } | null; locale: string }) {
-  const { t } = useTranslation();
-  const d = transactionDay(day);
-  const date = d ? new Date(d.y, d.m, d.d) : new Date();
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const diff = Math.round((today.getTime() - date.getTime()) / 86_400_000);
-  const weekday = new Intl.DateTimeFormat(locale, { weekday: "long" }).format(date);
-  const primary =
-    diff === 0
-      ? t("movementsTab.today")
-      : diff === 1
-        ? t("movementsTab.yesterday")
-        : new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(date).replace(".", "");
-  const secondary = diff <= 1 ? `${weekday} ${date.getDate()}` : weekday;
-  return (
-    <XStack px={space[4]} pt={18} pb={8} items="center" justify="space-between" bg="$canvas">
-      <XStack items="baseline" gap={6} shrink={1}>
-        <FText variant="body-strong" style={{ fontSize: 14 }}>
-          {capitalize(primary)}
-        </FText>
-        <FText variant="caption" tone="inkFaint" style={{ fontSize: 13 }}>
-          {`· ${secondary}`}
-        </FText>
-      </XStack>
-      {net ? <Amount value={net.value} currency={net.currency} kind={net.value > 0 ? "income" : net.value < 0 ? "expense" : "neutral"} tone="inkMuted" variant="amount-sm" /> : null}
-    </XStack>
-  );
-}
-
 function ListSkeleton() {
   return (
     <YStack px={space[4]} pt={18} gap={8}>

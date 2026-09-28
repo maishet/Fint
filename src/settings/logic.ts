@@ -60,3 +60,33 @@ export function syncDay(iso: string, now: Date): "today" | "yesterday" | "date" 
   if (diff === 1) return "yesterday";
   return "date";
 }
+
+/** Hace cuánto fue la última lectura del correo, en la unidad que se lee mejor ("hace 12 min", "hace 3 h", "ayer"). */
+export type SyncAgo = { unit: "now" } | { unit: "minutes" | "hours"; count: number } | { unit: "yesterday" } | { unit: "date" };
+
+export function syncAgo(iso: string, now: Date): SyncAgo {
+  const minutes = Math.floor((now.getTime() - new Date(iso).getTime()) / 60_000);
+  if (minutes < 1) return { unit: "now" };
+  if (minutes < 60) return { unit: "minutes", count: minutes };
+  const day = syncDay(iso, now);
+  if (day === "today") return { unit: "hours", count: Math.floor(minutes / 60) };
+  return day === "yesterday" ? { unit: "yesterday" } : { unit: "date" };
+}
+
+/**
+ * El estado de Gmail que resume la hoja Más: sin correos conectados, alguno que pide volver a dar permiso, o
+ * conectado con la lectura más reciente de todos.
+ */
+export type GmailSummary = { state: "none" } | { state: "reconnect" } | { state: "connected"; lastSyncAt: string | null };
+
+export function gmailSummary(sources: GmailSource[]): GmailSummary {
+  const visible = visibleGmailSources(sources);
+  if (!visible.length) return { state: "none" };
+  if (visible.some((s) => s.status === "error")) return { state: "reconnect" };
+  const last = visible
+    .map((s) => s.lastSyncAt)
+    .filter((at): at is string => Boolean(at))
+    .sort()
+    .pop();
+  return { state: "connected", lastSyncAt: last ?? null };
+}

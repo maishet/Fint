@@ -74,16 +74,21 @@ function AttentionCard({ item, onPress }: { item: AttentionItem; onPress: () => 
   const { amountsVisible, isHydrated } = useSensitiveAmounts();
   const overdue = item.kind === "overdue";
   const review = item.kind === "review";
+  const gmail = item.kind === "gmail";
 
   const title = review
     ? t("home.attention.review", { count: item.count ?? 0 })
-    : item.amount != null && item.currency && isHydrated && amountsVisible
+    : gmail
+      ? t("home.attention.gmail")
+      : item.amount != null && item.currency && isHydrated && amountsVisible
       ? `${item.title} · ${formatAmount(item.amount, item.currency)}`
       : item.title;
 
   const context = review
     ? t("home.attention.reviewHint")
-    : overdue
+    : gmail
+      ? t("home.attention.gmailHint")
+      : overdue
       ? t("home.attention.overdue", { count: Math.abs(item.days ?? 1) })
       : item.kind === "due_today"
         ? t("home.attention.dueToday")
@@ -93,6 +98,8 @@ function AttentionCard({ item, onPress }: { item: AttentionItem; onPress: () => 
 
   const icon = review ? (
     <Mail size={17} color="$brand" strokeWidth={2} />
+  ) : gmail ? (
+    <Mail size={17} color="$dangerHard" strokeWidth={2} />
   ) : overdue ? (
     <TriangleAlert size={17} color="$dangerHard" strokeWidth={2} />
   ) : (

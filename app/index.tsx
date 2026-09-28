@@ -55,7 +55,7 @@ export default function IndexScreen() {
       : t("loadingScreen.summary");
   const retry = waitingProfile ? () => void meQuery.refetch() : waitingSummary ? () => void overviewQuery.refetch() : undefined;
 
-  // Al terminar, el logo completo se queda quieto y el destino, cuando ya montó, lo cubre con su `fade`.
+  // Al terminar, el logo sigue animándose y el destino, cuando ya montó, lo cubre con su `fade`.
   return (
     <>
       <FintLoadingScreen

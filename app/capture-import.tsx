@@ -24,6 +24,7 @@ import { radius, space } from "../src/theme/tokens";
 import { fontFace, textStyles } from "../src/theme/typography";
 import { Amount, FintButton, FintCard, FintSheet, FintSpinner, FText, PressableScale, useNotify } from "../src/ui";
 import { GroupedCell } from "../src/ui/GroupedCell";
+import { TaskProgress } from "../src/ui/TaskProgress";
 import { SwipeActions, type SwipeAction } from "../src/ui/SwipeActions";
 
 type RowStatus = "queued" | "processing" | "created" | "duplicate" | "unrecognized" | "failed";
@@ -319,12 +320,27 @@ export default function CaptureImportScreen() {
           >
             {/* Resumen: el estado, las cifras y "Agregar más". */}
             <FintCard p={space[5]} items="center" gap={space[3]}>
-              <View width={56} height={56} rounded={999} bg={isProcessing ? "$brandWash" : "$surfaceSunken"} items="center" justify="center">
-                {isProcessing ? <FintSpinner color="$brand" /> : <CheckCircle2 size={26} color="$flowIn" strokeWidth={2} />}
-              </View>
-              <FText variant="heading" style={{ textAlign: "center" }}>
-                {isProcessing ? t("capture.summaryWorking") : t("capture.resultTitle")}
-              </FText>
+              {/* Mientras lee: cuántos comprobantes van de cuántos, en ruedas de dígitos (`CargaTarea` compacta). */}
+              {isProcessing ? (
+                <View self="stretch">
+                  <TaskProgress
+                    variant="compact"
+                    title={t("captureTask.reading")}
+                    value={rows.length - rows.filter((row) => row.status === "queued" || row.status === "processing").length}
+                    total={rows.length}
+                    unit={t("captureTask.unit")}
+                  />
+                </View>
+              ) : (
+                <>
+                  <View width={56} height={56} rounded={999} bg="$surfaceSunken" items="center" justify="center">
+                    <CheckCircle2 size={26} color="$flowIn" strokeWidth={2} />
+                  </View>
+                  <FText variant="heading" style={{ textAlign: "center" }}>
+                    {t("capture.resultTitle")}
+                  </FText>
+                </>
+              )}
               <XStack gap={8} flexWrap="wrap" justify="center">
                 <Stat label={t("capture.created")} value={createdCount} tone="flowIn" />
                 <Stat label={t("capture.duplicates")} value={duplicateCount} />

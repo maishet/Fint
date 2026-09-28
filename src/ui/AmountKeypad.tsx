@@ -22,13 +22,13 @@ export interface AmountKeypadProps {
 }
 
 /**
- * Teclado propio del monto: doce teclas de 56px. Cada tecla responde en el
+ * Teclado propio del monto: doce teclas de 48px. Cada tecla responde en el
  * `onPressIn`: fondo `surfaceSunken` con la curva `press` y `haptics.select()`
  * en el mismo frame. El teclado del sistema nunca aparece en el monto.
  */
 export function AmountKeypad({ onKey, onClear }: AmountKeypadProps) {
   return (
-    <YStack gap={4} px={10} pt={12} borderTopWidth={1} borderColor="$line">
+    <YStack gap={4} px={10} pt={10} borderTopWidth={1} borderColor="$line">
       {ROWS.map((row) => (
         <XStack key={row.join("")} gap={4}>
           {row.map((key) => (
@@ -72,7 +72,7 @@ function Key({ value, onKey, onClear }: { value: AmountKey; onKey: (k: AmountKey
       }
       delayLongPress={450}
     >
-      <Animated.View style={[{ height: 56, borderRadius: radius.md, alignItems: "center", justifyContent: "center" }, bg]}>
+      <Animated.View style={[{ height: 48, borderRadius: radius.md, alignItems: "center", justifyContent: "center" }, bg]}>
         {isDelete ? (
           <Delete size={24} color="$ink" strokeWidth={1.8} />
         ) : (

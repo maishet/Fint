@@ -194,10 +194,8 @@ export default function DashboardScreen() {
               pull={pull}
               attentionCount={home.attention.length}
               onProfile={() => router.push("/settings")}
-              onSearch={() => router.push("/(tabs)/movements")}
-              onNotifications={() =>
-                router.push(home.attention.length > 0 && home.attention.every((a) => a.kind === "review") ? "/pending-movements" : "/(tabs)/debts")
-              }
+              onSearch={() => router.push("/search")}
+              onNotifications={() => router.push("/notifications")}
               onAccounts={() => router.push("/accounts")}
               onScan={() => router.push("/capture-import")}
               onPay={() => router.push("/(tabs)/debts")}
@@ -237,7 +235,7 @@ export default function DashboardScreen() {
                     <AttentionRail
                       items={home.attention}
                       upcoming={home.upcoming}
-                      onOpen={(item) => router.push(item.kind === "review" ? "/pending-movements" : "/(tabs)/debts")}
+                      onOpen={(item) => router.push(item.kind === "review" ? "/pending-movements" : item.kind === "gmail" ? "/gmail-settings" : "/(tabs)/debts")}
                     />
                     <RecentMovementsCard transactions={overview.recentTransactions} />
                     <SpendingCard

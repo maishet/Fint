@@ -1,3 +1,4 @@
+import { addressParts, formatAddress, type AddressParts } from './places'
 import { autocompletePlaces, createPlacesSession, getPlaceDetails, type PlaceCategory } from './placesApi'
 
 export type LocationPermissionState = 'granted' | 'denied' | 'undetermined'
@@ -5,7 +6,16 @@ export type LocationPermissionState = 'granted' | 'denied' | 'undetermined'
 export type CapturedLocation = {
   latitude: number
   longitude: number
+  /** La dirección de una línea que se guarda con el movimiento. */
   formattedAddress: string | null
+  /** La dirección en tres niveles, si se resolvió en el dispositivo (lo guardado antes solo trae `formattedAddress`). */
+  parts?: AddressParts | null
+  /** La precisión del GPS en metros, si viene de la posición del teléfono. */
+  accuracy?: number | null
+  /** El nombre que la persona le dio al lugar ("Casa"), si es uno guardado. */
+  placeName?: string | null
+  /** La categoría del comercio, si viene de Places. */
+  category?: PlaceCategory | null
 }
 
 /** Lugar donde el usuario ya registró movimientos antes — viene del propio historial, no de Google. */
@@ -57,9 +67,9 @@ export async function requestAndCaptureLocation(): Promise<CapturedLocation | nu
       if (!requested.granted) return null
     }
     const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
-    const { latitude, longitude } = position.coords
-    const formattedAddress = await reverseGeocode(Location, latitude, longitude)
-    return { latitude, longitude, formattedAddress }
+    const { latitude, longitude, accuracy } = position.coords
+    const address = await reverseGeocodeDetailed(Location, latitude, longitude)
+    return { latitude, longitude, formattedAddress: address.formattedAddress, parts: address.parts, accuracy: accuracy ?? null }
   } catch (error) {
     console.warn('[My Fint Location] capture failed', error instanceof Error ? error.message : String(error))
     return null
@@ -67,7 +77,7 @@ export async function requestAndCaptureLocation(): Promise<CapturedLocation | nu
 }
 
 /** Última posición cacheada por el sistema (sin pedir un nuevo fix de GPS). Solo si ya hay permiso concedido. */
-export async function getLastKnownPosition(): Promise<{ latitude: number; longitude: number } | null> {
+export async function getLastKnownPosition(): Promise<{ latitude: number; longitude: number; accuracy: number | null } | null> {
   const Location = await loadLocation()
   if (!Location) return null
   try {
@@ -75,21 +85,28 @@ export async function getLastKnownPosition(): Promise<{ latitude: number; longit
     if (!permissions.granted) return null
     const position = await Location.getLastKnownPositionAsync()
     if (!position) return null
-    return { latitude: position.coords.latitude, longitude: position.coords.longitude }
+    return { latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy: position.coords.accuracy ?? null }
   } catch {
     return null
   }
 }
 
-async function reverseGeocode(Location: LocationModule, latitude: number, longitude: number): Promise<string | null> {
+async function reverseGeocodeDetailed(
+  Location: LocationModule,
+  latitude: number,
+  longitude: number,
+): Promise<{ formattedAddress: string | null; parts: AddressParts | null }> {
   try {
     const [place] = await Location.reverseGeocodeAsync({ latitude, longitude })
-    if (!place) return null
-    const parts = [place.name && place.name !== place.street ? place.name : place.street, place.district, place.city].filter(Boolean)
-    return parts.length ? parts.join(', ') : null
+    if (!place) return { formattedAddress: null, parts: null }
+    return { formattedAddress: formatAddress(place), parts: addressParts(place) }
   } catch {
-    return null
+    return { formattedAddress: null, parts: null }
   }
+}
+
+async function reverseGeocode(Location: LocationModule, latitude: number, longitude: number): Promise<string | null> {
+  return (await reverseGeocodeDetailed(Location, latitude, longitude)).formattedAddress
 }
 
 /** Dirección legible para un punto ya elegido (arrastre en el mapa, resultado de búsqueda). Nunca lanza. */
@@ -97,6 +114,13 @@ export async function describeLocation(latitude: number, longitude: number): Pro
   const Location = await loadLocation()
   if (!Location) return null
   return reverseGeocode(Location, latitude, longitude)
+}
+
+/** Lo mismo que {@link describeLocation}, con la dirección también en tres niveles. Nunca lanza. */
+export async function describeLocationDetailed(latitude: number, longitude: number): Promise<{ formattedAddress: string | null; parts: AddressParts | null }> {
+  const Location = await loadLocation()
+  if (!Location) return { formattedAddress: null, parts: null }
+  return reverseGeocodeDetailed(Location, latitude, longitude)
 }
 
 async function searchSuggestionsFallback(query: string, limit: number): Promise<LocationSuggestion[]> {

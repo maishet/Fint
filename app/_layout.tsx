@@ -253,6 +253,9 @@ function RootLayoutNav() {
               contentStyle: { backgroundColor: "transparent" },
             }}
           />
+          {/* Avisos (la campana) y la búsqueda global (el buscador del hero): dibujan su propia barra. */}
+          <Stack.Screen name="notifications" options={{ headerShown: false, contentStyle: { backgroundColor: theme.background.val } }} />
+          <Stack.Screen name="search" options={{ headerShown: false, animation: "fade", contentStyle: { backgroundColor: theme.background.val } }} />
           <Stack.Screen
             name="transaction-detail"
             options={{

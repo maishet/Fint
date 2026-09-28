@@ -16,9 +16,9 @@ import {
   Table2,
   Wallet,
 } from "@tamagui/lucide-icons-2";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import type { TFunction } from "i18next";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshControl, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -129,6 +129,14 @@ export default function ReportsScreen() {
   const [sheet, setSheet] = useState<"account" | "currency" | "export" | "top" | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [pulling, setPulling] = useState(false);
+
+  // "Exportar" de la hoja Más llega con `open=export`: se abre la hoja de descarga y el parámetro se limpia.
+  const params = useLocalSearchParams<{ open?: string }>();
+  useEffect(() => {
+    if (params.open !== "export") return;
+    setSheet("export");
+    router.setParams({ open: undefined });
+  }, [params.open, router]);
 
   useScreenStatusBar();
 

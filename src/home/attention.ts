@@ -1,7 +1,7 @@
 import type { PaymentOccurrence } from "../api/types";
 import { transactionDay } from "./spending";
 
-export type AttentionKind = "overdue" | "due_today" | "due_soon" | "review";
+export type AttentionKind = "overdue" | "due_today" | "due_soon" | "review" | "gmail";
 
 /** Un aviso del Inicio. Mismo formato que `attention[]` del contrato v2. */
 export interface AttentionItem {
@@ -19,7 +19,7 @@ export interface AttentionItem {
 }
 
 const SOON_DAYS = 7;
-const RANK: Record<AttentionKind, number> = { overdue: 0, due_today: 1, due_soon: 2, review: 3 };
+const RANK: Record<AttentionKind, number> = { overdue: 0, due_today: 1, due_soon: 2, review: 3, gmail: 4 };
 
 function daysUntil(value: string | null, now: Date): number | null {
   const day = value ? transactionDay(value) : null;
@@ -32,13 +32,15 @@ function daysUntil(value: string | null, now: Date): number | null {
 /**
  * Arma los avisos en el cliente mientras el backend no mande `attention[]`:
  * lo vencido primero, después lo que vence hoy, después los próximos siete
- * días, y los movimientos por revisar al final. Los pagos con débito
- * automático no entran: no hay nada que hacer con ellos.
+ * días, los movimientos por revisar y, al final, Gmail si dejó de sincronizar
+ * (hay que volver a dar permiso). Los pagos con débito automático no entran:
+ * no hay nada que hacer con ellos.
  */
 export function buildAttention(
   occurrences: readonly PaymentOccurrence[],
   pendingCount: number,
   now = new Date(),
+  gmailDown = false,
 ): AttentionItem[] {
   const items: AttentionItem[] = [];
 
@@ -77,6 +79,10 @@ export function buildAttention(
       count: pendingCount,
       occurrenceId: null,
     });
+  }
+
+  if (gmailDown) {
+    items.push({ key: "gmail", kind: "gmail", title: "", amount: null, currency: null, dueDate: null, days: null, count: null, occurrenceId: null });
   }
 
   return items;

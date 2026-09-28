@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { CalendarDays, ChevronDown, FileText, MapPin, Plus, X } from "@tamagui/lucide-icons-2";
+import { CalendarDays, ChevronDown, ChevronRight, FileText, MapPin, Plus, X } from "@tamagui/lucide-icons-2";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { BackHandler, ScrollView, useWindowDimensions } from "react-native";
+import { BackHandler, Pressable, ScrollView, useWindowDimensions } from "react-native";
 import Animated, { FadeOut, LinearTransition, useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { View, XStack, YStack, type ColorTokens } from "tamagui";
+import { View, XStack, YStack, useTheme } from "tamagui";
 import { financeApi } from "../src/api/finance";
 import { getAppLocale } from "../src/i18n";
 import type { AccountOption } from "../src/api/types";
@@ -15,15 +15,17 @@ import { getCategoryLabel } from "../src/finance/categoryLabels";
 import { formatAmount } from "../src/finance/formatAmount";
 import { parseDateString, todayDateString, toDateString } from "../src/finance/dates";
 import { amountInputValue, applyAmountKey } from "../src/forms/amountInput";
-import { categoryColorIndex } from "../src/home/spending";
 import { useUnsavedChangesGuard } from "../src/hooks/useUnsavedChangesGuard";
-import { describeLocation, getLastKnownPosition, getLocationPermissionState, type CapturedLocation } from "../src/location/captureLocation";
+import { describeLocationDetailed, getLastKnownPosition, getLocationPermissionState, type CapturedLocation } from "../src/location/captureLocation";
 import { useLocationPreference } from "../src/location/LocationPreferenceProvider";
+import { findSavedPlace, locationLines } from "../src/location/places";
+import { useSavedPlaces } from "../src/location/savedPlaces";
 import { AccountSheet } from "../src/movement-form/AccountSheet";
-import { CategorySheet } from "../src/movement-form/CategorySheet";
+import { CategorySheet, CategoryTile, NewTile } from "../src/movement-form/CategorySheet";
 import { DateSheet, shortDay } from "../src/movement-form/DateSheet";
 import { GrowPresence, type GrowPresenceHandle } from "../src/movement-form/GrowPresence";
 import { LocationSheet } from "../src/movement-form/LocationSheet";
+import { MapThumb } from "../src/movement-form/MapThumb";
 import {
   accountBalance,
   accountCurrencies,
@@ -32,11 +34,11 @@ import {
   last30DaysRange,
   recentNotes,
   sharedCurrencies,
-  splitAddress,
   type MovementKind,
 } from "../src/movement-form/logic";
-import { NoteSheet } from "../src/movement-form/NoteSheet";
+import { NOTE_MAX, NoteSheet } from "../src/movement-form/NoteSheet";
 import { TransferAccounts } from "../src/movement-form/TransferAccounts";
+import { withAlpha } from "../src/theme/color";
 import { radius } from "../src/theme/tokens";
 import { fontFace } from "../src/theme/typography";
 import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
@@ -44,7 +46,6 @@ import {
   Amount,
   AmountDisplay,
   AmountKeypad,
-  Chip,
   FintButton,
   FintSheet,
   FintSpinner,
@@ -55,6 +56,7 @@ import {
   SegmentedControl,
 } from "../src/ui";
 import { AmountSkeleton } from "../src/ui/AmountSkeleton";
+import { DashedOutline } from "../src/ui/DashedOutline";
 import { riseIn } from "../src/ui/entering";
 import { haptics } from "../src/ui/haptics";
 import { useNotify } from "../src/ui/notify";
@@ -83,6 +85,7 @@ export default function TransactionFormScreen() {
   const { t, i18n } = useTranslation();
   const locale = getAppLocale(i18n.resolvedLanguage);
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const { width: screenWidth } = useWindowDimensions();
   useScreenStatusBar();
   const reduceMotion = useReducedMotion();
@@ -207,6 +210,9 @@ export default function TransactionFormScreen() {
 
   // Sugerencia de lugar: solo si la persona activó "Ubicación en movimientos" y ya dio permiso. Nunca se guarda sola.
   const locationPref = useLocationPreference();
+  // Un lugar guardado ("Casa") se reconoce a menos de 50 m y se muestra en una píldora en el campo Ubicación.
+  const { places: savedPlaces } = useSavedPlaces();
+  const savedPlace = location ? findSavedPlace(savedPlaces, location) : null;
   useEffect(() => {
     if (isEditing || location || !locationPref.isHydrated || !locationPref.enabled) return;
     let cancelled = false;
@@ -214,8 +220,8 @@ export default function TransactionFormScreen() {
       if ((await getLocationPermissionState()) !== "granted") return;
       const position = await getLastKnownPosition();
       if (!position || cancelled) return;
-      const address = await describeLocation(position.latitude, position.longitude);
-      if (!cancelled) setSuggestion({ ...position, formattedAddress: address });
+      const address = await describeLocationDetailed(position.latitude, position.longitude);
+      if (!cancelled) setSuggestion({ ...position, ...address });
     })();
     return () => {
       cancelled = true;
@@ -395,7 +401,6 @@ export default function TransactionFormScreen() {
       : date === yesterday
         ? t("movementForm.yesterday")
         : shortDay(parseDateString(date) ?? new Date(), locale);
-  const locationName = (place: CapturedLocation | null) => splitAddress(place?.formattedAddress).primary;
   const showLocation = kind !== "transfer" && (Boolean(location) || (locationPref.isHydrated && locationPref.enabled));
 
   const ctaLabel = isPending
@@ -425,7 +430,8 @@ export default function TransactionFormScreen() {
 
   const chipCategories = useMemo(() => {
     const picked = categories.find((c) => c.name === category);
-    return picked && !frequent.some((c) => c.id === picked.id) ? [picked, ...frequent] : frequent;
+    // Cuatro discos (más "Otra"): la elegida desde la hoja entra primera si no está entre las frecuentes.
+    return (picked && !frequent.some((c) => c.id === picked.id) ? [picked, ...frequent] : frequent).slice(0, 4);
   }, [categories, category, frequent]);
 
   const layout = reduceMotion ? undefined : LinearTransition.springify().damping(26).stiffness(240);
@@ -526,36 +532,45 @@ export default function TransactionFormScreen() {
 
               {entered ? (
                 <Animated.View entering={riseIn({ distance: 8, reduceMotion })}>
-                  {/* Categoría: las frecuentes y "Más", todas a la vista (sin deslizar): los chips pasan a la fila siguiente. */}
+                  {/*
+                    Categoría: las cuatro frecuentes y "Otra" en discos, como en la hoja; las cinco se ven siempre, sin
+                    deslizar. "Todas" y "Otra" abren la hoja completa.
+                  */}
                   {kind !== "transfer" ? (
-                    <YStack mt={22}>
-                      <FText variant="caption" tone="inkMuted" style={{ paddingHorizontal: 16, marginBottom: 8 }}>
-                        {t("movementForm.category")}
-                      </FText>
-                      <XStack flexWrap="wrap" gap={8} px={16}>
+                    <YStack mt={18}>
+                      <XStack px={20} mb={8} items="baseline" justify="space-between">
+                        <FText variant="caption" tone="inkMuted">
+                          {t("movementForm.category")}
+                        </FText>
+                        <Pressable onPress={() => setSheet("category")} hitSlop={10} accessibilityRole="button">
+                          <FText variant="caption" tone="brand" style={{ fontFamily: fontFace.sans[600] }}>
+                            {t("movementForm.allCategories")}
+                          </FText>
+                        </Pressable>
+                      </XStack>
+                      <XStack px={6}>
                         {categoriesQuery.isLoading
-                          ? [120, 104, 96].map((w) => <AmountSkeleton key={w} width={w} height={32} />)
+                          ? [0, 1, 2, 3].map((i) => (
+                              <YStack key={i} width="20%" items="center" gap={6} py={4}>
+                                <View width={50} height={50} rounded={999} bg="$surfaceSunken" />
+                                <AmountSkeleton width={44} height={10} />
+                              </YStack>
+                            ))
                           : chipCategories.map((c) => (
-                              <Chip
+                              <CategoryTile
                                 key={c.id}
-                                variant="choice"
+                                compact
+                                category={c}
                                 label={getCategoryLabel(c.name, t)}
-                                emoji={c.icon}
-                                dotColor={`$chart${categoryColorIndex(c.name)}` as ColorTokens}
                                 selected={c.name === category}
                                 onPress={() => {
+                                  haptics.select();
                                   setCategory(c.name);
                                   clearError("category");
                                 }}
                               />
                             ))}
-                        <Chip
-                          variant="choice"
-                          dashed
-                          label={t("movementForm.more")}
-                          icon={<Plus size={14} color="$inkMuted" strokeWidth={2.2} />}
-                          onPress={() => setSheet("category")}
-                        />
+                        <NewTile compact label={t("movementForm.otherCategory")} onPress={() => setSheet("category")} />
                       </XStack>
                       {errors.category ? (
                         <View px={16} mt={6}>
@@ -565,32 +580,30 @@ export default function TransactionFormScreen() {
                     </YStack>
                   ) : null}
 
-                  {/* Detalles: fecha y ubicación, de igual ancho. */}
-                  <XStack gap={8} px={16} mt={22}>
-                    <Chip
-                      variant="detail"
-                      grow
-                      label={dateLabel}
-                      icon={<CalendarDays size={15} color="$ink" />}
+                  {/* Detalles: campos con etiqueta y valor, uno por fila. En una transferencia, solo fecha y nota. */}
+                  <FText variant="caption" tone="inkMuted" style={{ paddingHorizontal: 20, marginTop: 16, marginBottom: 8 }}>
+                    {t("movementForm.details")}
+                  </FText>
+                  <YStack px={16} gap={8}>
+                    <DetailField
+                      icon={<CalendarDays size={17} color="$brand" strokeWidth={2} />}
+                      tint={theme.brand.val}
+                      label={t("movementForm.date")}
+                      value={dateLabel}
                       onPress={() => setSheet("date")}
                     />
                     {showLocation ? (
-                      <Chip
-                        variant="detail"
-                        grow
-                        empty={!location}
-                        label={locationName(location) ?? locationName(suggestion) ?? t("movementForm.location")}
-                        icon={<MapPin size={15} color={location ? "$ink" : "$inkMuted"} />}
+                      <LocationField
+                        location={location}
+                        suggestion={suggestion}
+                        placeName={location?.placeName ?? savedPlace?.name ?? null}
                         onPress={() => setSheet("location")}
+                        onUse={() => suggestion && setLocation(suggestion)}
                       />
                     ) : null}
-                  </XStack>
-
-                  {/*
-                    La nota va aparte, a lo ancho y completa (hasta tres líneas): en un chip se cortaba y, al volver de la
-                    hoja, no se veía lo escrito. Ocupa el espacio que quedaba vacío sobre el teclado.
-                  */}
-                  <NoteField note={note} onPress={() => setSheet("note")} />
+                    {/* La nota va al final y completa (hasta cuatro líneas), porque puede ser larga. */}
+                    <NoteField note={note} onPress={() => setSheet("note")} />
+                  </YStack>
                 </Animated.View>
               ) : null}
             </Animated.View>
@@ -698,6 +711,11 @@ export default function TransactionFormScreen() {
           onClose={() => setSheet(null)}
           value={location}
           suggestion={suggestion}
+          context={
+            value > 0
+              ? t("movementForm.locationSheet.context", { kind: t(`movementForm.locationSheet.kinds.${kind}`), amount: formatAmount(value, displayCurrency), date: dateLabel.toLocaleLowerCase(locale) })
+              : t("movementForm.locationSheet.contextNoAmount", { kind: t(`movementForm.locationSheet.kinds.${kind}`), date: dateLabel.toLocaleLowerCase(locale) })
+          }
           onSave={setLocation}
         />
       ) : null}
@@ -836,8 +854,128 @@ function TransferCurrencyLine({
 }
 
 /** La nota completa, a lo ancho. Sin nota, una invitación a escribirla. Tocarla abre la hoja de nota. */
+/** Un campo de Detalles: icono en un cuadrado teñido al 14 %, la etiqueta y el valor, y un chevron. */
+function DetailField({ icon, tint, label, value, onPress }: { icon: ReactNode; tint: string; label: string; value: string; onPress: () => void }) {
+  return (
+    <PressableScale onPress={onPress} scaleTo={0.99} haptic="tap" accessibilityRole="button" accessibilityLabel={`${label}: ${value}`}>
+      <XStack items="center" gap={10} px={12} py={10} rounded={radius.lg} bg="$surface" borderWidth={1} borderColor="$line">
+        <View width={36} height={36} rounded={radius.md} items="center" justify="center" style={{ backgroundColor: withAlpha(tint, 0.14) }}>
+          {icon}
+        </View>
+        <YStack flex={1} minW={0}>
+          <FText tone="inkFaint" style={{ fontSize: 11, lineHeight: 14 }}>
+            {label}
+          </FText>
+          <FText numberOfLines={1} style={{ fontFamily: fontFace.sans[600], fontSize: 14, lineHeight: 19, letterSpacing: -0.15 }}>
+            {value}
+          </FText>
+        </YStack>
+        <ChevronRight size={16} color="$inkFaint" />
+      </XStack>
+    </PressableScale>
+  );
+}
+
+/**
+ * El campo Ubicación: la miniatura del mapa, la etiqueta (con el nombre del lugar guardado en una píldora) y la
+ * dirección en dos líneas. Sugerida (la persona activó "Ubicación en movimientos" y no la guardó todavía): filete
+ * punteado, el punto con su precisión y "Usar"; nunca se guarda sola. Sin ninguna, una fila para agregarla.
+ */
+function LocationField({
+  location,
+  suggestion,
+  placeName,
+  onPress,
+  onUse,
+}: {
+  location: CapturedLocation | null;
+  suggestion: CapturedLocation | null;
+  placeName: string | null;
+  onPress: () => void;
+  onUse: () => void;
+}) {
+  const { t } = useTranslation();
+  const theme = useTheme();
+  const shown = location ?? suggestion;
+  const nearby = !location && Boolean(suggestion);
+
+  if (!shown) {
+    return (
+      <DetailField
+        icon={<MapPin size={17} color={theme.chart4.val as never} strokeWidth={2} />}
+        tint={theme.chart4.val}
+        label={t("movementForm.location")}
+        value={t("movementForm.addLocation")}
+        onPress={onPress}
+      />
+    );
+  }
+
+  const lines = locationLines(shown);
+  const accuracy = nearby && shown.accuracy ? ` · ± ${Math.round(shown.accuracy)} m` : "";
+  return (
+    <PressableScale
+      onPress={onPress}
+      scaleTo={0.99}
+      haptic="tap"
+      accessibilityRole="button"
+      accessibilityLabel={[t("movementForm.location"), placeName, lines.primary, lines.secondary].filter(Boolean).join(", ")}
+    >
+      <XStack
+        items="center"
+        gap={10}
+        pl={8}
+        pr={12}
+        py={8}
+        rounded={radius.lg}
+        bg={nearby ? "transparent" : "$surface"}
+        borderWidth={1}
+        borderColor={nearby ? "transparent" : "$line"}
+      >
+        {nearby ? <DashedOutline radius={radius.lg} /> : null}
+        <MapThumb nearby={nearby} />
+        <YStack flex={1} minW={0}>
+          <XStack items="center" gap={6}>
+            <FText tone="inkFaint" style={{ fontSize: 11, lineHeight: 14 }}>
+              {nearby ? `${t("movementForm.nearby")}${accuracy}` : t("movementForm.location")}
+            </FText>
+            {!nearby && placeName ? (
+              <View px={7} rounded={999} bg="$brandWash">
+                <FText tone="brand" style={{ fontFamily: fontFace.sans[600], fontSize: 10.5, lineHeight: 15 }}>
+                  {placeName}
+                </FText>
+              </View>
+            ) : null}
+          </XStack>
+          <FText numberOfLines={1} style={{ fontFamily: fontFace.sans[600], fontSize: 14, lineHeight: 19, letterSpacing: -0.15 }}>
+            {lines.primary ?? t("movementForm.location")}
+          </FText>
+          {lines.secondary ? (
+            <FText tone="inkMuted" numberOfLines={1} style={{ fontSize: 12, lineHeight: 16 }}>
+              {lines.secondary}
+            </FText>
+          ) : null}
+        </YStack>
+        {nearby ? (
+          <PressableScale onPress={onUse} haptic="tap" accessibilityRole="button">
+            <XStack height={32} px={13} rounded={999} bg="$brandWash" items="center">
+              <FText tone="brand" style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18 }}>
+                {t("movementForm.useLocation")}
+              </FText>
+            </XStack>
+          </PressableScale>
+        ) : (
+          <ChevronRight size={16} color="$inkFaint" />
+        )}
+      </XStack>
+    </PressableScale>
+  );
+}
+
+/** La nota, sola y al final: su texto completo hasta cuatro líneas y el contador; vacía, una sola línea. */
 function NoteField({ note, onPress }: { note: string; onPress: () => void }) {
   const { t } = useTranslation();
+  const theme = useTheme();
   const text = note.trim();
   return (
     <PressableScale
@@ -847,13 +985,29 @@ function NoteField({ note, onPress }: { note: string; onPress: () => void }) {
       accessibilityRole="button"
       accessibilityLabel={text ? `${t("movementForm.note")}: ${text}` : t("movementForm.addNote")}
     >
-      <XStack mx={16} mt={12} minH={48} px={14} py={12} gap={10} items="flex-start" rounded={radius.md} borderWidth={1} borderColor="$lineStrong" bg="$surface">
-        <View pt={3}>
-          <FileText size={16} color={text ? "$ink" : "$inkMuted"} />
+      <XStack gap={10} pl={12} pr={14} py={text ? 12 : 10} items={text ? "flex-start" : "center"} rounded={radius.lg} bg="$surface" borderWidth={1} borderColor="$line">
+        <View width={36} height={36} rounded={radius.md} items="center" justify="center" style={{ backgroundColor: withAlpha(theme.chart3.val, 0.14) }}>
+          <FileText size={17} color={theme.chart3.val as never} strokeWidth={2} />
         </View>
-        <FText variant="body" tone={text ? "ink" : "inkMuted"} numberOfLines={3} style={{ flex: 1 }}>
-          {text || t("movementForm.addNote")}
-        </FText>
+        <YStack flex={1} minW={0}>
+          <XStack items="center" justify="space-between">
+            <FText tone="inkFaint" style={{ fontSize: 11, lineHeight: 14 }}>
+              {t("movementForm.note")}
+            </FText>
+            {text ? (
+              <FText
+                tone="inkFaint"
+                style={{ fontFamily: fontFace.mono[400], fontSize: 10.5, lineHeight: 14 }}
+                accessibilityLabel={t("movementForm.noteCount", { count: text.length, max: NOTE_MAX })}
+              >
+                {`${text.length} / ${NOTE_MAX}`}
+              </FText>
+            ) : null}
+          </XStack>
+          <FText tone={text ? "ink" : "inkMuted"} numberOfLines={text ? 4 : 1} style={{ fontSize: 14, lineHeight: 20, marginTop: 2 }}>
+            {text || t("movementForm.addNote")}
+          </FText>
+        </YStack>
       </XStack>
     </PressableScale>
   );

@@ -35,8 +35,8 @@ export interface FintLoadingScreenProps extends YStackProps {
    */
   startComplete?: boolean;
   /**
-   * Con `false`, al llegar los datos el logo se completa y se queda (no sale) y `onDone` se llama enseguida: la
-   * pantalla que sigue lo tapa con su `fade` cuando ya está montada. Así no queda la losa vacía mientras monta.
+   * Con `false`, al llegar los datos `onDone` se llama enseguida y el logo sigue animándose (no sale): la pantalla
+   * que sigue lo tapa con su `fade` cuando ya está montada. Así no queda la losa vacía mientras monta.
    */
   exitOnReady?: boolean;
 }

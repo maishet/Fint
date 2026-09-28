@@ -21,6 +21,7 @@ import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
 import { FintButton, FintCard, FintSheet, FintSpinner, FText, IconButton, PressableScale, useNotify } from "../src/ui";
 import { DashedOutline } from "../src/ui/DashedOutline";
 import { GoogleMark } from "../src/ui/GoogleMark";
+import { TaskProgress } from "../src/ui/TaskProgress";
 import { haptics } from "../src/ui/haptics";
 
 async function connectGmailNative() {
@@ -380,6 +381,12 @@ function SourceCard({
               </FText>
             ) : null}
           </XStack>
+          {/* Mientras lee: la carga de tarea compacta (el tiempo transcurrido y la frase; el servidor no informa avance). */}
+          {syncMutation.isPending ? (
+            <View mt={12}>
+              <TaskProgress variant="compact" title={t("gmailTask.reading")} />
+            </View>
+          ) : null}
         </>
       ) : null}
     </FintCard>

@@ -19,6 +19,8 @@ import { loginScreenTranslations } from "./loginScreen";
 import { settingsScreenTranslations } from "./settingsScreen";
 import { secondaryScreensTranslations } from "./secondaryScreens";
 import { loadingScreenTranslations } from "./loadingScreen";
+import { notificationsTranslations } from "./notifications";
+import { searchTranslations } from "./search";
 
 export type { AppLanguage };
 
@@ -2830,6 +2832,16 @@ for (const [language, bundle] of Object.entries(secondaryScreensTranslations)) {
 
 // Pantalla de carga v3.
 for (const [language, bundle] of Object.entries(loadingScreenTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Avisos (la campana del Inicio).
+for (const [language, bundle] of Object.entries(notificationsTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Búsqueda global (el buscador del hero).
+for (const [language, bundle] of Object.entries(searchTranslations)) {
   i18n.addResourceBundle(language, "translation", bundle, true, false);
 }
 

@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { financeApi } from "../api/finance";
-import { buildAttention, nextDue } from "./attention";
 import { buildSpendingSeries, spendingRange } from "./spending";
+import { useAttention } from "./useAttention";
 
 /**
  * Todo lo que pide el Inicio v3, armado con los endpoints que existen hoy.
@@ -29,15 +29,7 @@ export function useHomeData(selectedAccount: { id: string; name: string } | null
     enabled: Boolean(currency),
   });
 
-  const occurrencesQuery = useQuery({
-    queryKey: ["payment-occurrences", "open"],
-    queryFn: ({ signal }) => financeApi.listPaymentOccurrences({ status: "open" }, signal),
-  });
-
-  const pendingQuery = useQuery({
-    queryKey: ["pending-movements", "summary"],
-    queryFn: () => financeApi.getPendingMovementsSummary(),
-  });
+  const attention = useAttention();
 
   const range = spendingRange();
   const spendingTxQuery = useQuery({
@@ -56,11 +48,6 @@ export function useHomeData(selectedAccount: { id: string; name: string } | null
     enabled: Boolean(currency),
   });
 
-  const attention = useMemo(
-    () => buildAttention(occurrencesQuery.data ?? [], pendingQuery.data?.count ?? 0),
-    [occurrencesQuery.data, pendingQuery.data?.count],
-  );
-  const upcoming = useMemo(() => nextDue(occurrencesQuery.data ?? []), [occurrencesQuery.data]);
 
   const spending = useMemo(
     () =>
@@ -74,8 +61,7 @@ export function useHomeData(selectedAccount: { id: string; name: string } | null
     Promise.all([
       overviewQuery.refetch(),
       accountsQuery.refetch(),
-      occurrencesQuery.refetch(),
-      pendingQuery.refetch(),
+      attention.refetch(),
       spendingTxQuery.refetch(),
       categoriesQuery.refetch(),
     ]);
@@ -83,14 +69,14 @@ export function useHomeData(selectedAccount: { id: string; name: string } | null
   return {
     overview: overviewQuery.data,
     accounts: accountsQuery.data?.items ?? [],
-    attention,
-    upcoming,
+    attention: attention.items,
+    upcoming: attention.upcoming,
     spending,
     categories: categoriesQuery.data?.categories ?? [],
     isLoading: overviewQuery.isLoading,
     isSpendingLoading: spendingTxQuery.isLoading || categoriesQuery.isLoading,
     isRefreshing:
-      overviewQuery.isRefetching || accountsQuery.isRefetching || occurrencesQuery.isRefetching || spendingTxQuery.isRefetching,
+      overviewQuery.isRefetching || accountsQuery.isRefetching || attention.isRefetching || spendingTxQuery.isRefetching,
     error: overviewQuery.error,
     refetchAll,
   };

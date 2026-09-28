@@ -25,6 +25,7 @@ import { StackFrame } from "../src/settings/StackFrame";
 import { radius, space } from "../src/theme/tokens";
 import { fontFace, textStyles } from "../src/theme/typography";
 import { FintButton, FintCard, FintSpinner, FText, useNotify } from "../src/ui";
+import { TaskProgress } from "../src/ui/TaskProgress";
 
 const NONE = "-1";
 const SHEET_UNMOUNT_MS = 600;
@@ -51,6 +52,8 @@ export default function ImportTransactionsScreen() {
   const [showMapping, setShowMapping] = useState(false);
   const [isReading, setIsReading] = useState(false);
   const [result, setResult] = useState<ImportTransactionsResult | null>(null);
+  // Guardado en el servidor; `result` llega recién cuando las listas se actualizaron (la última etapa).
+  const [saved, setSaved] = useState(false);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [mountedSheet, setMountedSheet] = useState<Sheet>(null);
   const didAutoPick = useRef(false);
@@ -130,16 +133,57 @@ export default function ImportTransactionsScreen() {
 
   const importMutation = useMutation({
     mutationFn: () => financeApi.importTransactions(parsed.items),
+    onMutate: () => setSaved(false),
     onSuccess: async (data) => {
-      setResult(data);
+      setSaved(true);
       await Promise.all(
         ["transactions", "dashboard", "accounts", "summary", "reports", "categories"].map((key) =>
           queryClient.invalidateQueries({ queryKey: [key] }),
         ),
       );
+      setResult(data);
     },
-    onError: (error) => notify.error(t("import.error"), { message: error instanceof Error ? error.message : undefined }),
   });
+
+  // Mientras se importa y al terminar: la carga de tarea (`CargaTarea`) con las etapas reales. El servidor no
+  // informa avance, así que cuenta el tiempo transcurrido.
+  if (importMutation.isPending || importMutation.isError || saved) {
+    const failed = importMutation.isError;
+    const detail =
+      result && (result.duplicates || result.failed) ? t("importTask.detail", { duplicates: result.duplicates, failed: result.failed }) : undefined;
+    return (
+      <TaskProgress
+        kind={t("importTask.kind")}
+        icon={<FileSpreadsheet size={15} color="$brand" strokeWidth={2} />}
+        title={t("importTask.title")}
+        hint={t("importTask.hint")}
+        steps={[
+          { label: t("importTask.read"), done: true, count: String(parsed.items.length) },
+          { label: t("importTask.save"), done: saved },
+          { label: t("importTask.refresh"), done: Boolean(result) },
+        ]}
+        result={
+          failed
+            ? {
+                tone: "error",
+                title: t("importTask.error"),
+                detail: importMutation.error instanceof Error ? importMutation.error.message : undefined,
+                primary: { label: t("importTask.retry"), onPress: () => importMutation.mutate() },
+                secondary: { label: t("importTask.back"), onPress: () => importMutation.reset() },
+              }
+            : result
+              ? {
+                  tone: "success",
+                  title: t("importTask.done", { count: result.created }),
+                  detail,
+                  primary: { label: t("importTask.view"), onPress: () => router.replace("/(tabs)/movements") },
+                  secondary: { label: t("importTask.finish"), onPress: () => router.back() },
+                }
+              : null
+        }
+      />
+    );
+  }
 
   // El nombre de la cabecera no siempre dice qué hay dentro ("col_3", "Importe 2"); un valor real del archivo lo
   // resuelve de un vistazo.
@@ -161,24 +205,7 @@ export default function ImportTransactionsScreen() {
 
   return (
     <StackFrame title={t("import.title")}>
-      {result ? (
-        <ScrollView contentContainerStyle={{ padding: space[4] }}>
-          <FintCard p={space[5]} items="center" gap={space[3]}>
-            <View width={60} height={60} rounded={999} bg="$surfaceSunken" items="center" justify="center">
-              <CheckCircle2 size={28} color="$flowIn" strokeWidth={2} />
-            </View>
-            <FText variant="section-title">{t("import.resultTitle")}</FText>
-            <YStack self="stretch" gap={8}>
-              <ResultRow label={t("import.created")} value={result.created} tone="flowIn" />
-              <ResultRow label={t("import.duplicates")} value={result.duplicates} tone="inkMuted" />
-              <ResultRow label={t("import.failed")} value={result.failed} tone={result.failed ? "dangerHard" : "inkMuted"} />
-            </YStack>
-          </FintCard>
-          <YStack mt={space[4]}>
-            <FintButton onPress={() => router.back()}>{t("import.done")}</FintButton>
-          </YStack>
-        </ScrollView>
-      ) : !hasFile ? (
+      {!hasFile ? (
         <YStack flex={1} items="center" justify="center" gap={space[3]} px={space[6]}>
           <View width={64} height={64} rounded={999} bg="$brandWash" items="center" justify="center">
             <FileSpreadsheet size={26} color="$brand" strokeWidth={2} />

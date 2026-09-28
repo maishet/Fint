@@ -50,6 +50,12 @@ const LOGO_DONE = T.drop + 2 * T.stagger + T.dropDur;
 /** Lo que falta del armado corre a este múltiplo de velocidad cuando llegan los datos. */
 const FAST = 2.2;
 const EXIT_MS = 220;
+/**
+ * Al relevar a la pantalla nativa (`startComplete`) el ciclo corre más rápido y empieza respirando: la espera del
+ * arranque suele durar 1-2 s y a velocidad normal el logo se quedaba quieto (respiraba recién a los 0.4 s y se
+ * desvanecía a los 1.3 s), así que la animación no se llegaba a ver.
+ */
+const START_TEMPO = 1.8;
 const PULSE_MS = 1600;
 
 // El reloj del ciclo es tiempo, no movimiento: cada pieza aplica su curva encima. Con movimiento reducido
@@ -89,13 +95,16 @@ export interface FintLogoLoaderProps {
   size: number;
   /** `slab` sobre la losa (pantalla completa); `canvas` dentro de una pantalla. */
   surface?: "slab" | "canvas";
-  /** Arranca desde el logo completo (respira y se desvanece) en lugar de armarlo desde vacío. */
+  /**
+   * Arranca desde el logo completo (respira y se desvanece) en lugar de armarlo desde vacío. Empieza por la
+   * respiración y corre a `START_TEMPO`: es la espera corta del arranque.
+   */
   startComplete?: boolean;
   /** Llegaron los datos: termina de armar el logo (rápido), sale y llama `onDone`. */
   ready?: boolean;
   /**
-   * Con `false`, al llegar los datos el logo se completa y se queda quieto (sin salir) y `onDone` se llama ahí:
-   * lo que viene después lo tapa con su propia transición. Por defecto sale con `fade`.
+   * Con `false`, al llegar los datos se llama `onDone` enseguida y el logo sigue con su ciclo (sin salir): lo que
+   * viene después lo tapa con su propia transición cuando termina de montar. Por defecto sale con `fade`.
    */
   exitOnReady?: boolean;
   /** Empieza la salida (el logo ya está completo): para que la frase salga junto con él. */
@@ -114,7 +123,8 @@ export interface FintLogoLoaderProps {
 export function FintLogoLoader({ size, surface = "canvas", startComplete = false, ready = false, exitOnReady = true, onLeave, onDone }: FintLogoLoaderProps) {
   const theme = useTheme();
   const reduceMotion = useReducedMotion();
-  const t = useSharedValue(startComplete || reduceMotion ? LOGO_DONE : 0);
+  const t = useSharedValue(reduceMotion ? LOGO_DONE : startComplete ? T.breatheStart : 0);
+  const tempo = startComplete ? START_TEMPO : 1;
   const exit = useSharedValue(0);
   const pulse = useSharedValue(1);
 
@@ -128,14 +138,14 @@ export function FintLogoLoader({ size, surface = "canvas", startComplete = false
 
   // El ciclo (o el latido con movimiento reducido) mientras se espera.
   useEffect(() => {
-    if (ready) return;
+    if (ready && exitOnReady) return;
     if (reduceMotion) {
       t.value = LOGO_DONE;
       pulse.value = withRepeat(withTiming(0.6, { duration: PULSE_MS / 2, easing: Easing.inOut(Easing.sin), reduceMotion: ReduceMotion.Never }), -1, true);
       return () => cancelAnimation(pulse);
     }
-    const restart = withRepeat(withSequence(withTiming(0, clock(0)), withTiming(T.total, clock(T.total))), -1, false);
-    t.value = withSequence(withTiming(T.total, clock(Math.max(0, T.total - t.value))), restart);
+    const restart = withRepeat(withSequence(withTiming(0, clock(0)), withTiming(T.total, clock(T.total / tempo))), -1, false);
+    t.value = withSequence(withTiming(T.total, clock(Math.max(0, T.total - t.value) / tempo)), restart);
     return () => cancelAnimation(t);
     // Solo al montar y al cambiar la preferencia; `ready` corta el ciclo en el efecto de abajo.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -144,14 +154,16 @@ export function FintLogoLoader({ size, surface = "canvas", startComplete = false
   // Llegaron los datos: completar el logo si hace falta y salir.
   useEffect(() => {
     if (!ready) return;
+    // Sin salida propia, el ciclo sigue: montar lo que viene tarda (el Inicio, ~2 s en desarrollo) y, completo y
+    // quieto, el logo parecía no tener animación.
+    if (!exitOnReady) {
+      onDone?.();
+      return;
+    }
     cancelAnimation(t);
     cancelAnimation(pulse);
     const leave = () => {
       "worklet";
-      if (!exitOnReady) {
-        if (onDone) runOnJS(onDone)();
-        return;
-      }
       if (onLeave) runOnJS(onLeave)();
       exit.value = withTiming(1, { duration: EXIT_MS, easing: Easing.out(Easing.cubic), reduceMotion: ReduceMotion.Never }, (finished) => {
         if (finished && onDone) runOnJS(onDone)();
@@ -165,12 +177,12 @@ export function FintLogoLoader({ size, surface = "canvas", startComplete = false
     const now = t.value;
     if (now < LOGO_DONE) {
       // Lo que falta del armado, al doble de velocidad.
-      t.value = withTiming(LOGO_DONE, clock((LOGO_DONE - now) / FAST), (finished) => {
+      t.value = withTiming(LOGO_DONE, clock((LOGO_DONE - now) / (FAST * tempo)), (finished) => {
         if (finished) leave();
       });
     } else if (now > T.breatheEnd) {
       // Estaba desvaneciéndose: vuelve al logo completo antes de irse.
-      t.value = withTiming(T.breatheEnd, clock((now - T.breatheEnd) / FAST), (finished) => {
+      t.value = withTiming(T.breatheEnd, clock((now - T.breatheEnd) / (FAST * tempo)), (finished) => {
         if (finished) leave();
       });
     } else {

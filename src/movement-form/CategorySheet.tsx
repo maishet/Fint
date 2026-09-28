@@ -17,7 +17,9 @@ import { haptics } from "../ui/haptics";
 
 /** Tiempo para que la persona alcance a ver su elección antes de que la hoja se cierre. */
 const CLOSE_DELAY = 180;
-const DISC = 54;
+/** El disco de la hoja y el del formulario (cinco en una fila). */
+const SHEET_DISC = 54;
+const COMPACT_DISC = 50;
 
 export interface CategorySheetProps {
   open: boolean;
@@ -166,18 +168,25 @@ function Grid({ children }: { children: React.ReactNode }) {
   );
 }
 
-function CategoryTile({
+/**
+ * El disco de una categoría, igual en la hoja y en el formulario: el emoji en el disco neutro y, elegida, fondo
+ * `brandWash`, anillo `brand` y la marca arriba a la derecha. `compact` es la versión del formulario (cinco en una
+ * fila: disco de 50px y nombre a 11px).
+ */
+export function CategoryTile({
   category,
   label,
   selected,
   onPress,
   onLongPress,
+  compact = false,
 }: {
   category: Category;
   label: string;
   selected: boolean;
   onPress: () => void;
-  onLongPress: () => void;
+  onLongPress?: () => void;
+  compact?: boolean;
 }) {
   const theme = useTheme();
   const { themeMode } = useThemeMode();
@@ -191,10 +200,11 @@ function CategoryTile({
   const checkStyle = useAnimatedStyle(() => ({ opacity: on.value, transform: [{ scale: 0.6 + 0.4 * on.value }] }));
 
   const initial = label.trim().charAt(0).toUpperCase() || "·";
+  const DISC = compact ? COMPACT_DISC : SHEET_DISC;
 
   return (
     <Pressable
-      style={{ width: "25%", alignItems: "center", gap: 6, paddingVertical: 8, paddingHorizontal: 2 }}
+      style={{ width: compact ? "20%" : "25%", alignItems: "center", gap: 6, paddingVertical: compact ? 4 : 8, paddingHorizontal: 2 }}
       onPress={onPress}
       onLongPress={onLongPress}
       accessibilityRole="button"
@@ -228,7 +238,7 @@ function CategoryTile({
           ]}
         />
         <Animated.View pointerEvents="none" style={[{ position: "absolute", right: -3, top: -3 }, checkStyle]}>
-          <View width={20} height={20} rounded={999} bg="$brand" borderWidth={2} borderColor="$surfaceOverlay" items="center" justify="center">
+          <View width={20} height={20} rounded={999} bg="$brand" borderWidth={2} borderColor={compact ? "$canvas" : "$surfaceOverlay"} items="center" justify="center">
             <Check size={11} color="$onBrand" strokeWidth={3} />
           </View>
         </Animated.View>
@@ -237,7 +247,11 @@ function CategoryTile({
         variant="caption"
         tone={selected ? "ink" : "inkMuted"}
         numberOfLines={1}
-        style={[{ maxWidth: "100%", letterSpacing: -0.1, lineHeight: 15 }, selected ? { fontFamily: fontFace.sans[600] } : null]}
+        style={[
+          { maxWidth: "100%", letterSpacing: compact ? -0.2 : -0.1, lineHeight: compact ? 14 : 15 },
+          compact ? { fontSize: 11 } : null,
+          selected ? { fontFamily: fontFace.sans[600] } : null,
+        ]}
       >
         {label}
       </FText>
@@ -245,10 +259,12 @@ function CategoryTile({
   );
 }
 
-function NewTile({ label, onPress }: { label: string; onPress: () => void }) {
+/** El disco punteado: "Nueva" en la hoja (en `brand`) u "Otra" en el formulario (`compact`, en `inkMuted`). */
+export function NewTile({ label, onPress, compact = false }: { label: string; onPress: () => void; compact?: boolean }) {
+  const DISC = compact ? COMPACT_DISC : SHEET_DISC;
   return (
     <Pressable
-      style={{ width: "25%", alignItems: "center", gap: 6, paddingVertical: 8, paddingHorizontal: 2 }}
+      style={{ width: compact ? "20%" : "25%", alignItems: "center", gap: 6, paddingVertical: compact ? 4 : 8, paddingHorizontal: 2 }}
       onPress={() => {
         haptics.tap();
         onPress();
@@ -258,9 +274,13 @@ function NewTile({ label, onPress }: { label: string; onPress: () => void }) {
     >
       <View width={DISC} height={DISC} rounded={999} items="center" justify="center">
         <DashedOutline radius={DISC / 2} />
-        <Plus size={22} color="$brand" strokeWidth={2.2} />
+        <Plus size={compact ? 20 : 22} color={compact ? "$inkMuted" : "$brand"} strokeWidth={2.2} />
       </View>
-      <FText variant="caption" tone="brand" style={{ fontFamily: fontFace.sans[600], lineHeight: 15 }}>
+      <FText
+        variant="caption"
+        tone={compact ? "inkMuted" : "brand"}
+        style={compact ? { fontSize: 11, lineHeight: 14 } : { fontFamily: fontFace.sans[600], lineHeight: 15 }}
+      >
         {label}
       </FText>
     </Pressable>

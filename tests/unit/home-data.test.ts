@@ -129,4 +129,9 @@ describe('buildAttention', () => {
     expect(items.map((i) => i.kind)).toEqual(['overdue', 'due_today', 'due_soon', 'review'])
     expect(items[3].count).toBe(2)
   })
+
+  test('Gmail sin sincronizar va al final, después de por revisar', () => {
+    expect(buildAttention([], 1, now, true).map((i) => i.kind)).toEqual(['review', 'gmail'])
+    expect(buildAttention([], 0, now, false)).toEqual([])
+  })
 })
