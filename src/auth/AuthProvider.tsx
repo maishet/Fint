@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { useQueryClient } from '@tanstack/react-query'
 import { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } from '@react-native-google-signin/google-signin'
@@ -8,6 +8,7 @@ import { supabase } from './supabase'
 import { GOOGLE_SIGNIN_BASE_CONFIG } from './googleSignIn'
 import { requestAndRegisterPushInstallation, unregisterPushInstallation } from '../notifications/pushNotifications'
 import { publishSession } from './sessionStore'
+import { reportDevice } from './deviceSession'
 
 GoogleSignin.configure(GOOGLE_SIGNIN_BASE_CONFIG)
 
@@ -33,6 +34,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient()
   const [isLoading, setIsLoading] = useState(true)
   const [session, setSession] = useState<Session | null>(null)
+  // Un inicio de sesión en curso desde esta pantalla (no la sesión guardada que se recupera al abrir, ni la
+  // reautenticación de "Cambiar contraseña"): así el backend sabe cuándo puede avisar de un inicio de sesión nuevo.
+  const signingIn = useRef(false)
+  const reportedFor = useRef<string | null>(null)
 
   // También fuera del contexto, para lo que se dibuja dentro de una hoja (ver `sessionStore`).
   useEffect(() => publishSession(session), [session])
@@ -81,20 +86,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     requestAndRegisterPushInstallation().catch((error) => console.warn('[My Fint Push] automatic register failed', error instanceof Error ? error.message : String(error)))
   }, [session])
 
+  useEffect(() => {
+    // Una vez por apertura (la sesión cambia en cada renovación del token) y otra justo después de iniciar sesión.
+    if (!session) {
+      reportedFor.current = null
+      return
+    }
+    const signIn = signingIn.current
+    if (reportedFor.current === session.user.id && !signIn) return
+    reportedFor.current = session.user.id
+    signingIn.current = false
+    reportDevice(signIn).catch(() => undefined)
+  }, [session])
+
   const value = useMemo<AuthContextValue>(
     () => ({
       isLoading,
       session,
       async signIn(email, password) {
+        signingIn.current = true
         const { error } = await supabase.auth.signInWithPassword({ email, password })
+        if (error) signingIn.current = false
         return { error }
       },
       async signUp(email, password, displayName) {
         const { error } = await supabase.auth.signUp({ email, password, options: { data: { display_name: displayName.trim() } } })
         return { error }
       },
-      signInWithGoogle: signInWithGoogleNative,
-      signInWithApple: signInWithAppleNative,
+      async signInWithGoogle() {
+        signingIn.current = true
+        const result = await signInWithGoogleNative()
+        if (result.error) signingIn.current = false
+        return result
+      },
+      async signInWithApple() {
+        signingIn.current = true
+        const result = await signInWithAppleNative()
+        if (result.error) signingIn.current = false
+        return result
+      },
       async updateDisplayName(displayName) {
         const { error } = await supabase.auth.updateUser({ data: { display_name: displayName.trim() } })
         return { error }

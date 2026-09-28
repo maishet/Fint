@@ -1,6 +1,7 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { financeApi } from "../api/finance";
 import { ApiRequestError } from "../api/client";
+import { knownNotifications } from "./logic";
 
 export const NOTIFICATIONS_KEY = ["me-notifications"] as const;
 
@@ -23,7 +24,7 @@ export function useNotificationsFeed() {
   return {
     available: query.isSuccess,
     unavailable: unavailableError(query.error),
-    items: pages.flatMap((page) => page.items),
+    items: knownNotifications(pages.flatMap((page) => page.items)),
     unread: pages[0]?.unread ?? 0,
     isLoading: query.isLoading,
     hasMore: Boolean(query.hasNextPage),

@@ -103,6 +103,7 @@ export const movementFormTranslations = {
         contextNoAmount: "{{kind}} · {{date}}",
         kinds: { expense: "Egreso", income: "Ingreso", transfer: "Transferencia" },
         removed: "Quitamos “{{name}}” de tus lugares",
+        placeError: "No pudimos guardar el cambio en tus lugares. Revisa tu conexión.",
         removeHint: "Mantén presionado para quitarlo de tus lugares",
       },
       noteSheet: {
@@ -209,6 +210,7 @@ export const movementFormTranslations = {
         contextNoAmount: "{{kind}} · {{date}}",
         kinds: { expense: "Expense", income: "Income", transfer: "Transfer" },
         removed: "Removed “{{name}}” from your places",
+        placeError: "We couldn’t save the change to your places. Check your connection.",
         removeHint: "Press and hold to remove it from your places",
         remove: "Remove",
         save: "Save location",
@@ -318,6 +320,7 @@ export const movementFormTranslations = {
         contextNoAmount: "{{kind}} · {{date}}",
         kinds: { expense: "Despesa", income: "Receita", transfer: "Transferência" },
         removed: "Removemos “{{name}}” dos seus lugares",
+        placeError: "Não conseguimos salvar a alteração nos seus lugares. Verifique sua conexão.",
         removeHint: "Mantenha pressionado para removê-lo dos seus lugares",
         remove: "Remover",
         save: "Salvar local",

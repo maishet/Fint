@@ -1,6 +1,7 @@
 import { apiRequest } from './client'
 import { randomId } from '../shared/id'
 import type { FrequentLocation } from '../location/captureLocation'
+import type { SavedPlace } from '../location/places'
 import {
   AccountListSchema,
   AccountSchema,
@@ -107,7 +108,7 @@ export const financeApi = {
   getFinanceOptions: () => apiRequest<{ baseCurrency: string }>('/api/finance/options'),
   getAccountsOverview: (currency?: string, signal?: AbortSignal) => apiRequest<AccountsOverview>(`/api/accounts/overview${toQuery({ currency })}`, { signal }, { schema: AccountsOverviewSchema }),
   getDashboardOverview: (currency?: string, signal?: AbortSignal) => apiRequest<DashboardOverview>(`/api/dashboard/overview${toQuery({ currency })}`, { signal }, { schema: DashboardOverviewSchema }),
-  getDashboardExpenseCategories: (query: { currency: string; accountId?: string }, signal?: AbortSignal) => apiRequest<ExpenseCategoriesOverview>(`/api/dashboard/expense-categories${toQuery(query)}`, { signal }),
+  getDashboardExpenseCategories: (query: { currency: string; accountId?: string; limit?: number }, signal?: AbortSignal) => apiRequest<ExpenseCategoriesOverview>(`/api/dashboard/expense-categories${toQuery(query)}`, { signal }),
   listTransactions: (query: TransactionQuery = {}) => apiRequest<Transaction[]>(`/api/transactions${toQuery({ ...query })}`, {}, { schema: TransactionListSchema }),
   getTransactionPage: (query: { from?: string; to?: string; limit?: number; cursor?: string; q?: string } = {}, signal?: AbortSignal) => apiRequest<TransactionPage>(`/api/transactions/page${toQuery(query)}`, { signal }, { schema: TransactionPageSchema }),
   async listAllTransactions(query: Omit<TransactionQuery, 'limit' | 'offset'> = {}) {
@@ -149,6 +150,12 @@ export const financeApi = {
   unsnoozePaymentOccurrence: (id: string) => apiRequest<{ id: string }>(`/api/payment-occurrences/${id}/unsnooze`, { method: 'POST' }),
   listNotifications: (query: { cursor?: string; limit?: number } = {}, signal?: AbortSignal) => apiRequest<NotificationPage>(`/api/me/notifications${toQuery(query)}`, { signal }),
   markNotificationsRead: (ids?: string[]) => apiRequest<{ updated: number }>('/api/me/notifications/read', { method: 'POST', body: JSON.stringify(ids ? { ids } : {}) }),
+  // Lugares guardados: guardar y borrar devuelven la lista completa (el servidor aplica el radio de 50 m y la Casa única).
+  listSavedPlaces: () => apiRequest<SavedPlace[]>('/api/me/places'),
+  saveSavedPlace: ({ id, ...place }: SavedPlace) => apiRequest<SavedPlace[]>(`/api/me/places/${id}`, { method: 'PUT', body: JSON.stringify(place) }),
+  deleteSavedPlace: (id: string) => apiRequest<SavedPlace[]>(`/api/me/places/${id}`, { method: 'DELETE' }),
+  reportDevice: (input: { installationId: string; platform: 'android' | 'ios'; deviceName: string | null; signIn: boolean }) =>
+    apiRequest<{ isNew: boolean; notified: boolean }>('/api/me/devices', { method: 'POST', body: JSON.stringify(input) }),
   reversePaymentOccurrencePayment: (id: string, input: ReversePaymentOccurrencePaymentInput = {}) => apiRequest<{ id: string; transactionId: string; status: 'reversed' }>(`/api/payment-occurrence-payments/${id}/reverse`, { method: 'POST', body: JSON.stringify(input) }),
   getPendingMovementsSummary: () => apiRequest<PendingMovementsSummary>('/api/pending-movements/summary'),
   listPendingMovements: (query: { limit?: number; cursor?: string } = {}, signal?: AbortSignal) => apiRequest<PendingMovementPage>(`/api/pending-movements${toQuery(query)}`, { signal }),

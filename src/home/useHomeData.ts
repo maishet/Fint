@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
+import { useCapabilities } from "../api/capabilities";
 import { financeApi } from "../api/finance";
 import { buildSpendingSeries, spendingRange } from "./spending";
 import { useAttention } from "./useAttention";
@@ -18,6 +19,9 @@ export const dashboardOverviewQuery = {
   queryKey: ["dashboard", "overview"] as const,
   queryFn: ({ signal }: { signal: AbortSignal }) => financeApi.getDashboardOverview(undefined, signal),
 };
+
+/** El tope que acepta el backend: en la práctica, todas. */
+const ALL_CATEGORIES = 100;
 
 export function useHomeData(selectedAccount: { id: string; name: string } | null) {
   const overviewQuery = useQuery(dashboardOverviewQuery);
@@ -38,11 +42,15 @@ export function useHomeData(selectedAccount: { id: string; name: string } | null
     staleTime: 60_000,
   });
 
+  // El backend nuevo devuelve todas las categorías (el anterior, solo las seis más grandes, y rechaza `limit`): la
+  // tarjeta muestra las cuatro primeras y suma el resto en "Otros".
+  const { capabilities } = useCapabilities();
+  const limit = capabilities.features.allExpenseCategories ? ALL_CATEGORIES : undefined;
   const categoriesQuery = useQuery({
-    queryKey: ["dashboard", "expense-categories", currency, selectedAccount?.id ?? null],
+    queryKey: ["dashboard", "expense-categories", currency, selectedAccount?.id ?? null, limit ?? null],
     queryFn: ({ signal }) =>
       financeApi.getDashboardExpenseCategories(
-        { currency: currency!, ...(selectedAccount ? { accountId: selectedAccount.id } : {}) },
+        { currency: currency!, ...(selectedAccount ? { accountId: selectedAccount.id } : {}), ...(limit ? { limit } : {}) },
         signal,
       ),
     enabled: Boolean(currency),

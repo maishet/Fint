@@ -39,3 +39,54 @@ export function namesSummary(titles: readonly string[], count: number): { shown:
 export function bellState(todo: number, unread: number): { count: number; dot: boolean } {
   return { count: todo, dot: todo === 0 && unread > 0 };
 }
+
+const KNOWN_KINDS = new Set<string>(["gmail_imported", "payment_recorded", "unusual_spend", "new_login"]);
+
+/** Solo los tipos que esta versión sabe mostrar: un aviso nuevo del backend no rompe la lista de una app vieja. */
+export function knownNotifications(items: readonly UserNotification[]): UserNotification[] {
+  return items.filter((item) => KNOWN_KINDS.has(item.kind) && typeof item.data === "object" && item.data !== null);
+}
+
+/** "Comida va 60% arriba de lo usual": cuánto supera lo del mes al promedio. */
+export function growthPercent(amount: number, average: number): number {
+  return average > 0 ? Math.round((amount / average - 1) * 100) : 0;
+}
+
+/** "Gastaste 7 veces lo usual": cuántas veces la mediana, sin decimales (el aviso sale desde 3). */
+export function timesUsual(amount: number, typical: number): number {
+  return typical > 0 ? Math.floor(amount / typical) : 0;
+}
+
+type Route = { pathname: string; params?: Record<string, string> };
+
+/** Adónde lleva tocar un aviso de lo informativo. */
+export function notificationRoute(item: UserNotification, now = new Date()): Route {
+  switch (item.kind) {
+    case "gmail_imported":
+      return { pathname: "/pending-movements" };
+    case "payment_recorded":
+      return { pathname: "/(tabs)/debts" };
+    case "new_login":
+      return { pathname: "/profile" };
+    case "unusual_spend": {
+      const data = item.data;
+      if (data.scope === "category") return { pathname: "/(tabs)/movements", params: { q: data.category, qt: String(now.getTime()) } };
+      // El detalle se abre con lo que trae el aviso (el detalle no pide nada al backend), como desde Movimientos.
+      return {
+        pathname: "/transaction-detail",
+        params: {
+          id: data.transactionId,
+          type: "expense",
+          amount: String(data.amount),
+          currency: data.currency,
+          category: data.category ?? "",
+          account: data.account ?? "",
+          note: data.title,
+          userNote: data.userNote ?? "",
+          ...(data.sourceTitle ? { sourceTitle: data.sourceTitle } : {}),
+          date: data.date,
+        },
+      };
+    }
+  }
+}

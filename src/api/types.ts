@@ -56,6 +56,10 @@ export interface AppCapabilities {
     autoPayPayments: boolean
     captureImport: boolean
     accountCurrencyBalances: boolean
+    /** El backend nuevo: `limit` en las categorías del Inicio, lugares guardados y registro de dispositivos. */
+    allExpenseCategories?: boolean
+    savedPlaces?: boolean
+    deviceSessions?: boolean
   }
   jobs?: {
     paymentOccurrencesGenerate: boolean
@@ -156,6 +160,41 @@ export type UserNotification =
       createdAt: string
       readAt: string | null
       link: string
+    }
+  | {
+      id: string
+      kind: 'unusual_spend'
+      data: UnusualSpendData
+      createdAt: string
+      readAt: string | null
+      link: string
+    }
+  | {
+      id: string
+      kind: 'new_login'
+      data: { installationId: string; deviceName: string | null; platform: 'android' | 'ios' }
+      createdAt: string
+      readAt: string | null
+      link: string
+    }
+
+/** "Gasto fuera de lo usual": una categoría por encima de su promedio, o un gasto muy por encima de lo normal. */
+export type UnusualSpendData =
+  | { scope: 'category'; categoryId: string; category: string; currency: string; amount: number; average: number; month: string }
+  | {
+      scope: 'transaction'
+      transactionId: string
+      /** Lo que se muestra: la nota o, sin ella, la descripción del correo. */
+      title: string
+      userNote: string
+      sourceTitle: string | null
+      category: string | null
+      account: string | null
+      currency: string
+      amount: number
+      /** Mediana de los gastos de los últimos 90 días en esa moneda. */
+      typical: number
+      date: string
     }
 
 export interface NotificationPage {

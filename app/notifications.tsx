@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
-import { Check, CheckCheck, ChevronLeft, Inbox, Mail, Receipt, TriangleAlert } from "@tamagui/lucide-icons-2";
+import { Check, CheckCheck, ChevronLeft, Inbox, Mail, Receipt, Shield, TrendingUp, TriangleAlert } from "@tamagui/lucide-icons-2";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,7 +16,10 @@ import type { AttentionItem } from "../src/home/attention";
 import { transactionDay } from "../src/home/spending";
 import { useAttention } from "../src/home/useAttention";
 import { getAppLocale } from "../src/i18n";
-import { feedGroups, feedTime, namesSummary } from "../src/notifications/logic";
+import { formatMoney } from "../src/api/mappers";
+import { getCategoryLabel } from "../src/finance/categoryLabels";
+import { feedGroups, feedTime, growthPercent, namesSummary, notificationRoute, timesUsual } from "../src/notifications/logic";
+import { getInstallationId } from "../src/notifications/pushNotifications";
 import { NOTIFICATIONS_KEY, useNotificationsFeed } from "../src/notifications/useNotificationsFeed";
 import { withAlpha } from "../src/theme/color";
 import { motion, radius, space } from "../src/theme/tokens";
@@ -48,6 +51,7 @@ export default function NotificationsScreen() {
   useScreenStatusBar();
   const attention = useAttention();
   const feed = useNotificationsFeed();
+  const installationQuery = useQuery({ queryKey: ["installation-id"], queryFn: getInstallationId, staleTime: Infinity });
   const accountsQuery = useQuery({ queryKey: ["account-options"], queryFn: () => financeApi.listAccountOptions() });
   const [tab, setTab] = useState<Tab>("all");
   const [paying, setPaying] = useState<PaymentOccurrence | null>(null);
@@ -264,7 +268,8 @@ export default function NotificationsScreen() {
                           first={i === 0}
                           unread={unreadShown.has(item.id)}
                           locale={locale}
-                          onPress={() => router.push(item.kind === "gmail_imported" ? "/pending-movements" : "/(tabs)/debts")}
+                          installationId={installationQuery.data ?? null}
+                          onPress={() => router.push(notificationRoute(item) as never)}
                         />
                       ))}
                     </YStack>
@@ -437,17 +442,57 @@ function NoticeCard({
 }
 
 /** Una fila de lo informativo: icono de 34px, título (a peso 600 si no se leyó, con el punto), detalle y la hora. */
-function FeedRow({ item, first, unread, locale, onPress }: { item: UserNotification; first: boolean; unread: boolean; locale: string; onPress: () => void }) {
+function FeedRow({
+  item,
+  first,
+  unread,
+  locale,
+  installationId,
+  onPress,
+}: {
+  item: UserNotification;
+  first: boolean;
+  unread: boolean;
+  locale: string;
+  /** El de este teléfono: el aviso de inicio de sesión dice si fue aquí. */
+  installationId: string | null;
+  onPress: () => void;
+}) {
   const { t } = useTranslation();
   const theme = useTheme();
-  const gmail = item.kind === "gmail_imported";
-  const color = gmail ? theme.chart2.val : theme.flowIn.val;
+  let color: string = theme.flowIn.val;
+  let icon: ReactNode = <CheckCheck size={16} color={color as never} strokeWidth={2.2} />;
   let title: string;
   let detail: ReactNode;
   if (item.kind === "gmail_imported") {
     const { shown, rest } = namesSummary(item.data.titles, item.data.count);
+    color = theme.chart2.val;
+    icon = <Mail size={16} color={color as never} strokeWidth={2} />;
     title = t("notificationsScreen.gmailImported", { count: item.data.count });
     detail = <Line>{rest ? t("notificationsScreen.namesMore", { names: shown.join(", "), count: rest }) : shown.join(", ")}</Line>;
+  } else if (item.kind === "unusual_spend") {
+    const data = item.data;
+    color = theme.chart1.val;
+    icon = <TrendingUp size={16} color={color as never} strokeWidth={2} />;
+    if (data.scope === "category") {
+      title = t("notificationsScreen.unusualCategory", { category: getCategoryLabel(data.category, t), percent: growthPercent(data.amount, data.average) });
+      detail = <Line>{t("notificationsScreen.unusualCategoryDetail", { amount: formatMoney(data.amount, data.currency, locale), day: new Date(item.createdAt).getDate() })}</Line>;
+    } else {
+      const where = data.title || (data.category ? getCategoryLabel(data.category, t) : "");
+      title = t("notificationsScreen.unusualTransaction", { times: timesUsual(data.amount, data.typical) });
+      detail = (
+        <XStack items="center" flexWrap="wrap" columnGap={4}>
+          <Amount value={data.amount} currency={data.currency} variant="amount-sm" kind="neutral" />
+          {where ? <Line>{t("notificationsScreen.unusualAt", { title: where })}</Line> : null}
+        </XStack>
+      );
+    }
+  } else if (item.kind === "new_login") {
+    color = theme.inkMuted.val;
+    icon = <Shield size={16} color={color as never} strokeWidth={2} />;
+    const device = item.data.deviceName || t(item.data.platform === "ios" ? "notificationsScreen.iphone" : "notificationsScreen.android");
+    title = t("notificationsScreen.newLogin");
+    detail = <Line>{item.data.installationId === installationId ? t("notificationsScreen.newLoginHere", { device }) : device}</Line>;
   } else {
     title = t("notificationsScreen.paymentRecorded", { title: item.data.title });
     detail = (
@@ -461,8 +506,18 @@ function FeedRow({ item, first, unread, locale, onPress }: { item: UserNotificat
     <PressableScale onPress={onPress} scaleTo={0.99} accessibilityRole="button" accessibilityLabel={unread ? `${t("notificationsScreen.unread")}. ${title}` : title}>
       <XStack items="center" gap={12} px={14} py={12} borderTopWidth={first ? 0 : 1} borderColor="$line">
         <View width={8} height={8} rounded={4} bg={unread ? "$brand" : "transparent"} ml={-4} />
-        <View width={34} height={34} rounded={radius.pill} items="center" justify="center" style={{ backgroundColor: withAlpha(color, 0.14) }} ml={-8}>
-          {gmail ? <Mail size={16} color={color as never} strokeWidth={2} /> : <CheckCheck size={16} color={color as never} strokeWidth={2.2} />}
+        <View
+          width={34}
+          height={34}
+          rounded={radius.pill}
+          items="center"
+          justify="center"
+          // El de inicio de sesión va neutro, como en el diseño: informa, no alerta.
+          bg={item.kind === "new_login" ? "$surfaceSunken" : undefined}
+          style={item.kind === "new_login" ? undefined : { backgroundColor: withAlpha(color, 0.14) }}
+          ml={-8}
+        >
+          {icon}
         </View>
         <YStack flex={1} minW={0}>
           <FText numberOfLines={1} style={{ fontFamily: unread ? fontFace.sans[600] : fontFace.sans[500], fontSize: 14, lineHeight: 19 }}>

@@ -26,6 +26,7 @@ import { useThemeMode } from "../theme/ThemeMode";
 import { motion, opacity, radius } from "../theme/tokens";
 import { fontFace, textStyles } from "../theme/typography";
 import { Chip, FintButton, FintSheet, FintSpinner, FText, SheetField, SheetTextInput } from "../ui";
+import { randomId } from "../shared/id";
 import { haptics } from "../ui/haptics";
 import { useNotify } from "../ui/notify";
 
@@ -208,7 +209,7 @@ export function LocationSheet({ open, onClose, value, suggestion, context, onSav
     if (naming?.name.trim()) {
       placeName = naming.name.trim();
       void savePlace({
-        id: saved?.id ?? `${Date.now()}`,
+        id: saved?.id ?? randomId(),
         name: placeName,
         kind: naming.kind,
         latitude: draft.latitude,
