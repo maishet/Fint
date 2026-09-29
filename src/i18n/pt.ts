@@ -514,7 +514,7 @@ export const ptTranslation = {
         bullets: [
           "Pagamentos próximos e vencidos.",
           "Movimentações pendentes detectadas.",
-          "Sem valores, bancos ou detalhes do Gmail no push.",
+          "O detectado no Gmail chega com o valor. Você pode ocultá-lo na tela de bloqueio.",
         ],
       },
     },
