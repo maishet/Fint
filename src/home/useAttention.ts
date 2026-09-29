@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { financeApi } from "../api/finance";
+import { isComingSoon } from "../config/comingSoon";
 import { gmailSummary } from "../settings/logic";
 import { buildAttention, nextDue } from "./attention";
 
@@ -19,7 +20,8 @@ export function useAttention() {
   });
   const sourcesQuery = useQuery({ queryKey: ["gmail-sources"], queryFn: financeApi.listGmailSources });
 
-  const gmailDown = sourcesQuery.data ? gmailSummary(sourcesQuery.data).state === "reconnect" : false;
+  // Con Gmail en "Pronto" no hay a dónde mandar a reconectar: el aviso no sale.
+  const gmailDown = !isComingSoon("gmail") && sourcesQuery.data ? gmailSummary(sourcesQuery.data).state === "reconnect" : false;
   const items = useMemo(
     () => buildAttention(occurrencesQuery.data ?? [], pendingQuery.data?.count ?? 0, new Date(), gmailDown),
     [occurrencesQuery.data, pendingQuery.data?.count, gmailDown],

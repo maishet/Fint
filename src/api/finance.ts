@@ -3,6 +3,7 @@ import { randomId } from '../shared/id'
 import type { FrequentLocation } from '../location/captureLocation'
 import type { SavedPlace } from '../location/places'
 import type { HomeLayout } from '../home/layout'
+import type { SpendingSeries } from '../home/spending'
 import {
   AccountListSchema,
   AccountSchema,
@@ -109,6 +110,8 @@ export const financeApi = {
   getFinanceOptions: () => apiRequest<{ baseCurrency: string }>('/api/finance/options'),
   getAccountsOverview: (currency?: string, signal?: AbortSignal) => apiRequest<AccountsOverview>(`/api/accounts/overview${toQuery({ currency })}`, { signal }, { schema: AccountsOverviewSchema }),
   getDashboardOverview: (currency?: string, signal?: AbortSignal) => apiRequest<DashboardOverview>(`/api/dashboard/overview${toQuery({ currency })}`, { signal }, { schema: DashboardOverviewSchema }),
+  getDashboardSpending: (query: { currency: string; accountId?: string }, signal?: AbortSignal) =>
+    apiRequest<SpendingSeries & { currency: string; selectedAccountId: string | null }>(`/api/dashboard/spending${toQuery(query)}`, { signal }),
   getDashboardExpenseCategories: (query: { currency: string; accountId?: string; limit?: number }, signal?: AbortSignal) => apiRequest<ExpenseCategoriesOverview>(`/api/dashboard/expense-categories${toQuery(query)}`, { signal }),
   listTransactions: (query: TransactionQuery = {}) => apiRequest<Transaction[]>(`/api/transactions${toQuery({ ...query })}`, {}, { schema: TransactionListSchema }),
   getTransactionPage: (query: { from?: string; to?: string; limit?: number; cursor?: string; q?: string } = {}, signal?: AbortSignal) => apiRequest<TransactionPage>(`/api/transactions/page${toQuery(query)}`, { signal }, { schema: TransactionPageSchema }),

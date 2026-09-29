@@ -37,6 +37,7 @@ import {
 import { fintPalette } from "../src/theme/palette";
 import { fontFace, fontFiles } from "../src/theme/typography";
 import { useNotify } from "../src/ui";
+import { isComingSoon } from "../src/config/comingSoon";
 
 export {
   ErrorBoundary,
@@ -183,7 +184,8 @@ function RootLayoutNav() {
     if (!session || setupComplete !== true) return;
     const pending = await hasQueuedShareFiles();
     if (!pending) return;
-    if (!capabilities.features.captureImport) {
+    // Compartir una foto con Fint abre la captura: si todavía no está disponible ("Pronto"), se descarta igual.
+    if (!capabilities.features.captureImport || isComingSoon("photoCapture")) {
       await discardShareQueue();
       toast.info(t("capture.shareDiscarded"));
       return;

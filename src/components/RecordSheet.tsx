@@ -22,7 +22,8 @@ import { withAlpha } from "../theme/color";
 import { useThemeMode } from "../theme/ThemeMode";
 import { motion, radius, space } from "../theme/tokens";
 import { fontFace } from "../theme/typography";
-import { FintSheet, FText, ListRow, PressableScale, useNotify } from "../ui";
+import { isComingSoon, isHidden } from "../config/comingSoon";
+import { FintSheet, FText, ListRow, PressableScale, SoonBadge, useNotify } from "../ui";
 import { haptics } from "../ui/haptics";
 
 /** Lo que tarda la hoja en bajar antes de abrir el formulario. */
@@ -187,7 +188,9 @@ export function MoreSheet({ open, onClose }: SheetProps) {
             detail={t("home.more.transferHint")}
             onPress={() => go({ pathname: "/transaction-form", params: { type: "transfer" } })}
           />
-          <ActionTile icon={Upload} color={theme.chart4.val} title={t("home.more.import")} detail={t("home.more.importHint")} onPress={() => go("/import-transactions")} />
+          {isHidden("csvImport") ? null : (
+            <ActionTile icon={Upload} color={theme.chart4.val} title={t("home.more.import")} detail={t("home.more.importHint")} onPress={() => go("/import-transactions")} />
+          )}
           <ActionTile
             icon={Tag}
             color={theme.chart3.val}
@@ -257,7 +260,9 @@ export function MoreSheet({ open, onClose }: SheetProps) {
               </FText>
             </Animated.View>
           </YStack>
-          {gmail.state === "connected" ? (
+          {isComingSoon("gmail") ? (
+            <SoonBadge />
+          ) : gmail.state === "connected" ? (
             <ReadNowButton label={t("home.more.gmailReadNow")} busy={readMutation.isPending} onPress={() => readMutation.mutate()} />
           ) : (
             <SmallButton label={t(gmail.state === "reconnect" ? "home.more.gmailReconnect" : "home.more.gmailConnect")} onPress={() => go("/gmail-settings")} />
@@ -267,8 +272,14 @@ export function MoreSheet({ open, onClose }: SheetProps) {
     });
   }
 
-  const rows: { icon: typeof Download; label: string; aside?: string; href: Href }[] = [
-    { icon: Download, label: t("home.more.export"), aside: t("home.more.exportHint"), href: { pathname: "/(tabs)/reports", params: { open: "export" } } },
+  const rows: { icon: typeof Download; label: string; aside?: string; href: Href; soon?: boolean }[] = [
+    {
+      icon: Download,
+      label: t("home.more.export"),
+      aside: t("home.more.exportHint"),
+      href: { pathname: "/(tabs)/reports", params: { open: "export" } },
+      soon: isComingSoon("reportExport"),
+    },
     { icon: Settings, label: t("home.more.settings"), href: "/settings" },
     { icon: HelpCircle, label: t("home.more.help"), href: "/support" },
   ];
@@ -287,6 +298,9 @@ export function MoreSheet({ open, onClose }: SheetProps) {
               </View>
             }
             trailing={
+              row.soon ? (
+                <SoonBadge />
+              ) : (
               <XStack items="center" gap={4}>
                 {row.aside ? (
                   <FText variant="caption" tone="inkFaint">
@@ -295,8 +309,11 @@ export function MoreSheet({ open, onClose }: SheetProps) {
                 ) : null}
                 <ChevronRight size={16} color="$inkFaint" />
               </XStack>
+              )
             }
-            onPress={() => go(row.href)}
+            // "Pronto": se ve, pero no abre nada.
+            onPress={row.soon ? undefined : () => go(row.href)}
+            accessibilityLabel={row.soon ? `${row.label}. ${t("comingSoon.hint")}` : undefined}
           />
         ))}
       </YStack>

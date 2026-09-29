@@ -61,9 +61,11 @@ import {
   PressableScale,
   SheetField,
   SheetTextInput,
+  SoonBadge,
   Toggle,
   useNotify,
 } from "../src/ui";
+import { isComingSoon } from "../src/config/comingSoon";
 
 type Sheet = "language" | "appearance" | "notifications" | "delete" | null;
 const SHEET_UNMOUNT_MS = 600;
@@ -295,14 +297,19 @@ export default function SettingsScreen() {
             valueMono
             onPress={() => router.push("/categories")}
           />
-          <Item
-            icon={Mail}
-            label={t("settings.gmail")}
-            value={
-              gmailQuery.data ? (gmailCount ? t("settingsScreen.gmailActive", { count: gmailCount }) : t("settingsScreen.gmailNone")) : undefined
-            }
-            onPress={() => router.push("/gmail-settings")}
-          />
+          {isComingSoon("gmail") ? (
+            // Se ve, pero todavía no se puede usar.
+            <Item icon={Mail} label={t("settings.gmail")} tone="dim" right={<SoonBadge />} accessibilityLabel={`${t("settings.gmail")}. ${t("comingSoon.hint")}`} />
+          ) : (
+            <Item
+              icon={Mail}
+              label={t("settings.gmail")}
+              value={
+                gmailQuery.data ? (gmailCount ? t("settingsScreen.gmailActive", { count: gmailCount }) : t("settingsScreen.gmailNone")) : undefined
+              }
+              onPress={() => router.push("/gmail-settings")}
+            />
+          )}
         </Group>
 
         <GroupTitle>{t("settingsScreen.help")}</GroupTitle>

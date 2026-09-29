@@ -35,16 +35,27 @@ export function useHomeData(selectedAccount: { id: string; name: string } | null
 
   const attention = useAttention();
 
+  // La serie de Ritmo la calcula el backend nuevo (`/api/dashboard/spending`). Con el anterior, se arma aquí con los
+  // movimientos de dos meses.
+  const { capabilities } = useCapabilities();
+  const serverSpending = capabilities.features.dashboardSpending === true;
+  const spendingQuery = useQuery({
+    queryKey: ["dashboard", "spending", currency, selectedAccount?.id ?? null],
+    queryFn: ({ signal }) =>
+      financeApi.getDashboardSpending({ currency: currency!, ...(selectedAccount ? { accountId: selectedAccount.id } : {}) }, signal),
+    enabled: serverSpending && Boolean(currency),
+  });
   const range = spendingRange();
   const spendingTxQuery = useQuery({
     queryKey: ["dashboard", "spending-series", range.from, range.to],
     queryFn: () => financeApi.listAllTransactions({ from: range.from, to: range.to, type: "expense" }),
     staleTime: 60_000,
+    enabled: !serverSpending,
   });
+  const seriesQuery = serverSpending ? spendingQuery : spendingTxQuery;
 
   // El backend nuevo devuelve todas las categorías (el anterior, solo las seis más grandes, y rechaza `limit`): la
   // tarjeta muestra las cuatro primeras y suma el resto en "Otros".
-  const { capabilities } = useCapabilities();
   const limit = capabilities.features.allExpenseCategories ? ALL_CATEGORIES : undefined;
   const categoriesQuery = useQuery({
     queryKey: ["dashboard", "expense-categories", currency, selectedAccount?.id ?? null, limit ?? null],
@@ -57,20 +68,19 @@ export function useHomeData(selectedAccount: { id: string; name: string } | null
   });
 
 
-  const spending = useMemo(
-    () =>
-      currency && spendingTxQuery.data
-        ? buildSpendingSeries(spendingTxQuery.data, { currency, account: selectedAccount?.name ?? null })
-        : null,
-    [currency, selectedAccount?.name, spendingTxQuery.data],
-  );
+  const spending = useMemo(() => {
+    if (serverSpending) return spendingQuery.data ?? null;
+    return currency && spendingTxQuery.data
+      ? buildSpendingSeries(spendingTxQuery.data, { currency, account: selectedAccount?.name ?? null })
+      : null;
+  }, [serverSpending, spendingQuery.data, currency, selectedAccount?.name, spendingTxQuery.data]);
 
   const refetchAll = () =>
     Promise.all([
       overviewQuery.refetch(),
       accountsQuery.refetch(),
       attention.refetch(),
-      spendingTxQuery.refetch(),
+      seriesQuery.refetch(),
       categoriesQuery.refetch(),
     ]);
 
@@ -82,9 +92,9 @@ export function useHomeData(selectedAccount: { id: string; name: string } | null
     spending,
     categories: categoriesQuery.data?.categories ?? [],
     isLoading: overviewQuery.isLoading,
-    isSpendingLoading: spendingTxQuery.isLoading || categoriesQuery.isLoading,
+    isSpendingLoading: seriesQuery.isLoading || categoriesQuery.isLoading,
     isRefreshing:
-      overviewQuery.isRefetching || accountsQuery.isRefetching || attention.isRefetching || spendingTxQuery.isRefetching,
+      overviewQuery.isRefetching || accountsQuery.isRefetching || attention.isRefetching || seriesQuery.isRefetching,
     error: overviewQuery.error,
     refetchAll,
   };

@@ -49,7 +49,8 @@ import {
 import { radius, space } from "../../src/theme/tokens";
 import { fontFace } from "../../src/theme/typography";
 import { useScreenStatusBar } from "../../src/theme/useScreenStatusBar";
-import { Amount, FintCard, FintSheet, FText, IconButton, ListRow, Monogram, PressableScale, SegmentedControl } from "../../src/ui";
+import { Amount, FintCard, FintSheet, FText, IconButton, ListRow, Monogram, PressableScale, SegmentedControl, SoonBadge } from "../../src/ui";
+import { isComingSoon } from "../../src/config/comingSoon";
 import { AmountSkeleton } from "../../src/ui/AmountSkeleton";
 
 const ALL_ACCOUNTS = "__all__";
@@ -129,7 +130,7 @@ export default function ReportsScreen() {
   const params = useLocalSearchParams<{ open?: string }>();
   useEffect(() => {
     if (params.open !== "export") return;
-    setSheet("export");
+    if (!isComingSoon("reportExport")) setSheet("export");
     router.setParams({ open: undefined });
   }, [params.open, router]);
 
@@ -306,13 +307,21 @@ export default function ReportsScreen() {
           <FText variant="display-lg" accessibilityRole="header">
             {t("reportsTab.title")}
           </FText>
-          <IconButton
-            label={t("reportsTab.share")}
-            icon={<Share size={18} color="$ink" strokeWidth={2} />}
-            disabled={!hasMovements}
-            style={{ opacity: !hasMovements ? 0.42 : 1 }}
-            onPress={() => setSheet("export")}
-          />
+          {isComingSoon("reportExport") ? (
+            // Se ve, pero todavía no se puede usar.
+            <XStack items="center" gap={8}>
+              <SoonBadge />
+              <IconButton label={t("reportsTab.share")} accessibilityHint={t("comingSoon.hint")} icon={<Share size={18} color="$ink" strokeWidth={2} />} disabled />
+            </XStack>
+          ) : (
+            <IconButton
+              label={t("reportsTab.share")}
+              icon={<Share size={18} color="$ink" strokeWidth={2} />}
+              disabled={!hasMovements}
+              style={{ opacity: !hasMovements ? 0.42 : 1 }}
+              onPress={() => setSheet("export")}
+            />
+          )}
         </XStack>
 
         {/* Periodo: Semana, Mes o Año; flechas entre periodos y la cuenta. */}

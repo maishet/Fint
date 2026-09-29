@@ -20,6 +20,7 @@ import { useCategoryIcons } from "../../src/finance/useCategoryIcons";
 import { transactionDay } from "../../src/home/spending";
 import { getAppLocale } from "../../src/i18n";
 import { DayHeader } from "../../src/movements/DayHeader";
+import { isComingSoon } from "../../src/config/comingSoon";
 import { MovementRow } from "../../src/movements/MovementRow";
 import { FILTER_ANIMATION, REMOVE_ANIMATION } from "../../src/movements/listAnimation";
 import {
@@ -36,7 +37,7 @@ import {
 import { radius, space } from "../../src/theme/tokens";
 import { fontFace, textStyles } from "../../src/theme/typography";
 import { useScreenStatusBar } from "../../src/theme/useScreenStatusBar";
-import { Amount, Chip, FintButton, FintCard, FintConfirmDialog, FintSheet, FintSpinner, FText, IconButton, ListRow, PressableScale } from "../../src/ui";
+import { Amount, Chip, FintButton, FintCard, FintConfirmDialog, FintSheet, FintSpinner, FText, IconButton, ListRow, PressableScale, SoonBadge } from "../../src/ui";
 import { AmountSkeleton } from "../../src/ui/AmountSkeleton";
 import { useNotify } from "../../src/ui/notify";
 import { detailParams } from "../../src/movements/detailParams";
@@ -235,7 +236,13 @@ export default function MovementsScreen() {
         <FText variant="display-lg" accessibilityRole="header">
           {t("movementsTab.title")}
         </FText>
-        {capabilities.features.captureImport ? (
+        {isComingSoon("photoCapture") ? (
+          // Se ve, pero todavía no se puede usar.
+          <XStack items="center" gap={8}>
+            <SoonBadge />
+            <IconButton label={t("movementsTab.scan")} accessibilityHint={t("comingSoon.hint")} disabled icon={<ScanLine size={20} color="$ink" strokeWidth={1.8} />} />
+          </XStack>
+        ) : capabilities.features.captureImport ? (
           <IconButton label={t("movementsTab.scan")} icon={<ScanLine size={20} color="$ink" strokeWidth={1.8} />} onPress={() => router.push("/capture-import")} />
         ) : null}
       </XStack>

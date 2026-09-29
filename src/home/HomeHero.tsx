@@ -23,7 +23,8 @@ import { amountParts, THIN_SPACE } from "../finance/formatAmount";
 import { useSensitiveAmounts } from "../privacy/SensitiveAmountsProvider";
 import { motion, radius, space } from "../theme/tokens";
 import { fontFace, textStyles } from "../theme/typography";
-import { Amount, FText, PressableScale } from "../ui";
+import { isComingSoon } from "../config/comingSoon";
+import { Amount, FText, PressableScale, SoonBadge } from "../ui";
 import { AmountSkeleton } from "../ui/AmountSkeleton";
 import { riseIn } from "../ui/entering";
 import { haptics } from "../ui/haptics";
@@ -127,12 +128,12 @@ export function HomeHero(props: HomeHeroProps) {
         <XStack justify="space-between" px={space[6]} mt={space[6]}>
           {[
             { key: "accounts", icon: <Wallet size={20} color="$slabInk" strokeWidth={1.8} />, onPress: props.onAccounts },
-            { key: "scan", icon: <ScanLine size={20} color="$slabInk" strokeWidth={1.8} />, onPress: props.onScan },
+            { key: "scan", icon: <ScanLine size={20} color="$slabInk" strokeWidth={1.8} />, onPress: props.onScan, soon: isComingSoon("photoCapture") },
             { key: "pay", icon: <ReceiptText size={20} color="$slabInk" strokeWidth={1.8} />, onPress: props.onPay },
             { key: "more", icon: <Ellipsis size={20} color="$slabInk" strokeWidth={1.8} />, onPress: props.onMore },
           ].map((action, i) => (
             <Animated.View key={action.key} entering={riseIn({ distance: 12, delay: i * 40, reduceMotion })}>
-              <HeroAction label={t(`home.actions.${action.key}`)} icon={action.icon} onPress={action.onPress} />
+              <HeroAction label={t(`home.actions.${action.key}`)} icon={action.icon} onPress={action.onPress} soon={"soon" in action && action.soon} />
             </Animated.View>
           ))}
         </XStack>
@@ -443,12 +444,28 @@ function Dot({ active }: { active: boolean }) {
   );
 }
 
-function HeroAction({ label, icon, onPress }: { label: string; icon: ReactNode; onPress: () => void }) {
+/** Con `soon`, se ve pero no se puede usar: atenuado y con "Pronto" sobre el círculo. */
+function HeroAction({ label, icon, onPress, soon = false }: { label: string; icon: ReactNode; onPress: () => void; soon?: boolean }) {
+  const { t } = useTranslation();
   return (
-    <PressableScale onPress={onPress} haptic="tap" scaleTo={0.94} accessibilityRole="button" accessibilityLabel={label} style={{ alignItems: "center", width: 64 }}>
+    <PressableScale
+      onPress={onPress}
+      disabled={soon}
+      haptic="tap"
+      scaleTo={0.94}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint={soon ? t("comingSoon.hint") : undefined}
+      style={{ alignItems: "center", width: 64 }}
+    >
       <YStack items="center" gap={6}>
         <View width={52} height={52} rounded={999} bg="$glassSlab" borderWidth={1} borderColor="$glassSlabLine" items="center" justify="center">
           {icon}
+          {soon ? (
+            <View position="absolute" t={-8} self="center">
+              <SoonBadge onSlab />
+            </View>
+          ) : null}
         </View>
         <FText variant="label" tone="slabInk" numberOfLines={1}>
           {label}

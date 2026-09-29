@@ -26,7 +26,8 @@ import { useThemeMode } from "../src/theme/ThemeMode";
 import { radius, space } from "../src/theme/tokens";
 import { fontFace, textStyles } from "../src/theme/typography";
 import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
-import { Amount, FintButton, FintSheet, FintSpinner, FText, IconButton, PressableScale, SheetField, SheetTextInput } from "../src/ui";
+import { Amount, FintButton, FintSheet, FintSpinner, FText, IconButton, PressableScale, SheetField, SheetTextInput, SoonBadge } from "../src/ui";
+import { isComingSoon } from "../src/config/comingSoon";
 import { AmountSkeleton } from "../src/ui/AmountSkeleton";
 import { haptics } from "../src/ui/haptics";
 import { useNotify } from "../src/ui/notify";
@@ -596,12 +597,33 @@ export default function AccountFormScreen() {
                 </YStack>
               ) : null}
 
-              {/* Palabras clave de correo. */}
+              {/* Palabras clave de correo. Con "Pronto", se ven pero no se editan (las que ya tenga la cuenta se conservan). */}
               <Field
                 label={t("accountForm.keywords")}
                 hint={keywords.length >= MAX_KEYWORDS ? t("accountForm.keywordsFull") : t("accountForm.keywordsHint")}
               >
-                <KeywordsField value={keywords} onChange={setKeywords} />
+                {isComingSoon("emailKeywords") ? (
+                  <XStack
+                    minH={48}
+                    px={14}
+                    gap={10}
+                    items="center"
+                    justify="space-between"
+                    rounded={radius.md}
+                    bg="$surfaceSunken"
+                    borderWidth={1}
+                    borderColor="$line"
+                    accessible
+                    accessibilityLabel={`${t("accountForm.keywords")}. ${t("comingSoon.hint")}`}
+                  >
+                    <FText tone="inkFaint" numberOfLines={1} style={{ flex: 1 }}>
+                      {t("accountForm.keywordsAdd")}
+                    </FText>
+                    <SoonBadge />
+                  </XStack>
+                ) : (
+                  <KeywordsField value={keywords} onChange={setKeywords} />
+                )}
               </Field>
 
               {errorMessage ? (

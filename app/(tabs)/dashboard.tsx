@@ -87,8 +87,8 @@ export default function DashboardScreen() {
         label: t("home.accountsAll"),
         balance: overview?.netWorth ?? 0,
         currency: overview?.currency ?? "PEN",
-        // Mientras el backend no mande `netWorthChangeMonth`, lo más cercano es lo ahorrado en el mes.
-        monthChange: overview?.currentMonth.savings ?? null,
+        // Cuánto cambió el patrimonio desde el día 1 (backend nuevo); con el anterior, lo más cercano: lo ahorrado en el mes.
+        monthChange: overview?.netWorthChangeMonth ?? overview?.currentMonth.savings ?? null,
       },
       ...sortedAccounts.map((a) => ({ key: a.id, label: a.name, balance: a.balance, currency: a.currency })),
     ],

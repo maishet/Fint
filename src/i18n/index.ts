@@ -1301,6 +1301,7 @@ i18n.addResourceBundle(
       backToLogin: "Volver al inicio de sesión",
     },
     actions: { edit: "Editar", delete: "Eliminar", done: "Listo" },
+    comingSoon: { badge: "Pronto", hint: "Disponible pronto" },
     tabs: { payments: "Pagos", reports: "Reportes" },
     notifications: {
       dailyReminder: {
@@ -1809,6 +1810,7 @@ i18n.addResourceBundle(
       backToLogin: "Back to login",
     },
     actions: { edit: "Edit", delete: "Delete", done: "Done" },
+    comingSoon: { badge: "Soon", hint: "Available soon" },
     tabs: { payments: "Payments", reports: "Reports" },
     notifications: {
       dailyReminder: {
@@ -2309,6 +2311,7 @@ i18n.addResourceBundle(
       backToLogin: "Voltar ao login",
     },
     actions: { edit: "Editar", delete: "Excluir", done: "Concluído" },
+    comingSoon: { badge: "Em breve", hint: "Disponível em breve" },
     tabs: { payments: "Pagamentos", reports: "Relatórios" },
     notifications: {
       dailyReminder: {

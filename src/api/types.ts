@@ -61,6 +61,7 @@ export interface AppCapabilities {
     savedPlaces?: boolean
     deviceSessions?: boolean
     homeLayout?: boolean
+    dashboardSpending?: boolean
   }
   jobs?: {
     paymentOccurrencesGenerate: boolean
@@ -462,6 +463,8 @@ export interface DashboardSummary {
 export interface DashboardOverview {
   currency: string
   netWorth: number
+  /** Cuánto cambió el patrimonio desde el día 1 del mes (backend nuevo). */
+  netWorthChangeMonth?: number
   accountCount: number
   currentMonth: { month: number; year: number; income: number; expenses: number; savings: number }
   previousMonth: { income: number; expenses: number; savings: number }
