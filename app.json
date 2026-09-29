@@ -23,7 +23,7 @@
       "package": "com.fint.finanzasmobilev2",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#043036"
+        "backgroundColor": "#14172B"
       }
     },
     "plugins": [
@@ -67,7 +67,7 @@
         "expo-notifications",
         {
           "icon": "./assets/images/android-icon-monochrome.png",
-          "color": "#077C86"
+          "color": "#5C6CFF"
         }
       ],
       [
