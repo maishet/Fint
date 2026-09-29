@@ -1,4 +1,4 @@
-import { Search } from "@tamagui/lucide-icons-2";
+import { Search, SlidersHorizontal } from "@tamagui/lucide-icons-2";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -22,11 +22,14 @@ import { MoreSheet } from "../../src/components/RecordSheet";
 import { SkeletonBlock, SkeletonContentCard } from "../../src/components/Skeleton";
 import { AttentionRail } from "../../src/home/AttentionRail";
 import { GettingStartedCard } from "../../src/home/GettingStartedCard";
+import { HomeLayoutSheet } from "../../src/home/HomeLayoutSheet";
 import { HomeHero, ProfileAvatar, SHEET_OVERLAP, type HeroPage } from "../../src/home/HomeHero";
 import { RecentMovementsCard } from "../../src/home/RecentMovementsCard";
 import { SpendingCard } from "../../src/home/SpendingCard";
 import { useHomeData } from "../../src/home/useHomeData";
+import { useHomeLayout } from "../../src/home/useHomeLayout";
 import { motion, radius, space } from "../../src/theme/tokens";
+import { fontFace } from "../../src/theme/typography";
 import { useScreenStatusBar } from "../../src/theme/useScreenStatusBar";
 import { Amount, FintSpinner, FText, PressableScale } from "../../src/ui";
 import { riseIn } from "../../src/ui/entering";
@@ -60,6 +63,8 @@ export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const [pageIndex, setPageIndex] = useState(0);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
+  const homeLayout = useHomeLayout();
 
   // Primero se resuelve la cuenta mirada en el hero; con ella se filtra el gasto del mes.
   const [accountsForPages, setAccountsForPages] = useState<{ id: string; name: string }[]>([]);
@@ -238,19 +243,45 @@ export default function DashboardScreen() {
                   />
                 ) : overview ? (
                   <>
-                    <AttentionRail
-                      items={home.attention}
-                      upcoming={home.upcoming}
-                      onOpen={(item) => router.push(item.kind === "review" ? "/pending-movements" : item.kind === "gmail" ? "/gmail-settings" : "/(tabs)/debts")}
-                    />
-                    <RecentMovementsCard transactions={overview.recentTransactions} />
-                    <SpendingCard
-                      currency={overview.currency}
-                      series={home.spending}
-                      categories={home.categories}
-                      accountLabel={page?.label ?? t("home.accountsAll")}
-                      loading={home.isSpendingLoading}
-                    />
+                    {/* En el orden de "Personalizar inicio"; las ocultas no salen. */}
+                    {homeLayout.layout.sections
+                      .filter((section) => section.visible)
+                      .map((section) =>
+                        section.id === "attention" ? (
+                          <AttentionRail
+                            key="attention"
+                            items={home.attention}
+                            upcoming={home.upcoming}
+                            onOpen={(item) => router.push(item.kind === "review" ? "/pending-movements" : item.kind === "gmail" ? "/gmail-settings" : "/(tabs)/debts")}
+                          />
+                        ) : section.id === "transactions" ? (
+                          <RecentMovementsCard key="transactions" transactions={overview.recentTransactions} />
+                        ) : (
+                          <SpendingCard
+                            key="spending"
+                            currency={overview.currency}
+                            series={home.spending}
+                            categories={home.categories}
+                            accountLabel={page?.label ?? t("home.accountsAll")}
+                            loading={home.isSpendingLoading}
+                          />
+                        ),
+                      )}
+                    {homeLayout.available ? (
+                      <PressableScale
+                        onPress={() => setCustomizeOpen(true)}
+                        accessibilityRole="button"
+                        hitSlop={8}
+                        style={{ alignSelf: "center" }}
+                      >
+                        <XStack items="center" gap={6} py={4}>
+                          <SlidersHorizontal size={15} color="$brand" strokeWidth={2} />
+                          <FText tone="brand" style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18 }}>
+                            {t("home.customize.link")}
+                          </FText>
+                        </XStack>
+                      </PressableScale>
+                    ) : null}
                   </>
                 ) : null}
               </YStack>
@@ -297,6 +328,9 @@ export default function DashboardScreen() {
       </Animated.View>
 
       <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} />
+      {homeLayout.available ? (
+        <HomeLayoutSheet open={customizeOpen} onClose={() => setCustomizeOpen(false)} layout={homeLayout.layout} onChange={(next) => void homeLayout.save(next)} />
+      ) : null}
     </View>
   );
 }

@@ -60,6 +60,7 @@ export interface AppCapabilities {
     allExpenseCategories?: boolean
     savedPlaces?: boolean
     deviceSessions?: boolean
+    homeLayout?: boolean
   }
   jobs?: {
     paymentOccurrencesGenerate: boolean

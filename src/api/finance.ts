@@ -2,6 +2,7 @@ import { apiRequest } from './client'
 import { randomId } from '../shared/id'
 import type { FrequentLocation } from '../location/captureLocation'
 import type { SavedPlace } from '../location/places'
+import type { HomeLayout } from '../home/layout'
 import {
   AccountListSchema,
   AccountSchema,
@@ -154,6 +155,8 @@ export const financeApi = {
   listSavedPlaces: () => apiRequest<SavedPlace[]>('/api/me/places'),
   saveSavedPlace: ({ id, ...place }: SavedPlace) => apiRequest<SavedPlace[]>(`/api/me/places/${id}`, { method: 'PUT', body: JSON.stringify(place) }),
   deleteSavedPlace: (id: string) => apiRequest<SavedPlace[]>(`/api/me/places/${id}`, { method: 'DELETE' }),
+  getHomeLayout: () => apiRequest<HomeLayout>('/api/me/home-layout'),
+  saveHomeLayout: (layout: HomeLayout) => apiRequest<HomeLayout>('/api/me/home-layout', { method: 'PUT', body: JSON.stringify(layout) }),
   reportDevice: (input: { installationId: string; platform: 'android' | 'ios'; deviceName: string | null; signIn: boolean }) =>
     apiRequest<{ isNew: boolean; notified: boolean }>('/api/me/devices', { method: 'POST', body: JSON.stringify(input) }),
   reversePaymentOccurrencePayment: (id: string, input: ReversePaymentOccurrencePaymentInput = {}) => apiRequest<{ id: string; transactionId: string; status: 'reversed' }>(`/api/payment-occurrence-payments/${id}/reverse`, { method: 'POST', body: JSON.stringify(input) }),

@@ -2,10 +2,10 @@ import { Repeat } from "@tamagui/lucide-icons-2";
 import { SplashScreen } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useWindowDimensions } from "react-native";
+import { useColorScheme, useWindowDimensions } from "react-native";
 import Animated, { FadeIn, useAnimatedStyle, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Text, YStack, type YStackProps } from "tamagui";
+import { Text, Theme, YStack, type YStackProps } from "tamagui";
 import { HeroMesh } from "../home/HeroMesh";
 import { motion, radius } from "../theme/tokens";
 import { fontFace } from "../theme/typography";
@@ -92,8 +92,12 @@ export function FintLoadingScreen({
 
   const captionStyle = useAnimatedStyle(() => ({ opacity: withTiming(leaving ? 0 : 1, motion.fade) }), [leaving]);
   const showSlow = slow && !ready;
+  // La pantalla nativa de arranque sigue el tema del sistema (se dibuja antes que la app). La carga que la releva usa
+  // el mismo, aunque Fint esté en otro: así el tono de la losa no salta entre las dos. Lo que sigue ya va en el de Fint.
+  const systemScheme = useColorScheme();
+  const nativeTheme = startComplete && onSlab && (systemScheme === "dark" || systemScheme === "light") ? systemScheme : null;
 
-  return (
+  const screen = (
     <YStack
       flex={1}
       bg={onSlab ? "$slab" : "$canvas"}
@@ -178,4 +182,6 @@ export function FintLoadingScreen({
       ) : null}
     </YStack>
   );
+
+  return nativeTheme ? <Theme name={nativeTheme}>{screen}</Theme> : screen;
 }

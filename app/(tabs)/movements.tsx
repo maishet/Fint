@@ -1,10 +1,11 @@
-import { FlashList } from "@shopify/flash-list";
+import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowLeftRight, ArrowUp, CalendarDays, Check, ChevronDown, ChevronRight, Mail, ScanLine, Search, Trash2, X } from "@tamagui/lucide-icons-2";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, RefreshControl, ScrollView, TextInput } from "react-native";
+import { LayoutAnimation, Pressable, RefreshControl, ScrollView, TextInput, type LayoutAnimationConfig } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { View, XStack, YStack, useTheme } from "tamagui";
 import { useCapabilities } from "../../src/api/capabilities";
@@ -20,6 +21,7 @@ import { transactionDay } from "../../src/home/spending";
 import { getAppLocale } from "../../src/i18n";
 import { DayHeader } from "../../src/movements/DayHeader";
 import { MovementRow } from "../../src/movements/MovementRow";
+import { FILTER_ANIMATION, REMOVE_ANIMATION } from "../../src/movements/listAnimation";
 import {
   buildEntries,
   filterByCurrency,
@@ -88,6 +90,23 @@ export default function MovementsScreen() {
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null);
   const [reverseTarget, setReverseTarget] = useState<Transaction | null>(null);
   const [reverseTransferTarget, setReverseTransferTarget] = useState<string | null>(null);
+  // Lo recién eliminado o revertido sale de la lista al confirmarse, con su animación, sin esperar a la recarga.
+  const [removed, setRemoved] = useState<ReadonlySet<string>>(() => new Set());
+  const listRef = useRef<FlashListRef<ListEntry>>(null);
+  const reduceMotion = useReducedMotion();
+
+  const animateList = useCallback(
+    (config: LayoutAnimationConfig) => {
+      if (reduceMotion) return;
+      listRef.current?.prepareForLayoutAnimationRender();
+      LayoutAnimation.configureNext(config);
+    },
+    [reduceMotion],
+  );
+  const removeFromList = (id: string) => {
+    animateList(REMOVE_ANIMATION);
+    setRemoved((prev) => new Set(prev).add(id));
+  };
 
   // Reportes abre esta pestaña con una búsqueda (tocar una categoría): `qt` cambia en cada toque, así se aplica aunque sea la misma.
   const params = useLocalSearchParams<{ q?: string; qt?: string }>();
@@ -136,8 +155,11 @@ export default function MovementsScreen() {
   const currencySummary = summary?.byCurrency.find((item) => item.currency === currency);
   // La lista del mes muestra solo la moneda elegida, igual que el resumen. La búsqueda no filtra por moneda: no hay píldora.
   const shown = useMemo(
-    () => filterItems(isSearching ? items : filterByCurrency(items, currency), filter),
-    [items, isSearching, currency, filter],
+    () =>
+      filterItems(isSearching ? items : filterByCurrency(items, currency), filter).filter(
+        (item) => !removed.has(item.kind === "transfer" ? item.transferGroupId : item.movement.id),
+      ),
+    [items, isSearching, currency, filter, removed],
   );
   const entries = useMemo(() => buildEntries(shown, currency), [shown, currency]);
   const sticky = useMemo(() => stickyIndices(entries), [entries]);
@@ -173,8 +195,9 @@ export default function MovementsScreen() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => financeApi.deleteTransaction(id),
-    onSuccess: async () => {
+    onSuccess: async (_, id) => {
       setDeleteTarget(null);
+      removeFromList(id);
       await invalidate(["transactions", "dashboard", "accounts", "reports"]);
       toast.success(t("movementUx.deletedToast"), { message: t("movementUx.deletedMessage") });
     },
@@ -184,6 +207,7 @@ export default function MovementsScreen() {
   const reversePaymentMutation = useMutation({
     mutationFn: (paymentId: string) => financeApi.reversePaymentOccurrencePayment(paymentId, { reason: "Reverted from mobile history" }),
     onSuccess: async () => {
+      if (reverseTarget) removeFromList(reverseTarget.id);
       setReverseTarget(null);
       await invalidate(["transactions", "payment-occurrences", "summary", "dashboard", "accounts", "reports", "pending-movements"]);
       toast.show(t("movementUx.revertedToast"), { message: t("movementUx.revertedMessage"), preset: "success" });
@@ -193,8 +217,9 @@ export default function MovementsScreen() {
 
   const reverseTransferMutation = useMutation({
     mutationFn: (transferGroupId: string) => financeApi.reverseTransfer(transferGroupId),
-    onSuccess: async () => {
+    onSuccess: async (_, transferGroupId) => {
       setReverseTransferTarget(null);
+      removeFromList(transferGroupId);
       await invalidate(["transactions", "summary", "dashboard", "accounts", "reports"]);
       toast.show(t("movementUx.revertedToast"), { message: t("movementUx.revertedMessage"), preset: "success" });
     },
@@ -244,7 +269,17 @@ export default function MovementsScreen() {
         accessibilityLabel={t("movementsTab.filtersLabel")}
       >
         {FILTERS.map((f) => (
-          <Chip key={f} variant="filter" label={t(`movementsTab.filters.${f}`)} selected={filter === f} onPress={() => setFilter(f)} />
+          <Chip
+            key={f}
+            variant="filter"
+            label={t(`movementsTab.filters.${f}`)}
+            selected={filter === f}
+            onPress={() => {
+              if (f === filter) return;
+              animateList(FILTER_ANIMATION);
+              setFilter(f);
+            }}
+          />
         ))}
       </ScrollView>
 
@@ -363,6 +398,7 @@ export default function MovementsScreen() {
     // La lista empieza bajo la barra de estado: así el encabezado de día pegado queda debajo de ella y no detrás.
     <YStack flex={1} bg="$canvas" pt={insets.top}>
       <FlashList
+        ref={listRef}
         data={entries}
         keyExtractor={(e) => e.key}
         getItemType={(e) => e.type}

@@ -24,13 +24,22 @@ function triggerHaptic(preset?: NotifyPreset) {
   else if (preset === "error") haptics.error();
 }
 
-function toSonnerAction(action?: NotifyAction) {
+let lastId = 0;
+
+/** La acción ("Deshacer") cierra el toast: sonner solo lo hace con `cancel`, y quedaba abierto hasta que vencía. */
+function toSonnerAction(id: string, action?: NotifyAction) {
   if (!action) return undefined;
-  return { label: action.label, onClick: action.onPress };
+  return {
+    label: action.label,
+    onClick: () => {
+      toast.dismiss(id);
+      action.onPress();
+    },
+  };
 }
 
-function resolveAction(opts: NotifyOptions) {
-  if (opts.action) return toSonnerAction(opts.action);
+function resolveAction(id: string, opts: NotifyOptions) {
+  if (opts.action) return toSonnerAction(id, opts.action);
   if (opts.detail && opts.detailLabel) {
     const title = opts.detailLabel;
     const body = opts.detail;
@@ -45,10 +54,13 @@ function notifyWithPreset(
   opts: NotifyOptions = {},
 ) {
   triggerHaptic(preset);
+  lastId += 1;
+  const id = `fint-toast-${lastId}`;
   const data = {
+    id,
     description: opts.message,
     duration: opts.duration,
-    action: resolveAction(opts),
+    action: resolveAction(id, opts),
   };
   if (preset === "success") return toast.success(title, data);
   if (preset === "error") return toast.error(title, data);

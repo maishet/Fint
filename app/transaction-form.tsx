@@ -596,7 +596,8 @@ export default function TransactionFormScreen() {
                       <LocationField
                         location={location}
                         suggestion={suggestion}
-                        placeName={location?.placeName ?? savedPlace?.name ?? null}
+                        // El nombre sale de la lista actual: si quitas o renombras el lugar en la hoja, se ve al instante.
+                        placeName={savedPlace?.name ?? null}
                         onPress={() => setSheet("location")}
                         onUse={() => suggestion && setLocation(suggestion)}
                       />
