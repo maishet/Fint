@@ -27,6 +27,10 @@
     "production": {
       "autoIncrement": true,
       "node": "22.14.0",
+      "env": {
+        "EXPO_PUBLIC_COMING_SOON": "photoCapture,gmail,reportExport,emailKeywords",
+        "EXPO_PUBLIC_HIDDEN_FEATURES": "csvImport"
+      },
       "ios": {
         "resourceClass": "m-medium"
       }

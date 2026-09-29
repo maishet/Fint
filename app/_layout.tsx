@@ -4,7 +4,7 @@ import { setupGestureHandler } from "@tamagui/native/setup-gesture-handler";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { StatusBar } from "expo-status-bar";
+import { setStatusBarStyle } from "expo-status-bar";
 import {
   DarkTheme,
   DefaultTheme,
@@ -35,7 +35,9 @@ import {
   stripUrlQuery,
 } from "../src/monitoring/sentryPrivacy";
 import { fintPalette } from "../src/theme/palette";
+import { fontFace, fontFiles } from "../src/theme/typography";
 import { useNotify } from "../src/ui";
+import { isComingSoon } from "../src/config/comingSoon";
 
 export {
   ErrorBoundary,
@@ -48,6 +50,7 @@ export const unstable_settings = {
 setupGestureHandler({ sheet: true, pressEvents: false });
 
 SplashScreen.preventAutoHideAsync();
+const SPLASH_FALLBACK_MS = 3000;
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
@@ -80,10 +83,10 @@ Sentry.init({
 });
 
 const navigationFonts = {
-  regular: { fontFamily: "InterRegular", fontWeight: "400" as const },
-  medium: { fontFamily: "InterMedium", fontWeight: "500" as const },
-  bold: { fontFamily: "InterBold", fontWeight: "700" as const },
-  heavy: { fontFamily: "InterBold", fontWeight: "700" as const },
+  regular: { fontFamily: fontFace.sans[400], fontWeight: "400" as const },
+  medium: { fontFamily: fontFace.sans[500], fontWeight: "500" as const },
+  bold: { fontFamily: fontFace.sans[600], fontWeight: "600" as const },
+  heavy: { fontFamily: fontFace.sans[600], fontWeight: "600" as const },
 };
 
 const lightNavigationTheme = {
@@ -113,17 +116,15 @@ const darkNavigationTheme = {
 };
 
 function RootLayout() {
-  const [fontsLoaded, fontsError] = useFonts({
-    InterRegular: require("../assets/fonts/Inter_18pt-Regular.ttf"),
-    InterMedium: require("../assets/fonts/Inter_18pt-Medium.ttf"),
-    InterSemiBold: require("../assets/fonts/Inter_24pt-SemiBold.ttf"),
-    InterBold: require("../assets/fonts/Inter_28pt-Bold.ttf"),
-  });
+  const [fontsLoaded, fontsError] = useFonts(fontFiles);
 
+  // La pantalla nativa de arranque (la losa con el logo) la oculta la pantalla de carga cuando ya está dibujada
+  // (`FintLoadingScreen` con `startComplete`): así no asoma un cuadro vacío entre las dos. Si el arranque no pasa
+  // por ella (un enlace directo a otra pantalla), se oculta igual al rato.
   useEffect(() => {
-    if (fontsLoaded || fontsError) {
-      SplashScreen.hideAsync();
-    }
+    if (!fontsLoaded && !fontsError) return;
+    const fallback = setTimeout(() => void SplashScreen.hideAsync(), SPLASH_FALLBACK_MS);
+    return () => clearTimeout(fallback);
   }, [fontsLoaded, fontsError]);
 
   if (!fontsLoaded && !fontsError) {
@@ -166,6 +167,14 @@ function RootLayoutNav() {
   const { hasShareIntent, shareIntent, resetShareIntent } = useShareIntent({ resetOnBackground: false });
   const setupComplete = meQuery.data?.setupComplete;
 
+  // Iconos claros al arrancar (carga e Inicio); después cada pantalla fija los suyos con `useScreenStatusBar`.
+  // Sin el componente `<StatusBar>`: en Android, cada vez que esta raíz se volvía a renderizar (al llegar una
+  // consulta) reaplicaba su estilo encima del de la pantalla, y la primera visita a Movimientos o Reportes
+  // quedaba con iconos blancos sobre fondo claro.
+  useEffect(() => {
+    setStatusBarStyle("light");
+  }, []);
+
   useEffect(() => {
     if (setupComplete !== true) return;
     return attachNotificationResponseListener(router);
@@ -175,7 +184,8 @@ function RootLayoutNav() {
     if (!session || setupComplete !== true) return;
     const pending = await hasQueuedShareFiles();
     if (!pending) return;
-    if (!capabilities.features.captureImport) {
+    // Compartir una foto con Fint abre la captura: si todavía no está disponible ("Pronto"), se descarta igual.
+    if (!capabilities.features.captureImport || isComingSoon("photoCapture")) {
       await discardShareQueue();
       toast.info(t("capture.shareDiscarded"));
       return;
@@ -207,11 +217,13 @@ function RootLayoutNav() {
     <ThemeProvider
       value={themeMode === "dark" ? darkNavigationTheme : lightNavigationTheme}
     >
-      {}
-      <StatusBar style="light" backgroundColor={fintPalette.light.headerBackground} />
       <YStack flex={1}>
       <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
+        {/*
+          La pantalla de carga y el paso al Inicio van con `fade`, como pide `PantallaCarga`. Fondo de losa: al
+          terminar, esta ruta solo redirige (no dibuja nada) y mientras el Inicio monta se veía un destello claro.
+        */}
+        <Stack.Screen name="index" options={{ headerShown: false, animation: "fade", contentStyle: { backgroundColor: theme.slab.val } }} />
         <Stack.Protected guard={!session}>
           <Stack.Screen name="login" options={{ headerShown: false }} />
           <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
@@ -224,25 +236,41 @@ function RootLayoutNav() {
             name="(tabs)"
             options={{
               headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="transaction-form"
-            options={{
-              title: t("forms.newMovement"),
+              animation: "fade",
+              // Detrás de los tabs va el fondo de la app: es lo que asoma en el `fade` al cambiar de tab. El Inicio pone
+              // su propia losa (`sceneStyle`) para salir de la pantalla de carga sin destello claro.
               contentStyle: { backgroundColor: theme.background.val },
             }}
           />
+          {/*
+            Formulario v3: modal transparente sin animación del sistema. La entrada y la salida las dibuja
+            `GrowPresence` (crece desde el botón central o sube desde abajo); debajo se sigue viendo la pantalla anterior.
+          */}
+          <Stack.Screen
+            name="transaction-form"
+            options={{
+              headerShown: false,
+              presentation: "transparentModal",
+              animation: "none",
+              contentStyle: { backgroundColor: "transparent" },
+            }}
+          />
+          {/* Avisos (la campana) y la búsqueda global (el buscador del hero): dibujan su propia barra. */}
+          <Stack.Screen name="notifications" options={{ headerShown: false, contentStyle: { backgroundColor: theme.background.val } }} />
+          <Stack.Screen name="search" options={{ headerShown: false, animation: "fade", contentStyle: { backgroundColor: theme.background.val } }} />
           <Stack.Screen
             name="transaction-detail"
             options={{
               title: t("transactionDetail.title"),
+              // La pantalla dibuja su propia barra con volver y compartir.
+              headerShown: false,
               contentStyle: { backgroundColor: theme.background.val },
             }}
           />
           <Stack.Screen
             name="import-transactions"
             options={{
+              headerShown: false,
               title: t("import.title"),
               contentStyle: { backgroundColor: theme.background.val },
             }}
@@ -250,6 +278,7 @@ function RootLayoutNav() {
           <Stack.Screen
             name="capture-import"
             options={{
+              headerShown: false,
               title: t("capture.title"),
               contentStyle: { backgroundColor: theme.background.val },
             }}
@@ -258,6 +287,8 @@ function RootLayoutNav() {
             name="pending-movements"
             options={{
               title: t("movementUx.pendingTitle"),
+              // La pantalla dibuja su propia barra.
+              headerShown: false,
               contentStyle: { backgroundColor: theme.background.val },
             }}
           />
@@ -265,24 +296,40 @@ function RootLayoutNav() {
             name="pending-review"
             options={{
               title: t("movementUx.reviewPendingTitle"),
+              // La pantalla dibuja su propia barra.
+              headerShown: false,
+              contentStyle: { backgroundColor: theme.background.val },
+            }}
+          />
+          <Stack.Screen
+            name="accounts"
+            options={{
+              title: t("tabs.accounts"),
+              // La pantalla dibuja su propio encabezado con volver, título y crear cuenta.
+              headerShown: false,
               contentStyle: { backgroundColor: theme.background.val },
             }}
           />
           <Stack.Screen
             name="account-form"
             options={{
+              // La pantalla dibuja su propia barra con cerrar y título.
+              headerShown: false,
               contentStyle: { backgroundColor: theme.background.val },
             }}
           />
           <Stack.Screen
             name="debt-form"
             options={{
+              // La pantalla dibuja su propia barra con cerrar y título.
+              headerShown: false,
               contentStyle: { backgroundColor: theme.background.val },
             }}
           />
           <Stack.Screen
             name="settings"
             options={{
+              headerShown: false,
               title: t("header.menuTitle"),
               contentStyle: { backgroundColor: theme.background.val },
             }}
@@ -290,6 +337,7 @@ function RootLayoutNav() {
           <Stack.Screen
             name="profile"
             options={{
+              headerShown: false,
               title: t("profile.title"),
               contentStyle: { backgroundColor: theme.background.val },
             }}
@@ -297,6 +345,7 @@ function RootLayoutNav() {
           <Stack.Screen
             name="gmail-settings"
             options={{
+              headerShown: false,
               title: t("gmail.title"),
               contentStyle: { backgroundColor: theme.background.val },
             }}
@@ -304,6 +353,7 @@ function RootLayoutNav() {
           <Stack.Screen
             name="support"
             options={{
+              headerShown: false,
               title: t("support.title"),
               contentStyle: { backgroundColor: theme.background.val },
             }}
@@ -311,6 +361,7 @@ function RootLayoutNav() {
           <Stack.Screen
             name="improvements"
             options={{
+              headerShown: false,
               title: t("improvements.title"),
               contentStyle: { backgroundColor: theme.background.val },
             }}
@@ -318,6 +369,7 @@ function RootLayoutNav() {
           <Stack.Screen
             name="web-content"
             options={{
+              headerShown: false,
               title: t("webContent.title"),
               contentStyle: { backgroundColor: theme.background.val },
             }}
@@ -325,6 +377,7 @@ function RootLayoutNav() {
           <Stack.Screen
             name="categories"
             options={{
+              headerShown: false,
               title: t("categories.routeTitle"),
               contentStyle: { backgroundColor: theme.background.val },
             }}

@@ -2,6 +2,7 @@ import { AlertCircle, CheckCircle2, Info } from "@tamagui/lucide-icons-2";
 import { Toaster } from "sonner-native";
 import { useThemeMode } from "../theme/ThemeMode";
 import { fintPalette } from "../theme/palette";
+import { fontFace } from "../theme/typography";
 
 export function FintToaster() {
   const { themeMode } = useThemeMode();
@@ -29,12 +30,12 @@ export function FintToaster() {
         },
         titleStyle: {
           color: palette.text,
-          fontFamily: "InterBold",
+          fontFamily: fontFace.sans[600],
           fontSize: 15,
         },
         descriptionStyle: {
           color: palette.muted,
-          fontFamily: "InterRegular",
+          fontFamily: fontFace.sans[400],
           fontSize: 13,
         },
         actionButtonStyle: {
@@ -43,7 +44,7 @@ export function FintToaster() {
         },
         actionButtonTextStyle: {
           color: palette.primary,
-          fontFamily: "InterSemiBold",
+          fontFamily: fontFace.sans[600],
         },
       }}
     />

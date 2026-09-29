@@ -9,7 +9,8 @@ type SensitiveAmountsContextValue = {
   toggleAmountsVisibility: () => void
 }
 
-const SensitiveAmountsContext = createContext<SensitiveAmountsContextValue | null>(null)
+/** Exportado para que las hojas (que se dibujan en un portal, fuera de este árbol) lo vuelvan a proveer. */
+export const SensitiveAmountsContext = createContext<SensitiveAmountsContextValue | null>(null)
 
 export function SensitiveAmountsProvider({ children }: { children: React.ReactNode }) {
   const { session } = useAuth()

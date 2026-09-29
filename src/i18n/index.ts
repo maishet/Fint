@@ -4,6 +4,23 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { ptTranslation } from "./pt";
 import { setStoredCurrentLanguage, type AppLanguage } from "./current-language";
+import { homeTranslations } from "./home";
+import { movementFormTranslations } from "./movementForm";
+import { movementsTabTranslations } from "./movements";
+import { paymentsTabTranslations } from "./payments";
+import { reportsTabTranslations } from "./reports";
+import { accountsScreenTranslations } from "./accounts";
+import { movementDetailTranslations } from "./movementDetail";
+import { accountFormTranslations } from "./accountForm";
+import { paymentFormTranslations } from "./paymentForm";
+import { pendingReviewTranslations } from "./pendingReview";
+import { onboardingScreenTranslations } from "./onboardingScreen";
+import { loginScreenTranslations } from "./loginScreen";
+import { settingsScreenTranslations } from "./settingsScreen";
+import { secondaryScreensTranslations } from "./secondaryScreens";
+import { loadingScreenTranslations } from "./loadingScreen";
+import { notificationsTranslations } from "./notifications";
+import { searchTranslations } from "./search";
 
 export type { AppLanguage };
 
@@ -68,7 +85,7 @@ const resources = {
         newIncome: "Ingreso",
         newExpense: "Gasto",
         newTransfer: "Transferencia",
-        viewAll: "Ver todos",
+        viewAll: "Ver todo",
         signOut: "Cerrar sesión",
         save: "Guardar",
         cancel: "Cancelar",
@@ -340,7 +357,6 @@ const resources = {
         routeTitle: "Categorías",
         title: "Tus categorías",
         subtitle: "Organiza cómo clasificas ingresos y gastos.",
-        newAction: "Nueva",
         newTitle: "Nueva categoría",
         newSubtitle: "Elige un tipo, un icono y un nombre.",
         editTitle: "Editar categoría",
@@ -378,7 +394,6 @@ const resources = {
         formSubtitle:
           "Registra el movimiento con una cuenta y categoría existentes.",
         selectAccount: "Selecciona una cuenta",
-        selectCategory: "Selecciona una categoría",
         date: "Fecha del movimiento",
         selectDate: "Seleccionar fecha",
         loadingReferences: "Cargando cuentas y categorías...",
@@ -464,10 +479,7 @@ const resources = {
           title: "Privacidad financiera",
           visible: "Montos visibles",
           hidden: "Montos ocultos",
-          show: "Mostrar montos",
-          hide: "Ocultar montos",
           hiddenLabel: "Monto oculto",
-          toggleHint: "Alterna entre mostrar y ocultar los montos.",
           description:
             "Oculta balances e importes cuando compartas tu pantalla.",
         },
@@ -492,7 +504,7 @@ const resources = {
           enable: "Activar notificaciones",
           requesting: "Solicitando...",
           enabled:
-            "Notificaciones activas. Te avisaremos sin mostrar montos ni detalles sensibles.",
+            "Notificaciones activas. Te avisaremos de tus pagos y de lo que detectemos.",
           denied:
             "Permiso rechazado. Podrás activarlo luego desde Configuración del sistema.",
           unsupported:
@@ -611,7 +623,6 @@ const resources = {
         newMovement: "Nuevo movimiento",
         amount: "Monto",
         currency: "Moneda",
-        category: "Categoría",
         account: "Cuenta",
         note: "Nota",
         expense: "Gasto",
@@ -967,7 +978,6 @@ const resources = {
         routeTitle: "Categories",
         title: "Your categories",
         subtitle: "Organize how you classify income and expenses.",
-        newAction: "New",
         newTitle: "New category",
         newSubtitle: "Choose a type, icon, and name.",
         editTitle: "Edit category",
@@ -1005,7 +1015,6 @@ const resources = {
         formSubtitle:
           "Record the transaction using an existing account and category.",
         selectAccount: "Select an account",
-        selectCategory: "Select a category",
         date: "Transaction date",
         selectDate: "Select date",
         loadingReferences: "Loading accounts and categories...",
@@ -1090,10 +1099,7 @@ const resources = {
           title: "Financial privacy",
           visible: "Amounts visible",
           hidden: "Amounts hidden",
-          show: "Show amounts",
-          hide: "Hide amounts",
           hiddenLabel: "Hidden amount",
-          toggleHint: "Toggles between showing and hiding amounts.",
           description: "Hide balances and amounts when sharing your screen.",
         },
       },
@@ -1116,7 +1122,7 @@ const resources = {
           enable: "Enable notifications",
           requesting: "Requesting...",
           enabled:
-            "Notifications are active. We will notify you without showing amounts or sensitive details.",
+            "Notifications are active. We'll let you know about your payments and what we detect.",
           denied:
             "Permission denied. You can enable it later from system settings.",
           unsupported: "Notifications are not available on this device.",
@@ -1234,7 +1240,6 @@ const resources = {
         newMovement: "New transaction",
         amount: "Amount",
         currency: "Currency",
-        category: "Category",
         account: "Account",
         note: "Note",
         expense: "Expense",
@@ -1283,12 +1288,6 @@ i18n.addResourceBundle(
       signUpSuccess:
         "Cuenta creada. Si Supabase requiere confirmación, revisa tu correo antes de entrar.",
     },
-    comingSoon: { badge: "Pronto" },
-    header: {
-      goodMorning: "Buenos días, {{name}}",
-      goodAfternoon: "Buenas tardes, {{name}}",
-      goodEvening: "Buenas noches, {{name}}",
-    },
     authCallback: {
       timeout:
         "El inicio de sesión tardó demasiado. Vuelve a la pantalla de inicio de sesión e intenta nuevamente.",
@@ -1302,6 +1301,7 @@ i18n.addResourceBundle(
       backToLogin: "Volver al inicio de sesión",
     },
     actions: { edit: "Editar", delete: "Eliminar", done: "Listo" },
+    comingSoon: { badge: "Pronto", hint: "Disponible pronto" },
     tabs: { payments: "Pagos", reports: "Reportes" },
     notifications: {
       dailyReminder: {
@@ -1349,7 +1349,6 @@ i18n.addResourceBundle(
       categories: "Mis categorías",
       gmail: "Cuentas Gmail",
       gmailDetail: "Conexión, remitentes y sincronización",
-      gmailComingSoonHint: "Detecta tus movimientos de Yape, Plin y bancos desde tus correos, sin que muevas un dedo.",
       contact: "Ayuda",
       help: "Reportar un problema",
       suggestion: "Solicitar una mejora",
@@ -1498,16 +1497,56 @@ i18n.addResourceBundle(
       fromDate: "Desde",
       toDate: "Hasta",
       customRangeHint: "Selecciona ambas fechas para ver el reporte.",
-      seeAllComingSoon_one: "Podrás ver {{count}} más cuando esté disponible exportar",
-      seeAllComingSoon_other: "Podrás ver las {{count}} restantes cuando esté disponible exportar",
+      seeAllInExport_one: "Ver {{count}} más en el export",
+      seeAllInExport_other: "Ver las {{count}} restantes en el export",
       updated: "Generado",
       mixed:
         "Tienes varias monedas. Este cierre muestra únicamente la moneda seleccionada.",
       loading: "Preparando tu cierre financiero...",
       error: "No pudimos generar el cierre financiero.",
       empty: "No hay movimientos confirmados para este período.",
-      exportComingSoonTitle: "Exportar a Excel o PDF",
-      exportComingSoonHint: "Muy pronto podrás descargar este reporte para compartirlo con tu contador o tu pareja.",
+      exportTitle: "Descargar cierre",
+      exportPdf: "Documento PDF",
+      exportExcel: "Archivo Excel",
+      exporting: "Preparando...",
+      exported: "Reporte listo",
+      exportError: "No pudimos exportar el reporte.",
+      // La hoja de descarga (`CargaReporte`): elegir formato, generando y listo.
+      export: {
+        title: "Descargar reporte",
+        readyTitle: "Tu reporte está listo",
+        pdf: "PDF",
+        pdfBody: "Para leer o enviar. Se ve igual en cualquier teléfono.",
+        pdfIncludes: ["Resumen", "Gráficos", "Categorías", "Movimientos"],
+        xlsx: "Excel",
+        xlsxBody: "Para sumar, filtrar o hacer tus propias cuentas.",
+        xlsxIncludes: ["Una fila por movimiento", "Resumen por categoría"],
+        scope_one: "Incluye el movimiento del periodo que ves",
+        scope_other: "Incluye los {{count}} movimientos del periodo que ves",
+        creatingPdf: "Creando tu PDF",
+        creatingXlsx: "Creando tu Excel",
+        takesSeconds: "Tarda unos segundos",
+        gather: "Reuniendo tus movimientos",
+        charts: "Dibujando los gráficos",
+        buildPdf: "Armando el PDF",
+        sort: "Ordenando por categoría",
+        buildXlsx: "Armando la hoja",
+        slow: "Está tardando más de lo normal",
+        gatherError: "No pudimos traer tus movimientos. Revisa tu conexión.",
+        buildError: "No pudimos armar el reporte.",
+        writeError: "No pudimos crear el archivo.",
+        cancel: "Cancelar",
+        retry: "Reintentar",
+        pages_one: "{{count}} página",
+        pages_other: "{{count}} páginas",
+        view: "Ver",
+        share: "Compartir",
+        alsoXlsx: "Descargar en Excel también",
+        alsoPdf: "Descargar en PDF también",
+        openError: "No hay una app para abrir este archivo. Compártelo para guardarlo o enviarlo.",
+        shareError: "No pudimos abrir la hoja de compartir.",
+        fileName: "My Fint · {{period}}",
+      },
       executiveSummary: "Resumen ejecutivo",
       financialStatus: "Estado financiero",
       income: "Ingresos",
@@ -1567,15 +1606,10 @@ i18n.addResourceBundle(
       activate: "Guardar y activar",
     },
     location: {
-      addLabel: "Agregar ubicación",
-      addedLabel: "Ubicación",
       coordinatesOnly: "Ubicación guardada",
       remove: "Quitar ubicación",
       mapAccessibility: "Mapa de la ubicación del movimiento",
       detecting: "Detectando ubicación…",
-      autoBannerTitle: "Fint puede guardar dónde ocurre cada movimiento",
-      autoBannerBody: "Usa tu ubicación actual o búscala manualmente. Nunca se agrega sin que tú lo pidas.",
-      autoBannerConfirm: "Usar mi ubicación actual",
       dragHint: "Arrastra o pellizca para ajustar",
       searchPlaceholder: "Buscar un lugar",
       searchInlinePlaceholder: "Ej.: Plaza San Miguel",
@@ -1764,12 +1798,6 @@ i18n.addResourceBundle(
       signUpSuccess:
         "Account created. If Supabase requires confirmation, check your email before signing in.",
     },
-    comingSoon: { badge: "Soon" },
-    header: {
-      goodMorning: "Good morning, {{name}}",
-      goodAfternoon: "Good afternoon, {{name}}",
-      goodEvening: "Good evening, {{name}}",
-    },
     authCallback: {
       timeout: "Sign-in took too long. Go back to login and try again.",
       incomplete:
@@ -1782,6 +1810,7 @@ i18n.addResourceBundle(
       backToLogin: "Back to login",
     },
     actions: { edit: "Edit", delete: "Delete", done: "Done" },
+    comingSoon: { badge: "Soon", hint: "Available soon" },
     tabs: { payments: "Payments", reports: "Reports" },
     notifications: {
       dailyReminder: {
@@ -1828,7 +1857,6 @@ i18n.addResourceBundle(
       categories: "My categories",
       gmail: "Gmail accounts",
       gmailDetail: "Connection, senders, and sync",
-      gmailComingSoonHint: "Detect your Yape, Plin, and bank transactions straight from your inbox, without lifting a finger.",
       contact: "Help",
       help: "Report a problem",
       suggestion: "Request an improvement",
@@ -1974,16 +2002,55 @@ i18n.addResourceBundle(
       fromDate: "From",
       toDate: "To",
       customRangeHint: "Pick both dates to see the report.",
-      seeAllComingSoon_one: "You'll be able to see {{count}} more once exporting is available",
-      seeAllComingSoon_other: "You'll be able to see the remaining {{count}} once exporting is available",
+      seeAllInExport_one: "See {{count}} more in the export",
+      seeAllInExport_other: "See {{count}} more in the export",
       updated: "Generated",
       mixed:
         "You have multiple currencies. This report only shows the selected currency.",
       loading: "Preparing your financial report...",
       error: "We could not generate the financial report.",
       empty: "There are no confirmed transactions for this period.",
-      exportComingSoonTitle: "Export to Excel or PDF",
-      exportComingSoonHint: "Soon you'll be able to download this report to share with your accountant or partner.",
+      exportTitle: "Download report",
+      exportPdf: "PDF document",
+      exportExcel: "Excel file",
+      exporting: "Preparing...",
+      exported: "Report ready",
+      exportError: "We could not export the report.",
+      export: {
+        title: "Download report",
+        readyTitle: "Your report is ready",
+        pdf: "PDF",
+        pdfBody: "To read or send. Looks the same on any phone.",
+        pdfIncludes: ["Summary", "Charts", "Categories", "Transactions"],
+        xlsx: "Excel",
+        xlsxBody: "To add up, filter or do your own math.",
+        xlsxIncludes: ["One row per transaction", "Summary by category"],
+        scope_one: "Includes the transaction in the period you're viewing",
+        scope_other: "Includes the {{count}} transactions in the period you're viewing",
+        creatingPdf: "Creating your PDF",
+        creatingXlsx: "Creating your Excel",
+        takesSeconds: "Takes a few seconds",
+        gather: "Gathering your transactions",
+        charts: "Drawing the charts",
+        buildPdf: "Putting the PDF together",
+        sort: "Sorting by category",
+        buildXlsx: "Putting the sheet together",
+        slow: "This is taking longer than usual",
+        gatherError: "We couldn't get your transactions. Check your connection.",
+        buildError: "We couldn't put the report together.",
+        writeError: "We couldn't create the file.",
+        cancel: "Cancel",
+        retry: "Try again",
+        pages_one: "{{count}} page",
+        pages_other: "{{count}} pages",
+        view: "View",
+        share: "Share",
+        alsoXlsx: "Download in Excel too",
+        alsoPdf: "Download in PDF too",
+        openError: "There's no app to open this file. Share it to save or send it.",
+        shareError: "We couldn't open the share sheet.",
+        fileName: "My Fint · {{period}}",
+      },
       executiveSummary: "Executive summary",
       financialStatus: "Financial status",
       income: "Income",
@@ -2043,15 +2110,10 @@ i18n.addResourceBundle(
       activate: "Save and activate",
     },
     location: {
-      addLabel: "Add location",
-      addedLabel: "Location",
       coordinatesOnly: "Location saved",
       remove: "Remove location",
       mapAccessibility: "Map of the movement's location",
       detecting: "Detecting location…",
-      autoBannerTitle: "Fint can save where each movement happens",
-      autoBannerBody: "Use your current location or search for it manually. It's never added without you asking.",
-      autoBannerConfirm: "Use my current location",
       dragHint: "Drag or pinch to adjust",
       searchPlaceholder: "Search a place",
       searchInlinePlaceholder: "E.g.: Plaza San Miguel",
@@ -2237,12 +2299,6 @@ i18n.addResourceBundle(
       signUpSuccess:
         "Conta criada. Se o Supabase exigir confirmação, verifique seu e-mail antes de entrar.",
     },
-    comingSoon: { badge: "Em breve" },
-    header: {
-      goodMorning: "Bom dia, {{name}}",
-      goodAfternoon: "Boa tarde, {{name}}",
-      goodEvening: "Boa noite, {{name}}",
-    },
     authCallback: {
       timeout: "O login demorou demais. Volte ao login e tente novamente.",
       incomplete:
@@ -2255,6 +2311,7 @@ i18n.addResourceBundle(
       backToLogin: "Voltar ao login",
     },
     actions: { edit: "Editar", delete: "Excluir", done: "Concluído" },
+    comingSoon: { badge: "Em breve", hint: "Disponível em breve" },
     tabs: { payments: "Pagamentos", reports: "Relatórios" },
     notifications: {
       dailyReminder: {
@@ -2302,7 +2359,6 @@ i18n.addResourceBundle(
       categories: "Minhas categorias",
       gmail: "Contas Gmail",
       gmailDetail: "Conexão, remetentes e sincronização",
-      gmailComingSoonHint: "Detecte automaticamente suas movimentações bancárias direto do seu e-mail.",
       contact: "Ajuda",
       help: "Relatar um problema",
       suggestion: "Sugerir uma melhoria",
@@ -2450,16 +2506,55 @@ i18n.addResourceBundle(
       fromDate: "De",
       toDate: "Até",
       customRangeHint: "Selecione as duas datas para ver o relatório.",
-      seeAllComingSoon_one: "Você poderá ver mais {{count}} quando a exportação estiver disponível",
-      seeAllComingSoon_other: "Você poderá ver os {{count}} restantes quando a exportação estiver disponível",
+      seeAllInExport_one: "Ver mais {{count}} na exportação",
+      seeAllInExport_other: "Ver os {{count}} restantes na exportação",
       updated: "Gerado",
       mixed:
         "Você possui várias moedas. Este fechamento mostra apenas a moeda selecionada.",
       loading: "Preparando seu fechamento financeiro...",
       error: "Não foi possível gerar o fechamento financeiro.",
       empty: "Não há movimentações confirmadas neste período.",
-      exportComingSoonTitle: "Exportar para Excel ou PDF",
-      exportComingSoonHint: "Em breve você poderá baixar este relatório para compartilhar com seu contador.",
+      exportTitle: "Baixar fechamento",
+      exportPdf: "Documento PDF",
+      exportExcel: "Arquivo Excel",
+      exporting: "Preparando...",
+      exported: "Relatório pronto",
+      exportError: "Não foi possível exportar o relatório.",
+      export: {
+        title: "Baixar relatório",
+        readyTitle: "Seu relatório está pronto",
+        pdf: "PDF",
+        pdfBody: "Para ler ou enviar. Fica igual em qualquer celular.",
+        pdfIncludes: ["Resumo", "Gráficos", "Categorias", "Movimentações"],
+        xlsx: "Excel",
+        xlsxBody: "Para somar, filtrar ou fazer suas próprias contas.",
+        xlsxIncludes: ["Uma linha por movimentação", "Resumo por categoria"],
+        scope_one: "Inclui a movimentação do período que você vê",
+        scope_other: "Inclui as {{count}} movimentações do período que você vê",
+        creatingPdf: "Criando seu PDF",
+        creatingXlsx: "Criando seu Excel",
+        takesSeconds: "Leva alguns segundos",
+        gather: "Reunindo suas movimentações",
+        charts: "Desenhando os gráficos",
+        buildPdf: "Montando o PDF",
+        sort: "Organizando por categoria",
+        buildXlsx: "Montando a planilha",
+        slow: "Está demorando mais do que o normal",
+        gatherError: "Não conseguimos trazer suas movimentações. Verifique sua conexão.",
+        buildError: "Não conseguimos montar o relatório.",
+        writeError: "Não conseguimos criar o arquivo.",
+        cancel: "Cancelar",
+        retry: "Tentar de novo",
+        pages_one: "{{count}} página",
+        pages_other: "{{count}} páginas",
+        view: "Ver",
+        share: "Compartilhar",
+        alsoXlsx: "Baixar em Excel também",
+        alsoPdf: "Baixar em PDF também",
+        openError: "Não há um app para abrir este arquivo. Compartilhe para salvar ou enviar.",
+        shareError: "Não conseguimos abrir a opção de compartilhar.",
+        fileName: "My Fint · {{period}}",
+      },
       executiveSummary: "Resumo executivo",
       financialStatus: "Estado financeiro",
       income: "Receitas",
@@ -2520,15 +2615,10 @@ i18n.addResourceBundle(
       activate: "Salvar e ativar",
     },
     location: {
-      addLabel: "Adicionar localização",
-      addedLabel: "Localização",
       coordinatesOnly: "Localização salva",
       remove: "Remover localização",
       mapAccessibility: "Mapa da localização do movimento",
       detecting: "Detectando localização…",
-      autoBannerTitle: "O Fint pode salvar onde acontece cada movimento",
-      autoBannerBody: "Use sua localização atual ou busque manualmente. Ela nunca é adicionada sem você pedir.",
-      autoBannerConfirm: "Usar minha localização atual",
       dragHint: "Arraste ou belisque para ajustar",
       searchPlaceholder: "Buscar um lugar",
       searchInlinePlaceholder: "Ex.: Plaza San Miguel",
@@ -2778,6 +2868,91 @@ i18n.addResourceBundle(
   true,
   true,
 );
+
+// Inicio v3, barra de tabs y hojas de registro.
+for (const [language, bundle] of Object.entries(homeTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Formulario de movimiento v3 y sus hojas.
+for (const [language, bundle] of Object.entries(movementFormTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Tab Movimientos v3.
+for (const [language, bundle] of Object.entries(movementsTabTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Tab Pagos v3.
+for (const [language, bundle] of Object.entries(paymentsTabTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Tab Reportes v3.
+for (const [language, bundle] of Object.entries(reportsTabTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Pantalla Cuentas v3.
+for (const [language, bundle] of Object.entries(accountsScreenTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Detalle de movimiento v3.
+for (const [language, bundle] of Object.entries(movementDetailTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Formulario de cuenta v3.
+for (const [language, bundle] of Object.entries(accountFormTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Formulario de pago recurrente v3.
+for (const [language, bundle] of Object.entries(paymentFormTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Por revisar v3.
+for (const [language, bundle] of Object.entries(pendingReviewTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Onboarding v3.
+for (const [language, bundle] of Object.entries(onboardingScreenTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Login v3.
+for (const [language, bundle] of Object.entries(loginScreenTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Ajustes, Mi perfil y Cuentas Gmail v3.
+for (const [language, bundle] of Object.entries(settingsScreenTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Categorías, hoja de categoría y Ayuda y soporte v3.
+for (const [language, bundle] of Object.entries(secondaryScreensTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Pantalla de carga v3.
+for (const [language, bundle] of Object.entries(loadingScreenTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Avisos (la campana del Inicio).
+for (const [language, bundle] of Object.entries(notificationsTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+// Búsqueda global (el buscador del hero).
+for (const [language, bundle] of Object.entries(searchTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
 
 i18n.on("languageChanged", setStoredCurrentLanguage);
 setStoredCurrentLanguage(i18n.resolvedLanguage ?? i18n.language);

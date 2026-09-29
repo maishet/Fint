@@ -51,3 +51,5 @@ AGENTS.md
 ios
 android
 .worktrees/
+Claude outputs/
+docs/

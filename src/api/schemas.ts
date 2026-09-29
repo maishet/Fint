@@ -9,6 +9,9 @@ export const TransactionSchema = z.object({
   category: z.string(),
   account: z.string(),
   note: z.string().optional(),
+  sourceTitle: z.string().nullable().optional(),
+  userNote: z.string().optional(),
+  occurredAt: z.string().nullable().optional(),
   paymentOccurrenceId: z.string().nullable().optional(),
   paymentOccurrencePaymentId: z.string().nullable().optional(),
   transferGroupId: z.string().nullable().optional(),
@@ -58,6 +61,8 @@ const MonthFlowSchema = z.object({
 export const DashboardOverviewSchema = z.object({
   currency: z.string(),
   netWorth: z.number(),
+  // El backend nuevo: cuánto cambió el patrimonio desde el día 1 del mes.
+  netWorthChangeMonth: z.number().optional(),
   accountCount: z.number(),
   currentMonth: MonthFlowSchema.extend({ month: z.number(), year: z.number() }),
   previousMonth: MonthFlowSchema,

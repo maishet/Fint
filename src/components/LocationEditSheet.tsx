@@ -6,6 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import MapView, { type Region, PROVIDER_GOOGLE } from 'react-native-maps'
 import { Button, Input, Paragraph, Sheet, XStack, YStack } from 'tamagui'
 import { useSheetBackHandler } from '../hooks/useSheetBackHandler'
+import { useThemeMode } from '../theme/ThemeMode'
+import { USER_PIN_TIP, UserMapPin } from './UserMapPin'
 import { describeLocation, getLastKnownPosition, requestAndCaptureLocation, type CapturedLocation } from '../location/captureLocation'
 import { suggestionKey, useLocationSearch } from '../location/useLocationSearch'
 import { FintButton, FintSpinner } from '../ui'
@@ -37,6 +39,7 @@ export function LocationEditSheet({
 }) {
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
+  const { themeMode } = useThemeMode()
   const mapRef = useRef<MapView>(null)
   const isFirstRegion = useRef(true)
   const isProgrammaticMove = useRef(false)
@@ -146,8 +149,11 @@ export function LocationEditSheet({
     <Sheet modal open={open} onOpenChange={onOpenChange} snapPoints={[100]} snapPointsMode="percent" dismissOnSnapToBottom={false} zIndex={110_000}>
       <Sheet.Overlay bg="rgba(0,0,0,0.4)" />
       <Sheet.Frame bg="$background" p={0}>
+        {/* El estilo del mapa sigue la apariencia de la app, no la del sistema; Google solo lo lee al crear el mapa. */}
         <MapView
+          key={themeMode}
           ref={mapRef}
+          userInterfaceStyle={themeMode}
           style={StyleSheet.absoluteFill}
           provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
           initialRegion={regionFor((value ?? FALLBACK_CENTER).latitude, (value ?? FALLBACK_CENTER).longitude, MAP_ZOOM)}
@@ -159,14 +165,17 @@ export function LocationEditSheet({
           toolbarEnabled={false}
         />
 
-        <YStack position="absolute" l="50%" t="50%" ml={-PIN_SIZE / 2} mt={-PIN_SIZE * 0.86} pointerEvents="none" items="center">
-          <YStack bg="rgba(4,48,54,0.72)" px="$2.5" py="$1" rounded={999} mb="$2">
-            <Paragraph color="#F6FBFC" fontSize={10.5} fontWeight="700">
+        {/* La punta del pin (la cara de la persona) cae en el centro del mapa; el aviso va encima. */}
+        <YStack position="absolute" l="50%" t="50%" ml={-7} mt={-2.5} width={14} height={5} rounded={999} bg="rgba(0,0,0,0.22)" pointerEvents="none" />
+        <YStack position="absolute" l="50%" t="50%" ml={-PIN_SIZE / 2} mt={-(PIN_SIZE + USER_PIN_TIP)} pointerEvents="none">
+          <UserMapPin size={PIN_SIZE} />
+        </YStack>
+        <YStack position="absolute" l={0} r={0} t="50%" mt={-(PIN_SIZE + USER_PIN_TIP + 36)} items="center" pointerEvents="none">
+          <YStack bg="$glass" borderWidth={1} borderColor="$glassLine" px="$2.5" py="$1" rounded={999}>
+            <Paragraph color="$ink" fontSize={11} fontWeight="600">
               {t('location.dragHint')}
             </Paragraph>
           </YStack>
-          <MapPin size={PIN_SIZE} color="#FFFFFF" fill="#0F6E76" strokeWidth={2} />
-          <YStack width={18} height={7} rounded={999} bg="rgba(4,48,54,0.32)" mt={-6} />
         </YStack>
 
         <YStack position="absolute" t={insets.top + 10} l="$3" r="$3" gap="$2">
