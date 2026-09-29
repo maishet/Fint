@@ -1,9 +1,9 @@
 <svg width="1200" height="420" viewBox="0 0 1200 420" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="ocean" x1="90" y1="20" x2="1110" y2="420" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#07151D"/>
-      <stop offset="0.55" stop-color="#173944"/>
-      <stop offset="1" stop-color="#077C86"/>
+      <stop stop-color="#0A0C15"/>
+      <stop offset="0.55" stop-color="#14172B"/>
+      <stop offset="1" stop-color="#2C41D6"/>
     </linearGradient>
     <filter id="glow" x="674" y="40" width="476" height="346" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
       <feGaussianBlur stdDeviation="28"/>
@@ -16,38 +16,38 @@
   <g clip-path="url(#card)">
     <rect width="1200" height="420" fill="url(#ocean)"/>
 
-    <g opacity="0.16" stroke="#A8C0C8">
+    <g opacity="0.16" stroke="#A7AFCE">
       <path d="M-20 326C160 260 286 368 473 301C632 245 726 145 905 162C1036 174 1114 243 1231 214"/>
       <path d="M-35 358C155 292 299 397 489 330C652 272 741 186 918 196C1047 204 1125 274 1239 246"/>
       <path d="M-31 389C161 326 308 427 501 360C661 304 756 226 930 231C1059 235 1134 302 1244 279"/>
     </g>
 
     <g opacity="0.18">
-      <circle cx="91" cy="77" r="2" fill="#A8C0C8"/>
-      <circle cx="145" cy="77" r="2" fill="#A8C0C8"/>
-      <circle cx="199" cy="77" r="2" fill="#A8C0C8"/>
-      <circle cx="253" cy="77" r="2" fill="#A8C0C8"/>
-      <circle cx="91" cy="131" r="2" fill="#A8C0C8"/>
-      <circle cx="145" cy="131" r="2" fill="#A8C0C8"/>
-      <circle cx="199" cy="131" r="2" fill="#A8C0C8"/>
-      <circle cx="253" cy="131" r="2" fill="#A8C0C8"/>
+      <circle cx="91" cy="77" r="2" fill="#A7AFCE"/>
+      <circle cx="145" cy="77" r="2" fill="#A7AFCE"/>
+      <circle cx="199" cy="77" r="2" fill="#A7AFCE"/>
+      <circle cx="253" cy="77" r="2" fill="#A7AFCE"/>
+      <circle cx="91" cy="131" r="2" fill="#A7AFCE"/>
+      <circle cx="145" cy="131" r="2" fill="#A7AFCE"/>
+      <circle cx="199" cy="131" r="2" fill="#A7AFCE"/>
+      <circle cx="253" cy="131" r="2" fill="#A7AFCE"/>
     </g>
 
-    <text x="88" y="188" font-family="Arial, Helvetica, sans-serif" font-size="88" font-weight="700" letter-spacing="-4"><tspan fill="#B9E4E8">My</tspan><tspan dx="18" fill="#FFFFFF">Fint</tspan></text>
-    <text x="92" y="239" fill="#A8C0C8" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="400" letter-spacing="0.2">Tu panorama financiero, claro.</text>
-    <rect x="92" y="277" width="56" height="4" rx="2" fill="#077C86"/>
-    <text x="162" y="287" fill="#A8C0C8" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="600" letter-spacing="2.4">OPEN SOURCE PERSONAL FINANCE</text>
+    <text x="88" y="188" font-family="Arial, Helvetica, sans-serif" font-size="88" font-weight="700" letter-spacing="-4"><tspan fill="#A7AFCE">My</tspan><tspan dx="18" fill="#F5F6FB">Fint</tspan></text>
+    <text x="92" y="239" fill="#A7AFCE" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="400" letter-spacing="0.2">Tu panorama financiero, claro.</text>
+    <rect x="92" y="277" width="56" height="4" rx="2" fill="#8C9CFF"/>
+    <text x="162" y="287" fill="#A7AFCE" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="600" letter-spacing="2.4">OPEN SOURCE PERSONAL FINANCE</text>
 
-    <circle cx="906" cy="221" r="146" fill="#077C86" opacity="0.24" filter="url(#glow)"/>
+    <circle cx="906" cy="221" r="146" fill="#3A4FE6" opacity="0.4" filter="url(#glow)"/>
 
     <!-- Isotipo oficial de My Fint, escalado directamente desde icono-base.svg -->
     <g transform="translate(770 85) scale(2.2666667)">
-      <circle cx="60" cy="60" r="58" fill="#043036"/>
-      <ellipse cx="60" cy="78" rx="34" ry="11" fill="#FFFFFF" opacity="0.55"/>
-      <ellipse cx="60" cy="62" rx="28" ry="10" fill="#FFFFFF" opacity="0.78"/>
-      <ellipse cx="60" cy="47" rx="20" ry="9" fill="#FFFFFF" opacity="1"/>
+      <circle cx="60" cy="60" r="58" fill="#14172B"/>
+      <ellipse cx="60" cy="78" rx="34" ry="11" fill="#F5F6FB" opacity="0.55"/>
+      <ellipse cx="60" cy="62" rx="28" ry="10" fill="#F5F6FB" opacity="0.78"/>
+      <ellipse cx="60" cy="47" rx="20" ry="9" fill="#F5F6FB" opacity="1"/>
     </g>
 
-    <rect x="1" y="1" width="1198" height="418" rx="33" stroke="#6DBFC8" stroke-opacity="0.22" stroke-width="2"/>
+    <rect x="1" y="1" width="1198" height="418" rx="33" stroke="#8C9CFF" stroke-opacity="0.22" stroke-width="2"/>
   </g>
 </svg>
