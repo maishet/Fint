@@ -555,7 +555,7 @@ const resources = {
             bullets: [
               "Pagos próximos y vencidos.",
               "Movimientos pendientes detectados.",
-              "Sin montos, bancos ni detalles de Gmail en las notificaciones push.",
+              "Lo detectado en Gmail llega con su monto. Puedes ocultarlo en la pantalla bloqueada.",
             ],
           },
         },
@@ -1172,7 +1172,7 @@ const resources = {
             bullets: [
               "Upcoming and overdue payments.",
               "Detected pending transactions.",
-              "No amounts, banks, or Gmail details in push messages.",
+              "Gmail detections include the amount. You can hide it on the lock screen.",
             ],
           },
         },
