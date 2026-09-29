@@ -12,6 +12,13 @@
     "preview": {
       "distribution": "internal",
       "node": "22.14.0",
+      "env": {
+        "EXPO_PUBLIC_COMING_SOON": "photoCapture,gmail,reportExport,emailKeywords",
+        "EXPO_PUBLIC_HIDDEN_FEATURES": "csvImport"
+      },
+      "android": {
+        "buildType": "apk"
+      },
       "ios": {
         "resourceClass": "m-medium"
       }
