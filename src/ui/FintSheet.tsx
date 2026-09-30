@@ -1,5 +1,5 @@
 import { X } from "@tamagui/lucide-icons-2";
-import { useContext, type ReactNode, type Ref } from "react";
+import { useContext, useEffect, useRef, useState, type ReactNode, type Ref } from "react";
 import { useTranslation } from "react-i18next";
 import { TextInput, useWindowDimensions, type TextInputProps } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
@@ -13,6 +13,12 @@ import { textStyles } from "../theme/typography";
 import { FText } from "./FText";
 import { IconButton } from "./IconButton";
 import { PressableScale } from "./PressableScale";
+
+/**
+ * Desde que la hoja empieza a moverse hasta que se ve en su lugar con `spring-sheet` (el resorte sigue asentándose un
+ * rato más). Medido en el A54 en desarrollo: con 450 ms lo pesado se montaba antes de que la hoja alcanzara a subir.
+ */
+const SETTLED_MS = 800;
 
 export interface FintSheetProps {
   open: boolean;
@@ -34,6 +40,8 @@ export interface FintSheetProps {
   disableDrag?: boolean;
   /** Sin la X de la cabecera, mientras una tarea corre y se ofrece "Cancelar" al pie. El velo y "atrás" siguen cerrando. */
   hideClose?: boolean;
+  /** Cuando la hoja terminó de subir: lo pesado del contenido puede montarse recién ahí (mientras, un esqueleto). */
+  onOpened?: () => void;
   children: ReactNode;
 }
 
@@ -57,6 +65,7 @@ export function FintSheet({
   titleSize = "title",
   disableDrag = false,
   hideClose = false,
+  onOpened,
   children,
 }: FintSheetProps) {
   const { themeMode } = useThemeMode();
@@ -70,6 +79,35 @@ export function FintSheet({
   const sensitiveAmounts = useContext(SensitiveAmountsContext);
 
   useSheetBackHandler(open, onClose);
+
+  // Una hoja montada ya abierta se abre un cuadro después, para que suba con su animación. Así quien la usa puede
+  // montarla y abrirla en un solo render; antes lo hacía en dos y cada uno re-renderizaba toda su pantalla.
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setArmed(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  // "Terminó de subir": Tamagui lo avisa cuando el resorte se asienta del todo, ~2 s después de que la hoja ya se ve
+  // en su lugar. Se avisa a lo que ocurra primero: eso o `SETTLED_MS` desde que la hoja empieza a moverse (no desde que
+  // se abre: entre una cosa y otra pasa un rato, y montar lo pesado en medio congelaba la subida). Una vez por apertura.
+  const shown = open && armed;
+  const openedRef = useRef(false);
+  const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const notifyOpened = () => {
+    if (openedRef.current) return;
+    openedRef.current = true;
+    onOpened?.();
+  };
+  useEffect(() => {
+    if (shown) return;
+    openedRef.current = false;
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+    settleTimer.current = null;
+  }, [shown]);
+  useEffect(() => () => {
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+  }, []);
 
   const header =
     title || headerAction ? (
@@ -108,9 +146,16 @@ export function FintSheet({
   return (
     <Sheet
       modal
-      open={open}
+      open={shown}
       onOpenChange={(next: boolean) => {
         if (!next) onClose();
+      }}
+      onPositionChange={() => {
+        if (!shown || openedRef.current || settleTimer.current) return;
+        settleTimer.current = setTimeout(notifyOpened, SETTLED_MS);
+      }}
+      onAnimationComplete={({ open: opened }) => {
+        if (opened) notifyOpened();
       }}
       snapPointsMode={snapPoints ? "percent" : "fit"}
       snapPoints={snapPoints}

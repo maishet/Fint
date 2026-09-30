@@ -89,10 +89,9 @@ export default function AccountFormScreen() {
   const [sheet, setSheetState] = useState<Sheet>(null);
   const [mountedSheet, setMountedSheet] = useState<Sheet>(null);
   const setSheet = (next: Sheet) => {
-    if (next) {
-      setMountedSheet(next);
-      requestAnimationFrame(() => setSheetState(next));
-    } else setSheetState(null);
+    // Se monta y se abre en el mismo render: `FintSheet` espera un cuadro antes de subir, así que igual se anima.
+    if (next) setMountedSheet(next);
+    setSheetState(next);
   };
   useEffect(() => {
     if (sheet) return;

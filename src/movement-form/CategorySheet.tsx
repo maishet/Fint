@@ -17,6 +17,12 @@ import { haptics } from "../ui/haptics";
 
 /** Tiempo para que la persona alcance a ver su elección antes de que la hoja se cierre. */
 const CLOSE_DELAY = 180;
+/** Si la hoja no avisa que terminó de subir (p. ej. sin animación), la grilla se monta igual pasado este tiempo. */
+const READY_FALLBACK_MS = 2500;
+/** Lo que tarda la hoja de crear/editar en bajar antes de desmontarla. */
+const CREATE_UNMOUNT_MS = 600;
+/** Discos del esqueleto de "Todas": los que caben a la vista; el resto llega con la grilla real. */
+const SKELETON_TILES = 20;
 /** El disco de la hoja y el del formulario (cinco en una fila). */
 const SHEET_DISC = 54;
 const COMPACT_DISC = 50;
@@ -44,6 +50,27 @@ export function CategorySheet({ open, onClose, type, categories, frequent, value
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<Category | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // La grilla (un disco animado por categoría) se monta cuando la hoja terminó de subir; mientras, un esqueleto. Montada
+  // de entrada, la hoja tardaba ~3 s en subir: primero se construía entera y recién después empezaba la animación.
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    if (!open || ready) return;
+    const id = setTimeout(() => setReady(true), READY_FALLBACK_MS);
+    return () => clearTimeout(id);
+  }, [open, ready]);
+  // La hoja de crear/editar (con el selector de emojis) se monta solo al usarla, cerrada primero para que suba con su
+  // animación, y se desmonta al terminar de bajar.
+  const [createMounted, setCreateMounted] = useState(false);
+  const createShown = createOpen || Boolean(editing);
+  const openCreate = (target: Category | null) => {
+    setCreateMounted(true);
+    requestAnimationFrame(() => (target ? setEditing(target) : setCreateOpen(true)));
+  };
+  useEffect(() => {
+    if (createShown) return;
+    const id = setTimeout(() => setCreateMounted(false), CREATE_UNMOUNT_MS);
+    return () => clearTimeout(id);
+  }, [createShown]);
 
   useEffect(() => {
     if (open) {
@@ -78,7 +105,7 @@ export function CategorySheet({ open, onClose, type, categories, frequent, value
       onPress={() => choose(c.name)}
       onLongPress={() => {
         haptics.tap();
-        setEditing(c);
+        openCreate(c);
       }}
     />
   );
@@ -92,6 +119,7 @@ export function CategorySheet({ open, onClose, type, categories, frequent, value
         subtitle={t(type === "income" ? "movementForm.categorySheet.subtitleIncome" : "movementForm.categorySheet.subtitleExpense")}
         scrollable
         snapPoints={[86]}
+        onOpened={() => setReady(true)}
       >
         <YStack px={16} pt={14}>
           <SheetField>
@@ -114,14 +142,20 @@ export function CategorySheet({ open, onClose, type, categories, frequent, value
         {!needle && frequent.length > 0 ? (
           <>
             <SubTitle>{t("movementForm.categorySheet.frequent")}</SubTitle>
-            <Grid>{frequent.map(tile)}</Grid>
+            <Grid>{ready ? frequent.map(tile) : <TileSkeletons count={frequent.length} />}</Grid>
           </>
         ) : null}
 
         {!needle ? <SubTitle>{t("movementForm.categorySheet.all")}</SubTitle> : <View height={10} />}
         <Grid>
-          {filtered.map(tile)}
-          <NewTile label={t("movementForm.categorySheet.newCategory")} onPress={() => setCreateOpen(true)} />
+          {ready ? (
+            <>
+              {filtered.map(tile)}
+              <NewTile label={t("movementForm.categorySheet.newCategory")} onPress={() => openCreate(null)} />
+            </>
+          ) : (
+            <TileSkeletons count={Math.min(categories.length + 1, SKELETON_TILES)} />
+          )}
         </Grid>
         {needle && filtered.length === 0 ? (
           <FText variant="caption" tone="inkFaint" style={{ textAlign: "center", marginTop: 4 }}>
@@ -131,25 +165,45 @@ export function CategorySheet({ open, onClose, type, categories, frequent, value
         <View height={16} />
       </FintSheet>
 
-      <CreateCategorySheet
-        initialType={type}
-        open={createOpen || Boolean(editing)}
-        category={editing}
-        onOpenChange={(next) => {
-          if (next) return;
-          setCreateOpen(false);
-          setEditing(null);
-        }}
-        onCreated={(created) => {
-          setCreateOpen(false);
-          // Al crearse, la nueva queda elegida y se vuelve al formulario.
-          onSelect(created.name);
-          onClose();
-        }}
-        onUpdated={() => setEditing(null)}
-      />
+      {createMounted ? (
+        <CreateCategorySheet
+          initialType={type}
+          open={createShown}
+          category={editing}
+          onOpenChange={(next) => {
+            if (next) return;
+            setCreateOpen(false);
+            setEditing(null);
+          }}
+          onCreated={(created) => {
+            setCreateOpen(false);
+            // Al crearse, la nueva queda elegida y se vuelve al formulario.
+            onSelect(created.name);
+            onClose();
+          }}
+          onUpdated={() => setEditing(null)}
+        />
+      ) : null}
     </>
   );
+}
+
+/** Discos de la grilla mientras la hoja sube: el mismo tamaño que `CategoryTile`, para que nada salte al llegar. */
+function TileSkeletons({ count }: { count: number }) {
+  return Array.from({ length: count }, (_, i) => (
+    <View
+      key={i}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ width: "25%", alignItems: "center", gap: 6, paddingVertical: 8, paddingHorizontal: 2 }}
+    >
+      {/* En oscuro `surfaceSunken` casi no se distingue de la hoja: el disco lleva el filete `line`, como `SheetField`. */}
+      <View width={SHEET_DISC} height={SHEET_DISC} rounded={999} bg="$surfaceSunken" borderWidth={1} borderColor="$line" />
+      <View height={15} justify="center">
+        <View width={44} height={8} rounded={999} bg="$line" />
+      </View>
+    </View>
+  ));
 }
 
 function SubTitle({ children }: { children: string }) {
