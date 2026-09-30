@@ -41,11 +41,20 @@ interface SheetProps {
 export function RecordSheet({ open, onClose }: SheetProps) {
   const { t } = useTranslation();
   const router = useRouter();
-  // La hoja baja primero y luego el formulario crece desde el botón central (`origin: "fab"`); si se abrían a la
-  // vez, la hoja quedaba encima del formulario mientras este se montaba.
+  // La opción elegida queda marcada hasta que la hoja se cierra: el formulario tarda en montarse y, sin esa marca,
+  // parecía que el toque no había llegado y se volvía a tocar.
+  const [chosen, setChosen] = useState<"expense" | "income" | "transfer" | null>(null);
+  useEffect(() => {
+    if (open) setChosen(null);
+  }, [open]);
+
+  // El formulario se pide en el mismo toque y la hoja se cierra con él: antes la hoja bajaba primero y se esperaban
+  // 220 ms más el montaje del formulario, casi un segundo sin respuesta en pantalla.
   const go = (type: "expense" | "income" | "transfer") => {
+    if (chosen) return;
+    setChosen(type);
+    router.push({ pathname: "/transaction-form", params: { type, origin: "fab" } });
     onClose();
-    setTimeout(() => router.push({ pathname: "/transaction-form", params: { type, origin: "fab" } }), SHEET_OUT_MS);
   };
 
   return (
@@ -55,18 +64,21 @@ export function RecordSheet({ open, onClose }: SheetProps) {
           icon={<ArrowDown size={20} color="$flowOut" strokeWidth={2} />}
           title={t("home.record.expense")}
           hint={t("home.record.expenseHint")}
+          selected={chosen === "expense"}
           onPress={() => go("expense")}
         />
         <Option
           icon={<ArrowUp size={20} color="$flowIn" strokeWidth={2} />}
           title={t("home.record.income")}
           hint={t("home.record.incomeHint")}
+          selected={chosen === "income"}
           onPress={() => go("income")}
         />
         <Option
           icon={<ArrowLeftRight size={20} color="$inkMuted" strokeWidth={2} />}
           title={t("home.record.transfer")}
           hint={t("home.record.transferHint")}
+          selected={chosen === "transfer"}
           onPress={() => go("transfer")}
         />
       </YStack>
@@ -74,23 +86,34 @@ export function RecordSheet({ open, onClose }: SheetProps) {
   );
 }
 
-/** Una opción de la hoja: sin borde; al presionar, el fondo pasa a `surfaceSunken` con la curva `press`. */
-function Option({ icon, title, hint, onPress }: { icon: ReactNode; title: string; hint: string; onPress: () => void }) {
+/**
+ * Una opción de la hoja: sin borde; al presionar, el fondo pasa a `surfaceSunken` con la curva `press`. Elegida
+ * (`selected`), el fondo se queda mientras se abre el formulario.
+ */
+function Option({ icon, title, hint, selected, onPress }: { icon: ReactNode; title: string; hint: string; selected: boolean; onPress: () => void }) {
   const theme = useTheme();
   const pressed = useSharedValue(0);
   const from = "rgba(0,0,0,0)";
   const to = theme.surfaceSunken.val;
   const bgStyle = useAnimatedStyle(() => ({ backgroundColor: interpolateColor(pressed.value, [0, 1], [from, to]) }));
 
+  useEffect(() => {
+    if (!selected) pressed.value = withTiming(0, motion.fade);
+  }, [pressed, selected]);
+
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        // `onPressOut` ya empezó a apagar el fondo: se vuelve a encender porque la opción queda elegida.
+        pressed.value = withTiming(1, motion.press);
+        onPress();
+      }}
       onPressIn={() => {
         pressed.value = withTiming(1, motion.press);
         haptics.tap();
       }}
       onPressOut={() => {
-        pressed.value = withTiming(0, motion.fade);
+        if (!selected) pressed.value = withTiming(0, motion.fade);
       }}
       accessibilityRole="button"
       accessibilityLabel={`${title}. ${hint}`}
