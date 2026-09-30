@@ -135,11 +135,9 @@ export default function TransactionFormScreen() {
   const [sheet, setSheetState] = useState<Sheet>(null);
   const [mountedSheet, setMountedSheet] = useState<Sheet>(null);
   const setSheet = (next: Sheet) => {
-    if (next) {
-      setMountedSheet(next);
-      // Montada cerrada primero, para que suba con su animación.
-      requestAnimationFrame(() => setSheetState(next));
-    } else setSheetState(null);
+    // Se monta y se abre en el mismo render: `FintSheet` espera un cuadro antes de subir, así que igual se anima.
+    if (next) setMountedSheet(next);
+    setSheetState(next);
   };
   useEffect(() => {
     if (sheet) return;
@@ -612,6 +610,8 @@ export default function TransactionFormScreen() {
                   withLocation={showLocation}
                   categoryLabel={t("movementForm.category")}
                   allLabel={t("movementForm.allCategories")}
+                  onAllPress={() => setSheet("category")}
+                  otherLabel={t("movementForm.otherCategory")}
                   detailsLabel={t("movementForm.details")}
                 />
               )}
@@ -867,47 +867,57 @@ function TransferCurrencyLine({
 /**
  * Categoría y Detalles mientras la pantalla entra: los títulos reales y la forma de discos y campos, con el mismo
  * alto que ocupan después. Así esas secciones no se ven vacías y, al montarse las reales, nada salta de lugar.
+ * "Todas" y "Otra" ya son reales y abren la hoja de categorías: no dependen de lo que falta montar.
  */
 function SectionsSkeleton({
   withCategory,
   withLocation,
   categoryLabel,
   allLabel,
+  onAllPress,
+  otherLabel,
   detailsLabel,
 }: {
   withCategory: boolean;
   withLocation: boolean;
   categoryLabel: string;
   allLabel: string;
+  onAllPress: () => void;
+  otherLabel: string;
   detailsLabel: string;
 }) {
   const fields = withLocation ? 3 : 2;
   return (
-    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+    <View>
       {withCategory ? (
         <YStack mt={18}>
           <XStack px={20} mb={8} items="baseline" justify="space-between">
             <FText variant="caption" tone="inkMuted">
               {categoryLabel}
             </FText>
-            <FText variant="caption" tone="brand" style={{ fontFamily: fontFace.sans[600] }}>
-              {allLabel}
-            </FText>
+            <Pressable onPress={onAllPress} hitSlop={10} accessibilityRole="button">
+              <FText variant="caption" tone="brand" style={{ fontFamily: fontFace.sans[600] }}>
+                {allLabel}
+              </FText>
+            </Pressable>
           </XStack>
           <XStack px={6}>
-            {[0, 1, 2, 3, 4].map((i) => (
-              <YStack key={i} width="20%" items="center" gap={6} py={4}>
-                <View width={50} height={50} rounded={999} bg="$surfaceSunken" />
-                <AmountSkeleton width={44} height={10} />
-              </YStack>
-            ))}
+            <XStack width="80%" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+              {[0, 1, 2, 3].map((i) => (
+                <YStack key={i} width="25%" items="center" gap={6} py={4}>
+                  <View width={50} height={50} rounded={999} bg="$surfaceSunken" />
+                  <AmountSkeleton width={44} height={10} />
+                </YStack>
+              ))}
+            </XStack>
+            <NewTile compact label={otherLabel} onPress={onAllPress} />
           </XStack>
         </YStack>
       ) : null}
       <FText variant="caption" tone="inkMuted" style={{ paddingHorizontal: 20, marginTop: 16, marginBottom: 8 }}>
         {detailsLabel}
       </FText>
-      <YStack px={16} gap={8}>
+      <YStack px={16} gap={8} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         {Array.from({ length: fields }, (_, i) => (
           <XStack key={i} items="center" gap={10} px={12} py={10} rounded={radius.lg} bg="$surface" borderWidth={1} borderColor="$line">
             <View width={36} height={36} rounded={radius.md} bg="$surfaceSunken" />

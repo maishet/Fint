@@ -4,7 +4,7 @@
   "license": "Apache-2.0",
   "main": "expo-router/entry",
   "scripts": {
-    "postinstall": "node scripts/patch-expo-router.mjs",
+    "postinstall": "node scripts/patch-expo-router.mjs && node scripts/patch-tamagui-sheet.mjs",
     "generate:emoji-index": "bun run scripts/generate-emoji-index.ts",
     "upgrade:tamagui": "bunx npm-check-updates -u '*tamagui*' '@tamagui/*' && bun install",
     "start": "bunx expo start -c",
