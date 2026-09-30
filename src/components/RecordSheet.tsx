@@ -48,13 +48,14 @@ export function RecordSheet({ open, onClose }: SheetProps) {
     if (open) setChosen(null);
   }, [open]);
 
-  // El formulario se pide en el mismo toque y la hoja se cierra con él: antes la hoja bajaba primero y se esperaban
-  // 220 ms más el montaje del formulario, casi un segundo sin respuesta en pantalla.
+  // La hoja baja primero y luego el formulario crece desde el botón central (`origin: "fab"`). El montaje del
+  // formulario ocupa JS y la bajada de la hoja se programa desde JS: si se pedían en el mismo toque (o un cuadro
+  // después), la hoja no arrancaba hasta que el formulario terminaba de montarse y quedaba encima de él.
   const go = (type: "expense" | "income" | "transfer") => {
     if (chosen) return;
     setChosen(type);
-    router.push({ pathname: "/transaction-form", params: { type, origin: "fab" } });
     onClose();
+    setTimeout(() => router.push({ pathname: "/transaction-form", params: { type, origin: "fab" } }), SHEET_OUT_MS);
   };
 
   return (

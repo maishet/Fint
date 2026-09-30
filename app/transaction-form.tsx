@@ -606,7 +606,15 @@ export default function TransactionFormScreen() {
                     <NoteField note={note} onPress={() => setSheet("note")} />
                   </YStack>
                 </Animated.View>
-              ) : null}
+              ) : (
+                <SectionsSkeleton
+                  withCategory={kind !== "transfer"}
+                  withLocation={showLocation}
+                  categoryLabel={t("movementForm.category")}
+                  allLabel={t("movementForm.allCategories")}
+                  detailsLabel={t("movementForm.details")}
+                />
+              )}
             </Animated.View>
           </ScrollView>
 
@@ -856,6 +864,64 @@ function TransferCurrencyLine({
 
 /** La nota completa, a lo ancho. Sin nota, una invitación a escribirla. Tocarla abre la hoja de nota. */
 /** Un campo de Detalles: icono en un cuadrado teñido al 14 %, la etiqueta y el valor, y un chevron. */
+/**
+ * Categoría y Detalles mientras la pantalla entra: los títulos reales y la forma de discos y campos, con el mismo
+ * alto que ocupan después. Así esas secciones no se ven vacías y, al montarse las reales, nada salta de lugar.
+ */
+function SectionsSkeleton({
+  withCategory,
+  withLocation,
+  categoryLabel,
+  allLabel,
+  detailsLabel,
+}: {
+  withCategory: boolean;
+  withLocation: boolean;
+  categoryLabel: string;
+  allLabel: string;
+  detailsLabel: string;
+}) {
+  const fields = withLocation ? 3 : 2;
+  return (
+    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      {withCategory ? (
+        <YStack mt={18}>
+          <XStack px={20} mb={8} items="baseline" justify="space-between">
+            <FText variant="caption" tone="inkMuted">
+              {categoryLabel}
+            </FText>
+            <FText variant="caption" tone="brand" style={{ fontFamily: fontFace.sans[600] }}>
+              {allLabel}
+            </FText>
+          </XStack>
+          <XStack px={6}>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <YStack key={i} width="20%" items="center" gap={6} py={4}>
+                <View width={50} height={50} rounded={999} bg="$surfaceSunken" />
+                <AmountSkeleton width={44} height={10} />
+              </YStack>
+            ))}
+          </XStack>
+        </YStack>
+      ) : null}
+      <FText variant="caption" tone="inkMuted" style={{ paddingHorizontal: 20, marginTop: 16, marginBottom: 8 }}>
+        {detailsLabel}
+      </FText>
+      <YStack px={16} gap={8}>
+        {Array.from({ length: fields }, (_, i) => (
+          <XStack key={i} items="center" gap={10} px={12} py={10} rounded={radius.lg} bg="$surface" borderWidth={1} borderColor="$line">
+            <View width={36} height={36} rounded={radius.md} bg="$surfaceSunken" />
+            <YStack gap={6}>
+              <AmountSkeleton width={40} height={8} />
+              <AmountSkeleton width={i === fields - 1 ? 120 : 84} height={12} />
+            </YStack>
+          </XStack>
+        ))}
+      </YStack>
+    </View>
+  );
+}
+
 function DetailField({ icon, tint, label, value, onPress }: { icon: ReactNode; tint: string; label: string; value: string; onPress: () => void }) {
   return (
     <PressableScale onPress={onPress} scaleTo={0.99} haptic="tap" accessibilityRole="button" accessibilityLabel={`${label}: ${value}`}>
