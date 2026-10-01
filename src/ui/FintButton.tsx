@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Button, type ButtonProps } from "tamagui";
 import { haptics } from "./haptics";
 
@@ -32,14 +32,12 @@ export function FintButton({
   circular,
   ...props
 }: FintButtonProps) {
-  const [isPressLocked, setIsPressLocked] = useState(false);
-  const isMountedRef = useRef(true);
+  // El candado vive solo en el ref: con `disabled` el lector de pantalla anunciaba "desactivado" tras cada toque.
   const isPressLockedRef = useRef(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
     () => () => {
-      isMountedRef.current = false;
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     },
     [],
@@ -47,14 +45,12 @@ export function FintButton({
 
   const unlock = () => {
     isPressLockedRef.current = false;
-    if (isMountedRef.current) setIsPressLocked(false);
   };
 
   const handlePress: ButtonProps["onPress"] = (event) => {
     if (disabled || isPressLockedRef.current || !onPress) return;
     if (haptic !== "none") haptics[haptic]();
     isPressLockedRef.current = true;
-    setIsPressLocked(true);
     const result: unknown = (
       onPress as unknown as (pressEvent: unknown) => unknown
     )(event);
@@ -90,7 +86,7 @@ export function FintButton({
         opacity: 0.88,
         scale: 0.97,
       }}
-      disabled={disabled || isPressLocked}
+      disabled={disabled}
       onPress={handlePress}
       {...props}
     />

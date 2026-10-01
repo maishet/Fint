@@ -2,7 +2,7 @@ import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Plus } from "@tamagui/lucide-icons-2";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import { AccessibilityInfo, Pressable, StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -88,6 +88,37 @@ export function FintTabBar({ state, descriptors, navigation, centerAction }: Fin
 
   const background = theme.canvas.val;
 
+  const centerButton = centerAction ? (
+    <View
+      pointerEvents="box-none"
+      style={{ position: "absolute", top: -FAB_LIFT, left: BAR_PADDING + centerIndex * TAB_W + (FAB_SLOT - FAB_SIZE - 6) / 2 }}
+    >
+      <PressableScale onPress={centerAction.onPress} haptic="tap" accessibilityRole="button" accessibilityLabel={centerAction.label} hitSlop={6}>
+        <View
+          ref={fabRef}
+          // El formulario de movimiento crece desde aquí: se guarda su centro en la pantalla. `measure` y no
+          // `measureInWindow`, que en Android descuenta la barra de estado.
+          onLayout={() =>
+            fabRef.current?.measure((_x, _y, w, h, pageX, pageY) => setFabOrigin({ x: pageX + w / 2, y: pageY + h / 2, size: w - 6 }))
+          }
+          style={{
+            width: FAB_SIZE + 6,
+            height: FAB_SIZE + 6,
+            borderRadius: radius.pill,
+            borderWidth: 3,
+            borderColor: background,
+            backgroundColor: theme.brand.val,
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: shadows[themeMode].float,
+          }}
+        >
+          <Plus size={24} color={theme.onBrand.val as any} strokeWidth={2.4} />
+        </View>
+      </PressableScale>
+    </View>
+  ) : null;
+
   return (
     <View
       pointerEvents="box-none"
@@ -101,6 +132,7 @@ export function FintTabBar({ state, descriptors, navigation, centerAction }: Fin
       />
 
       <View
+        accessibilityRole="tablist"
         style={{
           marginBottom: BAR_BOTTOM_GAP,
           height: BAR_HEIGHT,
@@ -132,8 +164,14 @@ export function FintTabBar({ state, descriptors, navigation, centerAction }: Fin
           const focused = state.index === index;
           const label = typeof options.tabBarLabel === "string" ? options.tabBarLabel : (options.title ?? route.name);
           return (
-            <View key={route.key} style={{ flexDirection: "row" }}>
-              {centerAction && index === centerIndex ? <View style={{ width: FAB_SLOT }} /> : null}
+            <Fragment key={route.key}>
+              {centerAction && index === centerIndex ? (
+                <>
+                  <View style={{ width: FAB_SLOT }} />
+                  {/* El botón central va en su hueco del árbol, entre los tabs 2 y 3: el lector lo recorre en el orden en que se ve. */}
+                  {centerButton}
+                </>
+              ) : null}
               <TabButton
                 label={label}
                 focused={focused}
@@ -145,40 +183,9 @@ export function FintTabBar({ state, descriptors, navigation, centerAction }: Fin
                   navigation.navigate(route.name, route.params);
                 }}
               />
-            </View>
+            </Fragment>
           );
         })}
-
-        {centerAction ? (
-          <View
-            pointerEvents="box-none"
-            style={{ position: "absolute", top: -FAB_LIFT, left: BAR_PADDING + centerIndex * TAB_W + (FAB_SLOT - FAB_SIZE - 6) / 2 }}
-          >
-            <PressableScale onPress={centerAction.onPress} haptic="tap" accessibilityRole="button" accessibilityLabel={centerAction.label} hitSlop={6}>
-              <View
-                ref={fabRef}
-                // El formulario de movimiento crece desde aquí: se guarda su centro en la pantalla. `measure` y no
-                // `measureInWindow`, que en Android descuenta la barra de estado.
-                onLayout={() =>
-                  fabRef.current?.measure((_x, _y, w, h, pageX, pageY) => setFabOrigin({ x: pageX + w / 2, y: pageY + h / 2, size: w - 6 }))
-                }
-                style={{
-                  width: FAB_SIZE + 6,
-                  height: FAB_SIZE + 6,
-                  borderRadius: radius.pill,
-                  borderWidth: 3,
-                  borderColor: background,
-                  backgroundColor: theme.brand.val,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: shadows[themeMode].float,
-                }}
-              >
-                <Plus size={24} color={theme.onBrand.val as any} strokeWidth={2.4} />
-              </View>
-            </PressableScale>
-          </View>
-        ) : null}
       </View>
     </View>
   );

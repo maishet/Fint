@@ -210,7 +210,7 @@ export default function ImportTransactionsScreen() {
           <View width={64} height={64} rounded={999} bg="$brandWash" items="center" justify="center">
             <FileSpreadsheet size={26} color="$brand" strokeWidth={2} />
           </View>
-          <FText variant="section-title" style={{ textAlign: "center", marginTop: 6 }}>
+          <FText variant="section-title" accessibilityRole="header" style={{ textAlign: "center", marginTop: 6 }}>
             {t("import.chooseTitle")}
           </FText>
           <FText tone="inkMuted" style={{ textAlign: "center", fontSize: 14, lineHeight: 20, maxWidth: 280 }}>

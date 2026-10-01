@@ -493,9 +493,9 @@ export function LocationSheet({ open, onClose, value, suggestion, context, onSav
                         title={place.name}
                         subtitle={place.formattedAddress}
                         aside={here ? formatDistance(distanceMeters(here, place)) : null}
-                        hint={t("movementForm.locationSheet.removeHint")}
+                        longPressLabel={t("movementForm.locationSheet.removeAction")}
                         onPress={() => choose({ latitude: place.latitude, longitude: place.longitude, formattedAddress: place.formattedAddress })}
-                        // Mantener presionado lo quita de los guardados, con "Deshacer".
+                        // Mantener presionado lo quita de los guardados, con "Deshacer" (para el lector, una acción de la fila).
                         onLongPress={() => {
                           haptics.tap();
                           void removePlace(place.id);
@@ -620,7 +620,7 @@ function PlaceRow({
   subtitle,
   aside,
   query,
-  hint,
+  longPressLabel,
   onPress,
   onLongPress,
 }: {
@@ -628,7 +628,8 @@ function PlaceRow({
   title: string;
   subtitle?: string | null;
   aside?: string | null;
-  hint?: string;
+  /** Nombre de lo que hace mantener presionado, para ofrecerlo al lector de pantalla como acción. */
+  longPressLabel?: string;
   onLongPress?: () => void;
   /** Resalta la coincidencia con la búsqueda en `brand` al 18 %. */
   query?: string;
@@ -642,7 +643,8 @@ function PlaceRow({
       onLongPress={onLongPress}
       accessibilityRole="button"
       accessibilityLabel={subtitle ? `${title}, ${subtitle}` : title}
-      accessibilityHint={hint}
+      accessibilityActions={onLongPress && longPressLabel ? [{ name: "longpress", label: longPressLabel }] : undefined}
+      onAccessibilityAction={() => onLongPress?.()}
     >
       {({ pressed }) => (
         <XStack items="center" gap={12} px={20} py={9} bg={pressed ? "$surfaceSunken" : "transparent"}>

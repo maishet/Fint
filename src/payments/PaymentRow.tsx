@@ -111,7 +111,7 @@ export function PaymentRow({ item, rule, emoji, first, last, late, today, onPay,
   let action: ReactNode = null;
   if (auto && !legacy) {
     action = (
-      <XStack height={24} px={8} gap={4} items="center" rounded={radius.pill} bg="$surfaceSunken" accessibilityLabel={t("paymentsTab.autoA11y")}>
+      <XStack height={24} px={8} gap={4} items="center" rounded={radius.pill} bg="$surfaceSunken">
         <Zap size={11} color="$inkMuted" strokeWidth={2.4} />
         <FText variant="caption" tone="inkMuted" style={{ fontSize: 11, lineHeight: 14, fontFamily: fontFace.sans[600] }}>
           {t("paymentsTab.auto")}
@@ -141,7 +141,10 @@ export function PaymentRow({ item, rule, emoji, first, last, late, today, onPay,
       onPress={onEdit}
       disabled={!onEdit}
       accessibilityRole={onEdit ? "button" : undefined}
-      accessibilityLabel={`${lead.title}, ${meta}, ${formatSensitiveAmount(amount, lead.currency)}`}
+      // La píldora "Automático" queda dentro de la fila (que ya es un solo elemento): su significado va en la etiqueta de la fila.
+      accessibilityLabel={[lead.title, meta, formatSensitiveAmount(amount, lead.currency), auto && !legacy ? t("paymentsTab.autoA11y") : null]
+        .filter(Boolean)
+        .join(", ")}
       accessibilityActions={actions.map((a) => ({ name: a.key, label: a.label }))}
       onAccessibilityAction={(e) => actions.find((a) => a.key === e.nativeEvent.actionName)?.run()}
     >

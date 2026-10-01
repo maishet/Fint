@@ -107,6 +107,7 @@ export function CategorySheet({ open, onClose, type, categories, frequent, value
         haptics.tap();
         openCreate(c);
       }}
+      longPressLabel={t("movementForm.categorySheet.editAction")}
     />
   );
 
@@ -233,6 +234,7 @@ export function CategoryTile({
   selected,
   onPress,
   onLongPress,
+  longPressLabel,
   compact = false,
 }: {
   category: Category;
@@ -240,6 +242,8 @@ export function CategoryTile({
   selected: boolean;
   onPress: () => void;
   onLongPress?: () => void;
+  /** Nombre de lo que hace mantener presionado, para ofrecerlo al lector de pantalla como acción. */
+  longPressLabel?: string;
   compact?: boolean;
 }) {
   const theme = useTheme();
@@ -264,6 +268,8 @@ export function CategoryTile({
       accessibilityRole="button"
       accessibilityState={{ selected }}
       accessibilityLabel={label}
+      accessibilityActions={onLongPress && longPressLabel ? [{ name: "longpress", label: longPressLabel }] : undefined}
+      onAccessibilityAction={() => onLongPress?.()}
     >
       <View width={DISC} height={DISC} items="center" justify="center">
         <View

@@ -22,7 +22,7 @@ import { feedGroups, feedTime, growthPercent, namesSummary, notificationRoute, t
 import { getInstallationId } from "../src/notifications/pushNotifications";
 import { NOTIFICATIONS_KEY, useNotificationsFeed } from "../src/notifications/useNotificationsFeed";
 import { withAlpha } from "../src/theme/color";
-import { motion, radius, space } from "../src/theme/tokens";
+import { COMPACT_FONT_SCALE, motion, radius, space } from "../src/theme/tokens";
 import { fontFace } from "../src/theme/typography";
 import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
 import { Amount, FintConfirmDialog, FText, IconButton, PressableScale, SegmentedControl } from "../src/ui";
@@ -359,6 +359,7 @@ function NoticeCard({
   let detail: ReactNode = null;
   const actions: Array<{ label: string; onPress: () => void; soft?: boolean }> = [];
   const danger = item.kind === "overdue";
+  const settleTarget = canResolve ? occurrence : null;
 
   if (item.kind === "review") {
     color = theme.brand.val;
@@ -413,22 +414,33 @@ function NoticeCard({
       borderColor={danger ? "$dangerHard" : "$line"}
       accessible={false}
       accessibilityLabel={title}
-      accessibilityHint={canResolve ? t("notificationsScreen.doneHint") : undefined}
     >
       <View width={40} height={40} rounded={radius.pill} items="center" justify="center" style={{ backgroundColor: withAlpha(color, 0.14) }}>
         {icon}
       </View>
       <YStack flex={1} minW={0}>
-        <FText variant="body-strong" style={{ letterSpacing: -0.15 }}>
+        {/* Deslizar para "Listo" no existe con lector de pantalla (el deslizamiento es de navegación): la misma acción
+            va en el título, que abre la misma confirmación. */}
+        <FText
+          variant="body-strong"
+          style={{ letterSpacing: -0.15 }}
+          accessibilityActions={settleTarget ? [{ name: "settle", label: t("notificationsScreen.settle") }] : undefined}
+          onAccessibilityAction={() => settleTarget && onSettle(settleTarget)}
+        >
           {title}
         </FText>
         <View mt={2}>{detail}</View>
         {actions.length ? (
           <XStack mt={10} gap={8} flexWrap="wrap">
             {actions.map((action) => (
-              <PressableScale key={action.label} onPress={action.onPress} haptic="tap" accessibilityRole="button">
-                <XStack height={34} px={14} rounded={radius.pill} bg={action.soft ? "$brandWash" : "$brand"} items="center">
-                  <FText tone={action.soft ? "brand" : "onBrand"} style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18 }}>
+              // La forma mide 34; el área de toque llega a 48 sin cambiar lo que se ve.
+              <PressableScale key={action.label} onPress={action.onPress} haptic="tap" hitSlop={{ top: 7, bottom: 7 }} accessibilityRole="button">
+                <XStack minH={34} px={14} rounded={radius.pill} bg={action.soft ? "$brandWash" : "$brand"} items="center">
+                  <FText
+                    tone={action.soft ? "brand" : "onBrand"}
+                    maxFontSizeMultiplier={COMPACT_FONT_SCALE}
+                    style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18 }}
+                  >
                     {action.label}
                   </FText>
                 </XStack>

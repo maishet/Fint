@@ -10,6 +10,7 @@ export const homeTranslations = {
       yesterday: "Ayer",
       thisMonth: "este mes",
       balanceHint: "Toca para ocultar o mostrar los montos. Desliza para ver cada cuenta.",
+      refresh: { action: "Actualizar", running: "Actualizando", done: "Actualizado" },
       bar: { profile: "Ajustes y perfil", search: "Buscar movimientos", notifications: "Avisos ({{count}})" },
       actions: { accounts: "Cuentas", scan: "Escanear", pay: "Pagar", more: "Más" },
       attention: {
@@ -114,6 +115,7 @@ export const homeTranslations = {
       yesterday: "Yesterday",
       thisMonth: "this month",
       balanceHint: "Tap to hide or show amounts. Swipe to see each account.",
+      refresh: { action: "Refresh", running: "Refreshing", done: "Refreshed" },
       bar: { profile: "Settings and profile", search: "Search transactions", notifications: "Alerts ({{count}})" },
       actions: { accounts: "Accounts", scan: "Scan", pay: "Pay", more: "More" },
       attention: {
@@ -218,6 +220,7 @@ export const homeTranslations = {
       yesterday: "Ontem",
       thisMonth: "este mês",
       balanceHint: "Toque para ocultar ou mostrar os valores. Deslize para ver cada conta.",
+      refresh: { action: "Atualizar", running: "Atualizando", done: "Atualizado" },
       bar: { profile: "Ajustes e perfil", search: "Buscar movimentações", notifications: "Avisos ({{count}})" },
       actions: { accounts: "Contas", scan: "Escanear", pay: "Pagar", more: "Mais" },
       attention: {

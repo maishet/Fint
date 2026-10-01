@@ -1,4 +1,4 @@
-import { CircleAlert, Eye, EyeOff, MailCheck } from "@tamagui/lucide-icons-2";
+import { Eye, EyeOff, MailCheck } from "@tamagui/lucide-icons-2";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { Redirect, useFocusEffect } from "expo-router";
 import { setStatusBarStyle } from "expo-status-bar";
@@ -16,7 +16,7 @@ import { getValidationMessage, useSubmitValidation } from "../src/forms";
 import { HeroMesh } from "../src/home/HeroMesh";
 import { radius, space } from "../src/theme/tokens";
 import { fontFace, textStyles } from "../src/theme/typography";
-import { FintButton, FintSpinner, FText, PressableScale, SheetField, SheetTextInput } from "../src/ui";
+import { ErrorLine, FintButton, FintSpinner, FText, PressableScale, SheetField, SheetTextInput } from "../src/ui";
 import { BrandSymbol } from "../src/ui/BrandSymbol";
 import { GoogleMark } from "../src/ui/GoogleMark";
 
@@ -302,7 +302,7 @@ export default function LoginScreen() {
                   }}
                 />
               )}
-              {generalError ? <ErrorLine message={generalError} /> : null}
+              {generalError ? <ErrorLine message={generalError} mt={0} /> : null}
             </YStack>
 
             {successMessage ? (
@@ -355,19 +355,8 @@ function AuthField({ error, focused, trailing, ...input }: TextInputProps & { er
         <SheetTextInput {...input} />
         {trailing}
       </SheetField>
-      {error ? <ErrorLine message={error} /> : null}
+      {error ? <ErrorLine message={error} mt={0} /> : null}
     </YStack>
-  );
-}
-
-function ErrorLine({ message }: { message: string }) {
-  return (
-    <XStack items="center" gap={5} mx={2} accessibilityRole="alert">
-      <CircleAlert size={13} color="$dangerHard" strokeWidth={2.2} />
-      <FText variant="caption" tone="dangerHard" style={{ flex: 1, fontFamily: fontFace.sans[600] }}>
-        {message}
-      </FText>
-    </XStack>
   );
 }
 

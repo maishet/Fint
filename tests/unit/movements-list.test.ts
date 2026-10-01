@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import type { Transaction } from '../../src/api/types'
-import { buildEntries, filterByCurrency, filterItems, groupTransfers, monthCurrencies, netByCurrency, recentMonths, stickyIndices } from '../../src/movements/logic'
+import { buildEntries, filterByCurrency, filterItems, groupTransfers, monthCurrencies, netByCurrency, recentMonths, spokenDate, stickyIndices } from '../../src/movements/logic'
 
 const tx = (id: string, date: string, amount: number, extra: Partial<Transaction> = {}): Transaction => ({
   id, date, type: 'expense', amount, currency: 'PEN', category: 'Alimentación', account: 'BCP', ...extra,
@@ -101,4 +101,13 @@ test('recentMonths: los últimos 6 meses, del más antiguo al actual, cruzando e
   const months = recentMonths(new Date(2026, 1, 20))
   expect(months.map((d) => `${d.getFullYear()}-${d.getMonth() + 1}`)).toEqual(['2025-9', '2025-10', '2025-11', '2025-12', '2026-1', '2026-2'])
   expect(months.every((d) => d.getDate() === 1)).toBe(true)
+})
+
+test('spokenDate: el día en palabras, con el año solo si no es el actual', () => {
+  const today = new Date(2026, 8, 30)
+  expect(spokenDate('2026-09-24', today, 'en-US')).toBe('September 24')
+  expect(spokenDate('2025-12-03', today, 'en-US')).toBe('December 3, 2025')
+  expect(spokenDate('2026-09-24T03:00:00.000Z', today, 'en-US')).toBe('September 24')
+  expect(spokenDate('', today, 'en-US')).toBeNull()
+  expect(spokenDate('no es fecha', today, 'en-US')).toBeNull()
 })

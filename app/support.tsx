@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, CircleAlert, Mail, ShieldCheck } from "@tamagui/lucide-icons-2";
+import { ChevronLeft, ChevronRight, Mail, ShieldCheck } from "@tamagui/lucide-icons-2";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable } from "react-native";
@@ -15,9 +15,9 @@ import { deviceLine } from "../src/support/deviceLine";
 import { getSupportDiagnostics } from "../src/support/diagnostics";
 import { motion, radius, space } from "../src/theme/tokens";
 import { GroupTitle } from "../src/settings/SettingsList";
-import { fontFace, textStyles } from "../src/theme/typography";
+import { textStyles } from "../src/theme/typography";
 import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
-import { Chip, FintButton, FintCard, FintSheet, FintSpinner, FText, IconButton, SheetField, SheetTextInput, useNotify } from "../src/ui";
+import { Chip, ErrorLine, FintButton, FintCard, FintSheet, FintSpinner, FText, IconButton, SheetField, SheetTextInput, useNotify } from "../src/ui";
 
 const KEYBOARD_GAP = 24;
 const SHEET_UNMOUNT_MS = 600;
@@ -108,12 +108,13 @@ export default function SupportScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Label>{t("reportScreen.about")}</Label>
-        <XStack flexWrap="wrap" gap={8}>
+        <XStack flexWrap="wrap" gap={8} accessibilityRole="radiogroup" accessibilityLabel={t("reportScreen.about")}>
           {topics.map((item) => (
             <Chip
               key={item}
               label={item}
               variant="choice"
+              single
               selected={item === topic}
               onPress={() => {
                 setTopic(item);
@@ -144,7 +145,7 @@ export default function SupportScreen() {
           />
         </SheetField>
         <XStack mt={4} gap={8}>
-          <View flex={1}>{errors.description ? <ErrorLine message={errors.description} tight /> : null}</View>
+          <View flex={1}>{errors.description ? <ErrorLine message={errors.description} mt={0} /> : null}</View>
           <FText variant="caption" tone="inkFaint" style={{ ...textStyles["figure-caption"] }}>
             {`${description.length} / ${MAX_DESCRIPTION}`}
           </FText>
@@ -249,17 +250,6 @@ function Label({ children }: { children: string }) {
     <FText variant="caption" tone="inkMuted" style={{ marginTop: 16, marginBottom: 6, marginLeft: 2 }}>
       {children}
     </FText>
-  );
-}
-
-function ErrorLine({ message, tight = false }: { message: string; tight?: boolean }) {
-  return (
-    <XStack items="center" gap={5} mx={2} mt={tight ? 0 : 6} accessibilityRole="alert">
-      <CircleAlert size={13} color="$dangerHard" strokeWidth={2.2} />
-      <FText variant="caption" tone="dangerHard" style={{ flex: 1, fontFamily: fontFace.sans[600] }}>
-        {message}
-      </FText>
-    </XStack>
   );
 }
 

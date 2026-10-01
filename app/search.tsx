@@ -209,7 +209,7 @@ export default function SearchScreen() {
         {recent.length ? (
           <YStack mt={space[5]}>
             <XStack px={space[4]} items="center" justify="space-between">
-              <FText variant="caption" tone="inkMuted" style={{ fontFamily: fontFace.sans[600] }}>
+              <FText variant="caption" tone="inkMuted" accessibilityRole="header" style={{ fontFamily: fontFace.sans[600] }}>
                 {t("search.recent")}
               </FText>
               <Pressable onPress={() => forget(null)} accessibilityRole="button" hitSlop={8}>
@@ -247,7 +247,7 @@ export default function SearchScreen() {
         ) : null}
         {frequent.length ? (
           <YStack mt={space[5]} px={space[4]}>
-            <FText variant="caption" tone="inkMuted" style={{ fontFamily: fontFace.sans[600] }}>
+            <FText variant="caption" tone="inkMuted" accessibilityRole="header" style={{ fontFamily: fontFace.sans[600] }}>
               {t("search.frequent")}
             </FText>
             <XStack mt={space[3]} justify="space-between">
@@ -289,7 +289,7 @@ export default function SearchScreen() {
           <View width={56} height={56} rounded={radius.pill} bg="$surfaceSunken" items="center" justify="center">
             <Search size={24} color="$inkMuted" strokeWidth={2} />
           </View>
-          <FText variant="heading" style={{ marginTop: space[4], textAlign: "center" }}>
+          <FText variant="heading" accessibilityRole="header" style={{ marginTop: space[4], textAlign: "center" }}>
             {t("search.emptyTitle", { query })}
           </FText>
           <FText tone="inkMuted" style={{ marginTop: 6, textAlign: "center", fontSize: 14, lineHeight: 20 }}>

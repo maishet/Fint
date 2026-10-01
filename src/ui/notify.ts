@@ -1,7 +1,16 @@
 import { useMemo } from "react";
-import { Alert } from "react-native";
+import { AccessibilityInfo, Alert, Platform } from "react-native";
 import { toast } from "sonner-native";
 import { haptics } from "./haptics";
+import { toastAnnouncement, toastDuration } from "./toastTiming";
+
+// Si hay un lector de pantalla activo: los toasts con acción duran más y, en iOS, se anuncian.
+let screenReaderOn = false;
+AccessibilityInfo.isScreenReaderEnabled().then(
+  (enabled) => (screenReaderOn = enabled),
+  () => undefined,
+);
+AccessibilityInfo.addEventListener("screenReaderChanged", (enabled) => (screenReaderOn = enabled));
 
 export type NotifyPreset = "success" | "error" | "info";
 
@@ -56,10 +65,14 @@ function notifyWithPreset(
   triggerHaptic(preset);
   lastId += 1;
   const id = `fint-toast-${lastId}`;
+  // sonner-native marca el toast como región viva, que solo anuncia en Android; en iOS se anuncia a mano.
+  if (screenReaderOn && Platform.OS === "ios") {
+    AccessibilityInfo.announceForAccessibility(toastAnnouncement(title, opts.message, opts.action?.label));
+  }
   const data = {
     id,
     description: opts.message,
-    duration: opts.duration,
+    duration: toastDuration(opts.duration, Boolean(opts.action), screenReaderOn),
     action: resolveAction(id, opts),
   };
   if (preset === "success") return toast.success(title, data);

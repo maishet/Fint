@@ -10,6 +10,7 @@ import { ApiRequestError } from '../api/client'
 import { AuthProvider } from '../auth/AuthProvider'
 import { ThemeModeContext, type ThemePreference } from '../theme/ThemeMode'
 import { FintToaster } from '../ui/FintToaster'
+import { ModalScope } from '../ui/ModalScope'
 import { SensitiveAmountsProvider } from '../privacy/SensitiveAmountsProvider'
 import { DailyRemindersProvider } from '../notifications/DailyRemindersProvider'
 import { LocationPreferenceProvider } from '../location/LocationPreferenceProvider'
@@ -87,11 +88,12 @@ export function AppProviders({ children, ...rest }: Omit<TamaguiProviderProps, '
               },
             }}
           >
-            <AuthProvider><SensitiveAmountsProvider><DailyRemindersProvider><LocationPreferenceProvider>{children}</LocationPreferenceProvider></DailyRemindersProvider></SensitiveAmountsProvider></AuthProvider>
+            <AuthProvider><SensitiveAmountsProvider><DailyRemindersProvider><LocationPreferenceProvider><ModalScope>{children}</ModalScope></LocationPreferenceProvider></DailyRemindersProvider></SensitiveAmountsProvider></AuthProvider>
           </PersistQueryClientProvider>
           {/*
             Los avisos van al mismo portal que las hojas (`FintSheet`, zIndex 110 000) y encima: montados aquí quedaban
             debajo del portal y un toast lanzado con una hoja abierta ("Deshacer", un error) salía detrás de ella.
+            Por eso también quedan fuera de `ModalScope`, que oculta la app (no el portal) al lector con una hoja abierta.
           */}
           <Portal zIndex={200_000}>
             <FintToaster />

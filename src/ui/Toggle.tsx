@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Pressable } from "react-native";
 import Animated, { interpolateColor, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { useTheme } from "tamagui";
@@ -17,15 +17,22 @@ const W = 46;
 const H = 28;
 const KNOB = 22;
 
-/** Interruptor del sistema: encendido en `brand`. La perilla se desliza con `spring-ui`. */
+/**
+ * Interruptor del sistema: encendido en `brand`. La perilla se desliza con `spring-ui`
+ * al presionar; `onValueChange` y el háptico van al soltar, para que empezar a desplazar
+ * una lista con el dedo sobre el interruptor no lo cambie (WCAG 2.5.2). Si el toque se
+ * cancela, la perilla vuelve sola.
+ */
 export function Toggle({ value, onValueChange, accessibilityLabel, disabled }: ToggleProps) {
   const theme = useTheme();
   const { themeMode } = useThemeMode();
+  const [pressing, setPressing] = useState(false);
+  const shown = pressing ? !value : value;
   const on = useSharedValue(value ? 1 : 0);
 
   useEffect(() => {
-    on.value = withSpring(value ? 1 : 0, motion.springUi);
-  }, [on, value]);
+    on.value = withSpring(shown ? 1 : 0, motion.springUi);
+  }, [on, shown]);
 
   const off = theme.surfaceSunken.val;
   const brand = theme.brand.val;
@@ -48,7 +55,10 @@ export function Toggle({ value, onValueChange, accessibilityLabel, disabled }: T
       accessibilityState={{ checked: value, disabled }}
       disabled={disabled}
       hitSlop={8}
-      onPressIn={() => {
+      onPressIn={() => setPressing(true)}
+      // `onPressOut` llega antes que `onPress` y en el mismo lote: al soltar no hay un instante de vuelta atrás.
+      onPressOut={() => setPressing(false)}
+      onPress={() => {
         haptics.select();
         onValueChange(!value);
       }}

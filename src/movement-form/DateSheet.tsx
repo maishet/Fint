@@ -16,7 +16,7 @@ import { Text, View, XStack, YStack } from "tamagui";
 import { financeApi } from "../api/finance";
 import { getAppLocale } from "../i18n";
 import { parseDateString, toDateString, todayDateString } from "../finance/dates";
-import { motion, opacity } from "../theme/tokens";
+import { COMPACT_FONT_SCALE, motion, opacity } from "../theme/tokens";
 import { fontFace, textStyles } from "../theme/typography";
 import { FintSheet, FText, IconButton, PressableScale } from "../ui";
 import { haptics } from "../ui/haptics";
@@ -219,7 +219,7 @@ function CalendarGrid({
   allowFuture: boolean;
   onPick: (date: Date) => void;
 }) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [cellW, setCellW] = useState(0);
   // Un solo formateador para las etiquetas: crear uno por día costaba segundos al abrir la hoja en Hermes.
   const dayLabel = useMemo(
@@ -275,7 +275,8 @@ function CalendarGrid({
               style={{ width: `${100 / 7}%`, height: CELL_H, alignItems: "center", justifyContent: "center" }}
               accessibilityRole="button"
               accessibilityState={{ selected: isSelected, disabled: future }}
-              accessibilityLabel={dayLabel.format(date)}
+              // Los puntos solo se ven: el lector dice ", con movimientos" para el mismo dato.
+              accessibilityLabel={marked.has(day) ? `${dayLabel.format(date)}, ${t("movementForm.dateSheet.withMovements")}` : dayLabel.format(date)}
             >
               <View
                 width={DOT}
@@ -308,10 +309,19 @@ function CalendarGrid({
 /** Atajo Hoy / Ayer: el nombre en `ink` y la fecha en `mono` apagada. */
 function QuickChip({ label, date, onPress }: { label: string; date: string; onPress: () => void }) {
   return (
-    <PressableScale onPress={onPress} style={{ flexGrow: 1, flexBasis: 0 }} accessibilityRole="button" accessibilityLabel={`${label}, ${date}`}>
-      <XStack height={32} gap={6} items="center" justify="center" rounded={999} borderWidth={1} borderColor="$lineStrong" bg="$surface">
-        <FText variant="label">{label}</FText>
-        <FText variant="caption" tone="inkFaint" style={{ fontFamily: fontFace.mono[500] }}>
+    <PressableScale
+      onPress={onPress}
+      // La forma mide 32; el área de toque llega a 48 sin cambiar lo que se ve.
+      hitSlop={{ top: 8, bottom: 8 }}
+      style={{ flexGrow: 1, flexBasis: 0 }}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}, ${date}`}
+    >
+      <XStack minH={32} gap={6} items="center" justify="center" rounded={999} borderWidth={1} borderColor="$lineStrong" bg="$surface">
+        <FText variant="label" maxFontSizeMultiplier={COMPACT_FONT_SCALE}>
+          {label}
+        </FText>
+        <FText variant="caption" tone="inkFaint" maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={{ fontFamily: fontFace.mono[500] }}>
           {date}
         </FText>
       </XStack>

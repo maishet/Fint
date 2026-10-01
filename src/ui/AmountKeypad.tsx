@@ -4,7 +4,7 @@ import { Pressable } from "react-native";
 import Animated, { interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { XStack, YStack, useTheme } from "tamagui";
 import type { AmountKey } from "../forms/amountInput";
-import { motion, radius } from "../theme/tokens";
+import { COMPACT_FONT_SCALE, motion, radius } from "../theme/tokens";
 import { textStyles } from "../theme/typography";
 import { haptics } from "./haptics";
 
@@ -71,12 +71,17 @@ function Key({ value, onKey, onClear }: { value: AmountKey; onKey: (k: AmountKey
           : undefined
       }
       delayLongPress={450}
+      // Mantener presionado no se anuncia: para el lector, "Borrar todo el monto" es una acción de la tecla.
+      accessibilityActions={isDelete && onClear ? [{ name: "longpress", label: t("amountKeypad.clear") }] : undefined}
+      onAccessibilityAction={() => onClear?.()}
     >
       <Animated.View style={[{ height: 48, borderRadius: radius.md, alignItems: "center", justifyContent: "center" }, bg]}>
         {isDelete ? (
           <Delete size={24} color="$ink" strokeWidth={1.8} />
         ) : (
-          <Animated.Text style={[textStyles.amount, { fontSize: 26, lineHeight: 30, color: theme.ink.val }]}>{value}</Animated.Text>
+          <Animated.Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[textStyles.amount, { fontSize: 26, lineHeight: 30, color: theme.ink.val }]}>
+            {value}
+          </Animated.Text>
         )}
       </Animated.View>
     </Pressable>

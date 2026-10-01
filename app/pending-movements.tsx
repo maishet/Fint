@@ -657,9 +657,15 @@ function PendingCard({
             : [
                 { name: "primary", label: primaryLabel },
                 { name: "discard", label: t("pendingScreen.discard") },
+                // Entrar al modo en lote con esta tarjeta marcada: de lo contrario solo se logra manteniéndola presionada.
+                { name: "select", label: t("pendingScreen.select") },
               ]
         }
-        onAccessibilityAction={(e) => (e.nativeEvent.actionName === "discard" ? onDiscard() : onPrimary())}
+        onAccessibilityAction={(e) => {
+          if (e.nativeEvent.actionName === "discard") onDiscard();
+          else if (e.nativeEvent.actionName === "select") onLongPress();
+          else onPrimary();
+        }}
       >
         <FintCard
           p={selectionMode ? 14 : 16}

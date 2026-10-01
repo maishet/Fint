@@ -1,4 +1,4 @@
-import { ChevronLeft, CircleAlert, Eye, EyeOff, KeyRound, Lock } from "@tamagui/lucide-icons-2";
+import { ChevronLeft, Eye, EyeOff, KeyRound, Lock } from "@tamagui/lucide-icons-2";
 import { useRouter } from "expo-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -11,9 +11,9 @@ import { useAuth } from "../src/auth/AuthProvider";
 import { getValidationMessage, useSubmitValidation } from "../src/forms";
 import { Avatar, Group, GroupTitle, Item } from "../src/settings/SettingsList";
 import { radius, space } from "../src/theme/tokens";
-import { fontFace, textStyles } from "../src/theme/typography";
+import { textStyles } from "../src/theme/typography";
 import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
-import { FintButton, FintSheet, FintSpinner, FText, IconButton, SheetField, SheetTextInput, useNotify } from "../src/ui";
+import { ErrorLine, FintButton, FintSheet, FintSpinner, FText, IconButton, SheetField, SheetTextInput, useNotify } from "../src/ui";
 import { GoogleMark } from "../src/ui/GoogleMark";
 
 type PasswordField = "currentPassword" | "newPassword" | "confirmPassword";
@@ -203,17 +203,6 @@ function FieldLabel({ children }: { children: string }) {
     <FText variant="caption" tone="inkMuted" style={{ marginTop: 16, marginBottom: 6, marginLeft: 2 }}>
       {children}
     </FText>
-  );
-}
-
-function ErrorLine({ message }: { message: string }) {
-  return (
-    <XStack items="center" gap={5} mx={2} mt={6} accessibilityRole="alert">
-      <CircleAlert size={13} color="$dangerHard" strokeWidth={2.2} />
-      <FText variant="caption" tone="dangerHard" style={{ flex: 1, fontFamily: fontFace.sans[600] }}>
-        {message}
-      </FText>
-    </XStack>
   );
 }
 
