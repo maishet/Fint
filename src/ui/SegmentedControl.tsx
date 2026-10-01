@@ -28,15 +28,20 @@ const PAD = 3;
 
 /**
  * Selector segmentado. El fondo `segmentThumb` se desliza con `spring-ui` y el
- * texto cambia de peso en el mismo frame, con `haptics.select()`.
+ * texto cambia de peso en el mismo frame en que se presiona. `onChange` y
+ * `haptics.select()` van al soltar: dentro de un scroll, empezar a desplazar con
+ * el dedo sobre el control no lo activa (WCAG 2.5.2); el cambio visual se
+ * deshace solo si el toque se cancela.
  */
 export function SegmentedControl<T extends string>({ options, value, onChange, size = "md", accessibilityLabel }: SegmentedControlProps<T>) {
   const theme = useTheme();
   const { themeMode } = useThemeMode();
   const [width, setWidth] = useState(0);
+  const [pressing, setPressing] = useState<T | null>(null);
+  const shown = pressing ?? value;
   const index = Math.max(
     0,
-    options.findIndex((o) => o.value === value),
+    options.findIndex((o) => o.value === shown),
   );
   const segment = width > 0 ? (width - PAD * 2) / options.length : 0;
   const x = useSharedValue(0);
@@ -80,6 +85,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange, s
       ) : null}
       {options.map((option) => {
         const selected = option.value === value;
+        const active = option.value === shown;
         return (
           <Pressable
             key={option.value}
@@ -87,6 +93,11 @@ export function SegmentedControl<T extends string>({ options, value, onChange, s
             accessibilityRole="tab"
             accessibilityState={{ selected }}
             onPressIn={() => {
+              if (!selected) setPressing(option.value);
+            }}
+            // `onPressOut` llega antes que `onPress` y en el mismo lote: al soltar no hay un instante de vuelta atrás.
+            onPressOut={() => setPressing(null)}
+            onPress={() => {
               if (selected) return;
               haptics.select();
               onChange(option.value);
@@ -94,8 +105,8 @@ export function SegmentedControl<T extends string>({ options, value, onChange, s
           >
             <FText
               variant="label"
-              tone={selected ? "ink" : "inkMuted"}
-              style={selected ? { fontFamily: fontFace.sans[600] } : undefined}
+              tone={active ? "ink" : "inkMuted"}
+              style={active ? { fontFamily: fontFace.sans[600] } : undefined}
               numberOfLines={1}
             >
               {option.label}

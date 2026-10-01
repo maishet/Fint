@@ -359,6 +359,7 @@ function NoticeCard({
   let detail: ReactNode = null;
   const actions: Array<{ label: string; onPress: () => void; soft?: boolean }> = [];
   const danger = item.kind === "overdue";
+  const settleTarget = canResolve ? occurrence : null;
 
   if (item.kind === "review") {
     color = theme.brand.val;
@@ -413,13 +414,19 @@ function NoticeCard({
       borderColor={danger ? "$dangerHard" : "$line"}
       accessible={false}
       accessibilityLabel={title}
-      accessibilityHint={canResolve ? t("notificationsScreen.doneHint") : undefined}
     >
       <View width={40} height={40} rounded={radius.pill} items="center" justify="center" style={{ backgroundColor: withAlpha(color, 0.14) }}>
         {icon}
       </View>
       <YStack flex={1} minW={0}>
-        <FText variant="body-strong" style={{ letterSpacing: -0.15 }}>
+        {/* Deslizar para "Listo" no existe con lector de pantalla (el deslizamiento es de navegación): la misma acción
+            va en el título, que abre la misma confirmación. */}
+        <FText
+          variant="body-strong"
+          style={{ letterSpacing: -0.15 }}
+          accessibilityActions={settleTarget ? [{ name: "settle", label: t("notificationsScreen.settle") }] : undefined}
+          onAccessibilityAction={() => settleTarget && onSettle(settleTarget)}
+        >
           {title}
         </FText>
         <View mt={2}>{detail}</View>

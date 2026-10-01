@@ -2,6 +2,7 @@ import { Search, SlidersHorizontal } from "@tamagui/lucide-icons-2";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { AccessibilityInfo } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Extrapolation,
@@ -141,6 +142,18 @@ export default function DashboardScreen() {
     if (!refreshing) pull.value = withSpring(0, motion.springUi);
   }, [pull, refreshing, refreshingNow]);
 
+  // Con lector de pantalla no hay forma de tirar hacia abajo: el saldo ofrece "Actualizar" como acción. Reusa el
+  // spinner del tirón (el hero se abre a `PULL_HOLD`) y anuncia cuándo empieza y cuándo termina.
+  const refreshFromAction = useCallback(() => {
+    if (refreshing) return;
+    pull.value = withSpring(PULL_HOLD, motion.springUi);
+    AccessibilityInfo.announceForAccessibility(t("home.refresh.running"));
+    refresh().then(
+      () => AccessibilityInfo.announceForAccessibility(t("home.refresh.done")),
+      () => AccessibilityInfo.announceForAccessibility(t("states.error")),
+    );
+  }, [pull, refresh, refreshing, t]);
+
   const pullGesture = Gesture.Pan()
     .manualActivation(true)
     .onTouchesDown((e, manager) => {
@@ -211,6 +224,7 @@ export default function DashboardScreen() {
               onScan={() => router.push("/capture-import")}
               onPay={() => router.push("/(tabs)/debts")}
               onMore={() => setMoreOpen(true)}
+              onRefresh={refreshFromAction}
             />
 
             {/* La hoja entra subiendo 40px con spring-ui. */}

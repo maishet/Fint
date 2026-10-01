@@ -56,6 +56,8 @@ interface HomeHeroProps {
   onScan: () => void;
   onPay: () => void;
   onMore: () => void;
+  /** Con lector de pantalla no hay "tirar para refrescar": el saldo ofrece "Actualizar" como acción de accesibilidad. */
+  onRefresh?: () => void;
 }
 
 /** Espacio que la hoja de contenido monta sobre el borde del hero. */
@@ -117,7 +119,7 @@ export function HomeHero(props: HomeHeroProps) {
             </XStack>
           </PressableScale>
 
-          {page ? <SwipeableBalance page={page} index={index} count={pages.length} onIndexChange={onIndexChange} /> : null}
+          {page ? <SwipeableBalance page={page} index={index} count={pages.length} onIndexChange={onIndexChange} onRefresh={props.onRefresh} /> : null}
 
           <Dots count={pages.length} index={index} />
         </YStack>
@@ -226,11 +228,13 @@ function SwipeableBalance({
   index,
   count,
   onIndexChange,
+  onRefresh,
 }: {
   page: HeroPage;
   index: number;
   count: number;
   onIndexChange: (i: number) => void;
+  onRefresh?: () => void;
 }) {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -315,10 +319,16 @@ function SwipeableBalance({
         accessibilityRole="adjustable"
         accessibilityLabel={visible ? `${page.label}: ${parts.sign}${parts.symbol} ${parts.integer.replaceAll(THIN_SPACE, "")}.${parts.fraction}` : t("privacy.amounts.hiddenLabel")}
         accessibilityHint={t("home.balanceHint")}
-        accessibilityActions={[{ name: "increment" }, { name: "decrement" }, { name: "activate" }]}
+        accessibilityActions={[
+          { name: "increment" },
+          { name: "decrement" },
+          { name: "activate" },
+          ...(onRefresh ? [{ name: "refresh", label: t("home.refresh.action") }] : []),
+        ]}
         onAccessibilityAction={(e) => {
           if (e.nativeEvent.actionName === "increment") commit(1);
           else if (e.nativeEvent.actionName === "decrement") commit(-1);
+          else if (e.nativeEvent.actionName === "refresh") onRefresh?.();
           else toggle();
         }}
       >

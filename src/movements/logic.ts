@@ -93,6 +93,17 @@ export function recentMonths(today: Date, count = 6): Date[] {
   return Array.from({ length: count }, (_, i) => new Date(today.getFullYear(), today.getMonth() - (count - 1 - i), 1));
 }
 
+/** "24 de setiembre" para el lector de pantalla; con el año si no es el actual (en una búsqueda hay de todo el historial). */
+export function spokenDate(date: string, today: Date, locale: string): string | null {
+  const day = transactionDay(date);
+  if (!day) return null;
+  return new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "long",
+    ...(day.y === today.getFullYear() ? {} : { year: "numeric" }),
+  }).format(new Date(day.y, day.m, day.d));
+}
+
 /** "2026-09-18" del día del movimiento (acepta fecha simple o ISO). */
 export function dayKey(date: string): string | null {
   const d = transactionDay(date);
