@@ -151,8 +151,9 @@ export function FintSheetSelect({ label, onValueChange, options, placeholder, se
                 flex={1}
                 unstyled
                 color="$color12"
-                placeholderTextColor="$mutedForeground"
+                placeholderTextColor="$inkFaint"
                 placeholder={searchPlaceholder}
+                aria-label={searchPlaceholder}
                 value={search}
                 onChangeText={setSearch}
                 autoCapitalize="none"

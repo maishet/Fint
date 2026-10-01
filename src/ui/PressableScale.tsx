@@ -28,7 +28,7 @@ export interface PressableScaleProps extends PressableProps {
  * la entrada mientras anima.
  */
 export const PressableScale = forwardRef<View, PressableScaleProps>(function PressableScale(
-  { scaleTo = pressScale, dim = true, haptic = "none", disabled, onPressIn, onPressOut, style, ...props },
+  { scaleTo = pressScale, dim = true, haptic = "none", disabled, accessibilityState, onPressIn, onPressOut, style, ...props },
   ref,
 ) {
   const pressed = useSharedValue(0);
@@ -43,7 +43,8 @@ export const PressableScale = forwardRef<View, PressableScaleProps>(function Pre
     <AnimatedPressable
       ref={ref}
       disabled={disabled}
-      accessibilityState={{ disabled: !!disabled }}
+      // Se funde con el estado de quien lo usa (`selected`, `checked`): antes `{...props}` lo pisaba y `disabled` se perdía.
+      accessibilityState={{ ...accessibilityState, disabled: !!(disabled ?? accessibilityState?.disabled) }}
       onPressIn={(event) => {
         pressed.value = withTiming(1, motion.press);
         if (haptic !== "none") haptics[haptic]();

@@ -336,7 +336,7 @@ export default function CaptureImportScreen() {
                   <View width={56} height={56} rounded={999} bg="$surfaceSunken" items="center" justify="center">
                     <CheckCircle2 size={26} color="$flowIn" strokeWidth={2} />
                   </View>
-                  <FText variant="heading" style={{ textAlign: "center" }}>
+                  <FText variant="heading" accessibilityRole="header" style={{ textAlign: "center" }}>
                     {t("capture.resultTitle")}
                   </FText>
                 </>
@@ -586,7 +586,7 @@ function DeleteRowSheet({
         <View width={56} height={56} rounded={999} bg="$red2" items="center" justify="center">
           <Trash2 size={24} color="$dangerHard" strokeWidth={2} />
         </View>
-        <FText variant="title" style={{ fontSize: 22, lineHeight: 28, marginTop: 14, textAlign: "center" }}>
+        <FText variant="title" accessibilityRole="header" style={{ fontSize: 22, lineHeight: 28, marginTop: 14, textAlign: "center" }}>
           {t("capture.deleteRowTitle")}
         </FText>
         <FText tone="inkMuted" style={{ fontSize: 14, lineHeight: 21, marginTop: 6, textAlign: "center" }}>

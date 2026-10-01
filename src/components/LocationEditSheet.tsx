@@ -203,6 +203,7 @@ export function LocationEditSheet({
                 color="$color12"
                 placeholderTextColor="$mutedForeground"
                 placeholder={t('location.searchPlaceholder')}
+                aria-label={t('location.searchPlaceholder')}
                 value={search.query}
                 onChangeText={(next) => {
                   search.setQuery(next)

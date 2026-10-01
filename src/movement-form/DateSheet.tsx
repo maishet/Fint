@@ -219,7 +219,7 @@ function CalendarGrid({
   allowFuture: boolean;
   onPick: (date: Date) => void;
 }) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [cellW, setCellW] = useState(0);
   // Un solo formateador para las etiquetas: crear uno por día costaba segundos al abrir la hoja en Hermes.
   const dayLabel = useMemo(
@@ -275,7 +275,8 @@ function CalendarGrid({
               style={{ width: `${100 / 7}%`, height: CELL_H, alignItems: "center", justifyContent: "center" }}
               accessibilityRole="button"
               accessibilityState={{ selected: isSelected, disabled: future }}
-              accessibilityLabel={dayLabel.format(date)}
+              // Los puntos solo se ven: el lector dice ", con movimientos" para el mismo dato.
+              accessibilityLabel={marked.has(day) ? `${dayLabel.format(date)}, ${t("movementForm.dateSheet.withMovements")}` : dayLabel.format(date)}
             >
               <View
                 width={DOT}

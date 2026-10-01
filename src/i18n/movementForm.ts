@@ -106,6 +106,7 @@ export const movementFormTranslations = {
         previousMonth: "Mes anterior",
         nextMonth: "Mes siguiente",
         dotsHint: "Los puntos marcan los días con movimientos",
+        withMovements: "con movimientos",
         weekdays: "L,M,M,J,V,S,D",
       },
       locationSheet: {
@@ -249,6 +250,7 @@ export const movementFormTranslations = {
         previousMonth: "Previous month",
         nextMonth: "Next month",
         dotsHint: "Dots mark days with transactions",
+        withMovements: "with transactions",
         weekdays: "M,T,W,T,F,S,S",
       },
       locationSheet: {
@@ -392,6 +394,7 @@ export const movementFormTranslations = {
         previousMonth: "Mês anterior",
         nextMonth: "Próximo mês",
         dotsHint: "Os pontos marcam os dias com movimentos",
+        withMovements: "com movimentos",
         weekdays: "S,T,Q,Q,S,S,D",
       },
       locationSheet: {

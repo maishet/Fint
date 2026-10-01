@@ -11,7 +11,7 @@ import { haptics } from "./haptics";
 export interface SegmentOption<T extends string> {
   value: T;
   label: string;
-  /** Cantidad junto a la etiqueta, en `mono` y `inkFaint` ("Egresos 8"). */
+  /** Cantidad junto a la etiqueta, en `mono` ("Egresos 8"): `inkMuted` en la pestaña elegida, `inkFaint` en las demás. */
   count?: number;
 }
 
@@ -114,7 +114,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange, s
             >
               {option.label}
               {option.count !== undefined ? (
-                <FText variant="label" tone="inkFaint" style={{ fontFamily: fontFace.mono[500], fontSize: 12 }}>
+                <FText variant="label" tone={active ? "inkMuted" : "inkFaint"} style={{ fontFamily: fontFace.mono[500], fontSize: 12 }}>
                   {`  ${option.count}`}
                 </FText>
               ) : null}

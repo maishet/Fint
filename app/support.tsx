@@ -108,12 +108,13 @@ export default function SupportScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Label>{t("reportScreen.about")}</Label>
-        <XStack flexWrap="wrap" gap={8}>
+        <XStack flexWrap="wrap" gap={8} accessibilityRole="radiogroup" accessibilityLabel={t("reportScreen.about")}>
           {topics.map((item) => (
             <Chip
               key={item}
               label={item}
               variant="choice"
+              single
               selected={item === topic}
               onPress={() => {
                 setTopic(item);

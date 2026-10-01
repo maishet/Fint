@@ -26,6 +26,11 @@ export interface ChipProps {
   empty?: boolean;
   /** Ocupa el ancho disponible (chips de detalle de igual ancho). */
   grow?: boolean;
+  /**
+   * Opción única de un grupo que no se desmarca al volver a tocarla: se anuncia como radio ("marcado") y no como
+   * interruptor. El contenedor lleva `accessibilityRole="radiogroup"`.
+   */
+  single?: boolean;
   onPress?: () => void;
 }
 
@@ -39,6 +44,7 @@ export function Chip({
   dashed = false,
   empty = false,
   grow = false,
+  single = false,
   onPress,
 }: ChipProps) {
   const filterOn = variant === "filter" && selected;
@@ -49,8 +55,8 @@ export function Chip({
     <PressableScale
       onPress={onPress}
       haptic="select"
-      accessibilityRole={variant === "detail" ? "button" : "togglebutton"}
-      accessibilityState={{ selected }}
+      accessibilityRole={variant === "detail" ? "button" : single ? "radio" : "togglebutton"}
+      accessibilityState={single ? { checked: selected } : { selected }}
       accessibilityLabel={label}
       // La forma mide 32; el área de toque llega a 48 (Android) sin cambiar lo que se ve.
       hitSlop={{ top: 8, bottom: 8 }}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Text, type LayoutChangeEvent } from "react-native";
+import { AccessibilityInfo, Text, type LayoutChangeEvent } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
@@ -17,6 +17,9 @@ import { MINUS, THIN_SPACE } from "../finance/formatAmount";
 import { displayAmountInput } from "../forms/amountInput";
 import { motion } from "../theme/tokens";
 import { fontFace } from "../theme/typography";
+
+/** Pausa tras la última tecla antes de que el lector de pantalla diga el monto completo. */
+const ANNOUNCE_MS = 600;
 
 /** Tamaños del monto: baja en pasos de 8px si no cabe, nunca pasa a dos líneas. */
 const SIZES = [64, 56, 48, 40] as const;
@@ -229,6 +232,18 @@ export function AmountDisplay({ input, currency = "PEN", kind = "expense", activ
   const valueLabel = `${sign}${symbol} ${text.replaceAll(THIN_SPACE, "")}`;
   const valueColor = empty ? theme.inkFaint.val : theme.ink.val;
 
+  // Sin región viva: decía "Monto: …" en cada tecla, encima del nombre de la tecla. Ahora el monto se anuncia una vez,
+  // cuando la persona deja de teclear (o vacía el campo); el primer valor al abrir no se anuncia.
+  const announcedLabel = useRef(valueLabel);
+  useEffect(() => {
+    if (announcedLabel.current === valueLabel) return;
+    const id = setTimeout(() => {
+      announcedLabel.current = valueLabel;
+      AccessibilityInfo.announceForAccessibility(`${t("forms.amount")}: ${valueLabel}`);
+    }, ANNOUNCE_MS);
+    return () => clearTimeout(id);
+  }, [t, valueLabel]);
+
   return (
     <View
       height={HEIGHT}
@@ -241,7 +256,6 @@ export function AmountDisplay({ input, currency = "PEN", kind = "expense", activ
       accessible
       accessibilityRole="text"
       accessibilityLabel={t("forms.amount") + ": " + valueLabel}
-      accessibilityLiveRegion="polite"
     >
       {/* Sondas invisibles: miden el avance real de un dígito y el ancho del símbolo en este dispositivo. */}
       {/* Sin escalar con el tamaño de letra del sistema (aquí y en las cifras): las posiciones de cada dígito salen de
