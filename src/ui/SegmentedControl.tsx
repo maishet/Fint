@@ -3,7 +3,7 @@ import { Pressable, type LayoutChangeEvent } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { XStack, useTheme } from "tamagui";
 import { useThemeMode } from "../theme/ThemeMode";
-import { motion, radius, shadows } from "../theme/tokens";
+import { COMPACT_FONT_SCALE, motion, radius, shadows } from "../theme/tokens";
 import { fontFace } from "../theme/typography";
 import { FText } from "./FText";
 import { haptics } from "./haptics";
@@ -90,6 +90,8 @@ export function SegmentedControl<T extends string>({ options, value, onChange, s
           <Pressable
             key={option.value}
             style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+            // Cada segmento mide 28-32; el área de toque llega a 48 (Android) sin cambiar lo que se ve.
+            hitSlop={{ top: 10, bottom: 10 }}
             accessibilityRole="tab"
             accessibilityState={{ selected }}
             onPressIn={() => {
@@ -108,6 +110,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange, s
               tone={active ? "ink" : "inkMuted"}
               style={active ? { fontFamily: fontFace.sans[600] } : undefined}
               numberOfLines={1}
+              maxFontSizeMultiplier={COMPACT_FONT_SCALE}
             >
               {option.label}
               {option.count !== undefined ? (

@@ -12,6 +12,7 @@ import { motion, radius, shadows, space } from "../theme/tokens";
 import { textStyles } from "../theme/typography";
 import { FText } from "./FText";
 import { IconButton } from "./IconButton";
+import { useHoldModal } from "./ModalScope";
 import { PressableScale } from "./PressableScale";
 
 /**
@@ -92,6 +93,8 @@ export function FintSheet({
   // en su lugar. Se avisa a lo que ocurra primero: eso o `SETTLED_MS` desde que la hoja empieza a moverse (no desde que
   // se abre: entre una cosa y otra pasa un rato, y montar lo pesado en medio congelaba la subida). Una vez por apertura.
   const shown = open && armed;
+  // Con la hoja abierta, el lector de pantalla no llega al fondo (ver `ModalScope`).
+  useHoldModal(shown);
   const openedRef = useRef(false);
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notifyOpened = () => {
@@ -174,6 +177,9 @@ export function FintSheet({
       <Sheet.Frame bg="transparent" overflow="visible" disableHideBottomOverflow>
         <YStack
           flex={snapPoints ? 1 : undefined}
+          // iOS: el gesto de escape de VoiceOver (dos dedos en "Z") cierra la hoja, también con `hideClose`.
+          accessibilityViewIsModal
+          onAccessibilityEscape={onClose}
           bg="$surfaceOverlay"
           borderTopWidth={themeMode === "dark" ? 1 : 0}
           borderColor="$line"
@@ -199,11 +205,11 @@ export function FintSheet({
 
 /**
  * Relleno hundido dentro de una hoja (buscador, campo). En oscuro,
- * `surfaceSunken` y `surfaceOverlay` casi no se distinguen, así que lleva
- * además un filete `line` de 1px.
+ * `surfaceSunken` y `surfaceOverlay` casi no se distinguen (1.13:1 en claro,
+ * 1.03:1 en oscuro), así que lleva además un filete `lineStrong` de 1px en
+ * reposo: 3.97:1 en claro y 3.23:1 en oscuro, sobre los 3:1 que pide WCAG 1.4.11.
  */
 export function SheetField({ children, focused = false, invalid = false }: { children: ReactNode; focused?: boolean; invalid?: boolean }) {
-  const { themeMode } = useThemeMode();
   // Con error, borde `dangerHard` de 1.5px aunque tenga el foco: el error se ve hasta que la persona corrige.
   if (invalid) {
     return (
@@ -221,7 +227,7 @@ export function SheetField({ children, focused = false, invalid = false }: { chi
       rounded={radius.md}
       bg={focused ? "$surface" : "$surfaceSunken"}
       borderWidth={focused ? 1.5 : 1}
-      borderColor={focused ? "$brand" : themeMode === "dark" ? "$line" : "$surfaceSunken"}
+      borderColor={focused ? "$brand" : "$lineStrong"}
     >
       {children}
     </XStack>

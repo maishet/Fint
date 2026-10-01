@@ -44,3 +44,9 @@ export const motion = {
 
 /** Escala a la que baja todo lo tocable al presionar. */
 export const pressScale = 0.97;
+
+/**
+ * Hasta cuánto crece el texto de un control compacto (chips, selector segmentado, teclas) cuando la persona sube el
+ * tamaño de letra del sistema: más allá, la etiqueta no cabe en su forma. Nunca en texto de lectura.
+ */
+export const COMPACT_FONT_SCALE = 1.3;

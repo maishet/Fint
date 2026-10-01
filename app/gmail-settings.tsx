@@ -444,7 +444,6 @@ function Pill({
 function SendersField({ value, onChange, autoFocus = false }: { value: string[]; onChange: (next: string[]) => void; autoFocus?: boolean }) {
   const { t } = useTranslation();
   const theme = useTheme();
-  const { themeMode } = useThemeMode();
   const [draft, setDraft] = useState("");
   const [focused, setFocused] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -479,12 +478,12 @@ function SendersField({ value, onChange, autoFocus = false }: { value: string[];
           rounded={radius.md}
           bg={focused ? "$surface" : "$surfaceSunken"}
           borderWidth={focused || error ? 1.5 : 1}
-          borderColor={error ? "$dangerHard" : focused ? "$brand" : themeMode === "dark" ? "$line" : "$surfaceSunken"}
+          borderColor={error ? "$dangerHard" : focused ? "$brand" : "$lineStrong"}
         >
           {value.map((sender) => (
             <XStack
               key={sender}
-              height={28}
+              minH={28}
               pl={10}
               pr={4}
               gap={2}
@@ -499,7 +498,8 @@ function SendersField({ value, onChange, autoFocus = false }: { value: string[];
               </FText>
               <Pressable
                 onPress={() => onChange(value.filter((s) => s !== sender))}
-                hitSlop={8}
+                // Icono de 11 + relleno de 4: con 14 de margen el área de toque llega a 47.
+                hitSlop={14}
                 accessibilityRole="button"
                 accessibilityLabel={t("gmailScreen.removeSender", { sender })}
                 style={{ padding: 4 }}

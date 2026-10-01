@@ -11,6 +11,7 @@ import { USER_PIN_TIP, UserMapPin } from './UserMapPin'
 import { describeLocation, getLastKnownPosition, requestAndCaptureLocation, type CapturedLocation } from '../location/captureLocation'
 import { suggestionKey, useLocationSearch } from '../location/useLocationSearch'
 import { FintButton, FintSpinner } from '../ui'
+import { useHoldModal } from '../ui/ModalScope'
 import { regionFor } from './MiniMap'
 import { PlaceCategoryIcon } from './PlaceCategoryIcon'
 
@@ -50,6 +51,7 @@ export function LocationEditSheet({
   const [isLocating, setIsLocating] = useState(false)
   const [isResolvingAddress, setIsResolvingAddress] = useState(false)
   const search = useLocationSearch(open)
+  useHoldModal(open)
 
   const jumpTo = useCallback((next: { latitude: number; longitude: number }) => {
     isProgrammaticMove.current = true

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Text, View, XStack, type ColorTokens } from "tamagui";
-import { radius } from "../theme/tokens";
+import { COMPACT_FONT_SCALE, radius } from "../theme/tokens";
 import { fontFace } from "../theme/typography";
 import { DashedOutline } from "./DashedOutline";
 import { FText } from "./FText";
@@ -52,10 +52,12 @@ export function Chip({
       accessibilityRole={variant === "detail" ? "button" : "togglebutton"}
       accessibilityState={{ selected }}
       accessibilityLabel={label}
+      // La forma mide 32; el área de toque llega a 48 (Android) sin cambiar lo que se ve.
+      hitSlop={{ top: 8, bottom: 8 }}
       style={grow ? { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0 } : undefined}
     >
       <XStack
-        height={32}
+        minH={32}
         px={13}
         gap={6}
         items="center"
@@ -80,6 +82,7 @@ export function Chip({
           color={tone === "canvas" ? "$canvas" : undefined}
           style={[{ flexShrink: 1 }, selected ? { fontFamily: fontFace.sans[600] } : null]}
           numberOfLines={1}
+          maxFontSizeMultiplier={COMPACT_FONT_SCALE}
         >
           {label}
         </FText>

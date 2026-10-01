@@ -244,7 +244,10 @@ export function AmountDisplay({ input, currency = "PEN", kind = "expense", activ
       accessibilityLiveRegion="polite"
     >
       {/* Sondas invisibles: miden el avance real de un dígito y el ancho del símbolo en este dispositivo. */}
+      {/* Sin escalar con el tamaño de letra del sistema (aquí y en las cifras): las posiciones de cada dígito salen de
+          estas medidas en unidades de `em`, y con la letra agrandada se encimarían. El monto ya es de 64px. */}
       <Text
+        allowFontScaling={false}
         style={{ position: "absolute", opacity: 0, fontFamily: FACE, fontSize: PROBE_SIZE, includeFontPadding: false }}
         onLayout={(e: LayoutChangeEvent) => {
           const em = e.nativeEvent.layout.width / (PROBE_SIZE * 10);
@@ -261,6 +264,7 @@ export function AmountDisplay({ input, currency = "PEN", kind = "expense", activ
       </Text>
       <Text
         key={symbol}
+        allowFontScaling={false}
         style={{ position: "absolute", opacity: 0, fontFamily: FACE, fontSize: PROBE_SIZE, includeFontPadding: false }}
         onLayout={(e: LayoutChangeEvent) => {
           const em = e.nativeEvent.layout.width / PROBE_SIZE;
@@ -276,10 +280,14 @@ export function AmountDisplay({ input, currency = "PEN", kind = "expense", activ
       </Text>
       {measured > 0 ? (
         <>
-          <Animated.Text style={[{ position: "absolute", fontFamily: FACE, color: signColor, includeFontPadding: false }, signStyle]}>
+          <Animated.Text
+            allowFontScaling={false}
+            style={[{ position: "absolute", fontFamily: FACE, color: signColor, includeFontPadding: false }, signStyle]}
+          >
             {sign || MINUS}
           </Animated.Text>
           <Animated.Text
+            allowFontScaling={false}
             style={[{ position: "absolute", fontFamily: FACE, color: theme.inkFaint.val, includeFontPadding: false }, symbolStyle]}
           >
             {symbol}
@@ -332,6 +340,7 @@ function Glyph({
 
   return (
     <Animated.Text
+      allowFontScaling={false}
       entering={reduceMotion ? undefined : digitIn}
       exiting={reduceMotion ? undefined : digitOut}
       style={[{ position: "absolute", fontFamily: FACE, fontVariant: ["tabular-nums"], color, includeFontPadding: false }, style]}

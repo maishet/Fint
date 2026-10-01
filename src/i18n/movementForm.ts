@@ -4,7 +4,7 @@
  */
 export const movementFormTranslations = {
   es: {
-    amountKeypad: { delete: "Borrar", decimal: "Punto decimal" },
+    amountKeypad: { delete: "Borrar", decimal: "Punto decimal", clear: "Borrar todo el monto" },
     movementForm: {
       tabs: { expense: "Egreso", income: "Ingreso", transfer: "Transferir" },
       tabsLabel: "Tipo de movimiento",
@@ -98,6 +98,7 @@ export const movementFormTranslations = {
         frequent: "Frecuentes",
         all: "Todas",
         newCategory: "Nueva",
+        editAction: "Editar categoría",
         empty: "Ninguna categoría coincide",
       },
       dateSheet: {
@@ -136,7 +137,7 @@ export const movementFormTranslations = {
         kinds: { expense: "Egreso", income: "Ingreso", transfer: "Transferencia" },
         removed: "Quitamos “{{name}}” de tus lugares",
         placeError: "No pudimos guardar el cambio en tus lugares. Revisa tu conexión.",
-        removeHint: "Mantén presionado para quitarlo de tus lugares",
+        removeAction: "Quitar de tus lugares",
       },
       noteSheet: {
         done: "Listo",
@@ -146,7 +147,7 @@ export const movementFormTranslations = {
     },
   },
   en: {
-    amountKeypad: { delete: "Delete", decimal: "Decimal point" },
+    amountKeypad: { delete: "Delete", decimal: "Decimal point", clear: "Clear the whole amount" },
     movementForm: {
       tabs: { expense: "Expense", income: "Income", transfer: "Transfer" },
       tabsLabel: "Transaction type",
@@ -240,6 +241,7 @@ export const movementFormTranslations = {
         frequent: "Frequent",
         all: "All",
         newCategory: "New",
+        editAction: "Edit category",
         empty: "No category matches",
       },
       dateSheet: {
@@ -275,7 +277,7 @@ export const movementFormTranslations = {
         kinds: { expense: "Expense", income: "Income", transfer: "Transfer" },
         removed: "Removed “{{name}}” from your places",
         placeError: "We couldn’t save the change to your places. Check your connection.",
-        removeHint: "Press and hold to remove it from your places",
+        removeAction: "Remove from your places",
         remove: "Remove",
         save: "Save location",
         expand: "Expand map",
@@ -288,7 +290,7 @@ export const movementFormTranslations = {
     },
   },
   pt: {
-    amountKeypad: { delete: "Apagar", decimal: "Ponto decimal" },
+    amountKeypad: { delete: "Apagar", decimal: "Ponto decimal", clear: "Apagar todo o valor" },
     movementForm: {
       tabs: { expense: "Despesa", income: "Receita", transfer: "Transferir" },
       tabsLabel: "Tipo de movimento",
@@ -382,6 +384,7 @@ export const movementFormTranslations = {
         frequent: "Frequentes",
         all: "Todas",
         newCategory: "Nova",
+        editAction: "Editar categoria",
         empty: "Nenhuma categoria corresponde",
       },
       dateSheet: {
@@ -417,7 +420,7 @@ export const movementFormTranslations = {
         kinds: { expense: "Despesa", income: "Receita", transfer: "Transferência" },
         removed: "Removemos “{{name}}” dos seus lugares",
         placeError: "Não conseguimos salvar a alteração nos seus lugares. Verifique sua conexão.",
-        removeHint: "Mantenha pressionado para removê-lo dos seus lugares",
+        removeAction: "Remover dos seus lugares",
         remove: "Remover",
         save: "Salvar local",
         expand: "Ampliar mapa",

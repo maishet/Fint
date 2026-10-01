@@ -22,7 +22,7 @@ import { feedGroups, feedTime, growthPercent, namesSummary, notificationRoute, t
 import { getInstallationId } from "../src/notifications/pushNotifications";
 import { NOTIFICATIONS_KEY, useNotificationsFeed } from "../src/notifications/useNotificationsFeed";
 import { withAlpha } from "../src/theme/color";
-import { motion, radius, space } from "../src/theme/tokens";
+import { COMPACT_FONT_SCALE, motion, radius, space } from "../src/theme/tokens";
 import { fontFace } from "../src/theme/typography";
 import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
 import { Amount, FintConfirmDialog, FText, IconButton, PressableScale, SegmentedControl } from "../src/ui";
@@ -433,9 +433,14 @@ function NoticeCard({
         {actions.length ? (
           <XStack mt={10} gap={8} flexWrap="wrap">
             {actions.map((action) => (
-              <PressableScale key={action.label} onPress={action.onPress} haptic="tap" accessibilityRole="button">
-                <XStack height={34} px={14} rounded={radius.pill} bg={action.soft ? "$brandWash" : "$brand"} items="center">
-                  <FText tone={action.soft ? "brand" : "onBrand"} style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18 }}>
+              // La forma mide 34; el área de toque llega a 48 sin cambiar lo que se ve.
+              <PressableScale key={action.label} onPress={action.onPress} haptic="tap" hitSlop={{ top: 7, bottom: 7 }} accessibilityRole="button">
+                <XStack minH={34} px={14} rounded={radius.pill} bg={action.soft ? "$brandWash" : "$brand"} items="center">
+                  <FText
+                    tone={action.soft ? "brand" : "onBrand"}
+                    maxFontSizeMultiplier={COMPACT_FONT_SCALE}
+                    style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18 }}
+                  >
                     {action.label}
                   </FText>
                 </XStack>

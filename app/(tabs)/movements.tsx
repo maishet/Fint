@@ -272,7 +272,9 @@ export default function MovementsScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: space[4], gap: 8, paddingTop: space[3] }}
+        // Relleno abajo (y menos espacio en lo que sigue): Android recorta el margen de toque de los chips al borde del
+        // contenedor, así que el `ScrollView` tiene que dejar sitio a los 8 de `hitSlop` también por debajo.
+        contentContainerStyle={{ paddingHorizontal: space[4], gap: 8, paddingTop: space[3], paddingBottom: space[2] }}
         accessibilityLabel={t("movementsTab.filtersLabel")}
       >
         {FILTERS.map((f) => (
@@ -291,13 +293,13 @@ export default function MovementsScreen() {
       </ScrollView>
 
       {isSearching ? (
-        <FText variant="caption" tone="inkFaint" style={{ marginHorizontal: space[4], marginTop: space[3] }}>
+        <FText variant="caption" tone="inkFaint" style={{ marginHorizontal: space[4], marginTop: space[1] }}>
           {t("movementsTab.searchScope")}
         </FText>
       ) : (
         <>
           {/* Mes y moneda. */}
-          <XStack mx={space[4]} mt={space[4]} justify="space-between" items="center">
+          <XStack mx={space[4]} mt={space[2]} justify="space-between" items="center">
             <Pill icon={<CalendarDays size={16} color="$ink" />} label={monthLabel} onPress={() => setSheet("month")} />
             <Pill label={currency} onPress={currencies.length > 1 ? () => setSheet("currency") : undefined} />
           </XStack>

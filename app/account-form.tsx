@@ -971,7 +971,6 @@ function AddLink({ label, onPress }: { label: string; onPress: () => void }) {
 function KeywordsField({ value, onChange }: { value: string[]; onChange: (next: string[]) => void }) {
   const { t } = useTranslation();
   const theme = useTheme();
-  const { themeMode } = useThemeMode();
   const [draft, setDraft] = useState("");
   const [focused, setFocused] = useState(false);
   const input = useRef<TextInput>(null);
@@ -997,12 +996,12 @@ function KeywordsField({ value, onChange }: { value: string[]; onChange: (next: 
         rounded={radius.md}
         bg={focused ? "$surface" : "$surfaceSunken"}
         borderWidth={focused ? 1.5 : 1}
-        borderColor={focused ? "$brand" : themeMode === "dark" ? "$line" : "$surfaceSunken"}
+        borderColor={focused ? "$brand" : "$lineStrong"}
       >
         {value.map((keyword) => (
           <XStack
             key={keyword}
-            height={30}
+            minH={30}
             pl={12}
             pr={4}
             gap={2}
@@ -1017,7 +1016,8 @@ function KeywordsField({ value, onChange }: { value: string[]; onChange: (next: 
             </FText>
             <Pressable
               onPress={() => onChange(value.filter((k) => k !== keyword))}
-              hitSlop={8}
+              // Icono de 12 + relleno de 4: con 14 de margen el área de toque llega a 48.
+              hitSlop={14}
               accessibilityRole="button"
               accessibilityLabel={t("accounts.emailKeywordsRemoveAccessibility", { keyword })}
               style={{ padding: 4 }}
