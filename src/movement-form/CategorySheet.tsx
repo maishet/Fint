@@ -209,7 +209,12 @@ function TileSkeletons({ count }: { count: number }) {
 
 function SubTitle({ children }: { children: string }) {
   return (
-    <FText variant="caption" tone="inkMuted" style={{ fontFamily: fontFace.sans[600], marginTop: 18, marginBottom: 4, marginHorizontal: 20 }}>
+    <FText
+      variant="caption"
+      tone="inkMuted"
+      accessibilityRole="header"
+      style={{ fontFamily: fontFace.sans[600], marginTop: 18, marginBottom: 4, marginHorizontal: 20 }}
+    >
       {children}
     </FText>
   );
@@ -217,7 +222,7 @@ function SubTitle({ children }: { children: string }) {
 
 function Grid({ children }: { children: React.ReactNode }) {
   return (
-    <XStack flexWrap="wrap" px={6}>
+    <XStack flexWrap="wrap" px={6} accessibilityRole="radiogroup">
       {children}
     </XStack>
   );
@@ -265,8 +270,9 @@ export function CategoryTile({
       style={{ width: compact ? "20%" : "25%", alignItems: "center", gap: 6, paddingVertical: compact ? 4 : 8, paddingHorizontal: 2 }}
       onPress={onPress}
       onLongPress={onLongPress}
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
+      // Elegir categoría es una opción única: "radio" con "marcado", dentro de un `radiogroup` (la grilla o la fila del formulario).
+      accessibilityRole="radio"
+      accessibilityState={{ checked: selected }}
       accessibilityLabel={label}
       accessibilityActions={onLongPress && longPressLabel ? [{ name: "longpress", label: longPressLabel }] : undefined}
       onAccessibilityAction={() => onLongPress?.()}
