@@ -457,11 +457,11 @@ function NotificationsSheet({
           {body}
         </FText>
         {state === "unsupported" ? null : state === "granted" ? (
-          <FintButton variant="outlined" disabled={pending} onPress={onTurnOff}>
+          <FintButton variant="outlined" pending={pending} onPress={onTurnOff}>
             {t("settingsScreen.notifSheet.turnOff")}
           </FintButton>
         ) : (
-          <FintButton disabled={pending} icon={pending ? <FintSpinner color="$onBrand" /> : undefined} onPress={onTurnOn}>
+          <FintButton pending={pending} icon={pending ? <FintSpinner color="$onBrand" /> : undefined} onPress={onTurnOn}>
             {state === "denied" ? t("settingsScreen.notifSheet.openSystem") : t("settingsScreen.notifSheet.turnOn")}
           </FintButton>
         )}
@@ -521,13 +521,13 @@ function DeleteAccountSheet({ open, onClose, onDeleted }: { open: boolean; onClo
           <FintButton
             variant="danger"
             haptic="warning"
-            disabled={!canDelete || mutation.isPending}
-            opacity={canDelete ? 1 : 0.42}
+            disabled={!canDelete}
+            pending={mutation.isPending}
             onPress={() => mutation.mutate()}
           >
             {mutation.isPending ? <FintSpinner color="$onDanger" /> : t("settings.deleteAccountButton")}
           </FintButton>
-          <FintButton variant="ghost" bg="$surfaceSunken" color="$ink" disabled={mutation.isPending} onPress={onClose}>
+          <FintButton variant="ghost" bg="$surfaceSunken" color="$ink" pending={mutation.isPending} onPress={onClose}>
             {t("actions.cancel")}
           </FintButton>
         </YStack>

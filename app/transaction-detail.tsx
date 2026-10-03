@@ -401,7 +401,7 @@ export default function TransactionDetailScreen() {
               {`, ${t("movementDetail.deleteAfter", { account })}`}
             </FText>
             <YStack self="stretch" gap={10} mt={22}>
-              <FintButton variant="danger" haptic="warning" disabled={deleteMutation.isPending} onPress={() => deleteMutation.mutate()}>
+              <FintButton variant="danger" haptic="warning" pending={deleteMutation.isPending} onPress={() => deleteMutation.mutate()}>
                 {deleteMutation.isPending ? t("movementUx.deleting") : t("movementDetail.deleteConfirm")}
               </FintButton>
               <FintButton variant="ghost" bg="$surfaceSunken" color="$ink" onPress={() => setSheet(null)}>

@@ -1,5 +1,5 @@
 import { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } from "@react-native-google-signin/google-signin";
-import { ChevronLeft, CircleAlert, Ellipsis, Plus, RefreshCw, Trash2, X } from "@tamagui/lucide-icons-2";
+import { ChevronLeft, Ellipsis, Plus, RefreshCw, Trash2, X } from "@tamagui/lucide-icons-2";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -18,7 +18,7 @@ import { useThemeMode } from "../src/theme/ThemeMode";
 import { radius, space } from "../src/theme/tokens";
 import { fontFace, textStyles } from "../src/theme/typography";
 import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
-import { FintButton, FintCard, FintSheet, FintSpinner, FText, IconButton, PressableScale, useNotify } from "../src/ui";
+import { ErrorLine, FintButton, FintCard, FintSheet, FintSpinner, FText, IconButton, PressableScale, useNotify } from "../src/ui";
 import { DashedOutline } from "../src/ui/DashedOutline";
 import { GoogleMark } from "../src/ui/GoogleMark";
 import { TaskProgress } from "../src/ui/TaskProgress";
@@ -207,7 +207,7 @@ export default function GmailSettingsScreen() {
               <FintButton
                 variant="danger"
                 haptic="warning"
-                disabled={disconnectMutation.isPending}
+                pending={disconnectMutation.isPending}
                 onPress={() => disconnectMutation.mutate(menuFor.id)}
               >
                 {disconnectMutation.isPending ? <FintSpinner color="$onDanger" /> : t("gmail.disconnect")}
@@ -216,7 +216,7 @@ export default function GmailSettingsScreen() {
                 variant="ghost"
                 bg="$surfaceSunken"
                 color="$ink"
-                disabled={disconnectMutation.isPending}
+                pending={disconnectMutation.isPending}
                 onPress={() => setConfirmOpen(false)}
               >
                 {t("actions.cancel")}
@@ -545,14 +545,7 @@ function SendersField({ value, onChange, autoFocus = false }: { value: string[];
           />
         </XStack>
       </Pressable>
-      {error ? (
-        <XStack items="center" gap={5} mx={2} mt={6} accessibilityRole="alert">
-          <CircleAlert size={13} color="$dangerHard" strokeWidth={2.2} />
-          <FText variant="caption" tone="dangerHard" style={{ flex: 1, fontFamily: fontFace.sans[600] }}>
-            {error}
-          </FText>
-        </XStack>
-      ) : null}
+      {error ? <ErrorLine message={error} /> : null}
     </YStack>
   );
 }

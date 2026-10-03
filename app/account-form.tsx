@@ -661,7 +661,7 @@ export default function AccountFormScreen() {
                 minH={52}
                 rounded={radius.md}
                 fontSize={16}
-                disabled={saveMutation.isPending}
+                pending={saveMutation.isPending}
                 icon={saveMutation.isPending ? <FintSpinner color="$onBrand" /> : undefined}
                 onPress={submit}
               >
@@ -1116,7 +1116,7 @@ function ConfirmSheet({
           {description}
         </FText>
         <YStack self="stretch" gap={10} mt={22}>
-          <FintButton variant="danger" haptic="warning" disabled={pending} onPress={onConfirm}>
+          <FintButton variant="danger" haptic="warning" pending={pending} onPress={onConfirm}>
             {confirmLabel}
           </FintButton>
           <FintButton variant="ghost" bg="$surfaceSunken" color="$ink" onPress={onClose}>

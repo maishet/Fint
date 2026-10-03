@@ -199,7 +199,7 @@ export default function SupportScreen() {
           bg="$canvas"
           onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)}
         >
-          <FintButton disabled={sending} onPress={submit}>
+          <FintButton pending={sending} onPress={submit}>
             {t("reportScreen.send")}
           </FintButton>
         </View>
@@ -230,10 +230,10 @@ export default function SupportScreen() {
               </FText>
             </YStack>
             <YStack self="stretch" gap={8} mt={18}>
-              <FintButton disabled={sending} onPress={() => void send()}>
+              <FintButton pending={sending} onPress={() => void send()}>
                 {sending ? <FintSpinner color="$onBrand" /> : t("reportScreen.confirmSend")}
               </FintButton>
-              <FintButton variant="ghost" disabled={sending} onPress={() => setConfirmOpen(false)}>
+              <FintButton variant="ghost" pending={sending} onPress={() => setConfirmOpen(false)}>
                 {t("reportScreen.keepEditing")}
               </FintButton>
             </YStack>

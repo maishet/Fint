@@ -283,12 +283,12 @@ export default function CategoriesScreen() {
               <FintButton
                 variant="danger"
                 haptic="warning"
-                disabled={deleteMutation.isPending}
+                pending={deleteMutation.isPending}
                 onPress={() => deleteMutation.mutate(deleteMounted.id)}
               >
                 {deleteMutation.isPending ? <FintSpinner color="$onDanger" /> : t("categories.deleteConfirm")}
               </FintButton>
-              <FintButton variant="ghost" bg="$surfaceSunken" color="$ink" disabled={deleteMutation.isPending} onPress={() => setDeleteTarget(null)}>
+              <FintButton variant="ghost" bg="$surfaceSunken" color="$ink" pending={deleteMutation.isPending} onPress={() => setDeleteTarget(null)}>
                 {t("actions.cancel")}
               </FintButton>
             </YStack>

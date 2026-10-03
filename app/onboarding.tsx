@@ -210,7 +210,7 @@ export default function OnboardingScreen() {
           />
           {index === last ? (
             pushState === null ? (
-              <FintButton variant="ghost" disabled={busy} onPress={() => setPushState("skipped")}>
+              <FintButton variant="ghost" pending={busy} onPress={() => setPushState("skipped")}>
                 {t("onboardingScreen.notNow")}
               </FintButton>
             ) : (

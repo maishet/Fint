@@ -316,7 +316,7 @@ export default function LoginScreen() {
 
             <View mt={16}>
               <FintButton
-                disabled={isSubmitting}
+                pending={isSubmitting}
                 accessibilityLabel={isLogin ? t("auth.signIn") : t("auth.signUp")}
                 onPress={() => runAuthAction(isLogin ? "signin" : "signup")}
               >

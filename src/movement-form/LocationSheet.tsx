@@ -23,7 +23,7 @@ import { suggestionKey, useLocationSearch } from "../location/useLocationSearch"
 import { highlightParts } from "../search/logic";
 import { withAlpha } from "../theme/color";
 import { useThemeMode } from "../theme/ThemeMode";
-import { motion, opacity, radius } from "../theme/tokens";
+import { motion, radius } from "../theme/tokens";
 import { fontFace, textStyles } from "../theme/typography";
 import { Chip, FintButton, FintSheet, FintSpinner, FText, SheetField, SheetTextInput } from "../ui";
 import { randomId } from "../shared/id";
@@ -544,7 +544,6 @@ export function LocationSheet({ open, onClose, value, suggestion, context, onSav
                   minH={52}
                   variant="outlined"
                   disabled={!value}
-                  opacity={value ? 1 : opacity.disabled}
                   onPress={() => {
                     onSave(null);
                     close();
@@ -552,7 +551,7 @@ export function LocationSheet({ open, onClose, value, suggestion, context, onSav
                 >
                   {t("movementForm.locationSheet.remove")}
                 </FintButton>
-                <FintButton flex={2} minH={52} disabled={!draft || isResolving} opacity={draft && !isResolving ? 1 : opacity.disabled} onPress={save}>
+                <FintButton flex={2} minH={52} disabled={!draft || isResolving} onPress={save}>
                   {t("movementForm.locationSheet.save")}
                 </FintButton>
               </XStack>

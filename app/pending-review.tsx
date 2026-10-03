@@ -582,7 +582,7 @@ export default function PendingReviewScreen() {
                 minH={52}
                 rounded={radius.md}
                 px={18}
-                disabled={isPending}
+                pending={isPending}
                 icon={discardMutation.isPending ? <FintSpinner color="$ink" /> : undefined}
                 onPress={() => discardMutation.mutate()}
               >
@@ -593,8 +593,8 @@ export default function PendingReviewScreen() {
                 minH={52}
                 rounded={radius.md}
                 fontSize={16}
-                opacity={missing ? 0.45 : 1}
-                disabled={Boolean(missing) || isPending}
+                disabled={Boolean(missing)}
+                pending={isPending}
                 icon={confirmMutation.isPending || transferMutation.isPending ? <FintSpinner color="$onBrand" /> : undefined}
                 onPress={submit}
               >
@@ -795,7 +795,7 @@ function MissingBalance({ currency, canEnable, pending, onEnable }: { currency: 
         </YStack>
       </XStack>
       {canEnable ? (
-        <FintButton variant="outlined" minH={40} disabled={pending} icon={pending ? <FintSpinner color="$ink" /> : undefined} onPress={onEnable}>
+        <FintButton variant="outlined" minH={40} pending={pending} icon={pending ? <FintSpinner color="$ink" /> : undefined} onPress={onEnable}>
           {pending ? t("accounts.enablingBalance") : t("movementUx.enableBalanceForCurrency", { currency })}
         </FintButton>
       ) : null}

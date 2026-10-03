@@ -505,7 +505,7 @@ export default function DebtFormScreen() {
                 minH={52}
                 rounded={radius.md}
                 fontSize={16}
-                disabled={mutation.isPending || (autoPayEnabled && autoPayAccountsQuery.isPending)}
+                pending={mutation.isPending || (autoPayEnabled && autoPayAccountsQuery.isPending)}
                 icon={mutation.isPending ? <FintSpinner color="$onBrand" /> : undefined}
                 onPress={submit}
               >

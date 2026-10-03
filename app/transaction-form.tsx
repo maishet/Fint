@@ -3,7 +3,7 @@ import { CalendarDays, ChevronDown, ChevronRight, FileText, MapPin, Plus, X } fr
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { BackHandler, Pressable, ScrollView, useWindowDimensions } from "react-native";
+import { AccessibilityInfo, BackHandler, Pressable, ScrollView, useWindowDimensions } from "react-native";
 import Animated, { FadeOut, LinearTransition, useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { View, XStack, YStack, useTheme } from "tamagui";
@@ -39,6 +39,7 @@ import {
 import { NOTE_MAX, NoteSheet } from "../src/movement-form/NoteSheet";
 import { TransferAccounts } from "../src/movement-form/TransferAccounts";
 import { withAlpha } from "../src/theme/color";
+import { useSensitiveMoney } from "../src/privacy/useSensitiveMoney";
 import { radius } from "../src/theme/tokens";
 import { fontFace } from "../src/theme/typography";
 import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
@@ -371,6 +372,11 @@ export default function TransactionFormScreen() {
     setErrors(next);
     if (Object.keys(next).length > 0) {
       haptics.warning();
+      // El rol `alert` de los errores no habla solo en Android: se anuncian una vez, en el orden en que se ven
+      // (cuenta, monto, transferencia, categoría). Sin región viva en cada error, o TalkBack los leería dos veces.
+      AccessibilityInfo.announceForAccessibility(
+        [next.account, next.amount, next.transfer, next.category].filter(Boolean).join(". "),
+      );
       return;
     }
     if (kind === "transfer") saveTransfer.mutate();
@@ -482,8 +488,10 @@ export default function TransactionFormScreen() {
               </Animated.View>
             ) : (
               <Animated.View key="single" entering={riseIn({ distance: 8, reduceMotion })} exiting={FadeOut.duration(120)}>
-                <YStack items="center" gap={8} mt={26}>
-                  <FText variant="caption" tone="inkMuted">
+                {/* `pb` deja sitio al `hitSlop` de la píldora: Android recorta el área de toque al borde del contenedor. */}
+                <YStack items="center" gap={8} mt={26} pb={PILL_SLOP}>
+                  {/* "Sale de" ya va en la etiqueta de la píldora: oculto al lector para que no lo lea dos veces. */}
+                  <FText variant="caption" tone="inkMuted" accessibilityElementsHidden importantForAccessibility="no">
                     {t(kind === "income" ? "movementForm.to" : "movementForm.from")}
                   </FText>
                   {loadingAccounts ? (
@@ -493,7 +501,12 @@ export default function TransactionFormScreen() {
                       {t("movementForm.createAccount")}
                     </FintButton>
                   ) : (
-                    <AccountPill account={account} currency={movementCurrency} onPress={() => setSheet("account")} />
+                    <AccountPill
+                      label={t(kind === "income" ? "movementForm.to" : "movementForm.from")}
+                      account={account}
+                      currency={movementCurrency}
+                      onPress={() => setSheet("account")}
+                    />
                   )}
                   {errors.account ? <ErrorText>{errors.account}</ErrorText> : null}
                   {noAccounts ? (
@@ -507,7 +520,7 @@ export default function TransactionFormScreen() {
 
             <Animated.View layout={layout}>
               {/* Monto. */}
-              <View mt={kind === "transfer" ? 22 : 18} px={16}>
+              <View mt={kind === "transfer" ? 22 : 18 - PILL_SLOP} px={16}>
                 <AmountDisplay input={amount} currency={displayCurrency} kind={kind} expectedWidth={screenWidth - 32} />
               </View>
 
@@ -537,7 +550,7 @@ export default function TransactionFormScreen() {
                   {kind !== "transfer" ? (
                     <YStack mt={18}>
                       <XStack px={20} mb={8} items="baseline" justify="space-between">
-                        <FText variant="caption" tone="inkMuted">
+                        <FText variant="caption" tone="inkMuted" accessibilityRole="header">
                           {t("movementForm.category")}
                         </FText>
                         <Pressable onPress={() => setSheet("category")} hitSlop={10} accessibilityRole="button">
@@ -546,7 +559,7 @@ export default function TransactionFormScreen() {
                           </FText>
                         </Pressable>
                       </XStack>
-                      <XStack px={6}>
+                      <XStack px={6} accessibilityRole="radiogroup" accessibilityLabel={t("movementForm.category")}>
                         {categoriesQuery.isLoading
                           ? [0, 1, 2, 3].map((i) => (
                               <YStack key={i} width="20%" items="center" gap={6} py={4}>
@@ -579,7 +592,7 @@ export default function TransactionFormScreen() {
                   ) : null}
 
                   {/* Detalles: campos con etiqueta y valor, uno por fila. En una transferencia, solo fecha y nota. */}
-                  <FText variant="caption" tone="inkMuted" style={{ paddingHorizontal: 20, marginTop: 16, marginBottom: 8 }}>
+                  <FText variant="caption" tone="inkMuted" accessibilityRole="header" style={{ paddingHorizontal: 20, marginTop: 16, marginBottom: 8 }}>
                     {t("movementForm.details")}
                   </FText>
                   <YStack px={16} gap={8}>
@@ -755,21 +768,39 @@ function currencyName(t: (key: string, options?: Record<string, unknown>) => str
   return t(`movementForm.currencyNames.${code}`, { defaultValue: code });
 }
 
-/** La píldora de la cuenta: nombre y saldo disponible. Abre la hoja de cuentas. */
-function AccountPill({ account, currency, onPress }: { account?: AccountOption; currency: string; onPress: () => void }) {
+/** Lo que el `hitSlop` de la píldora agrega arriba y abajo: de 34 a 48 de alto para el dedo. */
+const PILL_SLOP = 7;
+
+/**
+ * La píldora de la cuenta: nombre y saldo disponible. Abre la hoja de cuentas. Para el lector: "Sale de: BCP Soles,
+ * disponible S/ 4 080.80" (con montos ocultos, "Monto oculto") y la pista de que cambia la cuenta.
+ */
+function AccountPill({ label, account, currency, onPress }: { label: string; account?: AccountOption; currency: string; onPress: () => void }) {
   const { t } = useTranslation();
+  const { amountsVisible, formatSensitiveAmount } = useSensitiveMoney();
   const balance = account ? accountBalance(account, currency) : null;
   const multi = account ? accountCurrencies(account).length > 1 : false;
+  const name = account ? (multi ? `${account.name} · ${currency}` : account.name) : t("movementForm.pickAccount");
+  const a11yLabel =
+    balance !== null
+      ? t("movementForm.accountAvailableA11y", {
+          label,
+          account: name,
+          amount: amountsVisible ? formatSensitiveAmount(balance, currency) : t("privacy.amounts.hiddenLabel"),
+        })
+      : t("movementForm.accountA11y", { label, account: name });
   return (
     <PressableScale
       onPress={onPress}
       haptic="tap"
+      hitSlop={{ top: PILL_SLOP, bottom: PILL_SLOP, left: 4, right: 4 }}
       accessibilityRole="button"
-      accessibilityLabel={account?.name ?? t("movementForm.pickAccount")}
+      accessibilityLabel={a11yLabel}
+      accessibilityHint={t("movementForm.accountHint")}
     >
       <XStack height={34} pl={14} pr={12} gap={6} items="center" rounded={999} borderWidth={1} borderColor="$lineStrong" bg="$surface">
         <FText variant="label" numberOfLines={1} style={{ maxWidth: 180 }}>
-          {account ? (multi ? `${account.name} · ${currency}` : account.name) : t("movementForm.pickAccount")}
+          {name}
         </FText>
         {balance !== null ? (
           <Amount value={balance} currency={currency} variant="amount-sm" tone="inkFaint" style={{ fontSize: 12 }} />
@@ -892,7 +923,7 @@ function SectionsSkeleton({
       {withCategory ? (
         <YStack mt={18}>
           <XStack px={20} mb={8} items="baseline" justify="space-between">
-            <FText variant="caption" tone="inkMuted">
+            <FText variant="caption" tone="inkMuted" accessibilityRole="header">
               {categoryLabel}
             </FText>
             <Pressable onPress={onAllPress} hitSlop={10} accessibilityRole="button">
@@ -914,7 +945,7 @@ function SectionsSkeleton({
           </XStack>
         </YStack>
       ) : null}
-      <FText variant="caption" tone="inkMuted" style={{ paddingHorizontal: 20, marginTop: 16, marginBottom: 8 }}>
+      <FText variant="caption" tone="inkMuted" accessibilityRole="header" style={{ paddingHorizontal: 20, marginTop: 16, marginBottom: 8 }}>
         {detailsLabel}
       </FText>
       <YStack px={16} gap={8} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
@@ -997,6 +1028,11 @@ function LocationField({
       haptic="tap"
       accessibilityRole="button"
       accessibilityLabel={[t("movementForm.location"), placeName, lines.primary, lines.secondary].filter(Boolean).join(", ")}
+      // "Usar" está dentro de este botón y el lector no llega a él: con una sugerencia, va como acción del campo.
+      accessibilityActions={nearby ? [{ name: "useSuggestion", label: t("movementForm.useSuggestion") }] : undefined}
+      onAccessibilityAction={(e) => {
+        if (e.nativeEvent.actionName === "useSuggestion") onUse();
+      }}
     >
       <XStack
         items="center"
@@ -1034,7 +1070,7 @@ function LocationField({
           ) : null}
         </YStack>
         {nearby ? (
-          <PressableScale onPress={onUse} haptic="tap" accessibilityRole="button">
+          <PressableScale onPress={onUse} haptic="tap" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
             <XStack height={32} px={13} rounded={999} bg="$brandWash" items="center">
               <FText tone="brand" style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18 }}>
                 {t("movementForm.useLocation")}

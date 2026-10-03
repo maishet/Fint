@@ -19,7 +19,7 @@ import { accountBalance } from "../movement-form/logic";
 import { getInstallationId } from "../notifications/pushNotifications";
 import { radius, space } from "../theme/tokens";
 import { fontFace } from "../theme/typography";
-import { Amount, FintButton, FintCard, FintSheet, FintSpinner, FText, SheetField, useNotify } from "../ui";
+import { Amount, ErrorLine, FintButton, FintCard, FintSheet, FintSpinner, FText, SheetField, useNotify } from "../ui";
 import { BigAmountInput } from "../ui/BigAmountInput";
 import { haptics } from "../ui/haptics";
 
@@ -240,7 +240,7 @@ export function OccurrencePaymentSheet({
 
           {errorMessage ? <ErrorLine message={errorMessage} /> : null}
           <YStack mt={20}>
-            <FintButton disabled={mutation.isPending || eligibleAccounts.length === 0} onPress={submit}>
+            <FintButton disabled={eligibleAccounts.length === 0} pending={mutation.isPending} onPress={submit}>
               {mutation.isPending ? <FintSpinner color="$onBrand" /> : t("payments.confirmPayment")}
             </FintButton>
           </YStack>
@@ -270,16 +270,5 @@ function Label({ children }: { children: string }) {
     <FText variant="caption" tone="inkMuted" style={{ fontFamily: fontFace.sans[600], marginTop: 18, marginBottom: 8, marginLeft: 2 }}>
       {children}
     </FText>
-  );
-}
-
-function ErrorLine({ message, center = false }: { message: string; center?: boolean }) {
-  return (
-    <XStack items="center" justify={center ? "center" : "flex-start"} gap={5} mx={2} mt={6} accessibilityRole="alert">
-      <CircleAlert size={13} color="$dangerHard" strokeWidth={2.2} />
-      <FText variant="caption" tone="dangerHard" style={{ fontFamily: fontFace.sans[600] }}>
-        {message}
-      </FText>
-    </XStack>
   );
 }

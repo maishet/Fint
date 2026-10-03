@@ -147,7 +147,9 @@ export function FintTabBar({ state, descriptors, navigation, centerAction }: Fin
       >
         {!reduceTransparency ? (
           <View style={[StyleSheet.absoluteFill, { borderRadius: radius["2xl"], overflow: "hidden" }]} pointerEvents="none">
-            <BlurView intensity={40} tint={themeName === "dark" ? "dark" : "light"} experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} />
+            {/* Desenfoca solo en iOS. En Android, desenfocar exige envolver cada pantalla de tab en un `BlurTargetView` y
+                daba tirones al desplazar (medido en el A54): se queda el vidrio translúcido, el modo "none" de expo-blur. */}
+            <BlurView intensity={40} tint={themeName === "dark" ? "dark" : "light"} style={StyleSheet.absoluteFill} />
           </View>
         ) : null}
 

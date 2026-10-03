@@ -306,7 +306,7 @@ export function LocationEditSheet({
           </XStack>
 
           <XStack gap="$2">
-            <FintButton flex={1} variant="outlined" disabled={isLocating} icon={isLocating ? <FintSpinner size="small" color="$primary" /> : <MapPin size={16} />} onPress={() => void useCurrentLocation()}>
+            <FintButton flex={1} variant="outlined" pending={isLocating} icon={isLocating ? <FintSpinner size="small" color="$primary" /> : <MapPin size={16} />} onPress={() => void useCurrentLocation()}>
               {t('location.useCurrent')}
             </FintButton>
             {value ? (
