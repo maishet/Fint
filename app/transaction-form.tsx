@@ -3,7 +3,7 @@ import { CalendarDays, ChevronDown, ChevronRight, FileText, MapPin, Plus, X } fr
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { BackHandler, Pressable, ScrollView, useWindowDimensions } from "react-native";
+import { AccessibilityInfo, BackHandler, Pressable, ScrollView, useWindowDimensions } from "react-native";
 import Animated, { FadeOut, LinearTransition, useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { View, XStack, YStack, useTheme } from "tamagui";
@@ -372,6 +372,11 @@ export default function TransactionFormScreen() {
     setErrors(next);
     if (Object.keys(next).length > 0) {
       haptics.warning();
+      // El rol `alert` de los errores no habla solo en Android: se anuncian una vez, en el orden en que se ven
+      // (cuenta, monto, transferencia, categoría). Sin región viva en cada error, o TalkBack los leería dos veces.
+      AccessibilityInfo.announceForAccessibility(
+        [next.account, next.amount, next.transfer, next.category].filter(Boolean).join(". "),
+      );
       return;
     }
     if (kind === "transfer") saveTransfer.mutate();
@@ -1023,6 +1028,11 @@ function LocationField({
       haptic="tap"
       accessibilityRole="button"
       accessibilityLabel={[t("movementForm.location"), placeName, lines.primary, lines.secondary].filter(Boolean).join(", ")}
+      // "Usar" está dentro de este botón y el lector no llega a él: con una sugerencia, va como acción del campo.
+      accessibilityActions={nearby ? [{ name: "useSuggestion", label: t("movementForm.useSuggestion") }] : undefined}
+      onAccessibilityAction={(e) => {
+        if (e.nativeEvent.actionName === "useSuggestion") onUse();
+      }}
     >
       <XStack
         items="center"
@@ -1060,7 +1070,7 @@ function LocationField({
           ) : null}
         </YStack>
         {nearby ? (
-          <PressableScale onPress={onUse} haptic="tap" accessibilityRole="button">
+          <PressableScale onPress={onUse} haptic="tap" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
             <XStack height={32} px={13} rounded={999} bg="$brandWash" items="center">
               <FText tone="brand" style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18 }}>
                 {t("movementForm.useLocation")}
