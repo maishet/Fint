@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CircleAlert, Lock, Pencil, Trash2 } from "@tamagui/lucide-icons-2";
+import { Lock, Pencil, Trash2 } from "@tamagui/lucide-icons-2";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, Text as RNText, type TextInput } from "react-native";
@@ -14,7 +14,7 @@ import { getValidationMessage, useSubmitValidation } from "../forms";
 import { useThemeMode } from "../theme/ThemeMode";
 import { radius, space } from "../theme/tokens";
 import { fontFace } from "../theme/typography";
-import { FintButton, FintSheet, FintSpinner, FText, PressableScale, SegmentedControl, SheetField, SheetTextInput, useNotify } from "../ui";
+import { ErrorLine, FintButton, FintSheet, FintSpinner, FText, PressableScale, SegmentedControl, SheetField, SheetTextInput, useNotify } from "../ui";
 import { haptics } from "../ui/haptics";
 
 interface CreateCategorySheetProps {
@@ -210,14 +210,7 @@ export function CreateCategorySheet({ initialType, category, onCreated, onUpdate
               onBlur={() => setFocused(false)}
             />
           </SheetField>
-          {nameError ? (
-            <XStack items="center" gap={5} mt={6} mx={2} accessibilityRole="alert">
-              <CircleAlert size={13} color="$dangerHard" strokeWidth={2.2} />
-              <FText variant="caption" tone="dangerHard" style={{ flex: 1, fontFamily: fontFace.sans[600] }}>
-                {nameError}
-              </FText>
-            </XStack>
-          ) : null}
+          {nameError ? <ErrorLine message={nameError} /> : null}
 
           <FText
             variant="caption"

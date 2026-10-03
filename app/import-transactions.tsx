@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, CircleAlert, Coins, FileSpreadsheet, FileUp, RefreshCw } from "@tamagui/lucide-icons-2";
+import { AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, Coins, FileSpreadsheet, FileUp, RefreshCw } from "@tamagui/lucide-icons-2";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as DocumentPicker from "expo-document-picker";
 import { File } from "expo-file-system";
@@ -24,7 +24,7 @@ import { Group, Item, OptionSheet } from "../src/settings/SettingsList";
 import { StackFrame } from "../src/settings/StackFrame";
 import { radius, space } from "../src/theme/tokens";
 import { fontFace, textStyles } from "../src/theme/typography";
-import { FintButton, FintCard, FintSpinner, FText, useNotify } from "../src/ui";
+import { ErrorLine, FintButton, FintCard, FintSpinner, FText, useNotify } from "../src/ui";
 import { TaskProgress } from "../src/ui/TaskProgress";
 
 const NONE = "-1";
@@ -262,12 +262,11 @@ export default function ImportTransactionsScreen() {
             </FintCard>
 
             {missingRequired.length > 0 ? (
-              <XStack items="center" gap={5} mx={space[4]} mt={12} accessibilityRole="alert">
-                <CircleAlert size={13} color="$dangerHard" strokeWidth={2.2} />
-                <FText variant="caption" tone="dangerHard" style={{ flex: 1, fontFamily: fontFace.sans[600] }}>
-                  {t("import.missingRequired", { fields: missingRequired.map((field) => t(`import.fields.${field}`)).join(", ") })}
-                </FText>
-              </XStack>
+              <ErrorLine
+                message={t("import.missingRequired", { fields: missingRequired.map((field) => t(`import.fields.${field}`)).join(", ") })}
+                mx={space[4]}
+                mt={12}
+              />
             ) : (
               <Pressable onPress={() => setShowMapping((value) => !value)} accessibilityRole="button" accessibilityState={{ expanded: showMapping }}>
                 <XStack items="center" justify="center" gap={6} py={14}>
