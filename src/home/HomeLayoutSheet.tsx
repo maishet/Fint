@@ -79,6 +79,7 @@ export function HomeLayoutSheet({ open, onClose, layout, onChange }: Props) {
             <SortableRow
               key={section.id}
               id={section.id}
+              index={index}
               count={layout.sections.length}
               positions={positions}
               onDrop={drop}
@@ -123,6 +124,7 @@ function indexOf(layout: HomeLayout): Record<string, number> {
  */
 function SortableRow({
   id,
+  index,
   count,
   positions,
   onDrop,
@@ -135,6 +137,8 @@ function SortableRow({
   children,
 }: {
   id: HomeSectionId;
+  /** Su lugar al montarse; después manda `positions`. */
+  index: number;
   count: number;
   positions: { value: Record<string, number> };
   onDrop: (id: HomeSectionId, to: number) => void;
@@ -148,7 +152,9 @@ function SortableRow({
   children: ReactNode;
 }) {
   const { t } = useTranslation();
-  const top = useSharedValue((positions.value[id] ?? 0) * ROW);
+  // El valor inicial sale del índice y no de `positions.value`: el argumento se evalúa en cada render, y leer un
+  // valor compartido mientras React dibuja es lo que Reanimated avisa en modo estricto.
+  const top = useSharedValue(index * ROW);
   const start = useSharedValue(0);
   const dragging = useSharedValue(false);
 
