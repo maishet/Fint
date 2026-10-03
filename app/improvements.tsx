@@ -44,7 +44,7 @@ function shouldOpenInsideFeaturebase(request: ShouldStartLoadRequest) {
     const url = new URL(request.url);
     if (url.protocol !== "https:") return false;
     return (
-      url.hostname === "fint.featurebase.app" || url.hostname.endsWith(".featurebase.app") || url.hostname.endsWith(".featurebase-attachments.com")
+      url.hostname === "my-fint.featurebase.app" || url.hostname.endsWith(".featurebase.app") || url.hostname.endsWith(".featurebase-attachments.com")
     );
   } catch {
     return false;
