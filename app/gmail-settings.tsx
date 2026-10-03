@@ -207,7 +207,7 @@ export default function GmailSettingsScreen() {
               <FintButton
                 variant="danger"
                 haptic="warning"
-                disabled={disconnectMutation.isPending}
+                pending={disconnectMutation.isPending}
                 onPress={() => disconnectMutation.mutate(menuFor.id)}
               >
                 {disconnectMutation.isPending ? <FintSpinner color="$onDanger" /> : t("gmail.disconnect")}
@@ -216,7 +216,7 @@ export default function GmailSettingsScreen() {
                 variant="ghost"
                 bg="$surfaceSunken"
                 color="$ink"
-                disabled={disconnectMutation.isPending}
+                pending={disconnectMutation.isPending}
                 onPress={() => setConfirmOpen(false)}
               >
                 {t("actions.cancel")}

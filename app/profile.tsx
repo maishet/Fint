@@ -187,7 +187,7 @@ export default function ProfileScreen() {
         ) : null}
 
         <YStack mt="auto" pt={space[6]} px={space[4]}>
-          <FintButton disabled={!changed || isSaving} opacity={changed ? 1 : 0.42} onPress={() => void save()}>
+          <FintButton disabled={!changed} pending={isSaving} onPress={() => void save()}>
             {isSaving ? <FintSpinner color="$onBrand" /> : t("profile.save")}
           </FintButton>
         </YStack>
@@ -287,7 +287,7 @@ function ChangePasswordSheet({ open, onClose }: { open: boolean; onClose: () => 
         {field("newPassword", t("profile.newPassword"), "password-new")}
         {field("confirmPassword", t("profile.confirmNewPassword"), "password-new")}
         <YStack mt={8}>
-          <FintButton disabled={pending} onPress={() => void submit()}>
+          <FintButton pending={pending} onPress={() => void submit()}>
             {pending ? <FintSpinner color="$onBrand" /> : t("profile.updatePassword")}
           </FintButton>
         </YStack>

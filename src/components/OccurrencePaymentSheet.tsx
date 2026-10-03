@@ -240,7 +240,7 @@ export function OccurrencePaymentSheet({
 
           {errorMessage ? <ErrorLine message={errorMessage} /> : null}
           <YStack mt={20}>
-            <FintButton disabled={mutation.isPending || eligibleAccounts.length === 0} onPress={submit}>
+            <FintButton disabled={eligibleAccounts.length === 0} pending={mutation.isPending} onPress={submit}>
               {mutation.isPending ? <FintSpinner color="$onBrand" /> : t("payments.confirmPayment")}
             </FintButton>
           </YStack>

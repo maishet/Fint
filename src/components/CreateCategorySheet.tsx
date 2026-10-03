@@ -261,7 +261,7 @@ export function CreateCategorySheet({ initialType, category, onCreated, onUpdate
           </XStack>
 
           <YStack mt={18} gap={10}>
-            <FintButton disabled={mutation.isPending} onPress={submit}>
+            <FintButton pending={mutation.isPending} onPress={submit}>
               {mutation.isPending ? <FintSpinner color="$onBrand" /> : t(isEditing ? "categories.update" : "categories.create")}
             </FintButton>
             {isEditing && category && onDelete ? (

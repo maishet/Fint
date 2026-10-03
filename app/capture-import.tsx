@@ -348,7 +348,7 @@ export default function CaptureImportScreen() {
                 {failedCount > 0 ? <Stat label={t("capture.failed")} value={failedCount} tone="dangerHard" /> : null}
               </XStack>
               <View self="stretch" mt={4}>
-                <FintButton variant="outlined" disabled={busy} icon={<Plus size={16} color="$ink" />} onPress={addMoreImages}>
+                <FintButton variant="outlined" pending={busy} icon={<Plus size={16} color="$ink" />} onPress={addMoreImages}>
                   {t("capture.addMore")}
                 </FintButton>
               </View>
@@ -372,7 +372,8 @@ export default function CaptureImportScreen() {
 
           <View px={space[4]} pt={space[3]} pb={Math.max(insets.bottom, 16) + 10} bg="$canvas">
             <FintButton
-              disabled={isProcessing || (needsAnswers && !allAnswered) || finishMutation.isPending || deleteRowMutation.isPending}
+              disabled={needsAnswers && !allAnswered}
+              pending={isProcessing || finishMutation.isPending || deleteRowMutation.isPending}
               onPress={finish}
             >
               {finishMutation.isPending ? <FintSpinner color="$onBrand" /> : needsAnswers ? t("capture.save") : t("capture.done")}
@@ -593,10 +594,10 @@ function DeleteRowSheet({
           {t(willDiscardPending ? "capture.deleteRowDescriptionCreated" : "capture.deleteRowDescription")}
         </FText>
         <YStack self="stretch" gap={10} mt={22}>
-          <FintButton variant="danger" haptic="warning" disabled={isPending} onPress={onConfirm}>
+          <FintButton variant="danger" haptic="warning" pending={isPending} onPress={onConfirm}>
             {isPending ? <FintSpinner color="$onDanger" /> : t("capture.deleteRowConfirm")}
           </FintButton>
-          <FintButton variant="ghost" bg="$surfaceSunken" color="$ink" disabled={isPending} onPress={onCancel}>
+          <FintButton variant="ghost" bg="$surfaceSunken" color="$ink" pending={isPending} onPress={onCancel}>
             {t("actions.cancel")}
           </FintButton>
         </YStack>

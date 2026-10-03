@@ -218,7 +218,7 @@ export default function ImportTransactionsScreen() {
           </FText>
           <View width={240} mt={10}>
             <FintButton
-              disabled={isReading}
+              pending={isReading}
               icon={isReading ? <FintSpinner color="$onBrand" /> : <FileUp size={18} color="$onBrand" />}
               onPress={pickFile}
             >
@@ -305,7 +305,8 @@ export default function ImportTransactionsScreen() {
 
           <View px={space[4]} pt={space[3]} pb={Math.max(insets.bottom, 16) + 10} bg="$canvas">
             <FintButton
-              disabled={importMutation.isPending || parsed.items.length === 0 || missingRequired.length > 0}
+              disabled={parsed.items.length === 0 || missingRequired.length > 0}
+              pending={importMutation.isPending}
               onPress={() => importMutation.mutate()}
             >
               {importMutation.isPending ? <FintSpinner color="$onBrand" /> : t("import.confirm", { count: parsed.items.length })}

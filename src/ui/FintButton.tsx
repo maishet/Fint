@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Button, type ButtonProps } from "tamagui";
+import { opacity } from "../theme/tokens";
 import { haptics } from "./haptics";
 
 type FintButtonVariant = "solid" | "outlined" | "soft" | "danger" | "ghost";
@@ -10,6 +11,10 @@ type FintButtonVariant = "solid" | "outlined" | "soft" | "danger" | "ghost";
  * - `soft`: secundaria en `brandWash` con texto `brand` (Confirmar en una lista, Pagar no vencido).
  * - `danger`: solo para borrar. Relleno `dangerHard`.
  * - `ghost`: solo texto, para "Ahora no" o "Cancelar" bajo otro botón.
+ *
+ * `disabled` es "todavía no se puede": conserva el color y baja a `opacity.disabled`. `pending` es "ya se está
+ * haciendo" (guardando, con el spinner dentro): ignora los toques pero queda a opacidad completa y el lector lo
+ * anuncia ocupado, no desactivado. Quien pasa su propio `opacity` manda sobre los dos.
  */
 const variantStyles: Record<FintButtonVariant, { bg: string; pressBg: string; color: string; border: string }> = {
   solid: { bg: "$brand", pressBg: "$brandStrong", color: "$onBrand", border: "$brand" },
@@ -22,10 +27,13 @@ const variantStyles: Record<FintButtonVariant, { bg: string; pressBg: string; co
 interface FintButtonProps extends Omit<ButtonProps, "variant"> {
   variant?: FintButtonVariant;
   haptic?: "tap" | "select" | "warning" | "none";
+  /** Guardando: no responde al toque, pero no se atenúa ni se anuncia desactivado. */
+  pending?: boolean;
 }
 
 export function FintButton({
   disabled,
+  pending = false,
   onPress,
   variant = "solid",
   haptic = "tap",
@@ -48,7 +56,7 @@ export function FintButton({
   };
 
   const handlePress: ButtonProps["onPress"] = (event) => {
-    if (disabled || isPressLockedRef.current || !onPress) return;
+    if (disabled || pending || isPressLockedRef.current || !onPress) return;
     if (haptic !== "none") haptics[haptic]();
     isPressLockedRef.current = true;
     const result: unknown = (
@@ -80,13 +88,19 @@ export function FintButton({
         bg: v.pressBg as ButtonProps["bg"],
         borderColor: v.border as ButtonProps["borderColor"],
       }}
-      pressStyle={{
-        bg: v.pressBg as ButtonProps["bg"],
-        borderColor: v.border as ButtonProps["borderColor"],
-        opacity: 0.88,
-        scale: 0.97,
-      }}
+      pressStyle={
+        pending
+          ? undefined
+          : {
+              bg: v.pressBg as ButtonProps["bg"],
+              borderColor: v.border as ButtonProps["borderColor"],
+              opacity: opacity.press,
+              scale: 0.97,
+            }
+      }
+      opacity={disabled ? opacity.disabled : 1}
       disabled={disabled}
+      aria-busy={pending || undefined}
       onPress={handlePress}
       {...props}
     />
