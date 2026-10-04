@@ -1,4 +1,4 @@
-import { Eye, EyeOff, MailCheck } from "@tamagui/lucide-icons-2";
+import { Eye, EyeOff } from "@tamagui/lucide-icons-2";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { Redirect, useFocusEffect } from "expo-router";
 import { setStatusBarStyle } from "expo-status-bar";
@@ -12,6 +12,7 @@ import { Text, useTheme, useThemeName, View, XStack, YStack } from "tamagui";
 import { z } from "zod";
 import { useAuth } from "../src/auth/AuthProvider";
 import { authErrorFor, type AuthErrorField } from "../src/auth/authErrors";
+import { VerifyEmailStep } from "../src/auth/VerifyEmailStep";
 import { getValidationMessage, useSubmitValidation } from "../src/forms";
 import { HeroMesh } from "../src/home/HeroMesh";
 import { radius, space } from "../src/theme/tokens";
@@ -29,19 +30,21 @@ type ServerError = { field: AuthErrorField; message: string };
  * "Continuar con Google" va primero: es un toque y no pide recordar nada; el
  * correo queda debajo para quien lo prefiera. Los errores aparecen al tocar el
  * botón, no mientras se escribe: el campo toma borde `dangerHard` y el mensaje
- * va debajo con el icono de alerta.
+ * va debajo con el icono de alerta. Si el correo falta confirmar (cuenta recién
+ * creada, o al entrar con una sin confirmar), la hoja pasa al paso del código.
  */
 export default function LoginScreen() {
   const { i18n, t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { session, signIn, signInWithApple, signInWithGoogle, signUp } = useAuth();
+  const { resendVerification, session, signIn, signInWithApple, signInWithGoogle, signUp } = useAuth();
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [serverError, setServerError] = useState<ServerError | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  // El correo que falta confirmar: mientras exista, la hoja muestra el paso del código en lugar del formulario.
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [focused, setFocused] = useState<Field | null>(null);
@@ -112,7 +115,6 @@ export default function LoginScreen() {
 
     setIsSubmitting(true);
     setServerError(null);
-    setSuccessMessage(null);
     const result =
       action === "signin"
         ? await signIn(submittedEmail, submittedPassword)
@@ -125,9 +127,16 @@ export default function LoginScreen() {
     if (!isMountedRef.current) return;
     if (result.error) {
       const known = authErrorFor(result.error.message);
-      setServerError({ field: known.field, message: known.key ? t(known.key) : result.error.message });
-    } else if (action === "signup") {
-      setSuccessMessage(t("auth.signUpSuccess"));
+      if (action === "signin" && known.key === "auth.emailNotConfirmed") {
+        // La cuenta existe pero nunca se confirmó: se manda un código nuevo y se pide aquí mismo. Si Supabase
+        // rechaza el reenvío por ser muy pronto, sirve el código del correo anterior.
+        void resendVerification(submittedEmail);
+        setPendingEmail(submittedEmail);
+      } else {
+        setServerError({ field: known.field, message: known.key ? t(known.key) : result.error.message });
+      }
+    } else if ("needsVerification" in result && result.needsVerification) {
+      setPendingEmail(submittedEmail);
     }
     setIsSubmitting(false);
   };
@@ -135,7 +144,6 @@ export default function LoginScreen() {
   const switchMode = () => {
     setAuthMode((current) => (current === "login" ? "register" : "login"));
     setServerError(null);
-    setSuccessMessage(null);
     validation.resetErrors();
   };
 
@@ -192,7 +200,13 @@ export default function LoginScreen() {
           pb={Math.max(insets.bottom, space[4]) + 18}
           style={{ borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl }}
         >
-          <YStack width="100%" maxW={420} self="center" grow={1}>
+          {pendingEmail ? (
+            <YStack width="100%" maxW={420} self="center" grow={1}>
+              <VerifyEmailStep email={pendingEmail} onChangeEmail={() => setPendingEmail(null)} />
+            </YStack>
+          ) : null}
+          {/* El formulario sigue montado detrás del paso del código: "Usar otro correo" vuelve con lo escrito. */}
+          <YStack width="100%" maxW={420} self="center" grow={1} display={pendingEmail ? "none" : "flex"}>
             <Text color="$ink" style={{ ...textStyles.title, fontSize: 22, lineHeight: 28, letterSpacing: -0.5 }}>
               {isLogin ? t("auth.welcome") : t("auth.registerTitle")}
             </Text>
@@ -304,15 +318,6 @@ export default function LoginScreen() {
               )}
               {generalError ? <ErrorLine message={generalError} mt={0} /> : null}
             </YStack>
-
-            {successMessage ? (
-              <XStack mt={16} p={14} gap={10} rounded={radius.md} bg="$brandWash" items="flex-start">
-                <MailCheck size={18} color="$brand" strokeWidth={2} style={{ marginTop: 1 }} />
-                <FText variant="label" style={{ flex: 1, fontSize: 14, lineHeight: 20 }}>
-                  {successMessage}
-                </FText>
-              </XStack>
-            ) : null}
 
             <View mt={16}>
               <FintButton
