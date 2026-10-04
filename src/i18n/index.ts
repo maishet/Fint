@@ -1285,8 +1285,6 @@ i18n.addResourceBundle(
   {
     auth: {
       name: "Nombre",
-      signUpSuccess:
-        "Cuenta creada. Si Supabase requiere confirmación, revisa tu correo antes de entrar.",
     },
     authCallback: {
       timeout:
@@ -1795,8 +1793,6 @@ i18n.addResourceBundle(
   {
     auth: {
       name: "Name",
-      signUpSuccess:
-        "Account created. If Supabase requires confirmation, check your email before signing in.",
     },
     authCallback: {
       timeout: "Sign-in took too long. Go back to login and try again.",
@@ -2296,8 +2292,6 @@ i18n.addResourceBundle(
   {
     auth: {
       name: "Nome",
-      signUpSuccess:
-        "Conta criada. Se o Supabase exigir confirmação, verifique seu e-mail antes de entrar.",
     },
     authCallback: {
       timeout: "O login demorou demais. Volte ao login e tente novamente.",

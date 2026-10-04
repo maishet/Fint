@@ -20,7 +20,9 @@ interface AuthContextValue {
   isLoading: boolean
   session: Session | null
   signIn: (email: string, password: string) => Promise<AuthResult>
-  signUp: (email: string, password: string, displayName: string) => Promise<AuthResult>
+  signUp: (email: string, password: string, displayName: string) => Promise<AuthResult & { needsVerification: boolean }>
+  verifyEmail: (email: string, code: string) => Promise<AuthResult>
+  resendVerification: (email: string) => Promise<AuthResult>
   signInWithGoogle: () => Promise<AuthResult>
   signInWithApple: () => Promise<AuthResult>
   updateDisplayName: (displayName: string) => Promise<AuthResult>
@@ -110,7 +112,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error }
       },
       async signUp(email, password, displayName) {
-        const { error } = await supabase.auth.signUp({ email, password, options: { data: { display_name: displayName.trim() } } })
+        const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { display_name: displayName.trim() } } })
+        if (error) return { error, needsVerification: false }
+        // Con la confirmación de correo activa, Supabase no revela que el correo ya tiene cuenta: responde sin error
+        // y con un usuario sin identidades. Se trata igual que el error de siempre.
+        if (data.user?.identities?.length === 0) return { error: new Error('User already registered'), needsVerification: false }
+        // Sin sesión, falta confirmar el correo con el código que llega por correo.
+        return { error: null, needsVerification: !data.session }
+      },
+      async verifyEmail(email, code) {
+        signingIn.current = true
+        const { error } = await supabase.auth.verifyOtp({ email, token: code, type: 'email' })
+        if (error) signingIn.current = false
+        return { error }
+      },
+      async resendVerification(email) {
+        const { error } = await supabase.auth.resend({ type: 'signup', email })
         return { error }
       },
       async signInWithGoogle() {
