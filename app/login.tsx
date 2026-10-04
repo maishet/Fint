@@ -2,22 +2,24 @@ import { Eye, EyeOff } from "@tamagui/lucide-icons-2";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { Redirect, useFocusEffect } from "expo-router";
 import { setStatusBarStyle } from "expo-status-bar";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Keyboard, Platform, Pressable, TextInput, type TextInputProps } from "react-native";
+import { Keyboard, Platform, Pressable, TextInput } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import Animated, { Extrapolation, interpolate, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, useTheme, useThemeName, View, XStack, YStack } from "tamagui";
 import { z } from "zod";
+import { AuthField } from "../src/auth/AuthField";
 import { useAuth } from "../src/auth/AuthProvider";
 import { authErrorFor, type AuthErrorField } from "../src/auth/authErrors";
+import { ForgotPasswordStep } from "../src/auth/ForgotPasswordStep";
 import { VerifyEmailStep } from "../src/auth/VerifyEmailStep";
 import { getValidationMessage, useSubmitValidation } from "../src/forms";
 import { HeroMesh } from "../src/home/HeroMesh";
 import { radius, space } from "../src/theme/tokens";
 import { fontFace, textStyles } from "../src/theme/typography";
-import { ErrorLine, FintButton, FintSpinner, FText, PressableScale, SheetField, SheetTextInput } from "../src/ui";
+import { ErrorLine, FintButton, FintSpinner, FText, PressableScale } from "../src/ui";
 import { BrandSymbol } from "../src/ui/BrandSymbol";
 import { GoogleMark } from "../src/ui/GoogleMark";
 
@@ -45,6 +47,7 @@ export default function LoginScreen() {
   const [serverError, setServerError] = useState<ServerError | null>(null);
   // El correo que falta confirmar: mientras exista, la hoja muestra el paso del código en lugar del formulario.
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [isRecovering, setIsRecovering] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [focused, setFocused] = useState<Field | null>(null);
@@ -204,9 +207,13 @@ export default function LoginScreen() {
             <YStack width="100%" maxW={420} self="center" grow={1}>
               <VerifyEmailStep email={pendingEmail} onChangeEmail={() => setPendingEmail(null)} />
             </YStack>
+          ) : isRecovering ? (
+            <YStack width="100%" maxW={420} self="center" grow={1}>
+              <ForgotPasswordStep initialEmail={email.trim()} onBack={() => setIsRecovering(false)} />
+            </YStack>
           ) : null}
-          {/* El formulario sigue montado detrás del paso del código: "Usar otro correo" vuelve con lo escrito. */}
-          <YStack width="100%" maxW={420} self="center" grow={1} display={pendingEmail ? "none" : "flex"}>
+          {/* El formulario sigue montado detrás de los pasos: al volver conserva lo escrito. */}
+          <YStack width="100%" maxW={420} self="center" grow={1} display={pendingEmail || isRecovering ? "none" : "flex"}>
             <Text color="$ink" style={{ ...textStyles.title, fontSize: 22, lineHeight: 28, letterSpacing: -0.5 }}>
               {isLogin ? t("auth.welcome") : t("auth.registerTitle")}
             </Text>
@@ -296,6 +303,23 @@ export default function LoginScreen() {
                   </Pressable>
                 }
               />
+              {isLogin ? (
+                <Pressable
+                  onPress={() => {
+                    setServerError(null);
+                    validation.resetErrors();
+                    setIsRecovering(true);
+                  }}
+                  hitSlop={10}
+                  accessibilityRole="button"
+                  disabled={isSubmitting}
+                  style={{ alignSelf: "flex-end" }}
+                >
+                  <FText tone="brand" style={{ fontSize: 14, fontFamily: fontFace.sans[600] }}>
+                    {t("loginScreen.forgotPassword")}
+                  </FText>
+                </Pressable>
+              ) : null}
               {isLogin ? null : (
                 <AuthField
                   error={errorFor("confirmPassword")}
@@ -350,18 +374,6 @@ export default function LoginScreen() {
         style={[{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top, backgroundColor: theme.slab.val }, statusStrip]}
       />
     </View>
-  );
-}
-
-function AuthField({ error, focused, trailing, ...input }: TextInputProps & { error?: string; focused: boolean; trailing?: ReactNode }) {
-  return (
-    <YStack gap={6}>
-      <SheetField focused={focused} invalid={Boolean(error)}>
-        <SheetTextInput {...input} />
-        {trailing}
-      </SheetField>
-      {error ? <ErrorLine message={error} mt={0} /> : null}
-    </YStack>
   );
 }
 

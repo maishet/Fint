@@ -4,14 +4,10 @@ import { Pressable } from "react-native";
 import { Text, XStack, YStack } from "tamagui";
 import { space } from "../theme/tokens";
 import { fontFace, textStyles } from "../theme/typography";
-import { ErrorLine, FintButton, FintSpinner, FText, SheetField, SheetTextInput } from "../ui";
+import { FintButton, FintSpinner, FText } from "../ui";
 import { useAuth } from "./AuthProvider";
 import { authErrorFor } from "./authErrors";
-
-/** Largo del código del correo: el mismo que "Email OTP Length" en Supabase (Auth → Providers → Email). */
-export const VERIFICATION_CODE_LENGTH = 6;
-/** Supabase no deja pedir otro correo antes de 60 s. */
-const RESEND_WAIT_SECONDS = 60;
+import { CodeField, useResendCountdown, VERIFICATION_CODE_LENGTH } from "./CodeField";
 
 /**
  * Paso de confirmar el correo, dentro de la hoja del login: la persona escribe
@@ -26,24 +22,17 @@ export function VerifyEmailStep({ email, onChangeEmail }: { email: string; onCha
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [focused, setFocused] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useState(RESEND_WAIT_SECONDS);
+  const { secondsLeft, restart } = useResendCountdown();
   const isMountedRef = useRef(true);
 
-  useEffect(
-    () => () => {
-      isMountedRef.current = false;
-    },
-    [],
-  );
-
   useEffect(() => {
-    if (secondsLeft <= 0) return;
-    const timer = setTimeout(() => setSecondsLeft((current) => current - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [secondsLeft]);
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const verify = async (value: string) => {
     if (isVerifying) return;
@@ -73,7 +62,7 @@ export function VerifyEmailStep({ email, onChangeEmail }: { email: string; onCha
     } else {
       setCode("");
       setNotice(t("loginScreen.resent"));
-      setSecondsLeft(RESEND_WAIT_SECONDS);
+      restart();
     }
     setIsResending(false);
   };
@@ -88,30 +77,18 @@ export function VerifyEmailStep({ email, onChangeEmail }: { email: string; onCha
       </FText>
 
       <YStack mt={18} gap={6}>
-        <SheetField focused={focused} invalid={Boolean(error)}>
-          <SheetTextInput
-            autoFocus
-            accessibilityLabel={t("loginScreen.codeLabel")}
-            placeholder={"0".repeat(VERIFICATION_CODE_LENGTH)}
-            keyboardType="number-pad"
-            autoComplete="one-time-code"
-            textContentType="oneTimeCode"
-            maxLength={VERIFICATION_CODE_LENGTH}
-            editable={!isVerifying}
-            value={code}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
-            onChangeText={(value) => {
-              const next = value.replace(/\D/g, "").slice(0, VERIFICATION_CODE_LENGTH);
-              setCode(next);
-              setError(null);
-              if (next.length === VERIFICATION_CODE_LENGTH && next !== code) void verify(next);
-            }}
-            onSubmitEditing={() => void verify(code)}
-            style={{ fontFamily: fontFace.mono[500], fontSize: 22, lineHeight: 28, letterSpacing: 6, textAlign: "center" }}
-          />
-        </SheetField>
-        {error ? <ErrorLine message={error} mt={0} /> : null}
+        <CodeField
+          autoFocus
+          editable={!isVerifying}
+          error={error}
+          value={code}
+          onChangeCode={(next) => {
+            setCode(next);
+            setError(null);
+            if (next.length === VERIFICATION_CODE_LENGTH && next !== code) void verify(next);
+          }}
+          onSubmit={() => void verify(code)}
+        />
         {notice ? (
           <FText variant="caption" tone="inkMuted" accessibilityLiveRegion="polite" style={{ marginHorizontal: 2 }}>
             {notice}

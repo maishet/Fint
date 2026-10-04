@@ -13,6 +13,7 @@ export function authErrorFor(message: string): { field: AuthErrorField; key: str
   if (normalized.includes("email not confirmed")) return { field: "email", key: "auth.emailNotConfirmed" };
   if (normalized.includes("already registered")) return { field: "email", key: "auth.alreadyRegistered" };
   if (normalized.includes("has expired")) return { field: "code", key: "loginScreen.invalidCode" };
+  if (normalized.includes("different from the old")) return { field: "password", key: "loginScreen.samePassword" };
   if (normalized.includes("security purposes") || normalized.includes("rate limit")) return { field: null, key: "loginScreen.resendTooSoon" };
   return { field: null, key: null };
 }

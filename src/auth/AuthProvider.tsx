@@ -23,6 +23,9 @@ interface AuthContextValue {
   signUp: (email: string, password: string, displayName: string) => Promise<AuthResult & { needsVerification: boolean }>
   verifyEmail: (email: string, code: string) => Promise<AuthResult>
   resendVerification: (email: string) => Promise<AuthResult>
+  requestPasswordReset: (email: string) => Promise<AuthResult>
+  resetPassword: (email: string, code: string, newPassword: string) => Promise<AuthResult>
+  cancelPasswordReset: () => Promise<void>
   signInWithGoogle: () => Promise<AuthResult>
   signInWithApple: () => Promise<AuthResult>
   updateDisplayName: (displayName: string) => Promise<AuthResult>
@@ -40,6 +43,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // reautenticación de "Cambiar contraseña"): así el backend sabe cuándo puede avisar de un inicio de sesión nuevo.
   const signingIn = useRef(false)
   const reportedFor = useRef<string | null>(null)
+  // Recuperando la contraseña: el código del correo ya abrió una sesión, pero no se publica hasta guardar la
+  // contraseña nueva. Publicarla antes desmonta el login (las rutas se protegen por sesión) a mitad del paso.
+  const recovering = useRef(false)
 
   // También fuera del contexto, para lo que se dibuja dentro de una hoja (ver `sessionStore`).
   useEffect(() => publishSession(session), [session])
@@ -55,6 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!active) return
+      if (recovering.current && nextSession) return
       setSession(nextSession)
       setIsLoading(false)
       logSessionExpiry(nextSession)
@@ -129,6 +136,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       async resendVerification(email) {
         const { error } = await supabase.auth.resend({ type: 'signup', email })
         return { error }
+      },
+      async requestPasswordReset(email) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email)
+        return { error }
+      },
+      async resetPassword(email, code, newPassword) {
+        // El código sirve una sola vez: si ya se verificó y falló guardar la contraseña, el reintento solo la guarda.
+        if (!recovering.current) {
+          recovering.current = true
+          const { error } = await supabase.auth.verifyOtp({ email, token: code, type: 'recovery' })
+          if (error) {
+            recovering.current = false
+            return { error }
+          }
+        }
+        const { error } = await supabase.auth.updateUser({ password: newPassword })
+        if (error) return { error }
+        recovering.current = false
+        signingIn.current = true
+        const { data } = await supabase.auth.getSession()
+        setSession(data.session)
+        return { error: null }
+      },
+      async cancelPasswordReset() {
+        if (!recovering.current) return
+        recovering.current = false
+        await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined)
       },
       async signInWithGoogle() {
         signingIn.current = true

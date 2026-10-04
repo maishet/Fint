@@ -15,6 +15,13 @@ describe("authErrorFor", () => {
     expect(authErrorFor("Token has expired or is invalid")).toEqual({ field: "code", key: "loginScreen.invalidCode" });
   });
 
+  it("marca la contraseña si la nueva es igual a la anterior", () => {
+    expect(authErrorFor("New password should be different from the old password.")).toEqual({
+      field: "password",
+      key: "loginScreen.samePassword",
+    });
+  });
+
   it("avisa sin campo cuando se pide otro código demasiado pronto", () => {
     const tooSoon = { field: null, key: "loginScreen.resendTooSoon" };
     expect(authErrorFor("For security purposes, you can only request this after 52 seconds.")).toEqual(tooSoon);
