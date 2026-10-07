@@ -1,11 +1,13 @@
 import { useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Linking } from "react-native";
 import type { ShouldStartLoadRequest } from "react-native-webview/lib/WebViewTypes";
 import { YStack } from "tamagui";
 import { DataStateCard } from "../src/components/DataStateCard";
 import { LoadingWebView } from "../src/settings/LoadingWebView";
 import { StackFrame } from "../src/settings/StackFrame";
+import { isAllowedInsideWebView, shouldOpenOutside } from "../src/settings/webViewHosts";
 
 const githubUrl = "https://github.com/maishet/Fint";
 
@@ -75,11 +77,7 @@ function contentConfig(content: ContentKey | undefined) {
 }
 
 function shouldOpenInside(request: ShouldStartLoadRequest, allowedHosts: string[]) {
-  try {
-    const url = new URL(request.url);
-    if (url.protocol !== "https:") return false;
-    return allowedHosts.some((host) => url.hostname === host || url.hostname.endsWith(`.${host}`));
-  } catch {
-    return false;
-  }
+  if (isAllowedInsideWebView(request.url, { domains: allowedHosts })) return true;
+  if (shouldOpenOutside(request.url, request.isTopFrame)) void Linking.openURL(request.url).catch(() => undefined);
+  return false;
 }

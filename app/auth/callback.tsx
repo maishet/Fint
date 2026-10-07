@@ -44,7 +44,7 @@ export default function AuthCallbackScreen() {
 
       const params = getOAuthCallbackParams(callbackUrl)
       const authCode = code ?? params.code
-      if (!authCode && !(params.access_token && params.refresh_token)) {
+      if (!authCode) {
         const session = await waitForSession()
         if (!isMounted) return
         if (session) {
