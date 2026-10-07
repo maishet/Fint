@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Linking } from "react-native";
 import type { ShouldStartLoadRequest } from "react-native-webview/lib/WebViewTypes";
 import { YStack } from "tamagui";
 import { DataStateCard } from "../src/components/DataStateCard";
 import { LoadingWebView } from "../src/settings/LoadingWebView";
 import { StackFrame } from "../src/settings/StackFrame";
+import { httpsHostname, isAllowedInsideWebView, shouldOpenOutside } from "../src/settings/webViewHosts";
 
-const featurebaseUrl = process.env.EXPO_PUBLIC_FEATUREBASE_URL ?? "https://fint.featurebase.app";
+const featurebaseUrl = process.env.EXPO_PUBLIC_FEATUREBASE_URL ?? "https://my-fint.featurebase.app";
+const featurebaseHost = httpsHostname(featurebaseUrl);
 
 export default function ImprovementsScreen() {
   const { t } = useTranslation();
@@ -40,13 +43,7 @@ export default function ImprovementsScreen() {
 }
 
 function shouldOpenInsideFeaturebase(request: ShouldStartLoadRequest) {
-  try {
-    const url = new URL(request.url);
-    if (url.protocol !== "https:") return false;
-    return (
-      url.hostname === "my-fint.featurebase.app" || url.hostname.endsWith(".featurebase.app") || url.hostname.endsWith(".featurebase-attachments.com")
-    );
-  } catch {
-    return false;
-  }
+  if (featurebaseHost && isAllowedInsideWebView(request.url, { hosts: [featurebaseHost] })) return true;
+  if (shouldOpenOutside(request.url, request.isTopFrame)) void Linking.openURL(request.url).catch(() => undefined);
+  return false;
 }

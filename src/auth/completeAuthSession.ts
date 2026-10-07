@@ -28,14 +28,6 @@ async function complete({ code, url }: CompleteAuthSessionInput): Promise<Comple
   const params = getAuthCallbackParams(url)
   if (params.errorCode) return { error: new Error(params.errorCode), session: null }
 
-  if (params.accessToken && params.refreshToken) {
-    const { data, error } = await supabase.auth.setSession({
-      access_token: params.accessToken,
-      refresh_token: params.refreshToken,
-    })
-    return { error, session: data.session }
-  }
-
   const authCode = code ?? params.code
   if (authCode) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(authCode)
@@ -47,14 +39,12 @@ async function complete({ code, url }: CompleteAuthSessionInput): Promise<Comple
 }
 
 function getAuthCallbackParams(url?: string | null) {
-  if (!url) return { accessToken: null, code: null, errorCode: null, refreshToken: null }
+  if (!url) return { code: null, errorCode: null }
 
   const { params, errorCode } = QueryParams.getQueryParams(url)
   return {
-    accessToken: getStringParam(params.access_token),
     code: getStringParam(params.code),
     errorCode: errorCode ?? null,
-    refreshToken: getStringParam(params.refresh_token),
   }
 }
 

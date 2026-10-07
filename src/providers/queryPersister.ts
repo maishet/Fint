@@ -4,7 +4,16 @@ import type { PersistedClient, Persister } from '@tanstack/react-query-persist-c
 const CACHE_FILE_NAME = 'fint-query-cache.json'
 
 function cacheFile() {
-  return new File(Paths.document, CACHE_FILE_NAME)
+  return new File(Paths.cache, CACHE_FILE_NAME)
+}
+
+function removeLegacyDocumentCache() {
+  try {
+    const legacy = new File(Paths.document, CACHE_FILE_NAME)
+    if (legacy.exists) legacy.delete()
+  } catch {
+    // no-op
+  }
 }
 
 export const fileSystemPersister: Persister = {
@@ -14,10 +23,11 @@ export const fileSystemPersister: Persister = {
       file.create({ overwrite: true })
       file.write(JSON.stringify(client))
     } catch {
-      // no-op}
+      // no-op
     }
   },
   async restoreClient() {
+    removeLegacyDocumentCache()
     try {
       const file = cacheFile()
       if (!file.exists) return undefined
@@ -29,6 +39,7 @@ export const fileSystemPersister: Persister = {
     }
   },
   removeClient() {
+    removeLegacyDocumentCache()
     try {
       const file = cacheFile()
       if (file.exists) file.delete()

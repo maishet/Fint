@@ -9,6 +9,7 @@ import { GOOGLE_SIGNIN_BASE_CONFIG } from './googleSignIn'
 import { requestAndRegisterPushInstallation, unregisterPushInstallation } from '../notifications/pushNotifications'
 import { publishSession } from './sessionStore'
 import { reportDevice } from './deviceSession'
+import { fileSystemPersister } from '../providers/queryPersister'
 
 GoogleSignin.configure(GOOGLE_SIGNIN_BASE_CONFIG)
 
@@ -65,7 +66,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(nextSession)
       setIsLoading(false)
       logSessionExpiry(nextSession)
-      if (event === 'SIGNED_OUT') queryClient.clear()
+      if (event === 'SIGNED_OUT') {
+        queryClient.clear()
+        fileSystemPersister.removeClient()
+      }
     })
 
     return () => {
@@ -153,6 +157,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         const { error } = await supabase.auth.updateUser({ password: newPassword })
         if (error) return { error }
+        await supabase.auth.signOut({ scope: 'others' })
         recovering.current = false
         signingIn.current = true
         const { data } = await supabase.auth.getSession()
@@ -186,7 +191,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { error: reauthError } = await supabase.auth.signInWithPassword({ email, password: currentPassword })
         if (reauthError) return { error: reauthError }
         const { error } = await supabase.auth.updateUser({ password: newPassword })
-        return { error }
+        if (error) return { error }
+        await supabase.auth.signOut({ scope: 'others' })
+        return { error: null }
       },
       async signOut() {
         await unregisterPushInstallation().catch(() => undefined)
@@ -198,6 +205,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         setSession(null)
         queryClient.clear()
+        fileSystemPersister.removeClient()
       },
     }),
     [isLoading, queryClient, session]
