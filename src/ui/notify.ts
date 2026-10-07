@@ -1,7 +1,16 @@
 import { useMemo } from "react";
-import { Alert } from "react-native";
+import { AccessibilityInfo, Alert, Platform } from "react-native";
 import { toast } from "sonner-native";
 import { haptics } from "./haptics";
+import { toastAnnouncement, toastDuration } from "./toastTiming";
+
+// Si hay un lector de pantalla activo: los toasts con acción duran más y, en iOS, se anuncian.
+let screenReaderOn = false;
+AccessibilityInfo.isScreenReaderEnabled().then(
+  (enabled) => (screenReaderOn = enabled),
+  () => undefined,
+);
+AccessibilityInfo.addEventListener("screenReaderChanged", (enabled) => (screenReaderOn = enabled));
 
 export type NotifyPreset = "success" | "error" | "info";
 
@@ -24,13 +33,22 @@ function triggerHaptic(preset?: NotifyPreset) {
   else if (preset === "error") haptics.error();
 }
 
-function toSonnerAction(action?: NotifyAction) {
+let lastId = 0;
+
+/** La acción ("Deshacer") cierra el toast: sonner solo lo hace con `cancel`, y quedaba abierto hasta que vencía. */
+function toSonnerAction(id: string, action?: NotifyAction) {
   if (!action) return undefined;
-  return { label: action.label, onClick: action.onPress };
+  return {
+    label: action.label,
+    onClick: () => {
+      toast.dismiss(id);
+      action.onPress();
+    },
+  };
 }
 
-function resolveAction(opts: NotifyOptions) {
-  if (opts.action) return toSonnerAction(opts.action);
+function resolveAction(id: string, opts: NotifyOptions) {
+  if (opts.action) return toSonnerAction(id, opts.action);
   if (opts.detail && opts.detailLabel) {
     const title = opts.detailLabel;
     const body = opts.detail;
@@ -45,10 +63,17 @@ function notifyWithPreset(
   opts: NotifyOptions = {},
 ) {
   triggerHaptic(preset);
+  lastId += 1;
+  const id = `fint-toast-${lastId}`;
+  // sonner-native marca el toast como región viva, que solo anuncia en Android; en iOS se anuncia a mano.
+  if (screenReaderOn && Platform.OS === "ios") {
+    AccessibilityInfo.announceForAccessibility(toastAnnouncement(title, opts.message, opts.action?.label));
+  }
   const data = {
+    id,
     description: opts.message,
-    duration: opts.duration,
-    action: resolveAction(opts),
+    duration: toastDuration(opts.duration, Boolean(opts.action), screenReaderOn),
+    action: resolveAction(id, opts),
   };
   if (preset === "success") return toast.success(title, data);
   if (preset === "error") return toast.error(title, data);

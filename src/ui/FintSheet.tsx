@@ -1,0 +1,249 @@
+import { X } from "@tamagui/lucide-icons-2";
+import { useContext, useEffect, useRef, useState, type ReactNode, type Ref } from "react";
+import { useTranslation } from "react-i18next";
+import { TextInput, useWindowDimensions, type TextInputProps } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Sheet, XStack, YStack, useTheme } from "tamagui";
+import { useSheetBackHandler } from "../hooks/useSheetBackHandler";
+import { SensitiveAmountsContext } from "../privacy/SensitiveAmountsProvider";
+import { useThemeMode } from "../theme/ThemeMode";
+import { motion, radius, shadows, space } from "../theme/tokens";
+import { textStyles } from "../theme/typography";
+import { FText } from "./FText";
+import { IconButton } from "./IconButton";
+import { useHoldModal } from "./ModalScope";
+import { PressableScale } from "./PressableScale";
+
+/**
+ * Desde que la hoja empieza a moverse hasta que se ve en su lugar con `spring-sheet` (el resorte sigue asentándose un
+ * rato más). Medido en el A54 en desarrollo: con 450 ms lo pesado se montaba antes de que la hoja alcanzara a subir.
+ */
+const SETTLED_MS = 800;
+
+export interface FintSheetProps {
+  open: boolean;
+  onClose: () => void;
+  title?: string;
+  subtitle?: string;
+  /**
+   * Acción de texto a la derecha de la cabecera en lugar del botón de cerrar,
+   * por ejemplo "Listo" en la hoja de Nota, donde el teclado ocupa la mitad de abajo.
+   */
+  headerAction?: { label: string; onPress: () => void };
+  /** Contenido largo (lista de categorías, lugares): se desplaza dentro de la hoja. */
+  scrollable?: boolean;
+  /** Alto fijo en porcentaje de la pantalla (por ejemplo `[78]`). Sin él, la hoja toma el alto de su contenido. */
+  snapPoints?: number[];
+  /** `compact` (18px) para hojas de menú como "¿Qué quieres registrar?"; `title` (22px) para las del formulario. */
+  titleSize?: "title" | "compact";
+  /** Sin arrastre para cerrar: la hoja lleva un mapa que se arrastra. Se cierra con el velo, la X o "atrás". */
+  disableDrag?: boolean;
+  /** Sin la X de la cabecera, mientras una tarea corre y se ofrece "Cancelar" al pie. El velo y "atrás" siguen cerrando. */
+  hideClose?: boolean;
+  /** Cuando la hoja terminó de subir: lo pesado del contenido puede montarse recién ahí (mientras, un esqueleto). */
+  onOpened?: () => void;
+  children: ReactNode;
+}
+
+/**
+ * Hoja inferior del sistema, sobre el `Sheet` de Tamagui (el mismo que ya usa
+ * la app). Sube con `spring-sheet` sobre el velo `scrim`, en `surfaceOverlay`
+ * con esquinas `radius-xl` y manija de 38x5. Se cierra arrastrando, tocando el
+ * velo, con el botón de la cabecera o con "atrás" en Android. En oscuro lleva
+ * un filete `line` arriba porque la sombra no se ve.
+ *
+ * Todo lo que se elige dentro de un formulario se elige en una de estas.
+ */
+export function FintSheet({
+  open,
+  onClose,
+  title,
+  subtitle,
+  headerAction,
+  scrollable = false,
+  snapPoints,
+  titleSize = "title",
+  disableDrag = false,
+  hideClose = false,
+  onOpened,
+  children,
+}: FintSheetProps) {
+  const { themeMode } = useThemeMode();
+  // Con "reducir movimiento" la hoja aparece en su lugar, sin subir; el velo sigue entrando con fade.
+  const reduceMotion = useReducedMotion();
+  const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+  const { t } = useTranslation();
+  // La hoja se dibuja en el portal de Tamagui, fuera de los proveedores de la app: se vuelve a proveer
+  // "Ocultar montos" para que un `Amount` dentro de la hoja lo respete.
+  const sensitiveAmounts = useContext(SensitiveAmountsContext);
+
+  useSheetBackHandler(open, onClose);
+
+  // Una hoja montada ya abierta se abre un cuadro después, para que suba con su animación. Así quien la usa puede
+  // montarla y abrirla en un solo render; antes lo hacía en dos y cada uno re-renderizaba toda su pantalla.
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setArmed(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  // "Terminó de subir": Tamagui lo avisa cuando el resorte se asienta del todo, ~2 s después de que la hoja ya se ve
+  // en su lugar. Se avisa a lo que ocurra primero: eso o `SETTLED_MS` desde que la hoja empieza a moverse (no desde que
+  // se abre: entre una cosa y otra pasa un rato, y montar lo pesado en medio congelaba la subida). Una vez por apertura.
+  const shown = open && armed;
+  // Con la hoja abierta, el lector de pantalla no llega al fondo (ver `ModalScope`).
+  useHoldModal(shown);
+  const openedRef = useRef(false);
+  const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const notifyOpened = () => {
+    if (openedRef.current) return;
+    openedRef.current = true;
+    onOpened?.();
+  };
+  useEffect(() => {
+    if (shown) return;
+    openedRef.current = false;
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+    settleTimer.current = null;
+  }, [shown]);
+  useEffect(() => () => {
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+  }, []);
+
+  const header =
+    title || headerAction ? (
+      <XStack items="center" justify="space-between" gap={space[3]} pt={4} pl={space[5]} pr={space[4]}>
+        <YStack flex={1} minW={0}>
+          {title ? (
+            <FText
+              variant="title"
+              accessibilityRole="header"
+              numberOfLines={1}
+              style={titleSize === "compact" ? { fontSize: 18, lineHeight: 23, letterSpacing: -0.3 } : undefined}
+            >
+              {title}
+            </FText>
+          ) : null}
+          {subtitle ? (
+            <FText variant="caption" tone="inkFaint" numberOfLines={1}>
+              {subtitle}
+            </FText>
+          ) : null}
+        </YStack>
+        {headerAction ? (
+          <PressableScale onPress={headerAction.onPress} hitSlop={10} accessibilityRole="button">
+            <FText variant="body-strong" tone="brand">
+              {headerAction.label}
+            </FText>
+          </PressableScale>
+        ) : hideClose ? (
+          <YStack height={34} />
+        ) : (
+          <IconButton label={t("actions.close")} tone="sunken" size={34} icon={<X size={16} color="$inkMuted" strokeWidth={2.2} />} onPress={onClose} />
+        )}
+      </XStack>
+    ) : null;
+
+  return (
+    <Sheet
+      modal
+      open={shown}
+      onOpenChange={(next: boolean) => {
+        if (!next) onClose();
+      }}
+      onPositionChange={() => {
+        if (!shown || openedRef.current || settleTimer.current) return;
+        settleTimer.current = setTimeout(notifyOpened, SETTLED_MS);
+      }}
+      onAnimationComplete={({ open: opened }) => {
+        if (opened) notifyOpened();
+      }}
+      snapPointsMode={snapPoints ? "percent" : "fit"}
+      snapPoints={snapPoints}
+      dismissOnSnapToBottom
+      disableDrag={disableDrag}
+      moveOnKeyboardChange
+      zIndex={110_000}
+      transitionConfig={reduceMotion ? { type: "direct" } : { type: "spring", ...motion.springSheet }}
+    >
+      <Sheet.Overlay bg="$scrim" transition="quick" enterStyle={{ opacity: 0 }} exitStyle={{ opacity: 0 }} />
+      {/*
+        El marco de Tamagui queda transparente y el aspecto va en la capa de adentro: la cubierta que Tamagui pone
+        bajo la hoja copia las props del marco (esquinas, filete, sombra) y al estirar la hoja hacia arriba se veía
+        como una segunda hoja cortada. En su lugar, la capa lleva debajo su propia extensión lisa.
+      */}
+      <Sheet.Frame bg="transparent" overflow="visible" disableHideBottomOverflow>
+        <YStack
+          flex={snapPoints ? 1 : undefined}
+          // iOS: el gesto de escape de VoiceOver (dos dedos en "Z") cierra la hoja, también con `hideClose`.
+          accessibilityViewIsModal
+          onAccessibilityEscape={onClose}
+          bg="$surfaceOverlay"
+          borderTopWidth={themeMode === "dark" ? 1 : 0}
+          borderColor="$line"
+          pb={Math.max(insets.bottom, 16) + 10}
+          style={{
+            borderTopLeftRadius: radius.xl,
+            borderTopRightRadius: radius.xl,
+            boxShadow: shadows[themeMode].sheet,
+          }}
+        >
+          <YStack self="center" width={38} height={5} rounded={999} bg="$lineStrong" opacity={0.45} mt={8} mb={4} />
+          {header}
+          <SensitiveAmountsContext.Provider value={sensitiveAmounts}>
+            {scrollable ? <Sheet.ScrollView showsVerticalScrollIndicator={false}>{children}</Sheet.ScrollView> : children}
+          </SensitiveAmountsContext.Provider>
+          {/* Al estirar la hoja más allá de su alto, esto cubre lo que queda debajo. Va al final para tapar la sombra. */}
+          <YStack position="absolute" t="100%" l={0} r={0} height={height} bg="$surfaceOverlay" pointerEvents="none" />
+        </YStack>
+      </Sheet.Frame>
+    </Sheet>
+  );
+}
+
+/**
+ * Relleno hundido dentro de una hoja (buscador, campo). En oscuro,
+ * `surfaceSunken` y `surfaceOverlay` casi no se distinguen (1.13:1 en claro,
+ * 1.03:1 en oscuro), así que lleva además un filete `lineStrong` de 1px en
+ * reposo: 3.97:1 en claro y 3.23:1 en oscuro, sobre los 3:1 que pide WCAG 1.4.11.
+ */
+export function SheetField({ children, focused = false, invalid = false }: { children: ReactNode; focused?: boolean; invalid?: boolean }) {
+  // Con error, borde `dangerHard` de 1.5px aunque tenga el foco: el error se ve hasta que la persona corrige.
+  if (invalid) {
+    return (
+      <XStack minH={48} px={14} gap={10} items="center" rounded={radius.md} bg="$surfaceSunken" borderWidth={1.5} borderColor="$dangerHard">
+        {children}
+      </XStack>
+    );
+  }
+  return (
+    <XStack
+      minH={48}
+      px={14}
+      gap={10}
+      items="center"
+      rounded={radius.md}
+      bg={focused ? "$surface" : "$surfaceSunken"}
+      borderWidth={focused ? 1.5 : 1}
+      borderColor={focused ? "$brand" : "$lineStrong"}
+    >
+      {children}
+    </XStack>
+  );
+}
+
+/** Campo de texto para usar dentro de `FintSheet` (la hoja sube con el teclado). */
+/** Acepta `ref` (React 19 lo pasa como prop) para poder darle el foco al abrir la hoja. */
+export function SheetTextInput(props: TextInputProps & { ref?: Ref<TextInput> }) {
+  const theme = useTheme();
+  return (
+    <TextInput
+      placeholderTextColor={theme.inkFaint.val}
+      selectionColor={theme.brand.val}
+      {...props}
+      style={[textStyles.body, { flex: 1, color: theme.ink.val, paddingVertical: 12 }, props.style]}
+    />
+  );
+}

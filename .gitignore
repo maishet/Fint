@@ -37,13 +37,29 @@ node_modules
 .idea
 .agents
 
+# env files (repo público: cualquier variante de .env queda fuera salvo el ejemplo)
 .env
-# local env files
-.env.local
-.env.development.local
-.env.test.localp
-.env.production.local
+.env.*
+!.env.example
+
+# credenciales y firmas: nunca versionar
 google-services.json
+GoogleService-Info.plist
+credentials.json
+*.jks
+*.keystore
+*.p8
+*.p12
+*.pem
+*.key
+*.mobileprovision
+*service-account*.json
+
+# artefactos de build
+*.aab
+*.apk
+*.ipa
+
 CLAUDE.md
 AGENTS.md
 
@@ -51,3 +67,5 @@ AGENTS.md
 ios
 android
 .worktrees/
+Claude outputs/
+docs/

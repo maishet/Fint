@@ -48,11 +48,28 @@ export function useUnsavedChangesGuard(isDirty: boolean) {
     if (action) navigation.dispatch(action)
   }, [navigation])
 
+  /**
+   * Como `onConfirm`, pero deja correr algo antes de salir (p. ej. la animación de cierre del formulario de
+   * movimiento): cierra el diálogo, llama a `run` y la navegación pendiente sigue cuando `run` llama a `proceed`.
+   */
+  const confirmWith = useCallback(
+    (run: (proceed: () => void) => void) => {
+      setOpen(false)
+      bypassRef.current = true
+      const action = pendingActionRef.current
+      pendingActionRef.current = null
+      run(() => {
+        if (action) navigation.dispatch(action)
+      })
+    },
+    [navigation],
+  )
+
   /** Ejecuta una navegación sin disparar el diálogo (p. ej. tras guardar). */
   const bypass = useCallback((run: () => void) => {
     bypassRef.current = true
     run()
   }, [])
 
-  return { open, onCancel, onConfirm, bypass }
+  return { open, onCancel, onConfirm, confirmWith, bypass }
 }

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { useQueryClient } from '@tanstack/react-query'
 import { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } from '@react-native-google-signin/google-signin'
@@ -7,6 +7,8 @@ import { AppState } from 'react-native'
 import { supabase } from './supabase'
 import { GOOGLE_SIGNIN_BASE_CONFIG } from './googleSignIn'
 import { requestAndRegisterPushInstallation, unregisterPushInstallation } from '../notifications/pushNotifications'
+import { publishSession } from './sessionStore'
+import { reportDevice } from './deviceSession'
 
 GoogleSignin.configure(GOOGLE_SIGNIN_BASE_CONFIG)
 
@@ -18,7 +20,12 @@ interface AuthContextValue {
   isLoading: boolean
   session: Session | null
   signIn: (email: string, password: string) => Promise<AuthResult>
-  signUp: (email: string, password: string, displayName: string) => Promise<AuthResult>
+  signUp: (email: string, password: string, displayName: string) => Promise<AuthResult & { needsVerification: boolean }>
+  verifyEmail: (email: string, code: string) => Promise<AuthResult>
+  resendVerification: (email: string) => Promise<AuthResult>
+  requestPasswordReset: (email: string) => Promise<AuthResult>
+  resetPassword: (email: string, code: string, newPassword: string) => Promise<AuthResult>
+  cancelPasswordReset: () => Promise<void>
   signInWithGoogle: () => Promise<AuthResult>
   signInWithApple: () => Promise<AuthResult>
   updateDisplayName: (displayName: string) => Promise<AuthResult>
@@ -32,6 +39,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient()
   const [isLoading, setIsLoading] = useState(true)
   const [session, setSession] = useState<Session | null>(null)
+  // Un inicio de sesión en curso desde esta pantalla (no la sesión guardada que se recupera al abrir, ni la
+  // reautenticación de "Cambiar contraseña"): así el backend sabe cuándo puede avisar de un inicio de sesión nuevo.
+  const signingIn = useRef(false)
+  const reportedFor = useRef<string | null>(null)
+  // Recuperando la contraseña: el código del correo ya abrió una sesión, pero no se publica hasta guardar la
+  // contraseña nueva. Publicarla antes desmonta el login (las rutas se protegen por sesión) a mitad del paso.
+  const recovering = useRef(false)
+
+  // También fuera del contexto, para lo que se dibuja dentro de una hoja (ver `sessionStore`).
+  useEffect(() => publishSession(session), [session])
 
   useEffect(() => {
     let active = true
@@ -44,6 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!active) return
+      if (recovering.current && nextSession) return
       setSession(nextSession)
       setIsLoading(false)
       logSessionExpiry(nextSession)
@@ -77,20 +95,87 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     requestAndRegisterPushInstallation().catch((error) => console.warn('[My Fint Push] automatic register failed', error instanceof Error ? error.message : String(error)))
   }, [session])
 
+  useEffect(() => {
+    // Una vez por apertura (la sesión cambia en cada renovación del token) y otra justo después de iniciar sesión.
+    if (!session) {
+      reportedFor.current = null
+      return
+    }
+    const signIn = signingIn.current
+    if (reportedFor.current === session.user.id && !signIn) return
+    reportedFor.current = session.user.id
+    signingIn.current = false
+    reportDevice(signIn).catch(() => undefined)
+  }, [session])
+
   const value = useMemo<AuthContextValue>(
     () => ({
       isLoading,
       session,
       async signIn(email, password) {
+        signingIn.current = true
         const { error } = await supabase.auth.signInWithPassword({ email, password })
+        if (error) signingIn.current = false
         return { error }
       },
       async signUp(email, password, displayName) {
-        const { error } = await supabase.auth.signUp({ email, password, options: { data: { display_name: displayName.trim() } } })
+        const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { display_name: displayName.trim() } } })
+        if (error) return { error, needsVerification: false }
+        // Con la confirmación de correo activa, Supabase no revela que el correo ya tiene cuenta: responde sin error
+        // y con un usuario sin identidades. Se trata igual que el error de siempre.
+        if (data.user?.identities?.length === 0) return { error: new Error('User already registered'), needsVerification: false }
+        // Sin sesión, falta confirmar el correo con el código que llega por correo.
+        return { error: null, needsVerification: !data.session }
+      },
+      async verifyEmail(email, code) {
+        signingIn.current = true
+        const { error } = await supabase.auth.verifyOtp({ email, token: code, type: 'email' })
+        if (error) signingIn.current = false
         return { error }
       },
-      signInWithGoogle: signInWithGoogleNative,
-      signInWithApple: signInWithAppleNative,
+      async resendVerification(email) {
+        const { error } = await supabase.auth.resend({ type: 'signup', email })
+        return { error }
+      },
+      async requestPasswordReset(email) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email)
+        return { error }
+      },
+      async resetPassword(email, code, newPassword) {
+        // El código sirve una sola vez: si ya se verificó y falló guardar la contraseña, el reintento solo la guarda.
+        if (!recovering.current) {
+          recovering.current = true
+          const { error } = await supabase.auth.verifyOtp({ email, token: code, type: 'recovery' })
+          if (error) {
+            recovering.current = false
+            return { error }
+          }
+        }
+        const { error } = await supabase.auth.updateUser({ password: newPassword })
+        if (error) return { error }
+        recovering.current = false
+        signingIn.current = true
+        const { data } = await supabase.auth.getSession()
+        setSession(data.session)
+        return { error: null }
+      },
+      async cancelPasswordReset() {
+        if (!recovering.current) return
+        recovering.current = false
+        await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined)
+      },
+      async signInWithGoogle() {
+        signingIn.current = true
+        const result = await signInWithGoogleNative()
+        if (result.error) signingIn.current = false
+        return result
+      },
+      async signInWithApple() {
+        signingIn.current = true
+        const result = await signInWithAppleNative()
+        if (result.error) signingIn.current = false
+        return result
+      },
       async updateDisplayName(displayName) {
         const { error } = await supabase.auth.updateUser({ data: { display_name: displayName.trim() } })
         return { error }

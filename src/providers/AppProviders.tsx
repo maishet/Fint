@@ -3,13 +3,14 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import * as SecureStore from 'expo-secure-store'
 import { useEffect, useState } from 'react'
 import { useColorScheme } from 'react-native'
-import { TamaguiProvider, Theme, type TamaguiProviderProps } from 'tamagui'
+import { Portal, TamaguiProvider, Theme, type TamaguiProviderProps } from 'tamagui'
 import { config } from '../../tamagui.config'
 import { loadStoredLanguage } from '../i18n'
 import { ApiRequestError } from '../api/client'
 import { AuthProvider } from '../auth/AuthProvider'
 import { ThemeModeContext, type ThemePreference } from '../theme/ThemeMode'
 import { FintToaster } from '../ui/FintToaster'
+import { ModalScope } from '../ui/ModalScope'
 import { SensitiveAmountsProvider } from '../privacy/SensitiveAmountsProvider'
 import { DailyRemindersProvider } from '../notifications/DailyRemindersProvider'
 import { LocationPreferenceProvider } from '../location/LocationPreferenceProvider'
@@ -48,12 +49,17 @@ export function AppProviders({ children, ...rest }: Omit<TamaguiProviderProps, '
     void loadStoredLanguage()
   }, [])
 
+  // Hasta leer la preferencia guardada no se escribe nada: si no, el 'system' inicial la pisaba al arrancar.
+  const [isThemeLoaded, setIsThemeLoaded] = useState(false)
+
   useEffect(() => {
     let isMounted = true
 
     async function loadThemeMode() {
-      const storedThemeMode = await getStoredThemeMode()
-      if (isMounted && storedThemeMode) setThemePreference(storedThemeMode)
+      const storedThemeMode = await getStoredThemeMode().catch(() => null)
+      if (!isMounted) return
+      if (storedThemeMode) setThemePreference(storedThemeMode)
+      setIsThemeLoaded(true)
     }
 
     loadThemeMode()
@@ -64,8 +70,8 @@ export function AppProviders({ children, ...rest }: Omit<TamaguiProviderProps, '
   }, [])
 
   useEffect(() => {
-    storeThemeMode(themePreference)
-  }, [themePreference])
+    if (isThemeLoaded) void storeThemeMode(themePreference).catch(() => undefined)
+  }, [isThemeLoaded, themePreference])
 
   return (
     <ThemeModeContext.Provider value={{ themeMode, themePreference, setThemePreference }}>
@@ -82,9 +88,16 @@ export function AppProviders({ children, ...rest }: Omit<TamaguiProviderProps, '
               },
             }}
           >
-            <AuthProvider><SensitiveAmountsProvider><DailyRemindersProvider><LocationPreferenceProvider>{children}</LocationPreferenceProvider></DailyRemindersProvider></SensitiveAmountsProvider></AuthProvider>
+            <AuthProvider><SensitiveAmountsProvider><DailyRemindersProvider><LocationPreferenceProvider><ModalScope>{children}</ModalScope></LocationPreferenceProvider></DailyRemindersProvider></SensitiveAmountsProvider></AuthProvider>
           </PersistQueryClientProvider>
-          <FintToaster />
+          {/*
+            Los avisos van al mismo portal que las hojas (`FintSheet`, zIndex 110 000) y encima: montados aquí quedaban
+            debajo del portal y un toast lanzado con una hoja abierta ("Deshacer", un error) salía detrás de ella.
+            Por eso también quedan fuera de `ModalScope`, que oculta la app (no el portal) al lector con una hoja abierta.
+          */}
+          <Portal zIndex={200_000}>
+            <FintToaster />
+          </Portal>
         </Theme>
       </TamaguiProvider>
     </ThemeModeContext.Provider>

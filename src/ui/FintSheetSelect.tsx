@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Button, Input, Paragraph, Sheet, XStack, YStack, type XStackProps } from 'tamagui'
 import { useSheetBackHandler } from '../hooks/useSheetBackHandler'
 import { haptics } from './haptics'
+import { useHoldModal } from './ModalScope'
 
 export interface FintSelectOption {
   icon?: ReactNode
@@ -51,6 +52,7 @@ export function FintSheetSelect({ label, onValueChange, options, placeholder, se
     setSearch('')
   }, [])
   useSheetBackHandler(isOpen, closeSheet)
+  useHoldModal(isOpen)
 
   const optionRows = filteredOptions.map((option) => {
     const isSelected = option.value === value
@@ -149,8 +151,9 @@ export function FintSheetSelect({ label, onValueChange, options, placeholder, se
                 flex={1}
                 unstyled
                 color="$color12"
-                placeholderTextColor="$mutedForeground"
+                placeholderTextColor="$inkFaint"
                 placeholder={searchPlaceholder}
+                aria-label={searchPlaceholder}
                 value={search}
                 onChangeText={setSearch}
                 autoCapitalize="none"

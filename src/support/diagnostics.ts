@@ -10,7 +10,7 @@ export function getLastRequestId() {
 
 export function getSupportDiagnostics() {
   return {
-    appVersion: process.env.EXPO_PUBLIC_APP_VERSION ?? '1.0.0',
+    appVersion: process.env.EXPO_PUBLIC_APP_VERSION ?? '2.0.0',
     buildNumber: process.env.EXPO_PUBLIC_BUILD_NUMBER ?? 'dev',
     platform: getPlatformName(),
     environment: process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT ?? 'development',
