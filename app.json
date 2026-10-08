@@ -36,7 +36,8 @@
             "newArchEnabled": true
           },
           "android": {
-            "newArchEnabled": true
+            "newArchEnabled": true,
+            "enableMinifyInReleaseBuilds": true
           }
         }
       ],
