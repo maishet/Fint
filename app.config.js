@@ -2,6 +2,7 @@ const appJson = require('./app.json')
 
 const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim()
 const isProductionBuild = process.env.EAS_BUILD_PROFILE === 'production'
+const isEasBuild = process.env.EAS_BUILD === 'true'
 const iosUrlScheme = process.env.GOOGLE_IOS_URL_SCHEME?.trim() || reverseClientId(iosClientId)
 
 if (!iosUrlScheme && isProductionBuild && process.env.EAS_BUILD_PLATFORM === 'ios') {
@@ -21,11 +22,22 @@ module.exports = ({ config }) => ({
       googleMaps: { apiKey: process.env.GOOGLE_MAPS_ANDROID_API_KEY || '' },
     },
   },
-  plugins: appJson.expo.plugins.map((plugin) =>
-    plugin === '@react-native-google-signin/google-signin' && iosUrlScheme
-      ? ['@react-native-google-signin/google-signin', { iosUrlScheme }]
-      : plugin
-  ),
+  plugins: appJson.expo.plugins.map((plugin) => {
+    if (plugin === '@react-native-google-signin/google-signin' && iosUrlScheme) {
+      return ['@react-native-google-signin/google-signin', { iosUrlScheme }]
+    }
+    if (Array.isArray(plugin) && plugin[0] === '@sentry/react-native/expo') {
+      const [name, options] = plugin
+      return [
+        name,
+        {
+          ...options,
+          experimental_android: { ...options.experimental_android, includeProguardMapping: isEasBuild },
+        },
+      ]
+    }
+    return plugin
+  }),
 })
 
 function reverseClientId(clientId) {

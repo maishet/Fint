@@ -75,7 +75,14 @@
         "@sentry/react-native/expo",
         {
           "organization": "finanzas-app-1x",
-          "project": "fint-mobile"
+          "project": "fint-mobile",
+          "experimental_android": {
+            "enableAndroidGradlePlugin": true,
+            "autoUploadProguardMapping": true,
+            "uploadNativeSymbols": false,
+            "autoUploadNativeSymbols": false,
+            "includeNativeSources": false
+          }
         }
       ],
       "expo-sharing",
