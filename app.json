@@ -2,7 +2,7 @@
   "expo": {
     "name": "My Fint",
     "slug": "finanzas-mobilev2",
-    "version": "2.0.2",
+    "version": "2.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "finanzasmobilev2",
@@ -36,7 +36,8 @@
             "newArchEnabled": true
           },
           "android": {
-            "newArchEnabled": true
+            "newArchEnabled": true,
+            "enableMinifyInReleaseBuilds": true
           }
         }
       ],
@@ -74,7 +75,14 @@
         "@sentry/react-native/expo",
         {
           "organization": "finanzas-app-1x",
-          "project": "fint-mobile"
+          "project": "fint-mobile",
+          "experimental_android": {
+            "enableAndroidGradlePlugin": true,
+            "autoUploadProguardMapping": true,
+            "uploadNativeSymbols": false,
+            "autoUploadNativeSymbols": false,
+            "includeNativeSources": false
+          }
         }
       ],
       "expo-sharing",
