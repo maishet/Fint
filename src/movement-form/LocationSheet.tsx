@@ -72,6 +72,8 @@ export function LocationSheet({ open, onClose, value, suggestion, context, onSav
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const mapRef = useRef<MapView | null>(null);
+  const isMapReady = useRef(false);
+  const pendingRegion = useRef<Region | null>(null);
   const [draft, setDraft] = useState<CapturedLocation | null>(value ?? suggestion);
   const [initial, setInitial] = useState(() => value ?? suggestion ?? FALLBACK_CENTER);
   const [isResolving, setIsResolving] = useState(false);
@@ -87,11 +89,15 @@ export function LocationSheet({ open, onClose, value, suggestion, context, onSav
   useEffect(() => {
     if (!open || expanded) {
       setMapMounted(false);
+      if (!open) pendingRegion.current = null;
       return;
     }
     const id = setTimeout(() => setMapMounted(true), MAP_MOUNT_DELAY_MS);
     return () => clearTimeout(id);
   }, [open, expanded]);
+  useEffect(() => {
+    isMapReady.current = false;
+  }, [mapMounted, themeMode]);
 
   const search = useLocationSearch(open);
   const { places: savedPlaces, save: savePlace, remove: removePlace } = useSavedPlaces();
@@ -110,8 +116,18 @@ export function LocationSheet({ open, onClose, value, suggestion, context, onSav
   });
 
   const jumpTo = useCallback((next: { latitude: number; longitude: number }) => {
-    mapRef.current?.animateToRegion(regionFor(next.latitude, next.longitude, MAP_ZOOM), 400);
+    const region = regionFor(next.latitude, next.longitude, MAP_ZOOM);
+    if (isMapReady.current) mapRef.current?.animateToRegion(region, 400);
+    else pendingRegion.current = region;
   }, []);
+
+  const handleMapReady = () => {
+    isMapReady.current = true;
+    if (pendingRegion.current) {
+      mapRef.current?.animateToRegion(pendingRegion.current, 0);
+      pendingRegion.current = null;
+    }
+  };
 
   const resolve = useCallback(async (next: { latitude: number; longitude: number }) => {
     setDraft({ latitude: next.latitude, longitude: next.longitude, formattedAddress: null });
@@ -314,6 +330,7 @@ export function LocationSheet({ open, onClose, value, suggestion, context, onSav
                       style={StyleSheet.absoluteFill}
                       provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
                       initialRegion={regionFor(initial.latitude, initial.longitude, MAP_ZOOM)}
+                      onMapReady={handleMapReady}
                       onRegionChange={onRegionChange}
                       onRegionChangeComplete={onRegionChangeComplete}
                       rotateEnabled={false}
