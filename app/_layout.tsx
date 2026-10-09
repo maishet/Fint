@@ -174,7 +174,7 @@ function RootLayoutNav() {
   // quedaba con iconos blancos sobre fondo claro.
   useEffect(() => {
     setStatusBarStyle("light");
-    void lockPhoneOrientation();
+    return lockPhoneOrientation();
   }, []);
 
   useEffect(() => {
