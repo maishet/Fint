@@ -1,4 +1,7 @@
+const fs = require('fs')
+const path = require('path')
 const appJson = require('./app.json')
+const androidProguardRules = fs.readFileSync(path.join(__dirname, 'android-proguard-rules.pro'), 'utf8')
 
 const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim()
 const isProductionBuild = process.env.EAS_BUILD_PROFILE === 'production'
@@ -25,6 +28,10 @@ module.exports = ({ config }) => ({
   plugins: appJson.expo.plugins.map((plugin) => {
     if (plugin === '@react-native-google-signin/google-signin' && iosUrlScheme) {
       return ['@react-native-google-signin/google-signin', { iosUrlScheme }]
+    }
+    if (Array.isArray(plugin) && plugin[0] === 'expo-build-properties') {
+      const [name, options] = plugin
+      return [name, { ...options, android: { ...options.android, extraProguardRules: androidProguardRules } }]
     }
     if (Array.isArray(plugin) && plugin[0] === '@sentry/react-native/expo') {
       const [name, options] = plugin
