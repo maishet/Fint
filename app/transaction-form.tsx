@@ -40,7 +40,7 @@ import { NOTE_MAX, NoteSheet } from "../src/movement-form/NoteSheet";
 import { TransferAccounts } from "../src/movement-form/TransferAccounts";
 import { withAlpha } from "../src/theme/color";
 import { useSensitiveMoney } from "../src/privacy/useSensitiveMoney";
-import { radius } from "../src/theme/tokens";
+import { compactBlockMaxWidth, radius } from "../src/theme/tokens";
 import { fontFace } from "../src/theme/typography";
 import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
 import {
@@ -559,7 +559,7 @@ export default function TransactionFormScreen() {
                           </FText>
                         </Pressable>
                       </XStack>
-                      <XStack px={6} accessibilityRole="radiogroup" accessibilityLabel={t("movementForm.category")}>
+                      <XStack px={6} width="100%" maxW={compactBlockMaxWidth} self="center" accessibilityRole="radiogroup" accessibilityLabel={t("movementForm.category")}>
                         {categoriesQuery.isLoading
                           ? [0, 1, 2, 3].map((i) => (
                               <YStack key={i} width="20%" items="center" gap={6} py={4}>
@@ -932,7 +932,7 @@ function SectionsSkeleton({
               </FText>
             </Pressable>
           </XStack>
-          <XStack px={6}>
+          <XStack px={6} width="100%" maxW={compactBlockMaxWidth} self="center">
             <XStack width="80%" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
               {[0, 1, 2, 3].map((i) => (
                 <YStack key={i} width="25%" items="center" gap={6} py={4}>

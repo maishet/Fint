@@ -4,7 +4,7 @@ import { Pressable } from "react-native";
 import Animated, { interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { XStack, YStack, useTheme } from "tamagui";
 import type { AmountKey } from "../forms/amountInput";
-import { COMPACT_FONT_SCALE, motion, radius } from "../theme/tokens";
+import { COMPACT_FONT_SCALE, compactBlockMaxWidth, motion, radius } from "../theme/tokens";
 import { textStyles } from "../theme/typography";
 import { haptics } from "./haptics";
 
@@ -28,14 +28,16 @@ export interface AmountKeypadProps {
  */
 export function AmountKeypad({ onKey, onClear }: AmountKeypadProps) {
   return (
-    <YStack gap={4} px={10} pt={10} borderTopWidth={1} borderColor="$line">
-      {ROWS.map((row) => (
-        <XStack key={row.join("")} gap={4}>
-          {row.map((key) => (
-            <Key key={key} value={key} onKey={onKey} onClear={onClear} />
-          ))}
-        </XStack>
-      ))}
+    <YStack px={10} pt={10} borderTopWidth={1} borderColor="$line" items="center">
+      <YStack gap={4} width="100%" maxW={compactBlockMaxWidth}>
+        {ROWS.map((row) => (
+          <XStack key={row.join("")} gap={4}>
+            {row.map((key) => (
+              <Key key={key} value={key} onKey={onKey} onClear={onClear} />
+            ))}
+          </XStack>
+        ))}
+      </YStack>
     </YStack>
   );
 }

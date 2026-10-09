@@ -178,6 +178,7 @@ export default function LoginScreen() {
           onLayout={(e) => setHeroSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
         >
           <HeroMesh width={heroSize.width} height={heroSize.height} />
+          <YStack width="100%" maxW={420} self="center">
           <XStack items="center" gap={10}>
             <BrandSymbol size={34} disc="$glassSlab" />
             <Text style={{ fontFamily: fontFace.display[600], fontSize: 22, letterSpacing: -0.8 }}>
@@ -191,6 +192,7 @@ export default function LoginScreen() {
           <FText tone="slabMuted" style={{ fontSize: 14, lineHeight: 20, marginTop: 8, maxWidth: 320 }}>
             {isLogin ? t("auth.intro") : t("loginScreen.registerIntro")}
           </FText>
+          </YStack>
         </YStack>
 
         {/* Hoja: en `background`, sube 28px sobre la losa y llega hasta abajo. */}

@@ -50,3 +50,5 @@ export const pressScale = 0.97;
  * tamaño de letra del sistema: más allá, la etiqueta no cabe en su forma. Nunca en texto de lectura.
  */
 export const COMPACT_FONT_SCALE = 1.3;
+
+export const compactBlockMaxWidth = 480;
