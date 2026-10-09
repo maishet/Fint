@@ -16,7 +16,8 @@ type DailyRemindersContextValue = {
   /** Resuelve `false` si no se pudo programar el recordatorio (queda apagado). */
   setEnabled: (enabled: boolean) => Promise<boolean>
   toggle: () => void
-  setReminderTime: (hour: number, minute: number) => void
+  /** Resuelve `false` si el recordatorio estaba activo y no se pudo reprogramar (queda apagado). */
+  setReminderTime: (hour: number, minute: number) => Promise<boolean>
 }
 
 const DailyRemindersContext = createContext<DailyRemindersContextValue | null>(null)
@@ -53,15 +54,13 @@ export function DailyRemindersProvider({ children }: { children: React.ReactNode
         const display = time ?? { hour: new Date().getHours(), minute: new Date().getMinutes() }
         setHourState(display.hour)
         setMinuteState(display.minute)
-        if (wanted && (await isDailyReminderSchedulable())) {
-          await scheduleDailyReminder(display.hour, display.minute).catch(() => undefined)
-          if (!active) return
-          setEnabledState(true)
-        } else {
-          if (wanted) await storeDailyRemindersEnabled(userId, false).catch(() => undefined)
-          if (!active) return
-          setEnabledState(false)
-        }
+        const scheduled =
+          wanted &&
+          (await isDailyReminderSchedulable()) &&
+          (await scheduleDailyReminder(display.hour, display.minute).catch(() => false))
+        if (wanted && !scheduled) await storeDailyRemindersEnabled(userId, false).catch(() => undefined)
+        if (!active) return
+        setEnabledState(scheduled)
         setIsHydrated(true)
       })
       .catch(() => {
@@ -98,12 +97,18 @@ export function DailyRemindersProvider({ children }: { children: React.ReactNode
     return scheduled
   }
 
-  const setReminderTime = (nextHour: number, nextMinute: number) => {
+  const setReminderTime = async (nextHour: number, nextMinute: number): Promise<boolean> => {
     setHourState(nextHour)
     setMinuteState(nextMinute)
     hasStoredTime.current = true
     if (userId) storeDailyReminderTime(userId, nextHour, nextMinute).catch(() => undefined)
-    if (enabled) scheduleDailyReminder(nextHour, nextMinute).catch(() => undefined)
+    if (!enabled) return true
+    const scheduled = await scheduleDailyReminder(nextHour, nextMinute).catch(() => false)
+    if (!scheduled) {
+      setEnabledState(false)
+      if (userId) storeDailyRemindersEnabled(userId, false).catch(() => undefined)
+    }
+    return scheduled
   }
 
   const value = useMemo(() => ({
