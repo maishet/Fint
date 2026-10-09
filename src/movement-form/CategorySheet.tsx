@@ -9,7 +9,7 @@ import { CreateCategorySheet } from "../components/CreateCategorySheet";
 import { getCategoryLabel } from "../finance/categoryLabels";
 import { categoryColorIndex } from "../home/spending";
 import { useThemeMode } from "../theme/ThemeMode";
-import { motion } from "../theme/tokens";
+import { compactBlockMaxWidth, motion } from "../theme/tokens";
 import { fontFace } from "../theme/typography";
 import { FintSheet, FText, SheetField, SheetTextInput } from "../ui";
 import { DashedOutline } from "../ui/DashedOutline";
@@ -122,48 +122,50 @@ export function CategorySheet({ open, onClose, type, categories, frequent, value
         snapPoints={[86]}
         onOpened={() => setReady(true)}
       >
-        <YStack px={16} pt={14}>
-          <SheetField>
-            <Search size={18} color="$inkFaint" />
-            <SheetTextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder={t("movementForm.categorySheet.search")}
-              returnKeyType="search"
-              accessibilityLabel={t("movementForm.categorySheet.search")}
-            />
-            {query ? (
-              <Pressable onPress={() => setQuery("")} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("movementForm.clearSearch")}>
-                <X size={16} color="$inkFaint" />
-              </Pressable>
-            ) : null}
-          </SheetField>
-        </YStack>
+        <YStack width="100%" maxW={compactBlockMaxWidth} self="center">
+          <YStack px={16} pt={14}>
+            <SheetField>
+              <Search size={18} color="$inkFaint" />
+              <SheetTextInput
+                value={query}
+                onChangeText={setQuery}
+                placeholder={t("movementForm.categorySheet.search")}
+                returnKeyType="search"
+                accessibilityLabel={t("movementForm.categorySheet.search")}
+              />
+              {query ? (
+                <Pressable onPress={() => setQuery("")} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("movementForm.clearSearch")}>
+                  <X size={16} color="$inkFaint" />
+                </Pressable>
+              ) : null}
+            </SheetField>
+          </YStack>
 
-        {!needle && frequent.length > 0 ? (
-          <>
-            <SubTitle>{t("movementForm.categorySheet.frequent")}</SubTitle>
-            <Grid>{ready ? frequent.map(tile) : <TileSkeletons count={frequent.length} />}</Grid>
-          </>
-        ) : null}
-
-        {!needle ? <SubTitle>{t("movementForm.categorySheet.all")}</SubTitle> : <View height={10} />}
-        <Grid>
-          {ready ? (
+          {!needle && frequent.length > 0 ? (
             <>
-              {filtered.map(tile)}
-              <NewTile label={t("movementForm.categorySheet.newCategory")} onPress={() => openCreate(null)} />
+              <SubTitle>{t("movementForm.categorySheet.frequent")}</SubTitle>
+              <Grid>{ready ? frequent.map(tile) : <TileSkeletons count={frequent.length} />}</Grid>
             </>
-          ) : (
-            <TileSkeletons count={Math.min(categories.length + 1, SKELETON_TILES)} />
-          )}
-        </Grid>
-        {needle && filtered.length === 0 ? (
-          <FText variant="caption" tone="inkFaint" style={{ textAlign: "center", marginTop: 4 }}>
-            {t("movementForm.categorySheet.empty")}
-          </FText>
-        ) : null}
-        <View height={16} />
+          ) : null}
+
+          {!needle ? <SubTitle>{t("movementForm.categorySheet.all")}</SubTitle> : <View height={10} />}
+          <Grid>
+            {ready ? (
+              <>
+                {filtered.map(tile)}
+                <NewTile label={t("movementForm.categorySheet.newCategory")} onPress={() => openCreate(null)} />
+              </>
+            ) : (
+              <TileSkeletons count={Math.min(categories.length + 1, SKELETON_TILES)} />
+            )}
+          </Grid>
+          {needle && filtered.length === 0 ? (
+            <FText variant="caption" tone="inkFaint" style={{ textAlign: "center", marginTop: 4 }}>
+              {t("movementForm.categorySheet.empty")}
+            </FText>
+          ) : null}
+          <View height={16} />
+        </YStack>
       </FintSheet>
 
       {createMounted ? (

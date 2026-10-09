@@ -62,6 +62,7 @@
         }
       ],
       ["./plugins/withNightWindowBackground", { "color": "#1A2040" }],
+      "./plugins/withAndroidFreeOrientation",
       "@react-native-google-signin/google-signin",
       "expo-apple-authentication",
       [

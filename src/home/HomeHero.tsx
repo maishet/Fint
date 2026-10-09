@@ -21,7 +21,7 @@ import { Text, View, XStack, YStack, useTheme } from "tamagui";
 import { useUserAvatar } from "../auth/useUserAvatar";
 import { amountParts, THIN_SPACE } from "../finance/formatAmount";
 import { useSensitiveAmounts } from "../privacy/SensitiveAmountsProvider";
-import { motion, radius, space } from "../theme/tokens";
+import { compactBlockMaxWidth, motion, radius, space } from "../theme/tokens";
 import { fontFace, textStyles } from "../theme/typography";
 import { isComingSoon } from "../config/comingSoon";
 import { Amount, FText, PressableScale, SoonBadge } from "../ui";
@@ -127,7 +127,7 @@ export function HomeHero(props: HomeHeroProps) {
 
       <Animated.View style={actionsStyle}>
         {/* Entran subiendo 12px, escalonadas 40ms por botón. */}
-        <XStack justify="space-between" px={space[6]} mt={space[6]}>
+        <XStack justify="space-between" px={space[6]} mt={space[6]} width="100%" maxW={compactBlockMaxWidth} self="center">
           {[
             { key: "accounts", icon: <Wallet size={20} color="$slabInk" strokeWidth={1.8} />, onPress: props.onAccounts },
             { key: "scan", icon: <ScanLine size={20} color="$slabInk" strokeWidth={1.8} />, onPress: props.onScan, soon: isComingSoon("photoCapture") },
