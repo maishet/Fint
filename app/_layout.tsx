@@ -38,6 +38,7 @@ import { fintPalette } from "../src/theme/palette";
 import { fontFace, fontFiles } from "../src/theme/typography";
 import { useNotify } from "../src/ui";
 import { isComingSoon } from "../src/config/comingSoon";
+import { lockPhoneOrientation } from "../src/device/lockPhoneOrientation";
 
 export {
   ErrorBoundary,
@@ -173,6 +174,7 @@ function RootLayoutNav() {
   // quedaba con iconos blancos sobre fondo claro.
   useEffect(() => {
     setStatusBarStyle("light");
+    void lockPhoneOrientation();
   }, []);
 
   useEffect(() => {
