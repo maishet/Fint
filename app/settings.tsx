@@ -149,9 +149,13 @@ export default function SettingsScreen() {
       setPushSyncing(false);
     }
   };
-  const enableReminders = async () => {
-    if (await setRemindersEnabled(true)) return;
+  const notifyReminderError = () =>
     notify.error(t("settingsScreen.dailyReminder"), { message: t("settings.dailyReminderError") });
+  const enableReminders = async () => {
+    if (!(await setRemindersEnabled(true))) notifyReminderError();
+  };
+  const changeReminderTime = async (nextHour: number, nextMinute: number) => {
+    if (!(await setReminderTime(nextHour, nextMinute))) notifyReminderError();
   };
   const turnNotificationsOff = async () => {
     setPushState("undetermined");
@@ -259,7 +263,7 @@ export default function SettingsScreen() {
           <FintTimeField
             hour={hour}
             minute={minute}
-            onChange={setReminderTime}
+            onChange={(nextHour, nextMinute) => void changeReminderTime(nextHour, nextMinute)}
             title={t("settings.dailyReminderTime")}
             doneLabel={t("actions.done")}
             renderTrigger={({ onPress }) => (
