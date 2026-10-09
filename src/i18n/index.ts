@@ -1319,6 +1319,8 @@ i18n.addResourceBundle(
       notificationsUnsupported: "No disponible",
       notificationsError:
         "No pudimos activar las notificaciones en este dispositivo.",
+      dailyReminderError:
+        "No pudimos programar el recordatorio en este dispositivo.",
       notificationsSection: "Notificaciones",
       dailyReminders: "Recordatorios diarios",
       dailyRemindersDetail: "Te recordamos anotar tus movimientos cada día",
@@ -1825,6 +1827,7 @@ i18n.addResourceBundle(
       notificationsOff: "Disabled",
       notificationsUnsupported: "Unavailable",
       notificationsError: "We could not enable notifications on this device.",
+      dailyReminderError: "We could not schedule the reminder on this device.",
       notificationsSection: "Notifications",
       dailyReminders: "Daily reminders",
       dailyRemindersDetail: "We'll remind you to log your transactions every day",
@@ -2325,6 +2328,8 @@ i18n.addResourceBundle(
       notificationsUnsupported: "Indisponível",
       notificationsError:
         "Não foi possível ativar as notificações neste dispositivo.",
+      dailyReminderError:
+        "Não foi possível agendar o lembrete neste dispositivo.",
       notificationsSection: "Notificações",
       dailyReminders: "Lembretes diários",
       dailyRemindersDetail: "Lembramos você de anotar suas movimentações todos os dias",

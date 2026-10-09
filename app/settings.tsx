@@ -149,9 +149,13 @@ export default function SettingsScreen() {
       setPushSyncing(false);
     }
   };
+  const enableReminders = async () => {
+    if (await setRemindersEnabled(true)) return;
+    notify.error(t("settingsScreen.dailyReminder"), { message: t("settings.dailyReminderError") });
+  };
   const turnNotificationsOff = async () => {
     setPushState("undetermined");
-    if (remindersEnabled) setRemindersEnabled(false);
+    if (remindersEnabled) void setRemindersEnabled(false);
     setSheet(null);
     await unregisterPushInstallation().catch(() => undefined);
   };
@@ -267,11 +271,11 @@ export default function SettingsScreen() {
                 tone={pushState === "granted" ? "default" : "dim"}
                 disabled={pushState !== "granted"}
                 // Encendido, tocar la fila cambia la hora; apagado, lo enciende.
-                onPress={() => (remindersEnabled ? onPress() : setRemindersEnabled(true))}
+                onPress={() => (remindersEnabled ? onPress() : void enableReminders())}
                 right={
                   <Toggle
                     value={remindersEnabled}
-                    onValueChange={setRemindersEnabled}
+                    onValueChange={(next) => void (next ? enableReminders() : setRemindersEnabled(false))}
                     disabled={pushState !== "granted"}
                     accessibilityLabel={t("settingsScreen.dailyReminder")}
                   />
