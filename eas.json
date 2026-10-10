@@ -49,6 +49,10 @@
         "appleId": "REEMPLAZAR_CON_TU_APPLE_ID",
         "ascAppId": "REEMPLAZAR_CON_EL_APP_ID_DE_APP_STORE_CONNECT",
         "appleTeamId": "REEMPLAZAR_CON_TU_TEAM_ID"
+      },
+      "android": {
+        "track": "internal",
+        "releaseStatus": "completed"
       }
     }
   }

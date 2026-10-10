@@ -11,6 +11,8 @@
     "android": "bunx expo run:android",
     "build:preview:android": "bunx eas-cli build --platform android --profile preview --non-interactive",
     "build:production:android": "bunx eas-cli build --platform android --profile production --non-interactive",
+    "release:android": "bunx eas-cli build --platform android --profile production --auto-submit --non-interactive",
+    "submit:android": "bunx eas-cli submit --platform android --profile production --latest --non-interactive",
     "ios": "bunx expo run:ios",
     "build:simulator:ios": "bunx eas-cli build --platform ios --profile simulator --non-interactive",
     "build:preview:ios": "bunx eas-cli build --platform ios --profile preview --non-interactive",
