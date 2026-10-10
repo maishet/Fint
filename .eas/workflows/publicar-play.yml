@@ -1,0 +1,20 @@
+name: Publicar en Play (prueba interna)
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build_android:
+    type: build
+    params:
+      platform: android
+      profile: production
+
+  submit_android:
+    needs: [build_android]
+    type: submit
+    params:
+      build_id: ${{ needs.build_android.outputs.build_id }}
+      profile: production
