@@ -32,7 +32,8 @@ import { useHomeLayout } from "../../src/home/useHomeLayout";
 import { motion, radius, space } from "../../src/theme/tokens";
 import { fontFace } from "../../src/theme/typography";
 import { useScreenStatusBar } from "../../src/theme/useScreenStatusBar";
-import { Amount, FintSpinner, FText, PressableScale } from "../../src/ui";
+import { Amount, FintSpinner, FText, PressableScale, useComingSoon } from "../../src/ui";
+import { isComingSoon } from "../../src/config/comingSoon";
 import { riseIn } from "../../src/ui/entering";
 import { bellState } from "../../src/notifications/logic";
 import { useNotificationsFeed } from "../../src/notifications/useNotificationsFeed";
@@ -60,6 +61,7 @@ function rubberBand(distance: number) {
 export default function DashboardScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const showSoon = useComingSoon();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [pageIndex, setPageIndex] = useState(0);
@@ -221,7 +223,7 @@ export default function DashboardScreen() {
               onSearch={() => router.push("/search")}
               onNotifications={() => router.push("/notifications")}
               onAccounts={() => router.push("/accounts")}
-              onScan={() => router.push("/capture-import")}
+              onScan={() => (isComingSoon("photoCapture") ? showSoon("photoCapture") : router.push("/capture-import"))}
               onPay={() => router.push("/(tabs)/debts")}
               onMore={() => setMoreOpen(true)}
               onRefresh={refreshFromAction}

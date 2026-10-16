@@ -23,11 +23,8 @@ import { useThemeMode } from "../theme/ThemeMode";
 import { motion, radius, space } from "../theme/tokens";
 import { fontFace } from "../theme/typography";
 import { isComingSoon, isHidden } from "../config/comingSoon";
-import { FintSheet, FText, ListRow, PressableScale, SoonBadge, useNotify } from "../ui";
+import { FintSheet, FText, ListRow, PressableScale, SHEET_OUT_MS, SoonBadge, useComingSoon, useNotify } from "../ui";
 import { haptics } from "../ui/haptics";
-
-/** Lo que tarda la hoja en bajar antes de abrir el formulario. */
-const SHEET_OUT_MS = 220;
 
 interface SheetProps {
   open: boolean;
@@ -176,6 +173,11 @@ export function MoreSheet({ open, onClose }: SheetProps) {
     onClose();
     setTimeout(() => router.push(href), SHEET_OUT_MS);
   };
+  const showSoon = useComingSoon();
+  const explain = (feature: "gmail" | "reportExport") => {
+    onClose();
+    setTimeout(() => showSoon(feature), SHEET_OUT_MS);
+  };
 
   const pending = pendingQuery.data?.count ?? 0;
   const gmail = sourcesQuery.data ? gmailSummary(sourcesQuery.data) : null;
@@ -258,40 +260,54 @@ export function MoreSheet({ open, onClose }: SheetProps) {
 
   if (gmail) {
     const tone = gmail.state === "connected" ? "flowIn" : gmail.state === "reconnect" ? "dangerHard" : "inkFaint";
+    const gmailSoon = isComingSoon("gmail");
+    const gmailCard = (
+      <XStack mx={space[4]} mt={10} rounded={radius.lg} bg="$surface" borderWidth={1} borderColor="$line" py={12} pl={14} pr={12} items="center" gap={12}>
+        <View width={40} height={40} rounded={radius.md} items="center" justify="center" style={{ backgroundColor: withAlpha(theme.chart2.val, 0.14) }}>
+          <Mail size={18} color={theme.chart2.val as never} strokeWidth={2} />
+        </View>
+        <YStack flex={1} minW={0}>
+          <XStack items="center" gap={8}>
+            <FText variant="body-strong" style={{ letterSpacing: -0.15 }}>
+              {t("home.more.gmail")}
+            </FText>
+            <XStack items="center" gap={5}>
+              <View width={6} height={6} rounded={radius.pill} bg={`$${tone}`} />
+              <FText tone={tone} style={{ fontFamily: fontFace.sans[600], fontSize: 11, lineHeight: 14 }}>
+                {t(gmail.state === "connected" ? "home.more.gmailConnected" : gmail.state === "reconnect" ? "home.more.gmailReconnect" : "home.more.gmailOff")}
+              </FText>
+            </XStack>
+          </XStack>
+          {/* La línea de estado cambia con `fade` (leyendo, lo que trajo la lectura). */}
+          <Animated.View key={gmailLine} entering={FadeIn.duration(motion.fade.duration)}>
+            <FText variant="caption" tone="inkFaint" numberOfLines={1}>
+              {gmailLine}
+            </FText>
+          </Animated.View>
+        </YStack>
+        {gmailSoon ? (
+          <SoonBadge />
+        ) : gmail.state === "connected" ? (
+          <ReadNowButton label={t("home.more.gmailReadNow")} busy={readMutation.isPending} onPress={() => readMutation.mutate()} />
+        ) : (
+          <SmallButton label={t(gmail.state === "reconnect" ? "home.more.gmailReconnect" : "home.more.gmailConnect")} onPress={() => go("/gmail-settings")} />
+        )}
+      </XStack>
+    );
     cards.push({
       key: "gmail",
-      node: (
-        <XStack mx={space[4]} mt={10} rounded={radius.lg} bg="$surface" borderWidth={1} borderColor="$line" py={12} pl={14} pr={12} items="center" gap={12}>
-          <View width={40} height={40} rounded={radius.md} items="center" justify="center" style={{ backgroundColor: withAlpha(theme.chart2.val, 0.14) }}>
-            <Mail size={18} color={theme.chart2.val as never} strokeWidth={2} />
-          </View>
-          <YStack flex={1} minW={0}>
-            <XStack items="center" gap={8}>
-              <FText variant="body-strong" style={{ letterSpacing: -0.15 }}>
-                {t("home.more.gmail")}
-              </FText>
-              <XStack items="center" gap={5}>
-                <View width={6} height={6} rounded={radius.pill} bg={`$${tone}`} />
-                <FText tone={tone} style={{ fontFamily: fontFace.sans[600], fontSize: 11, lineHeight: 14 }}>
-                  {t(gmail.state === "connected" ? "home.more.gmailConnected" : gmail.state === "reconnect" ? "home.more.gmailReconnect" : "home.more.gmailOff")}
-                </FText>
-              </XStack>
-            </XStack>
-            {/* La línea de estado cambia con `fade` (leyendo, lo que trajo la lectura). */}
-            <Animated.View key={gmailLine} entering={FadeIn.duration(motion.fade.duration)}>
-              <FText variant="caption" tone="inkFaint" numberOfLines={1}>
-                {gmailLine}
-              </FText>
-            </Animated.View>
-          </YStack>
-          {isComingSoon("gmail") ? (
-            <SoonBadge />
-          ) : gmail.state === "connected" ? (
-            <ReadNowButton label={t("home.more.gmailReadNow")} busy={readMutation.isPending} onPress={() => readMutation.mutate()} />
-          ) : (
-            <SmallButton label={t(gmail.state === "reconnect" ? "home.more.gmailReconnect" : "home.more.gmailConnect")} onPress={() => go("/gmail-settings")} />
-          )}
-        </XStack>
+      node: gmailSoon ? (
+        <PressableScale
+          haptic="tap"
+          onPress={() => explain("gmail")}
+          accessibilityRole="button"
+          accessibilityLabel={t("home.more.gmail")}
+          accessibilityHint={t("comingSoon.tapHint")}
+        >
+          {gmailCard}
+        </PressableScale>
+      ) : (
+        gmailCard
       ),
     });
   }
@@ -335,9 +351,8 @@ export function MoreSheet({ open, onClose }: SheetProps) {
               </XStack>
               )
             }
-            // "Pronto": se ve, pero no abre nada.
-            onPress={row.soon ? undefined : () => go(row.href)}
-            accessibilityLabel={row.soon ? `${row.label}. ${t("comingSoon.hint")}` : undefined}
+            onPress={row.soon ? () => explain("reportExport") : () => go(row.href)}
+            accessibilityLabel={row.soon ? `${row.label}. ${t("comingSoon.tapHint")}` : undefined}
           />
         ))}
       </YStack>

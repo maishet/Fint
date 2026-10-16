@@ -24,27 +24,35 @@ interface HeroMeshProps {
   pull?: SharedValue<number>;
 }
 
+interface SlabMeshProps extends HeroMeshProps {
+  paused?: boolean;
+}
+
 /**
  * La malla del hero: dos resplandores (`heroGlow` arriba a la derecha,
  * `heroGlowSoft` abajo a la izquierda) cuyos centros recorren una elipse lenta,
  * desfasados entre sí. Es atmósfera: nunca se acerca al saldo, no se toca, y se
  * detiene cuando la pantalla no está enfocada o se pide movimiento reducido.
  */
-export function HeroMesh({ width, height, scrollY, pull }: HeroMeshProps) {
-  const theme = useTheme();
+export function HeroMesh(props: HeroMeshProps) {
   const focused = useIsFocused();
+  return <SlabMesh {...props} paused={!focused} />;
+}
+
+export function SlabMesh({ width, height, scrollY, pull, paused = false }: SlabMeshProps) {
+  const theme = useTheme();
   const reduceMotion = useReducedMotion();
   const phase = useSharedValue(0);
 
   useEffect(() => {
-    if (!focused || reduceMotion) {
+    if (paused || reduceMotion) {
       cancelAnimation(phase);
       return;
     }
     // Una vuelta cada 20 s, siempre a la misma velocidad: ni se detiene ni acelera.
     phase.value = withRepeat(withTiming(phase.value + Math.PI * 2, { duration: 20000, easing: Easing.linear }), -1, false);
     return () => cancelAnimation(phase);
-  }, [focused, phase, reduceMotion]);
+  }, [paused, phase, reduceMotion]);
 
   const r1 = Math.max(width, height) * 0.62;
   const r2 = Math.max(width, height) * 0.55;
