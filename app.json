@@ -9,6 +9,12 @@
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#14172B",
     "assetBundlePatterns": ["**/*"],
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/33804127-fd92-4847-a1fb-e9b61f2683bb"
+    },
     "ios": {
       "bundleIdentifier": "com.fint.finanzasmobilev2",
       "supportsTablet": true,
