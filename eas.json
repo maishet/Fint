@@ -6,11 +6,13 @@
   "build": {
     "development": {
       "developmentClient": true,
+      "channel": "development",
       "distribution": "internal",
       "node": "22.14.0"
     },
     "preview": {
       "distribution": "internal",
+      "channel": "preview",
       "node": "22.14.0",
       "env": {
         "EXPO_PUBLIC_COMING_SOON": "photoCapture,gmail,reportExport,emailKeywords",
@@ -33,6 +35,7 @@
     },
     "production": {
       "autoIncrement": true,
+      "channel": "production",
       "node": "22.14.0",
       "env": {
         "EXPO_PUBLIC_COMING_SOON": "photoCapture,gmail,reportExport,emailKeywords",

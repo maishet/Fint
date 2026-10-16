@@ -1,20 +1,51 @@
-name: Publicar en Play (prueba interna)
+name: Publicar en Play (OTA o build)
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: ['main']
 
 jobs:
+  fingerprint:
+    name: Fingerprint
+    type: fingerprint
+    environment: production
+
+  get_android_build:
+    name: Buscar build Android compatible
+    needs: [fingerprint]
+    type: get-build
+    params:
+      platform: android
+      profile: production
+      fingerprint_hash: ${{ needs.fingerprint.outputs.android_fingerprint_hash }}
+      wait_for_in_progress: true
+
   build_android:
+    name: Build Android
+    needs: [get_android_build]
+    if: ${{ !needs.get_android_build.outputs.build_id }}
     type: build
     params:
       platform: android
       profile: production
 
   submit_android:
+    name: Subir a Play (prueba interna)
     needs: [build_android]
     type: submit
     params:
       build_id: ${{ needs.build_android.outputs.build_id }}
       profile: production
+
+  publish_android_update:
+    name: Publicar update OTA Android
+    needs: [get_android_build]
+    if: ${{ needs.get_android_build.outputs.build_id }}
+    type: update
+    environment: production
+    env:
+      EXPO_PUBLIC_COMING_SOON: photoCapture,gmail,reportExport,emailKeywords
+      EXPO_PUBLIC_HIDDEN_FEATURES: csvImport
+    params:
+      channel: production
+      platform: android
