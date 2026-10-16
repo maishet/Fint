@@ -11,6 +11,7 @@ import { AuthProvider } from '../auth/AuthProvider'
 import { ThemeModeContext, type ThemePreference } from '../theme/ThemeMode'
 import { FintToaster } from '../ui/FintToaster'
 import { ModalScope } from '../ui/ModalScope'
+import { ComingSoonProvider } from '../ui/ComingSoonSheet'
 import { SensitiveAmountsProvider } from '../privacy/SensitiveAmountsProvider'
 import { DailyRemindersProvider } from '../notifications/DailyRemindersProvider'
 import { LocationPreferenceProvider } from '../location/LocationPreferenceProvider'
@@ -88,7 +89,7 @@ export function AppProviders({ children, ...rest }: Omit<TamaguiProviderProps, '
               },
             }}
           >
-            <AuthProvider><SensitiveAmountsProvider><DailyRemindersProvider><LocationPreferenceProvider><ModalScope>{children}</ModalScope></LocationPreferenceProvider></DailyRemindersProvider></SensitiveAmountsProvider></AuthProvider>
+            <AuthProvider><SensitiveAmountsProvider><DailyRemindersProvider><LocationPreferenceProvider><ModalScope><ComingSoonProvider>{children}</ComingSoonProvider></ModalScope></LocationPreferenceProvider></DailyRemindersProvider></SensitiveAmountsProvider></AuthProvider>
           </PersistQueryClientProvider>
           {/*
             Los avisos van al mismo portal que las hojas (`FintSheet`, zIndex 110 000) y encima: montados aquí quedaban

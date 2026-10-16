@@ -5,6 +5,8 @@ import { haptics } from "./haptics";
 
 type FintButtonVariant = "solid" | "outlined" | "soft" | "danger" | "ghost";
 
+const MIN_TOUCH_HEIGHT = 44;
+
 /**
  * - `solid`: la acción principal, relleno `brand`. Una por pantalla.
  * - `outlined`: secundaria con borde `lineStrong` (Quitar, Descartar).
@@ -38,8 +40,10 @@ export function FintButton({
   variant = "solid",
   haptic = "tap",
   circular,
+  minH,
   ...props
 }: FintButtonProps) {
+  const height = Math.max(typeof minH === "number" ? minH : 52, MIN_TOUCH_HEIGHT);
   // El candado vive solo en el ref: con `disabled` el lector de pantalla anunciaba "desactivado" tras cada toque.
   const isPressLockedRef = useRef(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -81,7 +85,7 @@ export function FintButton({
       borderColor={v.border as ButtonProps["borderColor"]}
       borderWidth={variant === "outlined" ? 1 : 0}
       circular={circular}
-      {...(circular ? null : { minH: 52, rounded: 14 })}
+      {...(circular ? null : { minH: height, height, rounded: 14 })}
       fontFamily="$body"
       fontWeight="600"
       hoverStyle={{

@@ -49,7 +49,7 @@ import {
 import { radius, space } from "../../src/theme/tokens";
 import { fontFace } from "../../src/theme/typography";
 import { useScreenStatusBar } from "../../src/theme/useScreenStatusBar";
-import { Amount, FintCard, FintSheet, FText, IconButton, ListRow, Monogram, PressableScale, SegmentedControl, SoonBadge } from "../../src/ui";
+import { Amount, FintCard, FintSheet, FText, IconButton, ListRow, Monogram, PressableScale, SegmentedControl, SoonBadge, useComingSoon } from "../../src/ui";
 import { isComingSoon } from "../../src/config/comingSoon";
 import { AmountSkeleton } from "../../src/ui/AmountSkeleton";
 
@@ -128,11 +128,13 @@ export default function ReportsScreen() {
 
   // "Exportar" de la hoja Más llega con `open=export`: se abre la hoja de descarga y el parámetro se limpia.
   const params = useLocalSearchParams<{ open?: string }>();
+  const showSoon = useComingSoon();
   useEffect(() => {
     if (params.open !== "export") return;
-    if (!isComingSoon("reportExport")) setSheet("export");
+    if (isComingSoon("reportExport")) showSoon("reportExport");
+    else setSheet("export");
     router.setParams({ open: undefined });
-  }, [params.open, router]);
+  }, [params.open, router, showSoon]);
 
   useScreenStatusBar();
 
@@ -311,7 +313,7 @@ export default function ReportsScreen() {
             // Se ve, pero todavía no se puede usar.
             <XStack items="center" gap={8}>
               <SoonBadge />
-              <IconButton label={t("reportsTab.share")} accessibilityHint={t("comingSoon.hint")} icon={<Share size={18} color="$ink" strokeWidth={2} />} disabled />
+              <IconButton label={t("reportsTab.share")} accessibilityHint={t("comingSoon.tapHint")} icon={<Share size={18} color="$ink" strokeWidth={2} />} soon onPress={() => showSoon("reportExport")} />
             </XStack>
           ) : (
             <IconButton
