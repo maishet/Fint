@@ -21,6 +21,7 @@ import { secondaryScreensTranslations } from "./secondaryScreens";
 import { loadingScreenTranslations } from "./loadingScreen";
 import { notificationsTranslations } from "./notifications";
 import { searchTranslations } from "./search";
+import { comingSoonTranslations } from "./comingSoon";
 
 export type { AppLanguage };
 
@@ -2950,6 +2951,10 @@ for (const [language, bundle] of Object.entries(notificationsTranslations)) {
 
 // Búsqueda global (el buscador del hero).
 for (const [language, bundle] of Object.entries(searchTranslations)) {
+  i18n.addResourceBundle(language, "translation", bundle, true, false);
+}
+
+for (const [language, bundle] of Object.entries(comingSoonTranslations)) {
   i18n.addResourceBundle(language, "translation", bundle, true, false);
 }
 

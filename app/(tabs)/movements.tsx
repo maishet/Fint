@@ -37,7 +37,7 @@ import {
 import { radius, space } from "../../src/theme/tokens";
 import { fontFace, textStyles } from "../../src/theme/typography";
 import { useScreenStatusBar } from "../../src/theme/useScreenStatusBar";
-import { Amount, Chip, FintButton, FintCard, FintConfirmDialog, FintSheet, FintSpinner, FText, IconButton, ListRow, PressableScale, SoonBadge } from "../../src/ui";
+import { Amount, Chip, FintButton, FintCard, FintConfirmDialog, FintSheet, FintSpinner, FText, IconButton, ListRow, PressableScale, SoonBadge, useComingSoon } from "../../src/ui";
 import { AmountSkeleton } from "../../src/ui/AmountSkeleton";
 import { useNotify } from "../../src/ui/notify";
 import { detailParams } from "../../src/movements/detailParams";
@@ -72,6 +72,7 @@ function capitalize(text: string) {
  * movimiento y revertir un pago o una transferencia.
  */
 export default function MovementsScreen() {
+  const showSoon = useComingSoon();
   const { t, i18n } = useTranslation();
   const locale = getAppLocale(i18n.resolvedLanguage);
   const router = useRouter();
@@ -240,7 +241,7 @@ export default function MovementsScreen() {
           // Se ve, pero todavía no se puede usar.
           <XStack items="center" gap={8}>
             <SoonBadge />
-            <IconButton label={t("movementsTab.scan")} accessibilityHint={t("comingSoon.hint")} disabled icon={<ScanLine size={20} color="$ink" strokeWidth={1.8} />} />
+            <IconButton label={t("movementsTab.scan")} accessibilityHint={t("comingSoon.tapHint")} soon onPress={() => showSoon("photoCapture")} icon={<ScanLine size={20} color="$ink" strokeWidth={1.8} />} />
           </XStack>
         ) : capabilities.features.captureImport ? (
           <IconButton label={t("movementsTab.scan")} icon={<ScanLine size={20} color="$ink" strokeWidth={1.8} />} onPress={() => router.push("/capture-import")} />

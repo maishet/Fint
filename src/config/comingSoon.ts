@@ -3,10 +3,12 @@
  * `EXPO_PUBLIC_COMING_SOON` (separadas por coma) en el perfil de build de la tienda (`eas.json`); en desarrollo, sin
  * la variable, todo está disponible. Para destapar una en la tienda, se quita de la lista.
  */
-export type ComingSoonFeature = "photoCapture" | "gmail" | "reportExport" | "emailKeywords";
+export const comingSoonFeatures = ["photoCapture", "gmail", "reportExport", "emailKeywords"] as const;
+
+export type ComingSoonFeature = (typeof comingSoonFeatures)[number];
 
 export function parseComingSoon(value: string | undefined): ReadonlySet<ComingSoonFeature> {
-  const known: readonly string[] = ["photoCapture", "gmail", "reportExport", "emailKeywords"];
+  const known: readonly string[] = comingSoonFeatures;
   return new Set(
     (value ?? "")
       .split(",")

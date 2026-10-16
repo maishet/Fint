@@ -20,6 +20,7 @@ export interface PressableScaleProps extends PressableProps {
   dim?: boolean;
   /** Háptico en el mismo frame que el cambio visual, al presionar. */
   haptic?: "tap" | "select" | "none";
+  soon?: boolean;
 }
 
 /**
@@ -28,14 +29,14 @@ export interface PressableScaleProps extends PressableProps {
  * la entrada mientras anima.
  */
 export const PressableScale = forwardRef<View, PressableScaleProps>(function PressableScale(
-  { scaleTo = pressScale, dim = true, haptic = "none", disabled, accessibilityState, onPressIn, onPressOut, style, ...props },
+  { scaleTo = pressScale, dim = true, haptic = "none", soon = false, disabled, accessibilityState, onPressIn, onPressOut, style, ...props },
   ref,
 ) {
   const pressed = useSharedValue(0);
   const reduceMotion = useReducedMotion();
 
   const animatedStyle = useAnimatedStyle(() => ({
-    opacity: disabled ? opacity.disabled : dim ? interpolate(pressed.value, [0, 1], [1, opacity.press]) : 1,
+    opacity: disabled || soon ? opacity.disabled : dim ? interpolate(pressed.value, [0, 1], [1, opacity.press]) : 1,
     transform: [{ scale: reduceMotion ? 1 : interpolate(pressed.value, [0, 1], [1, scaleTo]) }],
   }));
 

@@ -460,12 +460,12 @@ function HeroAction({ label, icon, onPress, soon = false }: { label: string; ico
   return (
     <PressableScale
       onPress={onPress}
-      disabled={soon}
+      soon={soon}
       haptic="tap"
       scaleTo={0.94}
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityHint={soon ? t("comingSoon.hint") : undefined}
+      accessibilityHint={soon ? t("comingSoon.tapHint") : undefined}
       style={{ alignItems: "center", width: 64 }}
     >
       <YStack items="center" gap={6}>

@@ -4,7 +4,7 @@ import { Banknote, ChevronDown, Lock, Plus, Trash2, X } from "@tamagui/lucide-ic
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, TextInput } from "react-native";
+import { Keyboard, Pressable, TextInput } from "react-native";
 import { KeyboardAwareScrollView, KeyboardStickyView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { View, XStack, YStack, useTheme } from "tamagui";
@@ -26,7 +26,7 @@ import { useThemeMode } from "../src/theme/ThemeMode";
 import { radius, space } from "../src/theme/tokens";
 import { fontFace, textStyles } from "../src/theme/typography";
 import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
-import { Amount, FintButton, FintSheet, FintSpinner, FText, IconButton, PressableScale, SheetField, SheetTextInput, SoonBadge } from "../src/ui";
+import { Amount, FintButton, FintSheet, FintSpinner, FText, IconButton, PressableScale, SheetField, SheetTextInput, SoonBadge, useComingSoon } from "../src/ui";
 import { isComingSoon } from "../src/config/comingSoon";
 import { AmountSkeleton } from "../src/ui/AmountSkeleton";
 import { haptics } from "../src/ui/haptics";
@@ -51,6 +51,7 @@ const TYPES: AccountType[] = ["cash", "checking_account", "savings_account", "cr
  * "Eliminar cuenta" va al final, con la misma confirmación que un movimiento.
  */
 export default function AccountFormScreen() {
+  const showSoon = useComingSoon();
   const { accountId } = useLocalSearchParams<{ accountId?: string }>();
   const isEditing = Boolean(accountId);
   const { i18n, t } = useTranslation();
@@ -602,24 +603,33 @@ export default function AccountFormScreen() {
                 hint={keywords.length >= MAX_KEYWORDS ? t("accountForm.keywordsFull") : t("accountForm.keywordsHint")}
               >
                 {isComingSoon("emailKeywords") ? (
-                  <XStack
-                    minH={48}
-                    px={14}
-                    gap={10}
-                    items="center"
-                    justify="space-between"
-                    rounded={radius.md}
-                    bg="$surfaceSunken"
-                    borderWidth={1}
-                    borderColor="$line"
-                    accessible
-                    accessibilityLabel={`${t("accountForm.keywords")}. ${t("comingSoon.hint")}`}
+                  <PressableScale
+                    scaleTo={1}
+                    haptic="tap"
+                    onPress={() => {
+                      Keyboard.dismiss();
+                      showSoon("emailKeywords");
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${t("accountForm.keywords")}. ${t("comingSoon.tapHint")}`}
                   >
-                    <FText tone="inkFaint" numberOfLines={1} style={{ flex: 1 }}>
-                      {t("accountForm.keywordsAdd")}
-                    </FText>
-                    <SoonBadge />
-                  </XStack>
+                    <XStack
+                      minH={48}
+                      px={14}
+                      gap={10}
+                      items="center"
+                      justify="space-between"
+                      rounded={radius.md}
+                      bg="$surfaceSunken"
+                      borderWidth={1}
+                      borderColor="$line"
+                    >
+                      <FText tone="inkFaint" numberOfLines={1} style={{ flex: 1 }}>
+                        {t("accountForm.keywordsAdd")}
+                      </FText>
+                      <SoonBadge />
+                    </XStack>
+                  </PressableScale>
                 ) : (
                   <KeywordsField value={keywords} onChange={setKeywords} />
                 )}

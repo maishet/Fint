@@ -63,6 +63,7 @@ import {
   SheetTextInput,
   SoonBadge,
   Toggle,
+  useComingSoon,
   useNotify,
 } from "../src/ui";
 import { isComingSoon } from "../src/config/comingSoon";
@@ -83,6 +84,7 @@ const LANGUAGES: { value: AppLanguage; label: string }[] = [
  * El único acento es el `brand` de los interruptores encendidos.
  */
 export default function SettingsScreen() {
+  const showSoon = useComingSoon();
   const { i18n, t } = useTranslation();
   const language: AppLanguage = i18n.resolvedLanguage === "en" || i18n.resolvedLanguage === "pt" ? i18n.resolvedLanguage : "es";
   const router = useRouter();
@@ -307,7 +309,14 @@ export default function SettingsScreen() {
           />
           {isComingSoon("gmail") ? (
             // Se ve, pero todavía no se puede usar.
-            <Item icon={Mail} label={t("settings.gmail")} tone="dim" right={<SoonBadge />} accessibilityLabel={`${t("settings.gmail")}. ${t("comingSoon.hint")}`} />
+            <Item
+              icon={Mail}
+              label={t("settings.gmail")}
+              tone="dim"
+              right={<SoonBadge />}
+              onPress={() => showSoon("gmail")}
+              accessibilityLabel={`${t("settings.gmail")}. ${t("comingSoon.tapHint")}`}
+            />
           ) : (
             <Item
               icon={Mail}

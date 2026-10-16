@@ -21,6 +21,8 @@ import { PressableScale } from "./PressableScale";
  */
 const SETTLED_MS = 800;
 
+export const SHEET_OUT_MS = 220;
+
 export interface FintSheetProps {
   open: boolean;
   onClose: () => void;
@@ -43,6 +45,7 @@ export interface FintSheetProps {
   hideClose?: boolean;
   /** Cuando la hoja terminó de subir: lo pesado del contenido puede montarse recién ahí (mientras, un esqueleto). */
   onOpened?: () => void;
+  hero?: ReactNode;
   children: ReactNode;
 }
 
@@ -67,6 +70,7 @@ export function FintSheet({
   disableDrag = false,
   hideClose = false,
   onOpened,
+  hero,
   children,
 }: FintSheetProps) {
   const { themeMode } = useThemeMode();
@@ -190,7 +194,14 @@ export function FintSheet({
             boxShadow: shadows[themeMode].sheet,
           }}
         >
-          <YStack self="center" width={38} height={5} rounded={999} bg="$lineStrong" opacity={0.45} mt={8} mb={4} />
+          {hero ? (
+            <YStack overflow="hidden" style={{ borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl }}>
+              {hero}
+              <YStack position="absolute" t={8} self="center" width={38} height={5} rounded={999} bg="$slabInk" opacity={0.35} />
+            </YStack>
+          ) : (
+            <YStack self="center" width={38} height={5} rounded={999} bg="$lineStrong" opacity={0.45} mt={8} mb={4} />
+          )}
           {header}
           <SensitiveAmountsContext.Provider value={sensitiveAmounts}>
             {scrollable ? <Sheet.ScrollView showsVerticalScrollIndicator={false}>{children}</Sheet.ScrollView> : children}
