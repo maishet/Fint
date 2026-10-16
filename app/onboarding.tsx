@@ -4,7 +4,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { setStatusBarStyle } from "expo-status-bar";
 import { useCallback, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { BackHandler, Pressable, useWindowDimensions } from "react-native";
+import { BackHandler, Pressable } from "react-native";
 import Animated, {
   Extrapolation,
   interpolate,
@@ -17,7 +17,7 @@ import Animated, {
   useSharedValue,
   type SharedValue,
 } from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaFrame, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, useTheme, View, XStack, YStack } from "tamagui";
 import { financeApi } from "../src/api/finance";
 import { HeroMesh } from "../src/home/HeroMesh";
@@ -54,7 +54,7 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
-  const { width, height } = useWindowDimensions();
+  const { width, height } = useSafeAreaFrame();
   const { themeMode } = useThemeMode();
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const scrollX = useSharedValue(0);

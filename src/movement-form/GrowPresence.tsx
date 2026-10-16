@@ -1,5 +1,4 @@
 import { forwardRef, useImperativeHandle, useState, type ReactNode } from "react";
-import { useWindowDimensions } from "react-native";
 import Animated, {
   Extrapolation,
   interpolate,
@@ -14,6 +13,7 @@ import Animated, {
   type EntryAnimationsValues,
   type LayoutAnimation,
 } from "react-native-reanimated";
+import { useSafeAreaFrame } from "react-native-safe-area-context";
 import { useTheme } from "tamagui";
 import { motion } from "../theme/tokens";
 import { getFabOrigin } from "../ui/fabOrigin";
@@ -57,7 +57,7 @@ export const GrowPresence = forwardRef<
 >(function GrowPresence({ fromFab, onEntered, children }, ref) {
   const theme = useTheme();
   const reduceMotion = useReducedMotion();
-  const { width: W, height: H } = useWindowDimensions();
+  const { width: W, height: H } = useSafeAreaFrame();
   // Se lee una vez: la barra ya midió el botón antes de que se abriera el formulario.
   const [origin] = useState(() => (fromFab ? getFabOrigin() : null));
   // Parte entera: la entrada la dibujan las animaciones de entrada; este valor solo mueve la salida.
