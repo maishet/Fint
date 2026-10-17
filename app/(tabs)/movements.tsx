@@ -623,7 +623,7 @@ function SummaryCard({
           <FText variant="caption" tone="inkMuted">
             {t("movementsTab.net")}
           </FText>
-          <Amount value={net} currency={currency} kind={net >= 0 ? "income" : "expense"} tone="inkMuted" variant="amount-sm" />
+          <Amount value={net} currency={currency} kind={net > 0 ? "income" : net < 0 ? "expense" : "neutral"} variant="amount-sm" />
         </XStack>
       </XStack>
     </FintCard>
