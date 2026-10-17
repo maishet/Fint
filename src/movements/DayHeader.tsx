@@ -34,7 +34,7 @@ export function DayHeader({ day, net, locale }: { day: string; net: { currency: 
           {`· ${secondary}`}
         </FText>
       </XStack>
-      {net ? <Amount value={net.value} currency={net.currency} kind={net.value > 0 ? "income" : net.value < 0 ? "expense" : "neutral"} tone="inkMuted" variant="amount-sm" /> : null}
+      {net ? <Amount value={net.value} currency={net.currency} kind={net.value > 0 ? "income" : net.value < 0 ? "expense" : "neutral"} variant="amount-sm" /> : null}
     </XStack>
   );
 }

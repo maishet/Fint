@@ -10,7 +10,7 @@ type AmountVariant = "amount-input" | "amount-hero" | "amount-lg" | "amount" | "
 
 /**
  * Qué representa el monto. Decide signo y color según las reglas del sistema:
- * - `expense`: `−` y `ink`. En una lista casi todo es egreso; pintarlo de color la vuelve una pared.
+ * - `expense`: `−` y `flowOut`.
  * - `income`: `+` y `flowIn`.
  * - `transfer`: sin signo y `inkMuted`, porque no suma ni resta al patrimonio.
  * - `neutral`: el signo que traiga el valor y `ink`. Saldos y totales.
@@ -65,7 +65,7 @@ export function Amount({
   const parts = amountParts(signedValue, currency, { sign: signMode });
 
   const resolvedTone: FTextTone =
-    tone ?? (onSlab ? "slabInk" : kind === "income" ? "flowIn" : kind === "transfer" ? "inkMuted" : "ink");
+    tone ?? (onSlab ? "slabInk" : kind === "income" ? "flowIn" : kind === "expense" ? "flowOut" : kind === "transfer" ? "inkMuted" : "ink");
   const minor = Math.round(base.fontSize * (variant === "amount-hero" ? 26 / 48 : variant === "amount-input" ? 30 / 64 : 0.82));
 
   const isHidden = sensitive && !(isHydrated && amountsVisible);
