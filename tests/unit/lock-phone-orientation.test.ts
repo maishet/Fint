@@ -1,4 +1,5 @@
 import { beforeEach, expect, mock, test } from 'bun:test'
+import { sentryMock } from '../support/sentry-mock'
 
 type Listener = () => void
 
@@ -6,7 +7,6 @@ let screen = { width: 411, height: 797 }
 let listeners: Listener[] = []
 const lockAsync = mock(async () => {})
 const unlockAsync = mock(async () => {})
-const captureException = mock(() => {})
 
 mock.module('react-native', () => ({
   Platform: { OS: 'android' },
@@ -23,7 +23,7 @@ mock.module('expo-screen-orientation', () => ({
   unlockAsync,
   OrientationLock: { PORTRAIT_UP: 'PORTRAIT_UP' },
 }))
-mock.module('@sentry/react-native', () => ({ captureException }))
+mock.module('@sentry/react-native', () => sentryMock)
 
 const { isCompactScreen, lockPhoneOrientation } = await import('../../src/device/lockPhoneOrientation')
 

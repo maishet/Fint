@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, expect, mock, test } from 'bun:test'
+import { captureMessage, sentryMock } from '../support/sentry-mock'
 
 const getSession = mock(async () => ({ data: { session: { access_token: 'access-1' } } }))
 const signOut = mock(async () => ({ error: null }))
@@ -8,9 +9,7 @@ mock.module('../../src/auth/supabase', () => ({
   supabase: { auth: { getSession, signOut, refreshSession } },
 }))
 
-const captureMessage = mock((_message: string, _context?: unknown) => undefined)
-
-mock.module('@sentry/react-native', () => ({ captureMessage }))
+mock.module('@sentry/react-native', () => sentryMock)
 
 process.env.EXPO_PUBLIC_API_URL = 'https://api.test.fint'
 
