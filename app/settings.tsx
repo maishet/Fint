@@ -344,8 +344,12 @@ export default function SettingsScreen() {
             onPress={() => void Share.share({ message: t("settings.shareMessage"), url: "https://myfint.app" })}
           />
           <Item icon={Code} label={t("settings.github")} onPress={() => void Linking.openURL("https://github.com/maishet/Fint")} />
-          {/* Mientras la app no esté publicada: apagada, con la razón debajo. */}
-          <Item icon={Star} label={t("settings.rateStore")} detail={t("settingsScreen.rateDetail")} tone="dim" right="none" />
+          <Item
+            icon={Star}
+            label={t("settings.rateStore")}
+            detail={t("settingsScreen.rateDetail")}
+            onPress={() => void Linking.openURL("https://play.google.com/store/apps/details?id=com.fint.finanzasmobilev2")}
+          />
         </Group>
 
         <GroupTitle>{t("settings.legal")}</GroupTitle>
