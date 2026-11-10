@@ -14,6 +14,7 @@ import { DataStateCard } from "../src/components/DataStateCard";
 import { suggestedCategoryIcons } from "../src/finance/categoryIcons";
 import { getCategoryLabel } from "../src/finance/categoryLabels";
 import { categoryColorIndex, spendingRange } from "../src/home/spending";
+import { useCategoryWash } from "../src/ui/categoryWash";
 import { radius, space } from "../src/theme/tokens";
 import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
 import { Amount, FintButton, FintSheet, FintSpinner, FText, IconButton, SegmentedControl, SheetField, SheetTextInput, useNotify } from "../src/ui";
@@ -151,13 +152,12 @@ export default function CategoriesScreen() {
       >
         <XStack items="center" px={space[4]} gap={space[3]}>
           <IconButton label={t("settingsScreen.back")} icon={<ChevronLeft size={20} color="$ink" strokeWidth={2} />} onPress={() => router.back()} />
-          <FText variant="title" accessibilityRole="header" style={{ fontSize: 24, lineHeight: 30, letterSpacing: -0.5, flex: 1 }} numberOfLines={1}>
+          <FText variant="heading" accessibilityRole="header" style={{ flex: 1 }} numberOfLines={1}>
             {t("categories.routeTitle")}
           </FText>
           <IconButton
-            tone="brand"
             label={t("categoriesScreen.newCategory")}
-            icon={<Plus size={20} color="$onBrand" strokeWidth={2.2} />}
+            icon={<Plus size={20} color="$ink" strokeWidth={2.2} />}
             onPress={openCreate}
           />
         </XStack>
@@ -318,6 +318,7 @@ function CategoryRow({
   const { category, label, usage } = row;
   const system = isSystemCategory(category);
   const emoji = category.icon || suggestedCategoryIcons(category.name, category.type)[0];
+  const wash = useCategoryWash(`$chart${categoryColorIndex(category.name)}`);
   const actions: SwipeAction[] = [
     { key: "edit", label: t("actions.edit"), icon: <Pencil size={18} color="$ink" />, tone: "neutral", run: onEdit },
     { key: "delete", label: t("actions.delete"), icon: <Trash2 size={18} color="$onDanger" />, tone: "danger", run: onDelete },
@@ -333,8 +334,8 @@ function CategoryRow({
     >
       {({ pressed }) => (
         <XStack items="center" gap={space[3]} px={space[4]} py={12} minH={64} bg={pressed ? "$surfaceSunken" : "$surface"}>
-          {/* El emoji en el disco neutro de 40px; sin emoji, la inicial en su color de la rampa. */}
-          <View width={40} height={40} rounded={999} bg="$surfaceSunken" items="center" justify="center">
+          {/* El emoji en un disco de 40px con el lavado del color de la categoría; sin emoji, la inicial en ese color. */}
+          <View width={40} height={40} rounded={999} bg={wash ? undefined : "$surfaceSunken"} style={wash ? { backgroundColor: wash } : undefined} items="center" justify="center">
             {emoji ? (
               <RNText style={{ fontSize: 19, lineHeight: 24, includeFontPadding: false }}>{emoji}</RNText>
             ) : (

@@ -293,7 +293,7 @@ export default function DebtFormScreen() {
           {ready ? (
             <>
               {/* Monto de cada pago, con la moneda en una píldora. */}
-              <FintCard mt={18} pt={18} px={16} pb={16} items="center">
+              <YStack mt={22} pb={8} items="center">
                 <FText variant="caption" tone="inkMuted">
                   {t("paymentForm.amount")}
                 </FText>
@@ -341,7 +341,7 @@ export default function DebtFormScreen() {
                     {t(amountLocked ? "paymentForm.amountLocked" : "paymentForm.currencyLocked")}
                   </FText>
                 ) : null}
-              </FintCard>
+              </YStack>
 
               {/* Nombre */}
               <Field label={t("paymentForm.name")} error={validation.errors.title}>

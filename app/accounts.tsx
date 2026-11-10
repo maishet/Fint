@@ -103,7 +103,7 @@ export default function AccountsScreen() {
           <IconButton label={t("actions.newAccount")} icon={<Plus size={20} color="$ink" strokeWidth={2.2} />} onPress={openCreate} />
         </XStack>
 
-        {/* Patrimonio neto: activos en `chart1`, pasivos en `flowOut`. */}
+        {/* Patrimonio neto: activos en `flowIn`, pasivos en `flowOut`. */}
         <YStack mx={space[4]} mt={space[5]}>
           <XStack items="center" justify="space-between" gap={space[3]}>
             <FText variant="caption" tone="inkMuted" style={{ fontSize: 13 }}>
@@ -130,12 +130,12 @@ export default function AccountsScreen() {
             <>
               <Amount value={overview.totals.netWorth} currency={selected} variant="amount-lg" style={{ fontSize: 40, lineHeight: 46, letterSpacing: -1.2, marginTop: 6 }} />
               <XStack height={10} mt={16} mb={14} rounded={radius.pill} overflow="hidden" gap={assets > 0 && liabilities > 0 ? 3 : 0} bg="$chartTrack">
-                {assets > 0 ? <View height="100%" bg="$chart1" style={{ flex: assets }} /> : null}
+                {assets > 0 ? <View height="100%" bg="$flowIn" style={{ flex: assets }} /> : null}
                 {liabilities > 0 ? <View height="100%" bg="$flowOut" style={{ flex: liabilities }} /> : null}
               </XStack>
               <XStack>
                 <YStack flex={1} minW={0} pr={space[3]}>
-                  <Legend color="$chart1" label={t("accountsScreen.assets")} />
+                  <Legend color="$flowIn" label={t("accountsScreen.assets")} />
                   <Amount value={assets} currency={selected} style={{ fontSize: 17, lineHeight: 22, marginTop: 4 }} />
                 </YStack>
                 <YStack flex={1} minW={0} pl={space[4]} borderLeftWidth={1} borderColor="$line">
@@ -206,7 +206,7 @@ export default function AccountsScreen() {
   );
 }
 
-function Legend({ color, label }: { color: "$chart1" | "$flowOut"; label: string }) {
+function Legend({ color, label }: { color: "$flowIn" | "$flowOut"; label: string }) {
   return (
     <XStack items="center" gap={6}>
       <View width={8} height={8} bg={color} style={{ borderRadius: 2 }} />
