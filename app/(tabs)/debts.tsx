@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CalendarCheck, Check, ChevronDown, Plus, Trash2 } from "@tamagui/lucide-icons-2";
+import { CalendarCheck, Check, ChevronDown, Plus, Trash2 } from "@tamagui/lucide-icons-2";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -325,14 +325,12 @@ export default function PaymentsScreen() {
   );
 }
 
-/** "Vencido 1" en `dangerHard` con el icono de alerta; "Esta semana 2" y "Más adelante 2" en `ink`. */
+/** "Vencido 1", "Esta semana 2" y "Más adelante 2", todos en `ink`: lo vencido se marca en el texto de cada fila. */
 function GroupHeader({ group, count }: { group: PendingGroupKey; count: number }) {
   const { t } = useTranslation();
-  const late = group === "overdue";
   return (
     <XStack items="center" gap={6} px={space[4]} pt={18} pb={8} accessibilityRole="header">
-      {late ? <AlertTriangle size={14} color="$dangerHard" strokeWidth={2.4} /> : null}
-      <FText variant="body-strong" tone={late ? "dangerHard" : "ink"} style={{ fontSize: 13 }}>
+      <FText variant="body-strong" tone="ink" style={{ fontSize: 13 }}>
         {t(`paymentsTab.groups.${group}`)}
       </FText>
       <FText variant="caption" tone="inkFaint" style={{ fontFamily: fontFace.mono[500] }}>

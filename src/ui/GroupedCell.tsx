@@ -6,15 +6,14 @@ import { radius } from "../theme/tokens";
  * Una fila dentro de una tarjeta agrupada en una lista virtualizada: cada fila
  * dibuja su parte del borde (la primera, las esquinas de arriba; la última, las
  * de abajo) y el filete que la separa de la anterior, así el grupo se ve como
- * una sola tarjeta `surface` con filete `line`. `danger` pinta el borde en
- * `dangerHard` (lo vencido).
+ * una sola tarjeta `surface` con filete `line`.
  */
-export function GroupedCell({ first, last, tone = "default", children }: { first: boolean; last: boolean; tone?: "default" | "danger"; children: ReactNode }) {
+export function GroupedCell({ first, last, children }: { first: boolean; last: boolean; children: ReactNode }) {
   const corner = (on: boolean) => (on ? radius.lg : 0);
   return (
     <View
       bg="$surface"
-      borderColor={tone === "danger" ? "$dangerHard" : "$line"}
+      borderColor="$line"
       borderLeftWidth={1}
       borderRightWidth={1}
       borderTopWidth={first ? 1 : 0}

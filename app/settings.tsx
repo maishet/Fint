@@ -196,7 +196,7 @@ export default function SettingsScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + space[8] }} showsVerticalScrollIndicator={false}>
         <XStack items="center" gap={space[3]} px={space[4]} pt={space[2]}>
           <IconButton label={t("settingsScreen.back")} icon={<ChevronLeft size={20} color="$ink" strokeWidth={2} />} onPress={() => router.back()} />
-          <FText variant="title" accessibilityRole="header" style={{ fontSize: 24, lineHeight: 30, letterSpacing: -0.5, flex: 1 }} numberOfLines={1}>
+          <FText variant="heading" accessibilityRole="header" style={{ flex: 1 }} numberOfLines={1}>
             {t("settingsScreen.title")}
           </FText>
         </XStack>

@@ -316,7 +316,7 @@ export default function PendingMovementsScreen() {
       ) : (
         <XStack items="center" gap={space[3]}>
           <IconButton label={t("pendingScreen.back")} icon={<ChevronLeft size={20} color="$ink" strokeWidth={2} />} onPress={() => router.back()} />
-          <FText variant="display-lg" accessibilityRole="header" numberOfLines={1} style={{ flex: 1 }}>
+          <FText variant="heading" accessibilityRole="header" numberOfLines={1} style={{ flex: 1 }}>
             {t("pendingScreen.title")}
           </FText>
           {items.length ? <TextAction label={t("pendingScreen.select")} onPress={() => enterSelection()} /> : null}

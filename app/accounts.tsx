@@ -16,7 +16,7 @@ import { usePressOnce } from "../src/hooks/usePressOnce";
 import { AccountMonogram } from "../src/movement-form/AccountSheet";
 import { radius, space } from "../src/theme/tokens";
 import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
-import { Amount, FintButton, FintCard, FintConfirmDialog, FintLottie, FText, IconButton, SegmentedControl } from "../src/ui";
+import { Amount, FintButton, FintConfirmDialog, FintLottie, FText, IconButton, SegmentedControl } from "../src/ui";
 import { AmountSkeleton } from "../src/ui/AmountSkeleton";
 import { GroupedCell } from "../src/ui/GroupedCell";
 import { useNotify } from "../src/ui/notify";
@@ -97,14 +97,14 @@ export default function AccountsScreen() {
         {/* Volver, título y crear cuenta. Es una pantalla apilada: sin barra de tabs. */}
         <XStack items="center" px={space[4]} gap={space[3]}>
           <IconButton label={t("accountsScreen.back")} icon={<ChevronLeft size={20} color="$ink" strokeWidth={2} />} onPress={() => router.back()} />
-          <FText variant="display-lg" accessibilityRole="header" style={{ flex: 1 }} numberOfLines={1}>
+          <FText variant="heading" accessibilityRole="header" style={{ flex: 1 }} numberOfLines={1}>
             {t("accountsScreen.title")}
           </FText>
           <IconButton label={t("actions.newAccount")} icon={<Plus size={20} color="$ink" strokeWidth={2.2} />} onPress={openCreate} />
         </XStack>
 
         {/* Patrimonio neto: activos en `chart1`, pasivos en `flowOut`. */}
-        <FintCard mx={space[4]} mt={space[4]} p={space[5]}>
+        <YStack mx={space[4]} mt={space[5]}>
           <XStack items="center" justify="space-between" gap={space[3]}>
             <FText variant="caption" tone="inkMuted" style={{ fontSize: 13 }}>
               {t("accountsScreen.netWorth")}
@@ -123,12 +123,12 @@ export default function AccountsScreen() {
           </XStack>
           {!overview ? (
             <YStack mt={10} gap={16}>
-              <AmountSkeleton width={200} height={30} />
+              <AmountSkeleton width={220} height={34} />
               <AmountSkeleton width={260} height={10} />
             </YStack>
           ) : (
             <>
-              <Amount value={overview.totals.netWorth} currency={selected} variant="amount-lg" style={{ fontSize: 34, lineHeight: 40, letterSpacing: -1.2, marginTop: 6 }} />
+              <Amount value={overview.totals.netWorth} currency={selected} variant="amount-lg" style={{ fontSize: 40, lineHeight: 46, letterSpacing: -1.2, marginTop: 6 }} />
               <XStack height={10} mt={16} mb={14} rounded={radius.pill} overflow="hidden" gap={assets > 0 && liabilities > 0 ? 3 : 0} bg="$chartTrack">
                 {assets > 0 ? <View height="100%" bg="$chart1" style={{ flex: assets }} /> : null}
                 {liabilities > 0 ? <View height="100%" bg="$flowOut" style={{ flex: liabilities }} /> : null}
@@ -145,7 +145,7 @@ export default function AccountsScreen() {
               </XStack>
             </>
           )}
-        </FintCard>
+        </YStack>
 
         {accountsQuery.error ? (
           <View mx={space[4]} mt={space[4]}>

@@ -54,7 +54,7 @@ function Placeholder({ name, title }: { name: string; title: string }) {
 function TitleRow({ title, action }: { title: string; action?: ReactNode }) {
   return (
     <XStack items="center" justify="space-between" px={space[4]} gap={space[3]}>
-      <FText variant="display-lg">{title}</FText>
+      <FText variant="heading">{title}</FText>
       {action}
     </XStack>
   );

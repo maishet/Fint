@@ -25,7 +25,7 @@ function shortDate(date: Date, locale: string) {
 
 /** Icono del pago en `surface-sunken`: el emoji de su categoría o, sin él, repetir (o el rayo si se paga solo). */
 function PaymentIcon({ emoji, auto, late, card }: { emoji: string | null; auto: boolean; late: boolean; card?: boolean }) {
-  const color = late ? "$dangerHard" : "$inkMuted";
+  const color = "$inkMuted";
   return (
     <View width={38} height={38} rounded={radius.md} bg="$surfaceSunken" items="center" justify="center" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       {emoji ? (
@@ -182,8 +182,8 @@ export function PaymentRow({ item, rule, emoji, first, last, late, today, onPay,
                       accessibilityRole="button"
                       accessibilityLabel={t("paymentsTab.payPeriodA11y", { period: label })}
                     >
-                      <View height={24} px={9} rounded={radius.pill} borderWidth={1} borderColor={i === 0 ? "$dangerHard" : "$lineStrong"} items="center" justify="center">
-                        <FText variant="caption" tone={i === 0 ? "dangerHard" : "inkMuted"} style={{ fontSize: 11, lineHeight: 14, fontFamily: fontFace.sans[600] }}>
+                      <View height={24} px={9} rounded={radius.pill} borderWidth={1} borderColor="$lineStrong" items="center" justify="center">
+                        <FText variant="caption" tone={i === 0 && late ? "dangerHard" : "inkMuted"} style={{ fontSize: 11, lineHeight: 14, fontFamily: fontFace.sans[600] }}>
                           {label}
                         </FText>
                       </View>
@@ -203,7 +203,7 @@ export function PaymentRow({ item, rule, emoji, first, last, late, today, onPay,
   );
 
   return (
-    <GroupedCell first={first} last={last} tone={late ? "danger" : "default"}>
+    <GroupedCell first={first} last={last}>
       <SwipeActions actions={actions}>{content}</SwipeActions>
     </GroupedCell>
   );

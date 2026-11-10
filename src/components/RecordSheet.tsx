@@ -202,6 +202,63 @@ export function MoreSheet({ open, onClose }: SheetProps) {
               ? t("home.more.gmailRead", { when: readWhen(gmail.lastSyncAt) })
               : t("home.more.gmailNever");
 
+  const gmailSoon = isComingSoon("gmail");
+  const gmailTone = gmail?.state === "connected" ? "flowIn" : gmail?.state === "reconnect" ? "dangerHard" : "inkFaint";
+  const gmailStatus = gmail
+    ? t(gmail.state === "connected" ? "home.more.gmailConnected" : gmail.state === "reconnect" ? "home.more.gmailReconnect" : "home.more.gmailOff")
+    : "";
+
+  const rows: { key: string; icon: typeof Download; label: string; subtitle?: string; trailing: ReactNode; onPress?: () => void; a11y?: string }[] = [];
+  if (pending > 0) {
+    rows.push({
+      key: "review",
+      icon: Inbox,
+      label: t("home.more.review"),
+      subtitle: t("home.more.reviewBody", { count: pending }),
+      trailing: (
+        <XStack items="center" gap={6}>
+          <View minW={22} height={22} px={6} rounded={radius.pill} bg="$brand" items="center" justify="center">
+            <FText tone="onBrand" style={{ fontFamily: fontFace.mono[600], fontSize: 11, lineHeight: 14 }}>
+              {pending > 99 ? "99+" : String(pending)}
+            </FText>
+          </View>
+          <ChevronRight size={16} color="$inkFaint" />
+        </XStack>
+      ),
+      onPress: () => go("/pending-movements"),
+    });
+  }
+  if (gmail) {
+    rows.push({
+      key: "gmail",
+      icon: Mail,
+      label: t("home.more.gmail"),
+      subtitle: gmailSoon ? gmailLine : `${gmailStatus} · ${gmailLine}`,
+      trailing: gmailSoon ? (
+        <SoonBadge />
+      ) : gmail.state === "connected" ? (
+        <ReadNowButton label={t("home.more.gmailReadNow")} busy={readMutation.isPending} onPress={() => readMutation.mutate()} />
+      ) : (
+        <SmallButton label={t(gmail.state === "reconnect" ? "home.more.gmailReconnect" : "home.more.gmailConnect")} onPress={() => go("/gmail-settings")} />
+      ),
+      onPress: gmailSoon ? () => explain("gmail") : () => go("/gmail-settings"),
+      a11y: gmailSoon ? `${t("home.more.gmail")}. ${t("comingSoon.tapHint")}` : `${t("home.more.gmail")}. ${gmailStatus}`,
+    });
+  }
+  const exportSoon = isComingSoon("reportExport");
+  rows.push(
+    {
+      key: "export",
+      icon: Download,
+      label: t("home.more.export"),
+      trailing: exportSoon ? <SoonBadge /> : <Aside text={t("home.more.exportHint")} />,
+      onPress: exportSoon ? () => explain("reportExport") : () => go({ pathname: "/(tabs)/reports", params: { open: "export" } }),
+      a11y: exportSoon ? `${t("home.more.export")}. ${t("comingSoon.tapHint")}` : undefined,
+    },
+    { key: "settings", icon: Settings, label: t("home.more.settings"), trailing: <Aside />, onPress: () => go("/settings") },
+    { key: "help", icon: HelpCircle, label: t("home.more.help"), trailing: <Aside />, onPress: () => go("/support") },
+  );
+
   const cards: { key: string; node: ReactNode }[] = [
     {
       key: "tiles",
@@ -209,17 +266,15 @@ export function MoreSheet({ open, onClose }: SheetProps) {
         <XStack gap={8} px={space[4]} mt={space[4]}>
           <ActionTile
             icon={ArrowLeftRight}
-            color={theme.brand.val}
             title={t("home.more.transfer")}
             detail={t("home.more.transferHint")}
             onPress={() => go({ pathname: "/transaction-form", params: { type: "transfer" } })}
           />
           {isHidden("csvImport") ? null : (
-            <ActionTile icon={Upload} color={theme.chart4.val} title={t("home.more.import")} detail={t("home.more.importHint")} onPress={() => go("/import-transactions")} />
+            <ActionTile icon={Upload} title={t("home.more.import")} detail={t("home.more.importHint")} onPress={() => go("/import-transactions")} />
           )}
           <ActionTile
             icon={Tag}
-            color={theme.chart3.val}
             title={t("home.more.categories")}
             detail={categoriesQuery.data ? t("home.more.categoriesCount", { count: categoriesQuery.data.length }) : ""}
             mono
@@ -228,136 +283,33 @@ export function MoreSheet({ open, onClose }: SheetProps) {
         </XStack>
       ),
     },
-  ];
-
-  // Por revisar solo si hay algo esperando: la hoja no muestra un "0".
-  if (pending > 0) {
-    cards.push({
-      key: "review",
-      node: (
-        <XStack mx={space[4]} mt={10} rounded={radius.lg} bg="$brandWash" py={12} pl={14} pr={12} items="center" gap={12}>
-          <View width={40} height={40} rounded={radius.pill} bg="$brand" items="center" justify="center">
-            <Inbox size={18} color="$onBrand" strokeWidth={2} />
-            <View position="absolute" t={-4} r={-6} minW={20} height={20} px={5} rounded={radius.pill} bg="$surfaceOverlay" items="center" justify="center">
-              <FText tone="brand" style={{ fontFamily: fontFace.mono[600], fontSize: 11, lineHeight: 14 }}>
-                {pending > 99 ? "99+" : String(pending)}
-              </FText>
-            </View>
-          </View>
-          <YStack flex={1} minW={0}>
-            <FText variant="body-strong" style={{ letterSpacing: -0.15 }}>
-              {t("home.more.review")}
-            </FText>
-            <FText variant="caption" tone="inkMuted">
-              {t("home.more.reviewBody", { count: pending })}
-            </FText>
-          </YStack>
-          <SmallButton label={t("home.more.reviewAction")} onPress={() => go("/pending-movements")} />
-        </XStack>
-      ),
-    });
-  }
-
-  if (gmail) {
-    const tone = gmail.state === "connected" ? "flowIn" : gmail.state === "reconnect" ? "dangerHard" : "inkFaint";
-    const gmailSoon = isComingSoon("gmail");
-    const gmailCard = (
-      <XStack mx={space[4]} mt={10} rounded={radius.lg} bg="$surface" borderWidth={1} borderColor="$line" py={12} pl={14} pr={12} items="center" gap={12}>
-        <View width={40} height={40} rounded={radius.md} items="center" justify="center" style={{ backgroundColor: withAlpha(theme.chart2.val, 0.14) }}>
-          <Mail size={18} color={theme.chart2.val as never} strokeWidth={2} />
-        </View>
-        <YStack flex={1} minW={0}>
-          <XStack items="center" gap={8}>
-            <FText variant="body-strong" style={{ letterSpacing: -0.15 }}>
-              {t("home.more.gmail")}
-            </FText>
-            <XStack items="center" gap={5}>
-              <View width={6} height={6} rounded={radius.pill} bg={`$${tone}`} />
-              <FText tone={tone} style={{ fontFamily: fontFace.sans[600], fontSize: 11, lineHeight: 14 }}>
-                {t(gmail.state === "connected" ? "home.more.gmailConnected" : gmail.state === "reconnect" ? "home.more.gmailReconnect" : "home.more.gmailOff")}
-              </FText>
-            </XStack>
-          </XStack>
-          {/* La línea de estado cambia con `fade` (leyendo, lo que trajo la lectura). */}
-          <Animated.View key={gmailLine} entering={FadeIn.duration(motion.fade.duration)}>
-            <FText variant="caption" tone="inkFaint" numberOfLines={1}>
-              {gmailLine}
-            </FText>
-          </Animated.View>
-        </YStack>
-        {gmailSoon ? (
-          <SoonBadge />
-        ) : gmail.state === "connected" ? (
-          <ReadNowButton label={t("home.more.gmailReadNow")} busy={readMutation.isPending} onPress={() => readMutation.mutate()} />
-        ) : (
-          <SmallButton label={t(gmail.state === "reconnect" ? "home.more.gmailReconnect" : "home.more.gmailConnect")} onPress={() => go("/gmail-settings")} />
-        )}
-      </XStack>
-    );
-    cards.push({
-      key: "gmail",
-      node: gmailSoon ? (
-        <PressableScale
-          haptic="tap"
-          onPress={() => explain("gmail")}
-          accessibilityRole="button"
-          accessibilityLabel={t("home.more.gmail")}
-          accessibilityHint={t("comingSoon.tapHint")}
-        >
-          {gmailCard}
-        </PressableScale>
-      ) : (
-        gmailCard
-      ),
-    });
-  }
-
-  const rows: { icon: typeof Download; label: string; aside?: string; href: Href; soon?: boolean }[] = [
     {
-      icon: Download,
-      label: t("home.more.export"),
-      aside: t("home.more.exportHint"),
-      href: { pathname: "/(tabs)/reports", params: { open: "export" } },
-      soon: isComingSoon("reportExport"),
+      key: "list",
+      node: (
+        <YStack mx={space[4]} mt={space[3]} rounded={radius.lg} borderWidth={1} borderColor="$line" bg="$surface" overflow="hidden">
+          {rows.map((row, i) => (
+            <ListRow
+              key={row.key}
+              divider={i > 0}
+              title={row.label}
+              subtitle={row.subtitle}
+              leading={
+                <View width={32} height={32} rounded={radius.sm} bg="$surfaceSunken" items="center" justify="center">
+                  <row.icon size={17} color="$inkMuted" strokeWidth={1.8} />
+                  {row.key === "gmail" ? (
+                    <View position="absolute" r={-2} b={-2} width={10} height={10} rounded={radius.pill} bg={`$${gmailTone}`} borderWidth={2} borderColor="$surface" />
+                  ) : null}
+                </View>
+              }
+              trailing={row.trailing}
+              onPress={row.onPress}
+              accessibilityLabel={row.a11y}
+            />
+          ))}
+        </YStack>
+      ),
     },
-    { icon: Settings, label: t("home.more.settings"), href: "/settings" },
-    { icon: HelpCircle, label: t("home.more.help"), href: "/support" },
   ];
-  cards.push({
-    key: "list",
-    node: (
-      <YStack mx={space[4]} mt={10} rounded={radius.lg} borderWidth={1} borderColor="$line" bg="$surface" overflow="hidden">
-        {rows.map((row, i) => (
-          <ListRow
-            key={row.label}
-            divider={i > 0}
-            title={row.label}
-            leading={
-              <View width={32} height={32} rounded={radius.sm} bg="$surfaceSunken" items="center" justify="center">
-                <row.icon size={17} color="$inkMuted" strokeWidth={1.8} />
-              </View>
-            }
-            trailing={
-              row.soon ? (
-                <SoonBadge />
-              ) : (
-              <XStack items="center" gap={4}>
-                {row.aside ? (
-                  <FText variant="caption" tone="inkFaint">
-                    {row.aside}
-                  </FText>
-                ) : null}
-                <ChevronRight size={16} color="$inkFaint" />
-              </XStack>
-              )
-            }
-            onPress={row.soon ? () => explain("reportExport") : () => go(row.href)}
-            accessibilityLabel={row.soon ? `${row.label}. ${t("comingSoon.tapHint")}` : undefined}
-          />
-        ))}
-      </YStack>
-    ),
-  });
 
   return (
     <FintSheet open={open} onClose={onClose} title={t("home.more.title")}>
@@ -371,17 +323,15 @@ export function MoreSheet({ open, onClose }: SheetProps) {
   );
 }
 
-/** Un acceso grande de la hoja Más: icono en un círculo teñido al 14 % de su color, nombre y una línea. */
+/** Un acceso grande de la hoja Más: icono en un círculo `surface`, nombre y una línea. */
 function ActionTile({
   icon: Icon,
-  color,
   title,
   detail,
   mono,
   onPress,
 }: {
   icon: typeof Download;
-  color: string;
   title: string;
   detail: string;
   mono?: boolean;
@@ -391,8 +341,8 @@ function ActionTile({
   return (
     <PressableScale onPress={onPress} haptic="tap" accessibilityRole="button" accessibilityLabel={detail ? `${title}. ${detail}` : title} style={{ flex: 1 }}>
       <YStack minH={96} p={12} gap={10} rounded={radius.lg} bg="$surfaceSunken" borderWidth={themeMode === "dark" ? 1 : 0} borderColor="$line">
-        <View width={36} height={36} rounded={radius.pill} items="center" justify="center" style={{ backgroundColor: withAlpha(color, 0.14) }}>
-          <Icon size={17} color={color as never} strokeWidth={2} />
+        <View width={36} height={36} rounded={radius.pill} items="center" justify="center" bg="$surface">
+          <Icon size={17} color="$ink" strokeWidth={2} />
         </View>
         <YStack>
           <FText numberOfLines={1} style={{ fontFamily: fontFace.sans[600], fontSize: 14, lineHeight: 18, letterSpacing: -0.15 }}>
@@ -411,7 +361,21 @@ function ActionTile({
   );
 }
 
-/** Botón chico en `brand` de las tarjetas (Revisar, Conectar, Reconectar). */
+/** Lo de la derecha de una fila de la hoja Más: un dato corto (opcional) y el chevron. */
+function Aside({ text }: { text?: string }) {
+  return (
+    <XStack items="center" gap={4}>
+      {text ? (
+        <FText variant="caption" tone="inkFaint">
+          {text}
+        </FText>
+      ) : null}
+      <ChevronRight size={16} color="$inkFaint" />
+    </XStack>
+  );
+}
+
+/** Botón chico en `brand` de la fila de Gmail (Conectar, Reconectar). */
 function SmallButton({ label, onPress }: { label: string; onPress: () => void }) {
   return (
     <PressableScale onPress={onPress} haptic="tap" accessibilityRole="button">

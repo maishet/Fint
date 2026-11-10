@@ -203,8 +203,11 @@ export default function NotificationsScreen() {
         }
       >
         <YStack px={space[4]} pt={space[2]}>
-          <XStack items="center" justify="space-between">
+          <XStack items="center" gap={space[3]}>
             <IconButton label={t("notificationsScreen.back")} icon={<ChevronLeft size={20} color="$ink" strokeWidth={2} />} onPress={() => router.back()} />
+            <FText variant="heading" accessibilityRole="header" numberOfLines={1} style={{ flex: 1 }}>
+              {t("notificationsScreen.title")}
+            </FText>
             {unreadShown.size ? (
               <PressableScale
                 onPress={() => {
@@ -221,9 +224,6 @@ export default function NotificationsScreen() {
               </PressableScale>
             ) : null}
           </XStack>
-          <FText variant="display-lg" accessibilityRole="header" style={{ marginTop: space[3] }}>
-            {t("notificationsScreen.title")}
-          </FText>
           {showTabs ? (
             <View mt={space[4]}>
               <SegmentedControl
@@ -411,7 +411,7 @@ function NoticeCard({
       rounded={radius.lg}
       bg="$surface"
       borderWidth={1}
-      borderColor={danger ? "$dangerHard" : "$line"}
+      borderColor="$line"
       accessible={false}
       accessibilityLabel={title}
     >

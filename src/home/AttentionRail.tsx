@@ -101,7 +101,7 @@ function AttentionCard({ item, onPress }: { item: AttentionItem; onPress: () => 
   ) : gmail ? (
     <Mail size={17} color="$dangerHard" strokeWidth={2} />
   ) : overdue ? (
-    <TriangleAlert size={17} color="$dangerHard" strokeWidth={2} />
+    <TriangleAlert size={17} color="$inkMuted" strokeWidth={2} />
   ) : (
     <Clock size={17} color="$signal" strokeWidth={2} />
   );
@@ -116,7 +116,7 @@ function AttentionCard({ item, onPress }: { item: AttentionItem; onPress: () => 
         rounded={radius.lg}
         bg="$surface"
         borderWidth={1}
-        borderColor={overdue ? "$dangerHard" : "$line"}
+        borderColor="$line"
       >
         <View width={34} height={34} rounded={radius.md} items="center" justify="center" bg={review ? "$brandWash" : "$surfaceSunken"}>
           {icon}
