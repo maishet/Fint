@@ -1,17 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, ChevronLeft, ChevronRight, Copy, FileText, Landmark, Mail, MapPin, Pencil, Receipt, Share as ShareIcon, Tag, Trash2 } from "@tamagui/lucide-icons-2";
+import { Check, ChevronLeft, ChevronRight, Copy, Mail, Pencil, Receipt, Share as ShareIcon, Trash2 } from "@tamagui/lucide-icons-2";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, Share } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Text, View, XStack, YStack, type ColorTokens } from "tamagui";
+import { View, XStack, YStack } from "tamagui";
 import { financeApi } from "../src/api/finance";
 import { MiniMap } from "../src/components/MiniMap";
 import { getCategoryLabel } from "../src/finance/categoryLabels";
 import { formatMoney } from "../src/api/mappers";
 import { useCategoryIcons } from "../src/finance/useCategoryIcons";
-import { categoryColorIndex, transactionDay } from "../src/home/spending";
+import { transactionDay } from "../src/home/spending";
 import { getAppLocale } from "../src/i18n";
 import type { CapturedLocation } from "../src/location/captureLocation";
 import { AccountSheet } from "../src/movement-form/AccountSheet";
@@ -23,7 +23,7 @@ import { frequentCategories, last30DaysRange, recentNotes, splitAddress } from "
 import { radius, space } from "../src/theme/tokens";
 import { fontFace } from "../src/theme/typography";
 import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
-import { Amount, FintButton, FintCard, FintSheet, FText, IconButton, Monogram, PressableScale } from "../src/ui";
+import { Amount, FintButton, FintSheet, FText, IconButton, Monogram, PressableScale } from "../src/ui";
 import { useNotify } from "../src/ui/notify";
 
 type DetailParams = {
@@ -81,6 +81,8 @@ export default function TransactionDetailScreen() {
   const [currency, setCurrency] = useState(params.currency ?? "PEN");
   const [category, setCategory] = useState(params.category ?? "");
   const [date, setDate] = useState(rawDate.slice(0, 10));
+  /** Alto de la cabecera de la boleta: ahí van el filete y las dos muescas. */
+  const [headHeight, setHeadHeight] = useState(0);
   // La nota es solo lo que escribió la persona; la descripción del correo va aparte (con el backend anterior, `note`
   // trae una o la otra).
   const [note, setNote] = useState(params.userNote ?? params.note ?? "");
@@ -219,107 +221,92 @@ export default function TransactionDetailScreen() {
 
   return (
     <YStack flex={1} bg="$canvas" pt={insets.top}>
-      <ScrollView contentContainerStyle={{ paddingTop: space[2], paddingBottom: insets.bottom + space[6] }}>
-        {/* Volver y compartir. Sin título: la categoría ya lo dice. */}
-        <XStack px={space[4]} items="center" justify="space-between">
-          <IconButton label={t("movementDetail.back")} icon={<ChevronLeft size={20} color="$ink" strokeWidth={2} />} onPress={() => router.back()} />
-          <IconButton label={t("movementDetail.share")} icon={<ShareIcon size={18} color="$ink" strokeWidth={2} />} onPress={share} />
-        </XStack>
+      {/* Volver, el tipo al centro y compartir. */}
+      <XStack px={space[5]} pt={space[2]} items="center" justify="space-between" gap={10}>
+        <IconButton label={t("movementDetail.back")} icon={<ChevronLeft size={20} color="$ink" strokeWidth={2} />} onPress={() => router.back()} />
+        <FText maxFontSizeMultiplier={1.3} numberOfLines={1} style={{ flexShrink: 1, fontFamily: fontFace.display[700], fontSize: 16, lineHeight: 21 }}>
+          {t(`forms.${type}`)}
+        </FText>
+        <IconButton label={t("movementDetail.share")} icon={<ShareIcon size={18} color="$ink" strokeWidth={2} />} onPress={share} />
+      </XStack>
 
-        {/* Cabecera. */}
-        <YStack items="center" px={space[4]} pt={6}>
-          <View rounded={999} borderWidth={1} borderColor="$line">
-            <Monogram name={title} emoji={emoji} size={64} color={`$chart${categoryColorIndex(title)}` as ColorTokens} />
-          </View>
-          <FText variant="title" accessibilityRole="header" numberOfLines={2} style={{ fontSize: 20, lineHeight: 26, marginTop: 12, textAlign: "center" }}>
-            {title}
-          </FText>
-          <FText variant="caption" tone="inkFaint" style={{ fontSize: 13, marginTop: 2 }}>
-            {`${t(`forms.${type}`)} · ${relative}${time ? `, ${time}` : ""}`}
-          </FText>
-          <Amount value={amount} currency={currency} kind={type} variant="amount-hero" style={{ fontSize: 44, lineHeight: 52, letterSpacing: -2, marginTop: 12 }} />
-          <XStack mt={10} height={26} px={10} gap={5} items="center" rounded={radius.pill} bg="$surfaceSunken">
-            <View width={6} height={6} rounded={999} bg="$flowIn" />
-            <FText variant="caption" tone="inkMuted" style={{ fontFamily: fontFace.sans[500] }}>
-              {t("movementDetail.registered")}
+      <ScrollView contentContainerStyle={{ paddingTop: 10, paddingBottom: space[4] }}>
+        {/*
+          La boleta blanca (marca D, H-00): `canvas` con filete `line` de 1.5 y una sombra corta, radio 26 y dos muescas
+          que cortan el filete entre la cabecera y los datos. `overflow` oculta la mitad de afuera de cada muesca.
+        */}
+        <View mx={space[5]} rounded={26} bg="$canvas" borderWidth={1.5} borderColor="$line" overflow="hidden" style={{ boxShadow: "0 16px 30px -22px rgba(20,20,18,0.5)" }}>
+          {/* Cabecera: el emoji, la categoría, el monto con signo y de dónde vino. */}
+          <YStack items="center" px={space[5]} pt={22} pb={20} gap={8} onLayout={(e) => setHeadHeight(e.nativeEvent.layout.height)}>
+            <Monogram name={title} emoji={emoji} size={64} />
+            <FText accessibilityRole="header" numberOfLines={2} style={{ fontFamily: fontFace.display[700], fontSize: 18, lineHeight: 23, marginTop: 4, textAlign: "center" }}>
+              {title}
             </FText>
-          </XStack>
-        </YStack>
+            <Amount value={amount} currency={currency} kind={type} variant="amount-hero" smallCents numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 44, lineHeight: 52, letterSpacing: -1 }} />
+            {/* "Registrado" sobre `surface`; lo que llegó por correo o comprobante, "Detectado" en amarillo. */}
+            <XStack height={28} px={10} gap={5} items="center" rounded={radius.pill} bg={sourceTitle ? "$brand" : "$surface"}>
+              {sourceTitle ? <Mail size={13} color="$onBrand" strokeWidth={2.2} /> : <Check size={13} color="$ink" strokeWidth={2.4} />}
+              <FText maxFontSizeMultiplier={1.3} color={sourceTitle ? "$onBrand" : "$ink"} style={{ fontFamily: fontFace.sans[600], fontSize: 12, lineHeight: 16 }}>
+                {sourceTitle ? t("movementDetail.detected") : t("movementDetail.registered")}
+              </FText>
+            </XStack>
+          </YStack>
 
-        {/* Acciones: Editar y Duplicar en `brandWash`; Eliminar en `dangerHard` sobre `surfaceSunken`. */}
-        <XStack justify="center" gap={28} mt={22}>
-          <Action label={t("movementDetail.edit")} icon={<Pencil size={20} color="$brand" strokeWidth={1.8} />} onPress={goEdit} />
-          <Action label={t("movementDetail.duplicate")} icon={<Copy size={20} color="$brand" strokeWidth={1.8} />} onPress={goDuplicate} />
-          <Action label={t("movementDetail.delete")} icon={<Trash2 size={20} color="$dangerHard" strokeWidth={1.8} />} danger onPress={() => setSheet("delete")} />
-        </XStack>
+          <View height={0} mx={22} borderTopWidth={1.5} borderColor="$line" />
+          {headHeight ? (
+            <>
+              <View position="absolute" l={-13.5} t={headHeight - 12} width={24} height={24} rounded={999} bg="$canvas" borderWidth={1.5} borderColor="$line" />
+              <View position="absolute" r={-13.5} t={headHeight - 12} width={24} height={24} rounded={999} bg="$canvas" borderWidth={1.5} borderColor="$line" />
+            </>
+          ) : null}
 
-        {/* Datos: cada fila abre la hoja del formulario y guarda al elegir. */}
-        <FintCard mx={space[4]} mt={22} p={0} overflow="hidden">
-          {/* Lo que trajo el correo o el comprobante: no se edita (la nota va abajo, aparte). */}
-          {sourceTitle ? <SourceRow label={t("movementDetail.detected")} value={sourceTitle} /> : null}
-          <DataRow
-            divider={Boolean(sourceTitle)}
-            icon={<Landmark size={16} color="$inkMuted" strokeWidth={2} />}
-            label={t("movementDetail.account")}
-            value={account || "—"}
-            onPress={() => setSheet("account")}
-          />
-          <DataRow
-            divider
-            icon={<Tag size={16} color="$inkMuted" strokeWidth={2} />}
-            label={t("movementDetail.category")}
-            value={title || "—"}
-            emoji={emoji}
-            onPress={() => setSheet("category")}
-          />
-          <DataRow
-            divider
-            icon={<CalendarDays size={16} color="$inkMuted" strokeWidth={2} />}
-            label={t("movementDetail.date")}
-            value={`${longDay}${time ? `, ${time}` : ""}`}
-            onPress={() => setSheet("date")}
-          />
-          <DataRow
-            divider
-            icon={<FileText size={16} color="$inkMuted" strokeWidth={2} />}
-            label={t("movementDetail.note")}
-            value={note || t("movementDetail.addNote")}
-            muted={!note}
-            onPress={() => setSheet("note")}
-          />
-        </FintCard>
+          {/* Datos: etiqueta arriba y valor debajo; cada fila abre la hoja del formulario y guarda al elegir. */}
+          <YStack px={space[5]} pt={6} pb={8}>
+            {/* Lo que trajo el correo o el comprobante: no se edita (la nota va abajo, aparte). */}
+            {sourceTitle ? <SourceRow label={t("movementDetail.detected")} value={sourceTitle} /> : null}
+            <DataRow divider={Boolean(sourceTitle)} label={t("movementDetail.account")} value={account || "—"} onPress={() => setSheet("account")} />
+            <DataRow
+              divider
+              label={t("movementDetail.category")}
+              value={title || "—"}
+              leading={<Monogram name={title} emoji={emoji} size={32} />}
+              onPress={() => setSheet("category")}
+            />
+            <DataRow divider label={t("movementDetail.date")} value={`${longDay}${time ? `, ${time}` : ""}`} onPress={() => setSheet("date")} />
+            <DataRow divider label={t("movementDetail.note")} value={note || t("movementDetail.addNote")} muted={!note} multiline onPress={() => setSheet("note")} />
 
-        {/* Lugar: el mapa con el pin, el nombre y la dirección; sin ubicación, una fila para agregarla. */}
-        {location ? (
-          <FintCard mx={space[4]} mt={space[3]} p={0} overflow="hidden">
-            <MiniMap latitude={location.latitude} longitude={location.longitude} height={128} rounded={0} accessibilityLabel={t("location.mapAccessibility")} />
-            <XStack items="center" gap={10} px={space[4]} py={12} borderTopWidth={1} borderColor="$line">
-              <YStack flex={1} minW={0}>
-                <FText variant="body-strong" numberOfLines={1} style={{ fontSize: 14 }}>
-                  {place.primary ?? t("movementDetail.savedPlace")}
-                </FText>
+            {/* Lugar: el nombre, la dirección y el mapa, con "Editar"; sin ubicación, una fila para agregarla. */}
+            {location ? (
+              <YStack pt={12} pb={6} borderTopWidth={1} borderColor="$line">
+                <XStack items="baseline" justify="space-between" gap={10}>
+                  <FText tone="inkFaint" style={DATA_LABEL}>
+                    {t("movementForm.location")}
+                  </FText>
+                  <PressableScale onPress={() => setSheet("location")} haptic="tap" hitSlop={12} accessibilityRole="button" accessibilityLabel={`${t("movementDetail.editLocation")} ${t("movementForm.location")}`}>
+                    <FText maxFontSizeMultiplier={1.3} style={{ fontFamily: fontFace.display[700], fontSize: 13, lineHeight: 18 }}>
+                      {t("movementDetail.editLocation")}
+                    </FText>
+                  </PressableScale>
+                </XStack>
+                <FText style={{ ...DATA_VALUE, marginTop: 4 }}>{place.primary ?? t("movementDetail.savedPlace")}</FText>
                 {place.secondary ? (
-                  <FText variant="caption" tone="inkFaint" numberOfLines={1}>
+                  <FText tone="inkFaint" style={{ fontSize: 13, lineHeight: 18 }}>
                     {place.secondary}
                   </FText>
                 ) : null}
+                <View mt={10}>
+                  <MiniMap latitude={location.latitude} longitude={location.longitude} height={96} rounded={16} accessibilityLabel={t("location.mapAccessibility")} />
+                </View>
               </YStack>
-              <PressableScale onPress={() => setSheet("location")} haptic="tap" hitSlop={10} accessibilityRole="button">
-                <FText variant="label" tone="inkMuted" style={{ fontSize: 13, fontFamily: fontFace.sans[600] }}>
-                  {t("movementDetail.editLocation")}
-                </FText>
-              </PressableScale>
-            </XStack>
-          </FintCard>
-        ) : (
-          <FintCard mx={space[4]} mt={space[3]} p={0} overflow="hidden">
-            <DataRow icon={<MapPin size={16} color="$inkMuted" strokeWidth={2} />} label={t("movementDetail.addLocation")} value="" onPress={() => setSheet("location")} />
-          </FintCard>
-        )}
+            ) : (
+              <DataRow divider label={t("movementForm.location")} value={t("movementDetail.addLocation")} muted onPress={() => setSheet("location")} />
+            )}
+          </YStack>
+        </View>
 
         {/* Recibo: pronto se podrá adjuntar. */}
-        <XStack mx={space[4]} mt={space[3]} p={space[4]} gap={12} items="center" rounded={radius.lg} bg="$surfaceSunken">
-          <View width={40} height={40} rounded={999} bg="$surfaceSunken" items="center" justify="center">
+        <XStack mx={space[5]} mt={space[3]} p={space[4]} gap={12} items="center" rounded={22} bg="$surface">
+          <View width={40} height={40} rounded={14} bg="$canvas" items="center" justify="center">
             <Receipt size={18} color="$inkFaint" strokeWidth={2} />
           </View>
           <YStack flex={1} minW={0}>
@@ -332,6 +319,13 @@ export default function TransactionDetailScreen() {
           </YStack>
         </XStack>
       </ScrollView>
+
+      {/* Abajo, tres botones iguales: Editar en amarillo, Duplicar y Eliminar (texto rojo) sobre `surface`. */}
+      <XStack gap={8} px={space[5]} pt={12} pb={Math.max(insets.bottom, 12) + 8} bg="$canvas">
+        <Action label={t("movementDetail.edit")} icon={<Pencil size={20} color="$onBrand" strokeWidth={2} />} tone="brand" onPress={goEdit} />
+        <Action label={t("movementDetail.duplicate")} icon={<Copy size={20} color="$ink" strokeWidth={2} />} onPress={goDuplicate} />
+        <Action label={t("movementDetail.delete")} icon={<Trash2 size={20} color="$dangerHard" strokeWidth={2} />} tone="danger" onPress={() => setSheet("delete")} />
+      </XStack>
 
       {mountedSheet === "account" ? (
         <AccountSheet
@@ -385,7 +379,7 @@ export default function TransactionDetailScreen() {
       {mountedSheet === "delete" ? (
         <FintSheet open={sheet === "delete"} onClose={() => setSheet(null)}>
           <YStack items="center" px={space[5]} pt={space[4]}>
-            <View width={56} height={56} rounded={999} bg="$red2" items="center" justify="center">
+            <View width={60} height={60} rounded={20} bg="$dangerWash" items="center" justify="center">
               <Trash2 size={24} color="$dangerHard" strokeWidth={2} />
             </View>
             <FText variant="title" style={{ fontSize: 22, lineHeight: 28, marginTop: 14, textAlign: "center" }}>
@@ -402,7 +396,7 @@ export default function TransactionDetailScreen() {
               <FintButton variant="danger" haptic="warning" pending={deleteMutation.isPending} onPress={() => deleteMutation.mutate()}>
                 {deleteMutation.isPending ? t("movementUx.deleting") : t("movementDetail.deleteConfirm")}
               </FintButton>
-              <FintButton variant="ghost" bg="$surfaceSunken" color="$ink" onPress={() => setSheet(null)}>
+              <FintButton variant="soft" onPress={() => setSheet(null)}>
                 {t("actions.cancel")}
               </FintButton>
             </YStack>
@@ -413,14 +407,22 @@ export default function TransactionDetailScreen() {
   );
 }
 
-function Action({ label, icon, danger, onPress }: { label: string; icon: ReactNode; danger?: boolean; onPress: () => void }) {
+/** Etiqueta y valor de una fila de datos de la boleta (H-00): 12 en `inkFaint` arriba, 15 en tinta debajo. */
+const DATA_LABEL = { fontFamily: fontFace.sans[600], fontSize: 12, lineHeight: 16 } as const;
+const DATA_VALUE = { fontFamily: fontFace.display[700], fontSize: 15, lineHeight: 20 } as const;
+
+/** Uno de los tres botones de abajo: alto 56, radio 18, ícono sobre la etiqueta. */
+function Action({ label, icon, tone = "soft", onPress }: { label: string; icon: ReactNode; tone?: "brand" | "soft" | "danger"; onPress: () => void }) {
   return (
-    <PressableScale onPress={onPress} haptic="tap" accessibilityRole="button" accessibilityLabel={label}>
-      <YStack items="center" gap={6}>
-        <View width={50} height={50} rounded={999} bg={danger ? "$surfaceSunken" : "$brandWash"} items="center" justify="center">
-          {icon}
-        </View>
-        <FText variant="caption" tone={danger ? "dangerHard" : "inkMuted"} style={{ fontFamily: fontFace.sans[500] }}>
+    <PressableScale onPress={onPress} haptic="tap" accessibilityRole="button" accessibilityLabel={label} style={{ flex: 1 }}>
+      <YStack minH={56} py={6} rounded={18} items="center" justify="center" gap={2} bg={tone === "brand" ? "$brand" : "$surface"}>
+        {icon}
+        <FText
+          maxFontSizeMultiplier={1.3}
+          numberOfLines={1}
+          color={tone === "brand" ? "$onBrand" : tone === "danger" ? "$dangerHard" : "$ink"}
+          style={{ fontFamily: fontFace.display[700], fontSize: 12, lineHeight: 16 }}
+        >
           {label}
         </FText>
       </YStack>
@@ -428,24 +430,21 @@ function Action({ label, icon, danger, onPress }: { label: string; icon: ReactNo
   );
 }
 
-/** Fila de datos: icono en `surfaceSunken`, etiqueta, valor a la derecha y la flecha que dice que se puede cambiar. */
 /** "2026-09-24" del día local de una hora. */
 function localDay(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-/** La descripción detectada: etiqueta y el texto completo debajo (hasta tres líneas), sin acción. */
+/** La descripción detectada: el ícono del correo, la etiqueta y el texto completo debajo (hasta tres líneas), sin acción. */
 function SourceRow({ label, value }: { label: string; value: string }) {
   return (
-    <XStack gap={12} px={space[4]} py={13} items="flex-start" accessible accessibilityLabel={`${label}: ${value}`}>
-      <View width={32} height={32} rounded={radius.sm} bg="$surfaceSunken" items="center" justify="center">
-        <Mail size={16} color="$inkMuted" strokeWidth={2} />
-      </View>
+    <XStack gap={10} py={12} items="flex-start" accessible accessibilityLabel={`${label}: ${value}`}>
+      <Mail size={16} color="$inkFaint" strokeWidth={2} style={{ marginTop: 1 }} />
       <YStack flex={1} minW={0}>
-        <FText variant="caption" tone="inkMuted" style={{ fontSize: 13 }}>
+        <FText tone="inkFaint" style={DATA_LABEL}>
           {label}
         </FText>
-        <FText variant="body" numberOfLines={3} style={{ fontSize: 15, fontFamily: fontFace.sans[500], marginTop: 1 }}>
+        <FText numberOfLines={3} style={{ ...DATA_VALUE, marginTop: 2 }}>
           {value}
         </FText>
       </YStack>
@@ -453,49 +452,46 @@ function SourceRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+/**
+ * Fila de datos de la boleta: la etiqueta arriba y el valor debajo (con el cuadro de la categoría si lo hay), y la
+ * flecha que dice que se puede cambiar. La nota se lee completa (`multiline`); el resto se corta en dos líneas.
+ */
 function DataRow({
-  icon,
   label,
   value,
-  emoji,
+  leading,
   muted,
   divider,
+  multiline,
   onPress,
 }: {
-  icon: ReactNode;
   label: string;
   value: string;
-  /** El emoji que la persona eligió para la categoría, antes del nombre. */
-  emoji?: string | null;
+  leading?: ReactNode;
   muted?: boolean;
   divider?: boolean;
+  multiline?: boolean;
   onPress: () => void;
 }) {
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={value ? `${label}: ${value}` : label}>
       {({ pressed }) => (
-        <XStack items="center" gap={12} px={space[4]} py={13} borderTopWidth={divider ? 1 : 0} borderColor="$line" bg={pressed ? "$surfaceSunken" : "transparent"}>
-          <View width={32} height={32} rounded={radius.sm} bg="$surfaceSunken" items="center" justify="center">
-            {icon}
-          </View>
-          <FText variant="caption" tone={value ? "inkMuted" : "ink"} style={{ fontSize: value ? 13 : 15 }}>
-            {label}
-          </FText>
-          <XStack flex={1} minW={0} justify="flex-end" items="center" gap={6}>
-            {emoji ? (
-              <Text style={{ fontSize: 15, lineHeight: 20 }} accessibilityElementsHidden importantForAccessibility="no">
-                {emoji}
-              </Text>
-            ) : null}
-            <FText
-              variant="body"
-              tone={muted ? "inkMuted" : "ink"}
-              numberOfLines={1}
-              style={{ fontSize: 15, fontFamily: muted ? fontFace.sans[400] : fontFace.sans[500], textAlign: "right", flexShrink: 1 }}
-            >
-              {value}
+        <XStack items="center" gap={10} py={12} borderTopWidth={divider ? 1 : 0} borderColor="$line" bg={pressed ? "$surfaceSunken" : "transparent"}>
+          <YStack flex={1} minW={0} gap={4}>
+            <FText tone="inkFaint" style={DATA_LABEL}>
+              {label}
             </FText>
-          </XStack>
+            <XStack items="center" gap={8}>
+              {leading}
+              <FText
+                tone={muted ? "inkMuted" : "ink"}
+                numberOfLines={multiline ? undefined : 2}
+                style={multiline ? { fontFamily: fontFace.sans[500], fontSize: 15, lineHeight: 22, flexShrink: 1 } : { ...DATA_VALUE, flexShrink: 1 }}
+              >
+                {value}
+              </FText>
+            </XStack>
+          </YStack>
           <ChevronRight size={16} color="$inkFaint" strokeWidth={2} />
         </XStack>
       )}

@@ -220,7 +220,18 @@ export function FintSheet({
  * `lineStrong` de 1px en reposo: 3.4:1 contra la hoja en claro y 3.1:1 en oscuro (3.0:1 contra el propio relleno en
  * claro), sobre los 3:1 que pide WCAG 1.4.11. Enfocado, borde `ink` de 1.5px.
  */
-export function SheetField({ children, focused = false, invalid = false }: { children: ReactNode; focused?: boolean; invalid?: boolean }) {
+export function SheetField({
+  children,
+  focused = false,
+  invalid = false,
+  locked = false,
+}: {
+  children: ReactNode;
+  focused?: boolean;
+  invalid?: boolean;
+  /** Bloqueado ("No editable"): relleno `surfaceSunken`, con el mismo filete de reposo. */
+  locked?: boolean;
+}) {
   const { themeMode } = useThemeMode();
   // Con error, borde `dangerHard` de 1.5px aunque tenga el foco: el error se ve hasta que la persona corrige.
   return (
@@ -230,7 +241,7 @@ export function SheetField({ children, focused = false, invalid = false }: { chi
       gap={10}
       items="center"
       rounded={16}
-      bg={themeMode === "dark" ? "$surfaceSunken" : "$surface"}
+      bg={locked || themeMode === "dark" ? "$surfaceSunken" : "$surface"}
       borderWidth={invalid || focused ? 1.5 : 1}
       borderColor={invalid ? "$dangerHard" : focused ? "$ink" : "$lineStrong"}
     >

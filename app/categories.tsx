@@ -1,9 +1,9 @@
-import { ChevronLeft, ChevronRight, Pencil, Plus, Search, Tag, Trash2, X } from "@tamagui/lucide-icons-2";
+import { ChevronLeft, ChevronRight, Lock, Pencil, Plus, Search, Tag, Trash2, X } from "@tamagui/lucide-icons-2";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, RefreshControl, ScrollView, Text as RNText } from "react-native";
+import { Pressable, RefreshControl, ScrollView, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme, View, XStack, YStack } from "tamagui";
 import { financeApi } from "../src/api/finance";
@@ -13,13 +13,12 @@ import { CreateCategorySheet } from "../src/components/CreateCategorySheet";
 import { DataStateCard } from "../src/components/DataStateCard";
 import { suggestedCategoryIcons } from "../src/finance/categoryIcons";
 import { getCategoryLabel } from "../src/finance/categoryLabels";
-import { categoryColorIndex, spendingRange } from "../src/home/spending";
-import { useCategoryWash } from "../src/ui/categoryWash";
-import { radius, space } from "../src/theme/tokens";
+import { spendingRange } from "../src/home/spending";
+import { SkeletonBlock, SkeletonGroup } from "../src/components/Skeleton";
+import { COMPACT_FONT_SCALE, space } from "../src/theme/tokens";
+import { fontFace } from "../src/theme/typography";
 import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
-import { Amount, FintButton, FintSheet, FintSpinner, FText, IconButton, SegmentedControl, SheetField, SheetTextInput, useNotify } from "../src/ui";
-import { AmountSkeleton } from "../src/ui/AmountSkeleton";
-import { GroupedCell } from "../src/ui/GroupedCell";
+import { Amount, FintButton, FintSheet, FintSpinner, FText, IconButton, Monogram, SegmentedControl, SheetField, SheetTextInput, useNotify } from "../src/ui";
 import { SwipeActions, type SwipeAction } from "../src/ui/SwipeActions";
 
 const SEARCH_FROM = 8;
@@ -27,19 +26,18 @@ const SHEET_UNMOUNT_MS = 600;
 type Row = { category: Category; label: string; usage: CategoryUsage | null };
 
 /**
- * Categorías v3 (GestionCategorias): volver, "Categorías" y el botón `brand`
- * que crea con el tipo de la pestaña; Egresos | Ingresos con su cantidad en
- * `mono`; el buscador si son más de ocho; y una tarjeta con una fila por
- * categoría: su emoji en el disco de 40px, el nombre y lo que movió en el mes
- * (egresos e ingresos, sumado en la app). Orden por uso del mes y, las no
- * usadas, por nombre. Tocar una fila la edita; deslizarla ofrece Editar y
- * Eliminar, salvo en las del sistema.
+ * Categorías (marca D, K-06): volver, "Categorías" y el botón amarillo que crea con el tipo de la pestaña;
+ * Egresos | Ingresos con su cantidad en `mono`; el buscador si son más de ocho; y una fila a todo el ancho por
+ * categoría: su emoji en el cuadro de 44 sobre `categoryTint` de su tono, el nombre y lo que movió en el mes
+ * (egresos e ingresos, sumado en la app). Las del sistema llevan el candado. Orden por uso del mes y, las no
+ * usadas, por nombre. Tocar una fila la edita; deslizarla ofrece Editar y Eliminar, salvo en las del sistema.
  */
 export default function CategoriesScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const { fontScale } = useWindowDimensions();
   const notify = useNotify();
   const queryClient = useQueryClient();
   const [type, setType] = useState<TransactionType>("expense");
@@ -144,28 +142,31 @@ export default function CategoriesScreen() {
                 setPulling(false),
               );
             }}
-            tintColor={theme.brand.val}
-            colors={[theme.brand.val]}
+            tintColor={theme.ink.val}
+            colors={[theme.ink.val]}
             progressBackgroundColor={theme.surface.val}
           />
         }
       >
-        <XStack items="center" px={space[4]} gap={space[3]}>
+        <XStack items="center" px={space[5]} gap={10}>
           <IconButton label={t("settingsScreen.back")} icon={<ChevronLeft size={20} color="$ink" strokeWidth={2} />} onPress={() => router.back()} />
-          <FText variant="heading" accessibilityRole="header" style={{ flex: 1 }} numberOfLines={1}>
+          <FText accessibilityRole="header" maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={{ ...SCREEN_TITLE, flex: 1 }} numberOfLines={2}>
             {t("categories.routeTitle")}
           </FText>
-          <IconButton
-            label={t("categoriesScreen.newCategory")}
-            icon={<Plus size={20} color="$ink" strokeWidth={2.2} />}
-            onPress={openCreate}
-          />
+          {/* "Nueva categoría" en amarillo; desde 1.3 queda solo el ícono para que el título no se parta en tres. */}
+          {fontScale >= COMPACT_FONT_SCALE ? (
+            <IconButton label={t("categoriesScreen.newCategory")} tone="brand" icon={<Plus size={20} color="$onBrand" strokeWidth={2.2} />} onPress={openCreate} />
+          ) : (
+            <FintButton size="mini" px={14} icon={<Plus size={16} color="$onBrand" strokeWidth={2.4} />} onPress={openCreate}>
+              {t("categoriesScreen.newCategory")}
+            </FintButton>
+          )}
         </XStack>
-        <FText variant="label" tone="inkMuted" style={{ paddingHorizontal: space[4], paddingTop: 6, lineHeight: 19 }}>
+        <FText tone="inkMuted" style={{ paddingHorizontal: space[5], paddingTop: 4, fontSize: 15, lineHeight: 22 }}>
           {t("categoriesScreen.intro")}
         </FText>
 
-        <View mx={space[4]} mt={space[4]}>
+        <View mx={space[5]} mt={space[4]}>
           <SegmentedControl
             options={[
               { value: "expense" as const, label: t("categoriesScreen.expenses"), count: categoriesQuery.isSuccess ? counts.expense : undefined },
@@ -180,7 +181,7 @@ export default function CategoriesScreen() {
         </View>
 
         {counts[type] > SEARCH_FROM ? (
-          <View mx={space[4]} mt={space[3]}>
+          <View mx={space[5]} mt={space[3]}>
             <SheetField focused={searchFocused}>
               <Search size={18} color="$inkFaint" strokeWidth={2} />
               <SheetTextInput
@@ -202,7 +203,7 @@ export default function CategoriesScreen() {
         ) : null}
 
         {categoriesQuery.error ? (
-          <View mx={space[4]} mt={space[4]}>
+          <View mx={space[5]} mt={space[4]}>
             <DataStateCard message={t("categories.loadError")} onRetry={() => void categoriesQuery.refetch()} />
           </View>
         ) : null}
@@ -211,8 +212,8 @@ export default function CategoriesScreen() {
           <ListSkeleton />
         ) : categoriesQuery.isSuccess && counts[type] === 0 ? (
           <YStack items="center" gap={10} mx={space[6]} mt={40}>
-            <View width={64} height={64} rounded={999} bg="$brandWash" items="center" justify="center">
-              <Tag size={26} color="$brand" strokeWidth={2} />
+            <View width={64} height={64} rounded={20} bg="$surface" items="center" justify="center">
+              <Tag size={26} color="$ink" strokeWidth={2} />
             </View>
             <FText variant="section-title" style={{ textAlign: "center", marginTop: 6 }}>
               {type === "income" ? t("categoriesScreen.emptyIncomeTitle") : t("categoriesScreen.emptyExpenseTitle")}
@@ -228,14 +229,13 @@ export default function CategoriesScreen() {
           </YStack>
         ) : (
           <>
-            <YStack mx={space[4]} mt={14}>
+            <YStack mx={space[5]} mt={6}>
               {list.map((row, i) => (
                 <CategoryRow
                   key={row.category.id}
                   row={row}
                   currency={currency}
                   first={i === 0}
-                  last={i === list.length - 1}
                   onEdit={() => openEdit(row.category)}
                   onDelete={() => askDelete(row.category)}
                 />
@@ -247,7 +247,7 @@ export default function CategoriesScreen() {
               ) : null}
             </YStack>
             {list.length ? (
-              <FText variant="caption" tone="inkFaint" style={{ textAlign: "center", paddingHorizontal: space[4], paddingTop: 14 }}>
+              <FText variant="caption" tone="inkFaint" style={{ textAlign: "center", paddingHorizontal: space[5], paddingTop: 14 }}>
                 {t("categoriesScreen.footer")}
               </FText>
             ) : null}
@@ -270,7 +270,7 @@ export default function CategoriesScreen() {
       {deleteMounted ? (
         <FintSheet open={Boolean(deleteTarget)} onClose={() => !deleteMutation.isPending && setDeleteTarget(null)}>
           <YStack items="center" px={space[5]} pt={space[4]}>
-            <View width={56} height={56} rounded={999} bg="$red2" items="center" justify="center">
+            <View width={60} height={60} rounded={20} bg="$dangerWash" items="center" justify="center">
               <Trash2 size={24} color="$dangerHard" strokeWidth={2} />
             </View>
             <FText variant="title" style={{ fontSize: 22, lineHeight: 28, marginTop: 14, textAlign: "center" }}>
@@ -288,7 +288,7 @@ export default function CategoriesScreen() {
               >
                 {deleteMutation.isPending ? <FintSpinner color="$onDanger" /> : t("categories.deleteConfirm")}
               </FintButton>
-              <FintButton variant="ghost" bg="$surfaceSunken" color="$ink" pending={deleteMutation.isPending} onPress={() => setDeleteTarget(null)}>
+              <FintButton variant="soft" pending={deleteMutation.isPending} onPress={() => setDeleteTarget(null)}>
                 {t("actions.cancel")}
               </FintButton>
             </YStack>
@@ -299,28 +299,29 @@ export default function CategoriesScreen() {
   );
 }
 
+/** Título de pantalla secundaria (marca D): 26 en Figtree Bold, tope 1.3 y hasta dos líneas. */
+const SCREEN_TITLE = { fontFamily: fontFace.display[700], fontSize: 26, lineHeight: 31, letterSpacing: -0.6 } as const;
+
 function CategoryRow({
   row,
   currency,
   first,
-  last,
   onEdit,
   onDelete,
 }: {
   row: Row;
   currency?: string;
   first: boolean;
-  last: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   const { t } = useTranslation();
+  const { fontScale } = useWindowDimensions();
   const { category, label, usage } = row;
   const system = isSystemCategory(category);
   const emoji = category.icon || suggestedCategoryIcons(category.name, category.type)[0];
-  const wash = useCategoryWash(`$chart${categoryColorIndex(category.name)}`);
   const actions: SwipeAction[] = [
-    { key: "edit", label: t("actions.edit"), icon: <Pencil size={18} color="$ink" />, tone: "neutral", run: onEdit },
+    { key: "edit", label: t("actions.edit"), icon: <Pencil size={18} color="$canvas" />, tone: "ink", run: onEdit },
     { key: "delete", label: t("actions.delete"), icon: <Trash2 size={18} color="$onDanger" />, tone: "danger", run: onDelete },
   ];
 
@@ -333,64 +334,59 @@ function CategoryRow({
       onAccessibilityAction={(e) => actions.find((a) => a.key === e.nativeEvent.actionName)?.run()}
     >
       {({ pressed }) => (
-        <XStack items="center" gap={space[3]} px={space[4]} py={12} minH={64} bg={pressed ? "$surfaceSunken" : "$surface"}>
-          {/* El emoji en un disco de 40px con el lavado del color de la categoría; sin emoji, la inicial en ese color. */}
-          <View width={40} height={40} rounded={999} bg={wash ? undefined : "$surfaceSunken"} style={wash ? { backgroundColor: wash } : undefined} items="center" justify="center">
-            {emoji ? (
-              <RNText style={{ fontSize: 19, lineHeight: 24, includeFontPadding: false }}>{emoji}</RNText>
-            ) : (
-              <FText variant="body-strong" tone={`chart${categoryColorIndex(category.name)}` as never}>
-                {label.charAt(0).toUpperCase()}
-              </FText>
-            )}
-          </View>
-          <YStack flex={1} minW={0}>
-            <FText variant="body-strong" numberOfLines={1} style={{ letterSpacing: -0.15 }}>
-              {label}
-            </FText>
-            {system ? (
-              <FText variant="caption" tone="inkFaint" numberOfLines={1}>
-                {t("categoriesScreen.system")}
-              </FText>
-            ) : usage && usage.count > 0 && currency ? (
-              <XStack items="center" gap={4}>
-                <Amount value={usage.amount} currency={currency} variant="figure-caption" tone="inkMuted" style={{ fontSize: 12 }} />
-                <FText variant="caption" tone="inkFaint" numberOfLines={1}>
+        <XStack items={fontScale >= COMPACT_FONT_SCALE ? "flex-start" : "center"} gap={space[3]} py={11} minH={66} bg={pressed ? "$surfaceSunken" : "$canvas"} borderTopWidth={first ? 0 : 1} borderColor="$line">
+          {/* El emoji en el cuadro de 44 sobre `categoryTint` de su propio tono; sin emoji, la inicial sobre `surface`. Desde 1.3 el cuadro va arriba, junto al nombre. */}
+          <Monogram name={label} emoji={emoji} size={44} />
+          <YStack flex={1} minW={0} gap={2}>
+            <FText style={{ fontFamily: fontFace.display[700], fontSize: 16, lineHeight: 21, letterSpacing: -0.15 }}>{label}</FText>
+            {usage && usage.count > 0 && currency ? (
+              <XStack items="baseline" gap={4} flexWrap="wrap">
+                <Amount value={usage.amount} currency={currency} variant="amount-sm" tone="inkMuted" style={{ fontFamily: fontFace.mono[600], fontSize: 13 }} />
+                <FText tone="inkFaint" style={{ fontSize: 13, lineHeight: 18 }}>
                   {t("categoriesScreen.thisMonth")} · {t("categoriesScreen.movements", { count: usage.count })}
                 </FText>
               </XStack>
             ) : (
-              <FText variant="caption" tone="inkFaint" numberOfLines={1}>
+              <FText tone="inkFaint" style={{ fontSize: 13, lineHeight: 18 }}>
                 {t("categoriesScreen.noUsage")}
               </FText>
             )}
+            {/* Las del sistema: candado y la palabra, en `inkFaint`. */}
+            {system ? (
+              <XStack items="center" gap={4}>
+                <Lock size={12} color="$inkFaint" strokeWidth={2.4} />
+                <FText tone="inkFaint" style={{ fontFamily: fontFace.sans[600], fontSize: 12, lineHeight: 16 }}>
+                  {t("categoriesScreen.system")}
+                </FText>
+              </XStack>
+            ) : null}
           </YStack>
-          <ChevronRight size={16} color="$inkFaint" strokeWidth={2} />
+          <ChevronRight size={18} color="$inkFaint" strokeWidth={2} />
         </XStack>
       )}
     </Pressable>
   );
 
-  return (
-    <GroupedCell first={first} last={last}>
-      {/* Las del sistema no se eliminan: sin acciones de deslizar. */}
-      {system ? content : <SwipeActions actions={actions}>{content}</SwipeActions>}
-    </GroupedCell>
-  );
+  // Las del sistema no se eliminan: sin acciones de deslizar.
+  return system ? content : <SwipeActions actions={actions}>{content}</SwipeActions>;
 }
 
+/** Carga: la forma de las filas, con el cuadro de 44 y dos barras. */
 function ListSkeleton() {
+  const { t } = useTranslation();
   return (
-    <YStack mx={space[4]} mt={14} rounded={radius.lg} borderWidth={1} borderColor="$line" bg="$surface" overflow="hidden">
-      {[0, 1, 2, 3, 4].map((i) => (
-        <XStack key={i} items="center" gap={space[3]} px={space[4]} py={12} minH={64} borderTopWidth={i ? 1 : 0} borderColor="$line">
-          <View width={40} height={40} rounded={999} bg="$surfaceSunken" />
-          <YStack gap={8}>
-            <AmountSkeleton width={130} height={12} />
-            <AmountSkeleton width={170} height={9} />
-          </YStack>
-        </XStack>
-      ))}
-    </YStack>
+    <SkeletonGroup label={t("states.loading")}>
+      <YStack mx={space[5]} mt={6}>
+        {[0, 1, 2, 3, 4].map((i) => (
+          <XStack key={i} items="center" gap={space[3]} py={11} minH={66} borderTopWidth={i ? 1 : 0} borderColor="$line">
+            <SkeletonBlock width={44} height={44} rounded={14} />
+            <YStack flex={1} gap={8}>
+              <SkeletonBlock width="50%" height={14} rounded={6} />
+              <SkeletonBlock width="70%" height={11} rounded={6} />
+            </YStack>
+          </XStack>
+        ))}
+      </YStack>
+    </SkeletonGroup>
   );
 }

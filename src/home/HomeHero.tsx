@@ -21,7 +21,7 @@ import { amountParts, THIN_SPACE } from "../finance/formatAmount";
 import { useSensitiveAmounts } from "../privacy/SensitiveAmountsProvider";
 import { useThemeMode } from "../theme/ThemeMode";
 import { fintPalette } from "../theme/palette";
-import { COMPACT_FONT_SCALE, motion, radius, space } from "../theme/tokens";
+import { COMPACT_FONT_SCALE, motion, radius, space, ticket } from "../theme/tokens";
 import { fontFace, textStyles } from "../theme/typography";
 import { isComingSoon } from "../config/comingSoon";
 import { Amount, FText, PressableScale, SoonBadge } from "../ui";
@@ -63,9 +63,9 @@ interface HomeHeroProps {
 }
 
 const SWIPE_DISTANCE = 60;
-/** Radio de la boleta y diámetro de sus muescas laterales. */
-const TICKET_RADIUS = 26;
-const NOTCH = 24;
+/** Radio de la boleta y diámetro de sus muescas laterales (`ticket` en tokens, compartidos con Cuentas y Reportes). */
+const TICKET_RADIUS = ticket.radius;
+const NOTCH = ticket.notch;
 /** Alto mínimo de la parte de arriba de la boleta (cuenta, saldo y cambio del mes); el filete va justo debajo. */
 const TICKET_TOP = 172;
 /** Lo que la boleta deja libre a la derecha para que asome la siguiente cuenta del carrusel. */
@@ -75,11 +75,11 @@ const ON_INK_IN = "#7CE3AA";
 const ON_INK_OUT = fintPalette.dark.flowOut;
 /** La boleta de la cuenta siguiente que asoma detrás: amarillo apagado contra cada fondo. */
 const PEEK_COLOR = { light: "#F2E3A8", dark: "#4A4126" } as const;
-/** Fichas de la boleta: tinta al 8 % (acciones) y al 10 % (selector de cuenta, ojo y botones de la barra compacta). */
-export const TICKET_CHIP = "rgba(20,20,18,0.08)";
-export const TICKET_CONTROL = "rgba(20,20,18,0.10)";
-const TICKET_RULE = "rgba(20,20,18,0.16)";
-const TICKET_SKELETON = "rgba(20,20,18,0.12)";
+/** Fichas de la boleta: tinta al 8 % (acciones) y al 10 % (selector de cuenta, ojo); filete y barras de carga. */
+const TICKET_CHIP = ticket.chip;
+const TICKET_CONTROL = ticket.control;
+const TICKET_RULE = ticket.rule;
+const TICKET_SKELETON = ticket.skeleton;
 
 /**
  * El Inicio de la marca D: arriba, el avatar, el buscador y la campana sobre `canvas`; debajo, la boleta amarilla

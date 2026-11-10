@@ -98,6 +98,9 @@ export function actionToastOptions(duration: number | undefined, preset: ToastPr
  * Los avisos simples salen arriba; los que llevan acción, abajo sobre la barra de pestañas. sonner-native comparte
  * un solo `offset` entre posiciones, así que el contenedor de abajo se sube con `marginBottom`, que en el de arriba
  * no tiene efecto.
+ *
+ * La dirección para descartar es una sola para todos los avisos (sonner-native no la acepta por aviso), pero con
+ * `up` cada uno se va hacia su borde: los de arriba hacia arriba y el de deshacer, abajo, hacia abajo.
  */
 export function FintToaster() {
   const { themeMode } = useThemeMode();
@@ -116,7 +119,7 @@ export function FintToaster() {
       gap={10}
       duration={DEFAULT_DURATION}
       visibleToasts={3}
-      swipeToDismissDirection="left"
+      swipeToDismissDirection="up"
       icons={{
         success: <CheckCircle2 size={20} color={palette.flowIn} />,
         error: <AlertCircle size={20} color={palette.dangerHard} />,

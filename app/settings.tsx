@@ -52,7 +52,6 @@ import { fontFace, textStyles } from "../src/theme/typography";
 import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
 import {
   FintButton,
-  FintCard,
   FintSheet,
   FintSpinner,
   FintTimeField,
@@ -77,11 +76,12 @@ const LANGUAGES: { value: AppLanguage; label: string }[] = [
 ];
 
 /**
- * Ajustes v3: la tarjeta de perfil y listas agrupadas (Preferencias,
- * Notificaciones, Tus datos, Ayuda, Compartir y comunidad, Legal, Cuenta), con
- * la versión en `mono` al final. Cada fila: icono sobre `surfaceSunken`,
- * etiqueta, valor en `inkFaint` y chevron, o un interruptor si es un sí o no.
- * El único acento es el `brand` de los interruptores encendidos.
+ * Ajustes (marca D, F-10): el perfil (avatar amarillo de 60, nombre y correo) y
+ * listas a todo el ancho (Preferencias, Notificaciones, Tus datos, Ayuda,
+ * Compartir y comunidad, Legal, Cuenta), con la versión en `mono` al final.
+ * Cada fila: icono en un cuadro `surface` de 40, etiqueta, valor en `inkMuted`
+ * y chevron, o un interruptor si es un sí o no. El único acento es el amarillo
+ * de los interruptores encendidos y del avatar.
  */
 export default function SettingsScreen() {
   const showSoon = useComingSoon();
@@ -194,9 +194,14 @@ export default function SettingsScreen() {
   return (
     <YStack flex={1} bg="$canvas" pt={insets.top}>
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + space[8] }} showsVerticalScrollIndicator={false}>
-        <XStack items="center" gap={space[3]} px={space[4]} pt={space[2]}>
+        <XStack items="center" gap={10} px={space[5]} pt={space[2]}>
           <IconButton label={t("settingsScreen.back")} icon={<ChevronLeft size={20} color="$ink" strokeWidth={2} />} onPress={() => router.back()} />
-          <FText variant="heading" accessibilityRole="header" style={{ flex: 1 }} numberOfLines={1}>
+          <FText
+            accessibilityRole="header"
+            maxFontSizeMultiplier={1.3}
+            numberOfLines={2}
+            style={{ flex: 1, fontFamily: fontFace.display[700], fontSize: 26, lineHeight: 31, letterSpacing: -0.6 }}
+          >
             {t("settingsScreen.title")}
           </FText>
         </XStack>
@@ -207,20 +212,18 @@ export default function SettingsScreen() {
           accessibilityRole="button"
           accessibilityLabel={`${displayName}, ${t("settings.profile")}`}
         >
-          <FintCard mx={space[4]} mt={space[4]} p={14}>
-            <XStack items="center" gap={12}>
-              <Avatar name={displayName} photoUrl={photoUrl} size={52} />
-              <YStack flex={1} minW={0}>
-                <FText variant="body-strong" numberOfLines={1} style={{ fontSize: 16, letterSpacing: -0.2 }}>
-                  {displayName}
-                </FText>
-                <FText variant="label" tone="inkFaint" numberOfLines={1}>
-                  {session?.user.email ?? ""}
-                </FText>
-              </YStack>
-              <ChevronRight size={18} color="$inkFaint" strokeWidth={2} />
-            </XStack>
-          </FintCard>
+          <XStack mx={space[5]} mt={10} items="center" gap={14}>
+            <Avatar name={displayName} photoUrl={photoUrl} size={60} />
+            <YStack flex={1} minW={0} gap={2}>
+              <FText numberOfLines={2} style={{ fontFamily: fontFace.display[700], fontSize: 19, lineHeight: 24, letterSpacing: -0.3 }}>
+                {displayName}
+              </FText>
+              <FText tone="inkFaint" numberOfLines={1} style={{ fontSize: 13, lineHeight: 18 }}>
+                {session?.user.email ?? ""}
+              </FText>
+            </YStack>
+            <ChevronRight size={18} color="$inkFaint" strokeWidth={2} />
+          </XStack>
         </PressableScale>
 
         <GroupTitle>{t("settingsScreen.preferences")}</GroupTitle>
@@ -511,7 +514,7 @@ function DeleteAccountSheet({ open, onClose, onDeleted }: { open: boolean; onClo
   return (
     <FintSheet open={open} onClose={() => !mutation.isPending && onClose()}>
       <YStack items="center" px={space[5]} pt={space[4]}>
-        <View width={56} height={56} rounded={999} bg="$red2" items="center" justify="center">
+        <View width={60} height={60} rounded={20} bg="$dangerWash" items="center" justify="center">
           <Trash2 size={24} color="$dangerHard" strokeWidth={2} />
         </View>
         <FText variant="title" style={{ fontSize: 22, lineHeight: 28, marginTop: 14, textAlign: "center" }}>
@@ -548,7 +551,7 @@ function DeleteAccountSheet({ open, onClose, onDeleted }: { open: boolean; onClo
           >
             {mutation.isPending ? <FintSpinner color="$onDanger" /> : t("settings.deleteAccountButton")}
           </FintButton>
-          <FintButton variant="ghost" bg="$surfaceSunken" color="$ink" pending={mutation.isPending} onPress={onClose}>
+          <FintButton variant="soft" pending={mutation.isPending} onPress={onClose}>
             {t("actions.cancel")}
           </FintButton>
         </YStack>

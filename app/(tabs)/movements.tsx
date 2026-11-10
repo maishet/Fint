@@ -34,9 +34,8 @@ import {
   type ListEntry,
   type MovementFilter,
 } from "../../src/movements/logic";
-import { COMPACT_FONT_SCALE, radius, space } from "../../src/theme/tokens";
+import { COMPACT_FONT_SCALE, radius, space, ticket } from "../../src/theme/tokens";
 import { fintPalette } from "../../src/theme/palette";
-import { TICKET_CONTROL } from "../../src/home/HomeHero";
 import { SkeletonBlock, SkeletonGroup } from "../../src/components/Skeleton";
 import { fontFace, textStyles } from "../../src/theme/typography";
 import { useScreenStatusBar } from "../../src/theme/useScreenStatusBar";
@@ -328,7 +327,7 @@ export default function MovementsScreen() {
       {pendingCount > 0 ? (
         <PressableScale onPress={() => router.push("/pending-movements")} haptic="tap" accessibilityRole="button" accessibilityLabel={t("movementsTab.review", { count: pendingCount })}>
           <XStack mx={space[5]} mt={space[4]} px={14} py={12} gap={space[3]} items="center" rounded={22} bg="$slab">
-            <View width={40} height={40} rounded={14} items="center" justify="center" style={{ backgroundColor: TICKET_CONTROL }}>
+            <View width={40} height={40} rounded={14} items="center" justify="center" style={{ backgroundColor: ticket.control }}>
               <Mail size={20} color="$slabInk" strokeWidth={2} />
             </View>
             <YStack flex={1} minW={0}>

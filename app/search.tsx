@@ -3,17 +3,20 @@ import { ArrowDown, ArrowUp, CalendarDays, Check, Clock, FileText, Search, X } f
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { AccessibilityInfo, Pressable, ScrollView, TextInput, type TextStyle } from "react-native";
+import { AccessibilityInfo, Pressable, ScrollView, TextInput, useWindowDimensions, type TextStyle } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Text, View, XStack, YStack, useTheme, type ColorTokens } from "tamagui";
+import { Text, View, XStack, YStack, useTheme } from "tamagui";
 import { financeApi } from "../src/api/finance";
 import type { Transaction } from "../src/api/types";
 import { useAuth } from "../src/auth/AuthProvider";
 import { getCategoryLabel } from "../src/finance/categoryLabels";
 import { getCurrencySymbol } from "../src/finance/currencies";
 import { useCategoryIcons } from "../src/finance/useCategoryIcons";
-import { categoryColorIndex } from "../src/home/spending";
+import { categoryTint } from "../src/finance/categoryTint";
+import { useCategoryHue } from "../src/finance/emojiHue";
+import { useThemeMode } from "../src/theme/ThemeMode";
+import { SkeletonBlock, SkeletonGroup } from "../src/components/Skeleton";
 import { getAppLocale } from "../src/i18n";
 import { frequentCategories, last30DaysRange } from "../src/movement-form/logic";
 import { DayHeader } from "../src/movements/DayHeader";
@@ -21,12 +24,10 @@ import { buildEntries, groupTransfers, type MovementItem } from "../src/movement
 import { addRecent, amountQuery, applyFilters, highlightParts, matches, NO_FILTERS, summarize, topAccount, type SearchFilters } from "../src/search/logic";
 import { getRecentSearches, storeRecentSearches } from "../src/search/recentStorage";
 import { withAlpha } from "../src/theme/color";
-import { motion, radius, space } from "../src/theme/tokens";
+import { COMPACT_FONT_SCALE, motion, radius, space } from "../src/theme/tokens";
 import { fontFace, textStyles } from "../src/theme/typography";
 import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
-import { Amount, Chip, FintButton, FText, Monogram, PressableScale } from "../src/ui";
-import { AmountSkeleton } from "../src/ui/AmountSkeleton";
-import { GroupedCell } from "../src/ui/GroupedCell";
+import { Amount, Chip, FintButton, FText, Monogram, PressableScale, RowAmount } from "../src/ui";
 import { detailParams } from "../src/movements/detailParams";
 
 /** Los resultados se actualizan este tiempo después de la última tecla. */
@@ -207,26 +208,28 @@ export default function SearchScreen() {
     body = (
       <Animated.View key="start" entering={FadeIn.duration(motion.fade.duration)}>
         {recent.length ? (
-          <YStack mt={space[5]}>
-            <XStack px={space[4]} items="center" justify="space-between">
-              <FText variant="caption" tone="inkMuted" accessibilityRole="header" style={{ fontFamily: fontFace.sans[600] }}>
+          <YStack mt={22} px={space[5]}>
+            <XStack items="center" justify="space-between" mb={4}>
+              <FText accessibilityRole="header" maxFontSizeMultiplier={1.5} style={GROUP_TITLE}>
                 {t("search.recent")}
               </FText>
-              <Pressable onPress={() => forget(null)} accessibilityRole="button" hitSlop={8}>
-                <FText variant="caption" tone="brand" style={{ fontFamily: fontFace.sans[600] }}>
+              <Pressable onPress={() => forget(null)} accessibilityRole="button" hitSlop={12}>
+                <FText tone="inkMuted" maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={{ fontFamily: fontFace.display[700], fontSize: 13, lineHeight: 18 }}>
                   {t("search.clearRecent")}
                 </FText>
               </Pressable>
             </XStack>
-            {recent.map((item) => {
+            {recent.map((item, i) => {
               const isAmount = amountQuery(item) !== null;
               return (
                 <Pressable key={item} onPress={() => searchFor(item)} accessibilityRole="button">
                   {({ pressed }) => (
-                    <XStack items="center" gap={12} px={space[4]} height={44} bg={pressed ? "$surfaceSunken" : "transparent"}>
-                      <Clock size={16} color="$inkFaint" strokeWidth={2} />
-                      <XStack flex={1} items="baseline" gap={8} minW={0}>
-                        <FText numberOfLines={1} style={isAmount ? { fontFamily: fontFace.mono[500], fontSize: 15, lineHeight: 20 } : { fontSize: 15, lineHeight: 20 }}>
+                    <XStack items="center" gap={12} minH={52} py={8} borderTopWidth={i ? 1 : 0} borderColor="$line" bg={pressed ? "$surfaceSunken" : "transparent"}>
+                      <View width={36} height={36} rounded={14} bg="$surface" items="center" justify="center">
+                        <Clock size={16} color="$inkMuted" strokeWidth={2} />
+                      </View>
+                      <XStack flex={1} items="baseline" gap={8} minW={0} flexWrap="wrap">
+                        <FText numberOfLines={1} style={isAmount ? { fontFamily: fontFace.mono[600], fontSize: 16, lineHeight: 21 } : { fontFamily: fontFace.display[700], fontSize: 16, lineHeight: 21 }}>
                           {item}
                         </FText>
                         {isAmount ? (
@@ -246,21 +249,15 @@ export default function SearchScreen() {
           </YStack>
         ) : null}
         {frequent.length ? (
-          <YStack mt={space[5]} px={space[4]}>
-            <FText variant="caption" tone="inkMuted" accessibilityRole="header" style={{ fontFamily: fontFace.sans[600] }}>
+          <YStack mt={22} px={space[5]}>
+            <FText accessibilityRole="header" maxFontSizeMultiplier={1.5} style={GROUP_TITLE}>
               {t("search.frequent")}
             </FText>
-            <XStack mt={space[3]} justify="space-between">
+            {/* "Lo que más registras" en fichas de dos columnas con el fondo de cada categoría. */}
+            <XStack mt={10} gap={8} flexWrap="wrap">
               {frequent.map((c) => {
                 const label = getCategoryLabel(c.name, t);
-                return (
-                  <PressableScale key={c.id} onPress={() => searchFor(label)} accessibilityRole="button" accessibilityLabel={label} style={{ width: 64, alignItems: "center" }}>
-                    <Monogram name={label} emoji={c.icon} color={`$chart${categoryColorIndex(c.name)}` as ColorTokens} size={52} />
-                    <FText variant="caption" tone="inkMuted" numberOfLines={1} style={{ marginTop: 6, textAlign: "center" }}>
-                      {label}
-                    </FText>
-                  </PressableScale>
-                );
+                return <FrequentTile key={c.id} name={c.name} label={label} emoji={c.icon} onPress={() => searchFor(label)} />;
               })}
             </XStack>
           </YStack>
@@ -269,15 +266,25 @@ export default function SearchScreen() {
     );
   } else if (resultsQuery.isLoading) {
     body = (
-      <YStack px={space[4]} mt={space[4]} gap={10} accessibilityRole="progressbar">
-        <AmountSkeleton width={320} height={72} />
-        <AmountSkeleton width={140} height={14} />
-        <AmountSkeleton width={320} height={120} />
-      </YStack>
+      <SkeletonGroup label={t("states.loading")}>
+        <YStack px={space[5]} mt={20}>
+          <SkeletonBlock width={200} height={18} rounded={6} mb={8} />
+          {[0, 1, 2, 3].map((i) => (
+            <XStack key={i} items="center" gap={12} py={12} borderTopWidth={i ? 1 : 0} borderColor="$line">
+              <SkeletonBlock width={44} height={44} rounded={14} />
+              <YStack flex={1} gap={8}>
+                <SkeletonBlock width="60%" height={14} rounded={6} />
+                <SkeletonBlock width="40%" height={11} rounded={6} />
+              </YStack>
+              <SkeletonBlock width={64} height={14} rounded={6} />
+            </XStack>
+          ))}
+        </YStack>
+      </SkeletonGroup>
     );
   } else if (resultsQuery.error) {
     body = (
-      <FText tone="inkMuted" style={{ margin: space[4], textAlign: "center" }}>
+      <FText tone="inkMuted" style={{ margin: space[5], textAlign: "center" }}>
         {t("search.error")}
       </FText>
     );
@@ -286,10 +293,10 @@ export default function SearchScreen() {
     body = (
       <Animated.View key={`empty-${query}`} entering={FadeIn.duration(motion.fade.duration)}>
         <YStack items="center" px={space[6]} mt={48}>
-          <View width={56} height={56} rounded={radius.pill} bg="$surfaceSunken" items="center" justify="center">
-            <Search size={24} color="$inkMuted" strokeWidth={2} />
+          <View width={60} height={60} rounded={20} bg="$surface" items="center" justify="center">
+            <Search size={24} color="$ink" strokeWidth={2} />
           </View>
-          <FText variant="heading" accessibilityRole="header" style={{ marginTop: space[4], textAlign: "center" }}>
+          <FText accessibilityRole="header" style={{ ...GROUP_TITLE, fontSize: 20, lineHeight: 25, marginTop: space[4], textAlign: "center" }}>
             {t("search.emptyTitle", { query })}
           </FText>
           <FText tone="inkMuted" style={{ marginTop: 6, textAlign: "center", fontSize: 14, lineHeight: 20 }}>
@@ -303,7 +310,7 @@ export default function SearchScreen() {
             </XStack>
           ) : null}
           <FintButton
-            variant="soft"
+            variant="solid"
             mt={space[5]}
             onPress={() => router.push({ pathname: "/transaction-form", params: { type: "expense", ...(amountQuery(query) !== null ? { amount: String(amountQuery(query)) } : { note: query }) } })}
           >
@@ -315,9 +322,10 @@ export default function SearchScreen() {
   } else {
     body = (
       <Animated.View key={`results-${query}`} entering={FadeIn.duration(motion.fade.duration)}>
-        <XStack mx={space[4]} mt={space[4]} p={14} rounded={radius.lg} bg="$surface" borderWidth={1} borderColor="$line" items="flex-end" gap={12}>
-          <YStack flex={1} minW={0}>
-            <FText variant="caption" tone="inkMuted">
+        {/* Resumen (H-07): cuántos y desde cuándo, la suma con su signo y el ritmo de los últimos meses. */}
+        <XStack mx={space[5]} mt={18} items="flex-end" gap={12}>
+          <YStack flex={1} minW={0} gap={2}>
+            <FText style={GROUP_TITLE}>
               {[t("search.count", { count: summary.count }), since ? t("search.since", { month: since }) : null].filter(Boolean).join(" · ")}
             </FText>
             {summary.totals.map((total) => (
@@ -325,9 +333,9 @@ export default function SearchScreen() {
                 key={total.currency}
                 value={total.value}
                 currency={total.currency}
-                variant="amount-lg"
                 kind={total.value > 0 ? "income" : total.value < 0 ? "expense" : "neutral"}
-                style={{ marginTop: 2 }}
+                tone="inkMuted"
+                style={{ fontFamily: fontFace.mono[600], fontSize: 14, lineHeight: 19 }}
               />
             ))}
           </YStack>
@@ -339,7 +347,7 @@ export default function SearchScreen() {
                   width={8}
                   height={Math.max(4, (value / maxBar) * 36)}
                   rounded={3}
-                  style={{ backgroundColor: i === 2 ? theme.brand.val : withAlpha(theme.brand.val, 0.35) }}
+                  bg={i === 2 ? "$ink" : "$lineStrong"}
                 />
               ))}
             </XStack>
@@ -349,8 +357,8 @@ export default function SearchScreen() {
           entry.type === "day" ? (
             <DayHeader key={entry.key} day={entry.day} net={entry.net} locale={locale} />
           ) : (
-            <View key={entry.key} px={space[4]}>
-              <ResultRow item={entry.item} first={entry.first} last={entry.last} query={query} emoji={rowEmoji(entry.item, iconFor)} onOpen={openMovement} />
+            <View key={entry.key} px={space[5]}>
+              <ResultRow item={entry.item} first={entry.first} query={query} emoji={rowEmoji(entry.item, iconFor)} onOpen={openMovement} />
             </View>
           ),
         )}
@@ -365,19 +373,20 @@ export default function SearchScreen() {
 
   return (
     <YStack flex={1} bg="$canvas" pt={insets.top}>
-      <XStack items="center" gap={12} px={space[4]} pt={space[2]}>
+      {/* Campo de la hoja de componentes: `surface` con filete `lineStrong`; enfocado, borde tinta de 2. */}
+      <XStack items="center" gap={12} px={space[5]} pt={space[2]}>
         <XStack
           flex={1}
-          height={44}
+          minH={48}
           items="center"
-          gap={8}
+          gap={10}
           px={14}
           rounded={radius.pill}
-          bg="$surfaceSunken"
-          borderWidth={1.5}
-          borderColor={focused ? "$brand" : "transparent"}
+          bg="$surface"
+          borderWidth={focused ? 2 : 1}
+          borderColor={focused ? "$ink" : "$lineStrong"}
         >
-          <Search size={17} color="$inkMuted" strokeWidth={2} />
+          <Search size={18} color="$inkMuted" strokeWidth={2} />
           <TextInput
             ref={input}
             autoFocus
@@ -392,26 +401,26 @@ export default function SearchScreen() {
             autoCorrect={false}
             accessibilityRole="search"
             accessibilityLabel={t("search.label")}
-            selectionColor={theme.brand.val}
-            style={[textStyles.body as TextStyle, { flex: 1, color: theme.ink.val, paddingVertical: 0 }]}
+            selectionColor={theme.ink.val}
+            style={[textStyles.body as TextStyle, { flex: 1, fontSize: 16, color: theme.ink.val, paddingVertical: 0 }]}
           />
           {text ? (
             <Pressable onPress={() => setText("")} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("search.clear")}>
               <View width={20} height={20} rounded={radius.pill} bg="$inkFaint" items="center" justify="center">
-                <X size={12} color="$surfaceSunken" strokeWidth={2.6} />
+                <X size={12} color="$surface" strokeWidth={2.6} />
               </View>
             </Pressable>
           ) : null}
         </XStack>
-        <Pressable onPress={() => router.back()} accessibilityRole="button" hitSlop={8}>
-          <FText variant="body-strong" tone="brand">
+        <Pressable onPress={() => router.back()} accessibilityRole="button" hitSlop={12}>
+          <FText maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={{ fontFamily: fontFace.display[700], fontSize: 15, lineHeight: 20 }}>
             {t("search.cancel")}
           </FText>
         </Pressable>
       </XStack>
 
       {query ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingHorizontal: space[4], paddingTop: 12 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 6, paddingHorizontal: space[5], paddingTop: 12 }}>
           {chips.map((chip) => (
             <Chip key={chip.key} label={chip.label} icon={chip.on ? <Check size={14} color="$canvas" strokeWidth={2.4} /> : chip.icon} selected={chip.on} onPress={chip.press} />
           ))}
@@ -429,12 +438,12 @@ function rowEmoji(item: MovementItem, iconFor: (category: string, type: Transact
   return item.kind === "movement" ? iconFor(item.movement.category, item.movement.type) : null;
 }
 
-/** El texto con la coincidencia resaltada en `brand` al 18 %. */
-function Highlighted({ text, query, style, tone = "ink" }: { text: string; query: string; style?: TextStyle; tone?: "ink" | "inkFaint" }) {
+/** El texto con la coincidencia resaltada en amarillo al 40 % (marca D). Desde 1.3 se parte en varias líneas. */
+function Highlighted({ text, query, style, tone = "ink", wrap = false }: { text: string; query: string; style?: TextStyle; tone?: "ink" | "inkFaint"; wrap?: boolean }) {
   const theme = useTheme();
-  const wash = withAlpha(theme.brand.val, 0.18);
+  const wash = withAlpha(theme.brand.val, 0.4);
   return (
-    <FText tone={tone} numberOfLines={1} style={style}>
+    <FText tone={tone} numberOfLines={wrap ? undefined : 1} style={style}>
       {highlightParts(text, query).map((part, i) =>
         part.match ? (
           <Text key={i} style={{ backgroundColor: wash }}>
@@ -448,23 +457,26 @@ function Highlighted({ text, query, style, tone = "ink" }: { text: string; query
   );
 }
 
-/** Una fila de resultado: la de siempre (categoría, nota o cuenta, monto) con la coincidencia resaltada. */
+/**
+ * Una fila de resultado (marca D): a todo el ancho con el filete arriba, el cuadro de 44, la categoría (o la nota o
+ * la cuenta) con la coincidencia resaltada y el monto con signo. Desde `COMPACT_FONT_SCALE` el monto baja.
+ */
 function ResultRow({
   item,
   first,
-  last,
   query,
   emoji,
   onOpen,
 }: {
   item: MovementItem;
   first: boolean;
-  last: boolean;
   query: string;
   emoji: string | null;
   onOpen: (tx: Transaction) => void;
 }) {
   const { t } = useTranslation();
+  const { fontScale } = useWindowDimensions();
+  const stacked = fontScale >= COMPACT_FONT_SCALE;
   const tx = item.kind === "movement" ? item.movement : item.origin;
   const transfer = item.kind === "transfer" || tx.type === "transfer";
   const title =
@@ -477,21 +489,44 @@ function ResultRow({
   const subtitle = noteMatch ? `${t("search.notePrefix")} “${tx.note}”` : tx.note || tx.account;
   const amount = item.kind === "transfer" ? item.amount : tx.amount;
   const kind = transfer ? "transfer" : tx.type === "income" ? "income" : "expense";
+  const figure = <RowAmount value={amount} currency={item.kind === "transfer" ? item.currency : tx.currency} kind={kind} />;
 
   return (
-    <GroupedCell first={first} last={last}>
-      <Pressable onPress={() => onOpen(tx)} accessibilityRole="button" accessibilityLabel={`${title}, ${subtitle}`}>
-        {({ pressed }) => (
-          <XStack items="center" gap={space[3]} px={space[4]} py={space[3]} bg={pressed ? "$surfaceSunken" : "$surface"}>
-            <Monogram name={title} emoji={transfer ? null : emoji} color={transfer ? "$inkMuted" : (`$chart${categoryColorIndex(tx.category)}` as ColorTokens)} />
-            <YStack flex={1} minW={0}>
-              <Highlighted text={title} query={query} style={{ ...(textStyles["body-strong"] as TextStyle), letterSpacing: -0.15 }} />
-              <Highlighted text={subtitle} query={query} tone="inkFaint" style={{ ...(textStyles.caption as TextStyle), marginTop: 1 }} />
-            </YStack>
-            <Amount value={amount} currency={item.kind === "transfer" ? item.currency : tx.currency} kind={kind} />
-          </XStack>
+    <Pressable onPress={() => onOpen(tx)} accessibilityRole="button" accessibilityLabel={`${title}, ${subtitle}`}>
+      {({ pressed }) => (
+        <XStack items={stacked ? "flex-start" : "center"} gap={space[3]} py={space[3]} borderTopWidth={first ? 0 : 1} borderColor="$line" bg={pressed ? "$surfaceSunken" : "$canvas"}>
+          <Monogram name={title} emoji={transfer ? null : emoji} size={44} />
+          <YStack flex={1} minW={0} gap={2}>
+            <Highlighted text={title} query={query} wrap={stacked} style={{ fontFamily: fontFace.display[700], fontSize: 16, lineHeight: 21, letterSpacing: -0.15 }} />
+            <Highlighted text={subtitle} query={query} wrap={stacked} tone="inkFaint" style={{ fontSize: 13, lineHeight: 18 }} />
+            {stacked ? <View mt={2}>{figure}</View> : null}
+          </YStack>
+          {stacked ? null : figure}
+        </XStack>
+      )}
+    </Pressable>
+  );
+}
+
+/** Título de grupo de la búsqueda (Recientes, Lo que más registras, el resumen): 16 en Figtree Bold. */
+const GROUP_TITLE = { fontFamily: fontFace.display[700], fontSize: 16, lineHeight: 21 } as const;
+
+/** Una ficha de "Lo que más registras": la mitad del ancho, el emoji grande y el nombre sobre el fondo de su tono. */
+function FrequentTile({ name, label, emoji, onPress }: { name: string; label: string; emoji?: string | null; onPress: () => void }) {
+  const { themeMode } = useThemeMode();
+  const hue = useCategoryHue(emoji, name);
+  return (
+    <PressableScale onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={{ width: "48.5%", flexGrow: 1 }}>
+      <YStack p={12} gap={10} rounded={20} style={{ backgroundColor: emoji ? categoryTint(hue, themeMode) : undefined }} bg={emoji ? undefined : "$surface"}>
+        {emoji ? (
+          <Text allowFontScaling={false} style={{ fontSize: 28, lineHeight: 34 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            {emoji}
+          </Text>
+        ) : (
+          <Monogram name={label} size={32} />
         )}
-      </Pressable>
-    </GroupedCell>
+        <FText style={{ fontFamily: fontFace.display[700], fontSize: 14, lineHeight: 19 }}>{label}</FText>
+      </YStack>
+    </PressableScale>
   );
 }

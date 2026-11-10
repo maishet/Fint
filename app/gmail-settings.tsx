@@ -19,6 +19,7 @@ import { radius, space } from "../src/theme/tokens";
 import { fontFace, textStyles } from "../src/theme/typography";
 import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
 import { ErrorLine, FintButton, FintCard, FintSheet, FintSpinner, FText, IconButton, PressableScale, useNotify } from "../src/ui";
+import { SkeletonBlock } from "../src/components/Skeleton";
 import { GoogleMark } from "../src/ui/GoogleMark";
 import { TaskProgress } from "../src/ui/TaskProgress";
 import { haptics } from "../src/ui/haptics";
@@ -52,11 +53,13 @@ async function connectGmailNative() {
 }
 
 /**
- * Cuentas Gmail v3: una tarjeta por correo conectado, hasta tres. Activa: el
- * punto `flowIn` y la última sincronización, los remitentes como fichas en
- * `mono` y "Sincronizar" con el resultado de la última vez. Sin remitentes:
- * filete `brand` a la izquierda, explica que no se lee nada hasta agregarlos y
- * ofrece el botón. Si Google pide reconectar, "Reconectar correo". El menú de
+ * Cuentas Gmail (marca D, K-12): una tarjeta `surface` por correo conectado,
+ * hasta tres. Activa: el punto `flowIn` y la última sincronización, los
+ * remitentes como fichas en `mono` dentro de un recuadro `sunken` y
+ * "Sincronizar" en tinta con el resultado de la última vez. Sin remitentes:
+ * filete amarillo a la izquierda, punto amarillo, explica que no se lee nada
+ * hasta agregarlos y ofrece "Agregar remitentes" en amarillo. Si Google pide
+ * reconectar, punto y texto `danger` y "Reconectar correo" en tinta. El menú de
  * tres puntos ofrece Desconectar, con confirmación.
  */
 export default function GmailSettingsScreen() {
@@ -107,19 +110,24 @@ export default function GmailSettingsScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={sourcesQuery.isRefetching} onRefresh={() => void sourcesQuery.refetch()} />}
       >
-        <XStack items="center" gap={space[3]} px={space[4]} pt={space[2]}>
+        <XStack items="center" gap={10} px={space[5]} pt={space[2]}>
           <IconButton label={t("settingsScreen.back")} icon={<ChevronLeft size={20} color="$ink" strokeWidth={2} />} onPress={() => router.back()} />
-          <FText variant="title" accessibilityRole="header" style={{ fontSize: 24, lineHeight: 30, letterSpacing: -0.5, flex: 1 }} numberOfLines={1}>
+          <FText
+            accessibilityRole="header"
+            maxFontSizeMultiplier={1.3}
+            numberOfLines={2}
+            style={{ fontFamily: fontFace.display[700], fontSize: 26, lineHeight: 31, letterSpacing: -0.6, flex: 1 }}
+          >
             {t("settings.gmail")}
           </FText>
         </XStack>
-        <FText variant="label" tone="inkMuted" style={{ paddingHorizontal: space[4], paddingTop: 6, lineHeight: 19 }}>
+        <FText tone="inkMuted" style={{ paddingHorizontal: space[5], paddingTop: 4, fontSize: 15, lineHeight: 22 }}>
           {t("gmailScreen.intro")}
         </FText>
 
         {sourcesQuery.isLoading ? <CardsSkeleton /> : null}
         {sourcesQuery.error ? (
-          <YStack px={space[4]} mt={14}>
+          <YStack px={space[5]} mt={14}>
             <DataStateCard
               message={sourcesQuery.error instanceof Error ? sourcesQuery.error.message : t("states.error")}
               onRetry={() => void sourcesQuery.refetch()}
@@ -148,14 +156,15 @@ export default function GmailSettingsScreen() {
               accessibilityRole="button"
               accessibilityLabel={sources.length ? t("gmailScreen.connectAnother") : t("gmailScreen.connectFirst")}
             >
-              <XStack mx={space[4]} mt={14} height={50} rounded={radius.lg} bg="$surfaceSunken" items="center" justify="center" gap={8} opacity={full ? 0.42 : 1}>
-                {connectMutation.isPending ? <FintSpinner color="$brand" /> : <Plus size={16} color="$brand" strokeWidth={2.2} />}
-                <FText variant="body-strong" tone="brand" style={{ fontSize: 14 }}>
+              {/* Conectar otro correo: botón secundario con contorno (el amarillo queda para la acción de cada tarjeta). */}
+              <XStack mx={space[5]} mt={14} minH={52} rounded={radius.pill} borderWidth={1.5} borderColor="$line" items="center" justify="center" gap={8} opacity={full ? 0.42 : 1}>
+                {connectMutation.isPending ? <FintSpinner color="$ink" /> : <Plus size={16} color="$ink" strokeWidth={2.2} />}
+                <FText variant="body-strong" style={{ fontSize: 15 }}>
                   {sources.length ? t("gmailScreen.connectAnother") : t("gmailScreen.connectFirst")}
                 </FText>
               </XStack>
             </PressableScale>
-            <FText variant="caption" tone="inkFaint" style={{ textAlign: "center", marginTop: 8 }}>
+            <FText tone="inkFaint" style={{ textAlign: "center", marginTop: 10, paddingHorizontal: space[5], fontSize: 13, lineHeight: 18 }}>
               {full ? t("gmailScreen.limitReached") : t("gmailScreen.limit")}
             </FText>
           </>
@@ -188,7 +197,7 @@ export default function GmailSettingsScreen() {
       {menuFor ? (
         <FintSheet open={confirmOpen} onClose={() => !disconnectMutation.isPending && setConfirmOpen(false)}>
           <YStack items="center" px={space[5]} pt={space[4]}>
-            <View width={56} height={56} rounded={999} bg="$red2" items="center" justify="center">
+            <View width={60} height={60} rounded={20} bg="$dangerWash" items="center" justify="center">
               <Trash2 size={24} color="$dangerHard" strokeWidth={2} />
             </View>
             <FText variant="title" style={{ fontSize: 22, lineHeight: 28, marginTop: 14, textAlign: "center" }}>
@@ -210,9 +219,7 @@ export default function GmailSettingsScreen() {
                 {disconnectMutation.isPending ? <FintSpinner color="$onDanger" /> : t("gmail.disconnect")}
               </FintButton>
               <FintButton
-                variant="ghost"
-                bg="$surfaceSunken"
-                color="$ink"
+                variant="soft"
                 pending={disconnectMutation.isPending}
                 onPress={() => setConfirmOpen(false)}
               >
@@ -289,60 +296,59 @@ function SourceCard({
         : syncedWhen
           ? t("gmailScreen.activeSince", { when: syncedWhen })
           : t("gmailScreen.activeNever");
-  const dot = state === "active" ? "$flowIn" : state === "reconnect" ? "$dangerHard" : "$inkFaint";
+  const dot = state === "active" ? "$flowIn" : state === "reconnect" ? "$dangerHard" : "$brand";
   const pending = syncMutation.isPending || saveMutation.isPending;
 
   return (
-    <FintCard mx={space[4]} mt={14} p={14} overflow="hidden">
-      {/* Sin remitentes: filete `brand` a la izquierda. */}
-      {state === "needsSenders" ? <View position="absolute" l={0} t={0} b={0} width={3} bg="$brand" /> : null}
+    <FintCard mx={space[5]} mt={10} px={16} py={14} overflow="hidden">
+      {/* Sin remitentes: filete amarillo de 4 a la izquierda. */}
+      {state === "needsSenders" ? <View position="absolute" l={0} t={0} b={0} width={4} bg="$brand" /> : null}
       <XStack items="center" gap={10}>
-        <GoogleMark size={18} />
-        <YStack flex={1} minW={0}>
-          <FText variant="body-strong" numberOfLines={1} style={{ fontSize: 14 }}>
+        <View width={40} height={40} rounded={999} bg="$canvas" items="center" justify="center">
+          <GoogleMark size={18} />
+        </View>
+        <YStack flex={1} minW={0} gap={2}>
+          <FText numberOfLines={1} style={{ fontFamily: fontFace.display[700], fontSize: 15, lineHeight: 20 }}>
             {source.emailAddress}
           </FText>
-          <XStack items="center" gap={5}>
-            <View width={6} height={6} rounded={999} bg={dot} />
-            <FText variant="caption" tone="inkFaint" numberOfLines={1}>
+          <XStack items="center" gap={6}>
+            <View width={8} height={8} rounded={999} bg={dot} />
+            <FText
+              tone={state === "reconnect" ? "dangerHard" : state === "needsSenders" ? "ink" : "inkMuted"}
+              style={{ fontFamily: state === "active" ? fontFace.sans[400] : fontFace.sans[600], fontSize: 13, lineHeight: 18, flexShrink: 1 }}
+            >
               {status}
             </FText>
           </XStack>
         </YStack>
-        <IconButton
-          size={34}
-          tone="sunken"
-          label={t("gmailScreen.more")}
-          icon={<Ellipsis size={18} color="$inkFaint" strokeWidth={2.4} />}
-          onPress={onMore}
-        />
+        <IconButton size={40} label={t("gmailScreen.more")} icon={<Ellipsis size={18} color="$ink" strokeWidth={2.4} />} style={{ alignSelf: "flex-start" }} onPress={onMore} />
       </XStack>
 
       {state === "reconnect" ? (
         <>
-          <FText variant="caption" tone="inkMuted" style={{ marginTop: 10, lineHeight: 17 }}>
+          <FText tone="inkMuted" style={{ marginTop: 10, fontSize: 13, lineHeight: 19 }}>
             {t("gmailScreen.reconnectBody")}
           </FText>
-          <XStack mt={12}>
-            <Pill tone="soft" label={t("gmailScreen.reconnect")} pending={reconnecting} onPress={onReconnect} />
+          <XStack mt={10}>
+            <Pill tone="ink" icon={<RefreshCw size={14} color="$canvas" strokeWidth={2.2} />} label={t("gmailScreen.reconnect")} pending={reconnecting} onPress={onReconnect} />
           </XStack>
         </>
       ) : null}
 
       {state === "needsSenders" && !editing ? (
         <>
-          <FText variant="caption" tone="inkMuted" style={{ marginTop: 10, lineHeight: 17 }}>
+          <FText tone="inkMuted" style={{ marginTop: 10, fontSize: 13, lineHeight: 19 }}>
             {t("gmailScreen.needsSendersBody")}
           </FText>
-          <XStack mt={12}>
-            <Pill tone="soft" label={t("gmailScreen.addSenders")} onPress={() => setEditing(true)} />
+          <XStack mt={10}>
+            <Pill tone="solid" label={t("gmailScreen.addSenders")} onPress={() => setEditing(true)} />
           </XStack>
         </>
       ) : null}
 
       {state !== "reconnect" && editing ? (
         <>
-          <FText variant="caption" tone="inkMuted" style={{ marginTop: 14, marginBottom: 6 }}>
+          <FText tone="inkFaint" style={{ fontFamily: fontFace.sans[600], fontSize: 12, lineHeight: 16, marginTop: 14, marginBottom: 8 }}>
             {t("gmailScreen.senders")}
           </FText>
           <SendersField value={senders} onChange={setSenders} autoFocus={state === "needsSenders"} />
@@ -358,8 +364,8 @@ function SourceCard({
             ) : null}
             {state === "active" ? (
               <Pill
-                tone="soft"
-                icon={<RefreshCw size={14} color="$brand" strokeWidth={2.2} />}
+                tone="ink"
+                icon={<RefreshCw size={14} color="$canvas" strokeWidth={2.2} />}
                 label={syncMutation.isPending ? t("gmail.syncing") : t("gmail.sync")}
                 pending={syncMutation.isPending}
                 disabled={pending || dirty}
@@ -390,7 +396,7 @@ function SourceCard({
   );
 }
 
-/** Botón píldora de 36px: `soft` en `brandWash` con texto `brand`; `solid` en `brand`. */
+/** Botón píldora de 36px (44 de toque): `ink` en tinta con texto `canvas` (Sincronizar, Reconectar); `solid` en amarillo. */
 function Pill({
   label,
   onPress,
@@ -401,7 +407,7 @@ function Pill({
 }: {
   label: string;
   onPress: () => void;
-  tone: "soft" | "solid";
+  tone: "ink" | "solid";
   icon?: React.ReactNode;
   pending?: boolean;
   disabled?: boolean;
@@ -413,6 +419,7 @@ function Pill({
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled, busy: pending }}
+      hitSlop={{ top: 4, bottom: 4 }}
     >
       <XStack
         height={36}
@@ -420,11 +427,14 @@ function Pill({
         gap={6}
         items="center"
         rounded={radius.pill}
-        bg={tone === "soft" ? "$brandWash" : "$brand"}
-        opacity={disabled && !pending ? 0.42 : 1}
+        bg={disabled && !pending ? "$canvas" : tone === "ink" ? "$ink" : "$brand"}
       >
-        {pending ? <FintSpinner color={tone === "soft" ? "$brand" : "$onBrand"} /> : icon}
-        <FText variant="label" tone={tone === "soft" ? "brand" : "onBrand"} style={{ fontFamily: fontFace.sans[600] }}>
+        {pending ? <FintSpinner color={tone === "ink" ? "$canvas" : "$onBrand"} /> : icon}
+        <FText
+          maxFontSizeMultiplier={1.3}
+          color={disabled && !pending ? "$inkFaint" : tone === "ink" ? "$canvas" : "$onBrand"}
+          style={{ fontFamily: fontFace.display[700], fontSize: 14, lineHeight: 19 }}
+        >
           {label}
         </FText>
       </XStack>
@@ -433,8 +443,8 @@ function Pill({
 }
 
 /**
- * Remitentes como fichas en `mono` dentro de un recuadro hundido, con el campo
- * "Agregar" al final. Se agregan con Enter, coma o al salir del campo; si lo
+ * Remitentes como fichas en `mono` (sobre `canvas`) dentro de un recuadro
+ * `surfaceSunken`, con el campo "Agregar" al final; enfocado, borde tinta. Se agregan con Enter, coma o al salir del campo; si lo
  * escrito no es un correo, el mensaje va debajo y el texto se queda para
  * corregirlo.
  */
@@ -472,25 +482,23 @@ function SendersField({ value, onChange, autoFocus = false }: { value: string[];
           p={8}
           minH={46}
           items="center"
-          rounded={radius.md}
-          bg={focused ? "$surface" : "$surfaceSunken"}
+          rounded={16}
+          bg="$surfaceSunken"
           borderWidth={focused || error ? 1.5 : 1}
-          borderColor={error ? "$dangerHard" : focused ? "$brand" : "$lineStrong"}
+          borderColor={error ? "$dangerHard" : focused ? "$ink" : "$lineStrong"}
         >
           {value.map((sender) => (
             <XStack
               key={sender}
-              minH={28}
-              pl={10}
+              minH={32}
+              pl={12}
               pr={4}
               gap={2}
               items="center"
               rounded={radius.pill}
-              bg="$surface"
-              borderWidth={1}
-              borderColor="$line"
+              bg="$canvas"
             >
-              <FText variant="caption" style={{ fontFamily: fontFace.mono[400], fontSize: 12 }}>
+              <FText style={{ fontFamily: fontFace.mono[500], fontSize: 12.5, lineHeight: 17 }}>
                 {sender}
               </FText>
               <Pressable
@@ -527,7 +535,7 @@ function SendersField({ value, onChange, autoFocus = false }: { value: string[];
             keyboardType="email-address"
             placeholder={value.length ? t("gmailScreen.addSender") : t("gmailScreen.senderPlaceholder")}
             placeholderTextColor={theme.inkFaint.val}
-            selectionColor={theme.brand.val}
+            selectionColor={theme.ink.val}
             accessibilityLabel={t("gmailScreen.senders")}
             style={{
               ...textStyles.label,
@@ -547,11 +555,12 @@ function SendersField({ value, onChange, autoFocus = false }: { value: string[];
   );
 }
 
+/** Carga: dos tarjetas `surface` con la forma de las de cada correo. */
 function CardsSkeleton() {
   return (
-    <YStack gap={14} mt={14} px={space[4]}>
+    <YStack gap={10} mt={14} px={space[5]}>
       {[0, 1].map((i) => (
-        <View key={i} height={150} rounded={radius.lg} bg="$surfaceSunken" />
+        <SkeletonBlock key={i} height={150} rounded={22} />
       ))}
     </YStack>
   );

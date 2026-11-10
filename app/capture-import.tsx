@@ -1,9 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CheckCircle2, Clock, History, Plus, Trash2 } from "@tamagui/lucide-icons-2";
+import { Check, CheckCircle2, Clock, Copy, Plus, Trash2, X } from "@tamagui/lucide-icons-2";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -21,10 +20,8 @@ import { getAppLocale } from "../src/i18n";
 import { StackFrame } from "../src/settings/StackFrame";
 import { randomId } from "../src/shared/id";
 import { radius, space } from "../src/theme/tokens";
-import { fontFace, textStyles } from "../src/theme/typography";
-import { Amount, FintButton, FintCard, FintSheet, FintSpinner, FText, PressableScale, useNotify } from "../src/ui";
-import { GroupedCell } from "../src/ui/GroupedCell";
-import { TaskProgress } from "../src/ui/TaskProgress";
+import { fontFace } from "../src/theme/typography";
+import { Amount, FintButton, FintSheet, FintSpinner, FText, PressableScale, Ticket, useNotify } from "../src/ui";
 import { SwipeActions, type SwipeAction } from "../src/ui/SwipeActions";
 
 type RowStatus = "queued" | "processing" | "created" | "duplicate" | "unrecognized" | "failed";
@@ -63,10 +60,11 @@ type CaptureRow = {
 type ScreenPhase = "opening" | "processing";
 
 /**
- * Importar constancia (Escanear) v3: la lógica de siempre (lectura local, extracción, pendiente en el backend,
- * dirección cuando no se sabe quién pagó) con la presentación del sistema: volver y título, el resumen en una
- * tarjeta con el estado y las cifras en `mono`, las imágenes en una lista agrupada (deslizar o el tacho para
- * quitar una, con confirmación), "¿Quién hizo esta operación?" con dos fichas y el botón fijo abajo.
+ * Importar constancia (Escanear, marca D K-08): la lógica de siempre (lectura local, extracción, pendiente en el
+ * backend, dirección cuando no se sabe quién pagó) con la presentación de la marca: volver y título, el resumen en
+ * una boleta amarilla (estado, "N de M", barra tinta y las cifras en `mono`), una fila por imagen con su disco de
+ * estado (deslizar o el tacho para quitar una, con confirmación), "¿Quién hizo esta operación?" en un recuadro
+ * `surface` con dos fichas (la elegida en tinta) y, abajo, "Agregar más" con contorno y Guardar amarillo.
  */
 export default function CaptureImportScreen() {
   const { t, i18n } = useTranslation();
@@ -233,6 +231,8 @@ export default function CaptureImportScreen() {
   const createdCount = rows.filter((row) => row.status === "created").length;
   const duplicateCount = rows.filter((row) => row.status === "duplicate").length;
   const unrecognizedCount = rows.filter((row) => row.status === "unrecognized").length;
+  // Cuántas imágenes ya se leyeron (todo lo que no está en cola ni leyéndose), para "N de M" y la barra.
+  const readCount = rows.length - rows.filter((row) => row.status === "queued" || row.status === "processing").length;
   const failedCount = rows.filter((row) => row.status === "failed").length;
 
   // Solo 'created' pide dirección: un 'duplicate' apunta al pendiente que ya
@@ -307,7 +307,7 @@ export default function CaptureImportScreen() {
     <StackFrame title={phase === "opening" ? "" : t("capture.title")}>
       {phase === "opening" ? (
         <YStack flex={1} items="center" justify="center" gap={space[3]}>
-          <FintSpinner color="$brand" />
+          <FintSpinner color="$ink" />
           <FText variant="label" tone="inkMuted">
             {t("capture.opening")}
           </FText>
@@ -315,52 +315,44 @@ export default function CaptureImportScreen() {
       ) : (
         <>
           <ScrollView
-            contentContainerStyle={{ paddingHorizontal: space[4], paddingTop: space[2], paddingBottom: space[6] }}
+            contentContainerStyle={{ paddingHorizontal: space[5], paddingTop: 10, paddingBottom: space[6] }}
             showsVerticalScrollIndicator={false}
           >
-            {/* Resumen: el estado, las cifras y "Agregar más". */}
-            <FintCard p={space[5]} items="center" gap={space[3]}>
-              {/* Mientras lee: cuántos comprobantes van de cuántos, en ruedas de dígitos (`CargaTarea` compacta). */}
-              {isProcessing ? (
-                <View self="stretch">
-                  <TaskProgress
-                    variant="compact"
-                    title={t("captureTask.reading")}
-                    value={rows.length - rows.filter((row) => row.status === "queued" || row.status === "processing").length}
-                    total={rows.length}
-                    unit={t("captureTask.unit")}
-                  />
-                </View>
-              ) : (
-                <>
-                  <View width={56} height={56} rounded={999} bg="$surfaceSunken" items="center" justify="center">
-                    <CheckCircle2 size={26} color="$flowIn" strokeWidth={2} />
+            {/* Resumen en la boleta: el estado, cuántos van de cuántos con la barra tinta y las cifras. */}
+            <Ticket
+              top={
+                <YStack gap={10}>
+                  <XStack items="baseline" justify="space-between" gap={10} flexWrap="wrap">
+                    <FText tone="slabInk" accessibilityRole="header" style={{ fontFamily: fontFace.display[700], fontSize: 15, lineHeight: 20, flexShrink: 1 }}>
+                      {isProcessing ? t("captureTask.reading") : t("capture.resultTitle")}
+                    </FText>
+                    {isProcessing ? (
+                      <FText tone="slabMuted" style={{ fontFamily: fontFace.mono[600], fontSize: 13, lineHeight: 18 }}>
+                        {`${readCount} ${t("taskProgress.of", { total: rows.length, unit: "" }).trim()}`}
+                      </FText>
+                    ) : (
+                      <CheckCircle2 size={20} color="$slabInk" strokeWidth={2.2} />
+                    )}
+                  </XStack>
+                  <View height={8} rounded={4} overflow="hidden" style={{ backgroundColor: "rgba(20,20,18,0.14)" }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                    <View height="100%" width={`${rows.length ? (readCount / rows.length) * 100 : 0}%`} rounded={4} bg="$slabInk" />
                   </View>
-                  <FText variant="heading" accessibilityRole="header" style={{ textAlign: "center" }}>
-                    {t("capture.resultTitle")}
-                  </FText>
-                </>
-              )}
-              <XStack gap={8} flexWrap="wrap" justify="center">
-                <Stat label={t("capture.created")} value={createdCount} tone="flowIn" />
-                <Stat label={t("capture.duplicates")} value={duplicateCount} />
-                {unrecognizedCount > 0 ? <Stat label={t("capture.unrecognized")} value={unrecognizedCount} /> : null}
-                {failedCount > 0 ? <Stat label={t("capture.failed")} value={failedCount} tone="dangerHard" /> : null}
-              </XStack>
-              <View self="stretch" mt={4}>
-                <FintButton variant="outlined" pending={busy} icon={<Plus size={16} color="$ink" />} onPress={addMoreImages}>
-                  {t("capture.addMore")}
-                </FintButton>
-              </View>
-            </FintCard>
+                  <XStack gap={22} flexWrap="wrap" mt={2}>
+                    <Stat label={t("capture.created")} value={createdCount} />
+                    <Stat label={t("capture.duplicates")} value={duplicateCount} />
+                    {unrecognizedCount > 0 ? <Stat label={t("capture.unrecognized")} value={unrecognizedCount} /> : null}
+                    {failedCount > 0 ? <Stat label={t("capture.failed")} value={failedCount} /> : null}
+                  </XStack>
+                </YStack>
+              }
+            />
 
-            <YStack mt={space[4]}>
+            <YStack mt={6}>
               {rows.map((row, i) => (
                 <CaptureRowItem
                   key={row.clientCaptureId}
                   row={row}
                   first={i === 0}
-                  last={i === rows.length - 1}
                   locale={locale}
                   selectedType={directionAnswers[row.clientCaptureId]}
                   onSelectType={(type) => setDirectionAnswers((current) => ({ ...current, [row.clientCaptureId]: type }))}
@@ -370,7 +362,11 @@ export default function CaptureImportScreen() {
             </YStack>
           </ScrollView>
 
-          <View px={space[4]} pt={space[3]} pb={Math.max(insets.bottom, 16) + 10} bg="$canvas">
+          {/* Al pie: "Agregar más" con contorno y Guardar amarillo. */}
+          <YStack px={space[5]} pt={space[3]} gap={10} pb={Math.max(insets.bottom, 16) + 10} bg="$canvas">
+            <FintButton variant="outlined" pending={busy} icon={<Plus size={16} color="$ink" />} onPress={addMoreImages}>
+              {t("capture.addMore")}
+            </FintButton>
             <FintButton
               disabled={needsAnswers && !allAnswered}
               pending={isProcessing || finishMutation.isPending || deleteRowMutation.isPending}
@@ -378,7 +374,7 @@ export default function CaptureImportScreen() {
             >
               {finishMutation.isPending ? <FintSpinner color="$onBrand" /> : needsAnswers ? t("capture.save") : t("capture.done")}
             </FintButton>
-          </View>
+          </YStack>
         </>
       )}
 
@@ -392,16 +388,17 @@ export default function CaptureImportScreen() {
   );
 }
 
-function Stat({ label, value, tone = "ink" }: { label: string; value: number; tone?: "ink" | "flowIn" | "dangerHard" }) {
+/** Una cifra de la boleta: el número a 22 en `mono` y su etiqueta en `slabMuted`. */
+function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <XStack items="center" gap={6} height={30} px={12} rounded={radius.pill} bg="$surfaceSunken">
-      <FText tone={tone} style={{ ...textStyles["amount-sm"], fontFamily: fontFace.mono[600] }}>
+    <YStack gap={1} accessible accessibilityLabel={`${value} ${label}`}>
+      <FText tone="slabInk" style={{ fontFamily: fontFace.mono[600], fontSize: 22, lineHeight: 28 }}>
         {value}
       </FText>
-      <FText variant="caption" tone="inkMuted">
+      <FText tone="slabMuted" style={{ fontFamily: fontFace.sans[600], fontSize: 12, lineHeight: 16 }}>
         {label}
       </FText>
-    </XStack>
+    </YStack>
   );
 }
 
@@ -420,22 +417,26 @@ function useRotatingText(active: boolean): number {
   return index;
 }
 
-/** El estado de una imagen en el disco de 38px: en cola, leyendo, creada, repetida, no reconocida o con error. */
-function statusIcon(row: CaptureRow): ReactNode {
-  switch (row.status) {
-    case "queued":
-      return <Clock size={18} color="$inkFaint" strokeWidth={2} />;
-    case "processing":
-      return <FintSpinner color="$brand" />;
-    case "created":
-      return <CheckCircle2 size={18} color="$flowIn" strokeWidth={2} />;
-    case "duplicate":
-      return <History size={18} color="$inkFaint" strokeWidth={2} />;
-    case "unrecognized":
-      return <AlertTriangle size={18} color="$inkMuted" strokeWidth={2} />;
-    case "failed":
-      return <AlertTriangle size={18} color="$dangerHard" strokeWidth={2} />;
-  }
+/**
+ * El disco de estado de una imagen (34px, K-08): tinta con check = creado, amarillo con giro = leyendo, `surface`
+ * con reloj = en cola, `surface` con copiar = repetido, rojo con x = no reconocido o error.
+ */
+function StatusDisc({ status }: { status: CaptureRow["status"] }) {
+  const look =
+    status === "created"
+      ? { bg: "$ink", icon: <Check size={16} color="$canvas" strokeWidth={2.6} /> }
+      : status === "processing"
+        ? { bg: "$brand", icon: <FintSpinner color="$onBrand" /> }
+        : status === "queued"
+          ? { bg: "$surface", icon: <Clock size={16} color="$inkMuted" strokeWidth={2} /> }
+          : status === "duplicate"
+            ? { bg: "$surface", icon: <Copy size={16} color="$inkMuted" strokeWidth={2} /> }
+            : { bg: "$dangerHard", icon: <X size={16} color="$onDanger" strokeWidth={2.6} /> };
+  return (
+    <View width={34} height={34} rounded={999} bg={look.bg as never} items="center" justify="center">
+      {look.icon}
+    </View>
+  );
 }
 
 function subtitleFor(row: CaptureRow, locale: string, t: (key: string, opts?: Record<string, unknown>) => string): string | null {
@@ -450,7 +451,6 @@ function subtitleFor(row: CaptureRow, locale: string, t: (key: string, opts?: Re
 function CaptureRowItem({
   row,
   first,
-  last,
   locale,
   selectedType,
   onSelectType,
@@ -458,7 +458,6 @@ function CaptureRowItem({
 }: {
   row: CaptureRow;
   first: boolean;
-  last: boolean;
   locale: string;
   selectedType: TransactionType | undefined;
   onSelectType: (type: TransactionType) => void;
@@ -488,25 +487,23 @@ function CaptureRowItem({
   ];
 
   const content = (
-    <YStack px={space[4]} py={12} gap={10} bg="$surface">
+    <YStack py={12} gap={10} bg="$canvas" borderTopWidth={first ? 0 : 1} borderColor="$line">
       <XStack items="center" gap={space[3]}>
-        <View width={38} height={38} rounded={999} bg="$surfaceSunken" items="center" justify="center">
-          {statusIcon(row)}
-        </View>
-        <YStack flex={1} minW={0}>
-          <FText variant="body-strong" tone={row.status === "failed" ? "dangerHard" : "ink"} numberOfLines={1}>
+        <StatusDisc status={row.status} />
+        <YStack flex={1} minW={0} gap={2}>
+          <FText tone={row.status === "failed" ? "dangerHard" : "ink"} numberOfLines={2} style={{ fontFamily: fontFace.display[700], fontSize: 15, lineHeight: 20 }}>
             {titleText}
           </FText>
           {subtitleText ? (
-            <FText variant="caption" tone="inkFaint" numberOfLines={1}>
+            <FText tone="inkFaint" numberOfLines={2} style={{ fontSize: 13, lineHeight: 18 }}>
               {subtitleText}
             </FText>
           ) : null}
         </YStack>
         {row.status === "processing" ? (
-          <FText variant="amount-sm" tone="inkMuted">{`${Math.round(progress * 100)}%`}</FText>
+          <FText tone="inkMuted" style={{ fontFamily: fontFace.mono[600], fontSize: 13, lineHeight: 18 }}>{`${Math.round(progress * 100)}%`}</FText>
         ) : showAmount ? (
-          <Amount value={row.preview!.amount!} currency={row.preview?.currency ?? "PEN"} kind={kind} />
+          <Amount value={row.preview!.amount!} currency={row.preview?.currency ?? "PEN"} kind={kind} style={{ fontFamily: fontFace.mono[600], fontSize: 15, lineHeight: 20 }} />
         ) : null}
         {/* Respaldo del deslizar: el tacho en inkFaint. */}
         {canDelete ? (
@@ -517,17 +514,15 @@ function CaptureRowItem({
       </XStack>
 
       {row.status === "processing" ? (
-        <View height={4} rounded={999} bg="$chartTrack" overflow="hidden">
-          <View height={4} width={`${progress * 100}%`} rounded={999} bg="$brand" />
+        <View height={4} rounded={999} bg="$line" overflow="hidden">
+          <View height={4} width={`${progress * 100}%`} rounded={999} bg="$ink" />
         </View>
       ) : null}
 
       {needsAnswer ? (
-        <YStack gap={8}>
-          <FText variant="caption" tone="inkMuted" style={{ fontFamily: fontFace.sans[600] }}>
-            {t("capture.whoDidThis")}
-          </FText>
-          <XStack gap={8}>
+        <YStack gap={8} ml={46} p={12} rounded={16} bg="$surface">
+          <FText style={{ fontFamily: fontFace.display[700], fontSize: 13, lineHeight: 18 }}>{t("capture.whoDidThis")}</FText>
+          <XStack gap={8} flexWrap="wrap">
             <DirectionChoice selected={selectedType === "income"} label={t("capture.iWasPaid")} onPress={() => onSelectType("income")} />
             <DirectionChoice selected={selectedType === "expense"} label={t("capture.iPaid")} onPress={() => onSelectType("expense")} />
           </XStack>
@@ -536,30 +531,29 @@ function CaptureRowItem({
     </YStack>
   );
 
-  return (
-    <GroupedCell first={first} last={last}>
-      {canDelete ? <SwipeActions actions={actions}>{content}</SwipeActions> : content}
-    </GroupedCell>
-  );
+  return canDelete ? <SwipeActions actions={actions}>{content}</SwipeActions> : content;
 }
 
-/** "Me pagaron" | "Yo pagué": ficha de elección, la elegida en brandWash con filete brand. Sin colores de ingreso o egreso. */
+/** "Me pagaron" | "Yo pagué": ficha de elección; la elegida en tinta con su check, la otra en `canvas` con filete. Sin colores de ingreso o egreso. */
 function DirectionChoice({ label, onPress, selected }: { label: string; onPress: () => void; selected: boolean }) {
   return (
-    <PressableScale style={{ flex: 1 }} onPress={onPress} accessibilityRole="radio" accessibilityState={{ selected }}>
-      <View
-        height={44}
-        rounded={radius.md}
+    <PressableScale style={{ flex: 1, minWidth: 120 }} onPress={onPress} accessibilityRole="radio" accessibilityState={{ selected }}>
+      <XStack
+        minH={44}
+        rounded={radius.pill}
         items="center"
         justify="center"
-        bg={selected ? "$brandWash" : "$surfaceSunken"}
-        borderWidth={selected ? 1.5 : 1}
-        borderColor={selected ? "$brand" : "$line"}
+        gap={4}
+        px={12}
+        bg={selected ? "$chipOn" : "$canvas"}
+        borderWidth={selected ? 0 : 1.5}
+        borderColor="$line"
       >
-        <FText variant="label" style={{ fontFamily: fontFace.sans[selected ? 600 : 500] }}>
+        {selected ? <Check size={14} color="$onChipOn" strokeWidth={2.6} /> : null}
+        <FText maxFontSizeMultiplier={1.3} color={selected ? "$onChipOn" : "$ink"} style={{ fontFamily: fontFace.sans[600], fontSize: 14, lineHeight: 19 }}>
           {label}
         </FText>
-      </View>
+      </XStack>
     </PressableScale>
   );
 }
@@ -584,7 +578,7 @@ function DeleteRowSheet({
   return (
     <FintSheet open={Boolean(row)} onClose={() => !isPending && onCancel()}>
       <YStack items="center" px={space[5]} pt={space[4]}>
-        <View width={56} height={56} rounded={999} bg="$red2" items="center" justify="center">
+        <View width={60} height={60} rounded={20} bg="$dangerWash" items="center" justify="center">
           <Trash2 size={24} color="$dangerHard" strokeWidth={2} />
         </View>
         <FText variant="title" accessibilityRole="header" style={{ fontSize: 22, lineHeight: 28, marginTop: 14, textAlign: "center" }}>
@@ -597,7 +591,7 @@ function DeleteRowSheet({
           <FintButton variant="danger" haptic="warning" pending={isPending} onPress={onConfirm}>
             {isPending ? <FintSpinner color="$onDanger" /> : t("capture.deleteRowConfirm")}
           </FintButton>
-          <FintButton variant="ghost" bg="$surfaceSunken" color="$ink" pending={isPending} onPress={onCancel}>
+          <FintButton variant="soft" pending={isPending} onPress={onCancel}>
             {t("actions.cancel")}
           </FintButton>
         </YStack>

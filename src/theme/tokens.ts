@@ -6,16 +6,30 @@ export const space = { 1: 4, 2: 8, 3: 12, 4: 16, 5: 20, 6: 24, 8: 32, 10: 40, 12
 /** Radios. Tarjetas `lg`, botones `md`, losa y hojas `xl`, barra de tabs `2xl`. No hay esquinas vivas. */
 export const radius = { xs: 6, sm: 10, md: 14, lg: 20, xl: 28, "2xl": 36, pill: 999 } as const;
 
+/**
+ * La boleta de la marca D (Inicio, patrimonio de Cuentas, neto de Reportes): radio, muescas y las tintas que van
+ * sobre el amarillo, iguales en los dos temas porque el amarillo no cambia. Fichas al 8 % (acciones) y al 10 %
+ * (selectores, ojo y botones sobre amarillo); el filete al 16 % y las barras de carga al 12 %.
+ */
+export const ticket = {
+  radius: 26,
+  notch: 24,
+  chip: "rgba(20,20,18,0.08)",
+  control: "rgba(20,20,18,0.10)",
+  rule: "rgba(20,20,18,0.16)",
+  skeleton: "rgba(20,20,18,0.12)",
+} as const;
+
 /** Opacidades de estado. */
 export const opacity = { idle: 0.38, disabled: 0.42, press: 0.88 } as const;
 
-/** Sombras en sintaxis `boxShadow` (React Native 0.76+). */
+/** Sombras en sintaxis `boxShadow` (React Native 0.76+). En claro, de la tinta `#141412` (sin el tinte índigo de la v3). */
 export const shadows = {
   light: {
-    card: "0 1px 2px rgba(20,23,43,0.03)",
-    raised: "0 2px 10px rgba(20,23,43,0.07)",
-    float: "0 6px 20px rgba(20,23,43,0.10)",
-    sheet: "0 -6px 30px rgba(20,23,43,0.12)",
+    card: "0 1px 2px rgba(20,20,18,0.03)",
+    raised: "0 2px 10px rgba(20,20,18,0.07)",
+    float: "0 6px 20px rgba(20,20,18,0.10)",
+    sheet: "0 -6px 30px rgba(20,20,18,0.12)",
   },
   dark: {
     card: "0 1px 2px rgba(0,0,0,0.40)",

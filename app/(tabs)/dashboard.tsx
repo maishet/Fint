@@ -30,12 +30,12 @@ import { SkeletonBlock, SkeletonGroup } from "../../src/components/Skeleton";
 import { AttentionRail } from "../../src/home/AttentionRail";
 import { GettingStartedCard } from "../../src/home/GettingStartedCard";
 import { HomeLayoutSheet } from "../../src/home/HomeLayoutSheet";
-import { HomeHero, ProfileAvatar, TICKET_CONTROL, type HeroPage } from "../../src/home/HomeHero";
+import { HomeHero, ProfileAvatar, type HeroPage } from "../../src/home/HomeHero";
 import { RecentMovementsCard } from "../../src/home/RecentMovementsCard";
 import { SpendingCard } from "../../src/home/SpendingCard";
 import { useHomeData } from "../../src/home/useHomeData";
 import { useHomeLayout } from "../../src/home/useHomeLayout";
-import { COMPACT_FONT_SCALE, motion, radius, space } from "../../src/theme/tokens";
+import { COMPACT_FONT_SCALE, motion, radius, space, ticket } from "../../src/theme/tokens";
 import { fontFace } from "../../src/theme/typography";
 import { useScreenStatusBar } from "../../src/theme/useScreenStatusBar";
 import { Amount, FintLottie, FText, PressableScale, useComingSoon } from "../../src/ui";
@@ -343,7 +343,7 @@ export default function DashboardScreen() {
             ) : null}
           </YStack>
           <PressableScale onPress={() => router.push("/search")} haptic="tap" hitSlop={5} accessibilityRole="search" accessibilityLabel={t("home.bar.search")}>
-            <View width={34} height={34} rounded={999} items="center" justify="center" style={{ backgroundColor: TICKET_CONTROL }}>
+            <View width={34} height={34} rounded={999} items="center" justify="center" style={{ backgroundColor: ticket.control }}>
               <Search size={18} color="$slabInk" strokeWidth={2} />
             </View>
           </PressableScale>

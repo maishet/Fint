@@ -1,48 +1,50 @@
 import { Check, ChevronRight, Sun } from "@tamagui/lucide-icons-2";
 import { Children, Fragment, type ReactNode } from "react";
-import { Image } from "react-native";
+import { Image, useWindowDimensions } from "react-native";
 import { Text, View, XStack, YStack } from "tamagui";
-import { opacity, radius, space } from "../theme/tokens";
+import { COMPACT_FONT_SCALE, opacity, radius, space } from "../theme/tokens";
 import { fontFace, textStyles } from "../theme/typography";
-import { FintCard, FintSheet, FText, PressableScale } from "../ui";
+import { FintSheet, FText, PressableScale } from "../ui";
 import { initials } from "./logic";
 
 type LucideIcon = typeof Sun;
 
-/** Título de un grupo: `caption` en `inkMuted`, alineado con el texto de las filas. */
+/** Título de un grupo (marca D, F-10): 13 en `inkFaint`, seminegrita, con el margen de la pantalla. */
 export function GroupTitle({ children }: { children: string }) {
   return (
     <FText
-      variant="caption"
-      tone="inkMuted"
+      tone="inkFaint"
       accessibilityRole="header"
-      style={{ fontFamily: fontFace.sans[600], marginTop: 20, marginBottom: 8, marginHorizontal: 20 }}
+      maxFontSizeMultiplier={1.5}
+      style={{ fontFamily: fontFace.display[700], fontSize: 13, lineHeight: 18, marginTop: 22, marginBottom: 2, marginHorizontal: space[5] }}
     >
       {children}
     </FText>
   );
 }
 
-/** Un grupo de filas en una tarjeta, separadas por un filete `line`. */
+/** Un grupo de filas a todo el ancho sobre `canvas` (sin tarjeta), separadas por un filete `line`. */
 export function Group({ children }: { children: ReactNode }) {
   const items = Children.toArray(children).filter(Boolean);
   return (
-    <FintCard p={0} mx={space[4]} overflow="hidden">
+    <YStack mx={space[5]}>
       {items.map((item, i) => (
         <Fragment key={i}>
           {i > 0 ? <View height={1} bg="$line" /> : null}
           {item}
         </Fragment>
       ))}
-    </FintCard>
+    </YStack>
   );
 }
 
 /**
- * Fila de 50px: icono Lucide sobre `surfaceSunken`, etiqueta (con una línea
- * chica debajo si hace falta), el valor actual en `inkFaint` y, a la derecha,
- * un chevron, un interruptor o nada. Ningún icono va en color; `danger` pinta
- * etiqueta e icono en `dangerHard` y `dim` los apaga (`opacity-disabled`).
+ * Fila de Ajustes (marca D, F-10): icono Lucide en un cuadro `surface` de 40,
+ * etiqueta a 16 (con una línea chica debajo si hace falta), el valor actual en
+ * `inkMuted` y, a la derecha, un chevron, un interruptor o nada. Ningún icono va
+ * en color; `danger` pinta etiqueta e icono en `dangerHard` y `dim` los apaga
+ * (`opacity-disabled`). Desde `COMPACT_FONT_SCALE` el valor baja debajo de la
+ * etiqueta y los textos se parten en varias líneas.
  */
 export function Item({
   icon: Icon,
@@ -67,33 +69,37 @@ export function Item({
   disabled?: boolean;
   accessibilityLabel?: string;
 }) {
+  const { fontScale } = useWindowDimensions();
+  const stacked = fontScale >= COMPACT_FONT_SCALE;
   const color = tone === "danger" ? "$dangerHard" : "$inkMuted";
   const dim = tone === "dim" ? opacity.disabled : 1;
+  const valueText = value ? (
+    <Text
+      color="$inkMuted"
+      numberOfLines={stacked ? undefined : 1}
+      style={valueMono ? { ...textStyles["amount-sm"], fontFamily: fontFace.mono[600], fontSize: 14 } : { ...textStyles.body, fontFamily: fontFace.sans[600], fontSize: 14 }}
+    >
+      {value}
+    </Text>
+  ) : null;
   const row = (
-    <XStack minH={50} px={14} py={8} gap={12} items="center">
-      <View width={30} height={30} rounded={radius.sm} bg="$surfaceSunken" items="center" justify="center" opacity={dim}>
-        <Icon size={16} color={color as never} strokeWidth={2} />
+    <XStack minH={62} py={11} gap={12} items="center">
+      <View width={40} height={40} rounded={14} bg="$surface" items="center" justify="center" opacity={dim} self={stacked ? "flex-start" : "center"}>
+        <Icon size={20} color={color as never} strokeWidth={2} />
       </View>
-      <YStack flex={1} minW={0} opacity={dim}>
-        <FText tone={tone === "danger" ? "dangerHard" : "ink"} numberOfLines={1}>
+      <YStack flex={1} minW={0} gap={2} opacity={dim}>
+        <FText tone={tone === "danger" ? "dangerHard" : "ink"} numberOfLines={stacked ? undefined : 1} style={{ fontFamily: fontFace.display[700], fontSize: 16, lineHeight: 21 }}>
           {label}
         </FText>
         {detail ? (
-          <FText variant="caption" tone="inkFaint" numberOfLines={2}>
+          <FText tone="inkFaint" numberOfLines={stacked ? undefined : 2} style={{ fontSize: 13, lineHeight: 18 }}>
             {detail}
           </FText>
         ) : null}
+        {stacked ? valueText : null}
       </YStack>
-      {value ? (
-        <Text
-          color="$inkFaint"
-          numberOfLines={1}
-          style={valueMono ? { ...textStyles["amount-sm"], fontSize: 14 } : { ...textStyles.body, fontSize: 14 }}
-        >
-          {value}
-        </Text>
-      ) : null}
-      {right === "chevron" ? <ChevronRight size={16} color="$inkFaint" strokeWidth={2} /> : right === "none" ? null : right}
+      {stacked ? null : valueText}
+      {right === "chevron" ? <ChevronRight size={18} color="$inkFaint" strokeWidth={2} /> : right === "none" ? null : right}
     </XStack>
   );
   if (!onPress) return row;
@@ -112,20 +118,20 @@ export function Item({
   );
 }
 
-/** Avatar: la foto de Google si hay; si no, las iniciales sobre la losa. */
+/** Avatar: la foto de Google si hay; si no, las iniciales en tinta sobre el amarillo de la marca. */
 export function Avatar({ name, photoUrl, size }: { name: string; photoUrl?: string | null; size: number }) {
   if (photoUrl)
     return <Image source={{ uri: photoUrl }} style={{ width: size, height: size, borderRadius: size / 2 }} accessibilityIgnoresInvertColors />;
   return (
     <View width={size} height={size} rounded={999} bg="$slab" items="center" justify="center">
-      <Text color="$slabInk" style={{ fontFamily: fontFace.display[600], fontSize: Math.round(size * 0.34) }}>
+      <Text color="$slabInk" allowFontScaling={false} style={{ fontFamily: fontFace.display[700], fontSize: Math.round(size * 0.34) }}>
         {initials(name)}
       </Text>
     </View>
   );
 }
 
-/** Hoja de opciones de una sola elección (idioma, apariencia): la elegida lleva el check en `brand`. */
+/** Hoja de opciones de una sola elección (idioma, apariencia): la elegida va sobre `surfaceSunken` con el check en tinta. */
 export function OptionSheet<T extends string>({
   open,
   onClose,
@@ -177,7 +183,7 @@ export function OptionSheet<T extends string>({
                     </FText>
                   ) : null}
                 </YStack>
-                {selected ? <Check size={18} color="$brand" strokeWidth={2.4} /> : null}
+                {selected ? <Check size={18} color="$ink" strokeWidth={2.4} /> : null}
               </XStack>
             </PressableScale>
           );

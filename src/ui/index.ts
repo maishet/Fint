@@ -34,3 +34,4 @@ export { FintSheet, SheetField, SheetTextInput, SHEET_OUT_MS } from './FintSheet
 export { SoonBadge } from './SoonBadge'
 export { ComingSoonProvider, useComingSoon } from './ComingSoonSheet'
 export { ErrorLine } from './ErrorLine'
+export { Ticket, TicketBar } from './Ticket'

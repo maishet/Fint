@@ -25,9 +25,9 @@ import { useThemeMode } from "../src/theme/ThemeMode";
 import { radius, space } from "../src/theme/tokens";
 import { fontFace, textStyles } from "../src/theme/typography";
 import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
-import { Amount, FintButton, FintSheet, FintSpinner, FText, IconButton, PressableScale, SheetField, SheetTextInput, SoonBadge, useComingSoon } from "../src/ui";
+import { Amount, FintButton, FintSheet, FintSpinner, FText, IconButton, PressableScale, SheetField, SheetTextInput, SoonBadge, Ticket, TicketBar, useComingSoon } from "../src/ui";
 import { isComingSoon } from "../src/config/comingSoon";
-import { AmountSkeleton } from "../src/ui/AmountSkeleton";
+import { SkeletonBlock } from "../src/components/Skeleton";
 import { haptics } from "../src/ui/haptics";
 import { useNotify } from "../src/ui/notify";
 
@@ -292,23 +292,16 @@ export default function AccountFormScreen() {
       <UnsavedChangesDialog open={guard.open} onCancel={guard.onCancel} onConfirm={guard.onConfirm} />
       <YStack flex={1} bg="$canvas" pt={insets.top}>
         {/* Cerrar y título. */}
-        <XStack items="center" gap={space[3]} px={space[4]} pt={space[2]}>
+        <XStack items="center" gap={10} px={space[5]} pt={space[2]}>
           <IconButton label={t("accountForm.close")} icon={<X size={18} color="$ink" strokeWidth={2} />} onPress={() => router.back()} />
           <FText
-            variant="title"
             accessibilityRole="header"
-            numberOfLines={1}
-            style={{
-              flex: 1,
-              textAlign: "center",
-              fontSize: 20,
-              lineHeight: 25,
-              letterSpacing: -0.4,
-            }}
+            numberOfLines={2}
+            maxFontSizeMultiplier={1.3}
+            style={{ flex: 1, fontFamily: fontFace.display[700], fontSize: 18, lineHeight: 23, letterSpacing: -0.3 }}
           >
             {t(isEditing ? "accountForm.editTitle" : "accountForm.newTitle")}
           </FText>
-          <View width={40} />
         </XStack>
 
         {/* El campo enfocado sube por encima del teclado y del botón, que sube con él. */}
@@ -316,7 +309,7 @@ export default function AccountFormScreen() {
           style={{ flex: 1 }}
           bottomOffset={footerHeight + KEYBOARD_GAP}
           contentContainerStyle={{
-            paddingHorizontal: space[4],
+            paddingHorizontal: space[5],
             paddingBottom: space[6],
           }}
           keyboardShouldPersistTaps="handled"
@@ -490,7 +483,7 @@ export default function AccountFormScreen() {
                   >
                     {t("accountForm.balances")}
                   </FText>
-                  <YStack rounded={radius.lg} borderWidth={1} borderColor="$line" bg="$surface" overflow="hidden">
+                  <YStack rounded={22} bg="$surface" overflow="hidden">
                     {lines.map((line, i) => {
                       const primary = line.currency === account.currency;
                       return (
@@ -501,10 +494,10 @@ export default function AccountFormScreen() {
                               {currencyName(line.currency)}
                             </FText>
                             {primary ? (
-                              <View height={20} px={7} rounded={radius.pill} bg="$brandWash" items="center" justify="center">
+                              <View height={20} px={7} rounded={radius.pill} bg="$ink" items="center" justify="center">
                                 <FText
                                   variant="caption"
-                                  tone="brand"
+                                  color="$canvas"
                                   style={{
                                     fontSize: 11,
                                     fontFamily: fontFace.sans[600],
@@ -578,8 +571,8 @@ export default function AccountFormScreen() {
                     ) : canAddCurrency ? (
                       <PressableScale onPress={() => setSheet("second")} scaleTo={0.99} accessibilityRole="button">
                         <XStack height={44} items="center" justify="center" gap={8} borderTopWidth={1} borderColor="$line">
-                          <Plus size={16} color="$brand" strokeWidth={2.2} />
-                          <FText variant="body-strong" tone="brand" style={{ fontSize: 14 }}>
+                          <Plus size={16} color="$ink" strokeWidth={2.2} />
+                          <FText variant="body-strong" style={{ fontSize: 14 }}>
                             {t("accountForm.enableBalance")}
                           </FText>
                         </XStack>
@@ -643,14 +636,11 @@ export default function AccountFormScreen() {
               ) : null}
 
               {isEditing ? (
-                <PressableScale onPress={() => setSheet("delete")} accessibilityRole="button" style={{ alignSelf: "center", marginTop: 26 }}>
-                  <XStack items="center" gap={8} py={6} px={10}>
-                    <Trash2 size={16} color="$dangerHard" strokeWidth={2} />
-                    <FText variant="body-strong" tone="dangerHard" style={{ fontSize: 14 }}>
-                      {t("accountForm.delete")}
-                    </FText>
-                  </XStack>
-                </PressableScale>
+                <View mt={26}>
+                  <FintButton variant="destructive" size="row" icon={<Trash2 size={16} color="$dangerHard" strokeWidth={2} />} onPress={() => setSheet("delete")}>
+                    {t("accountForm.delete")}
+                  </FintButton>
+                </View>
               ) : null}
             </>
           ) : null}
@@ -741,7 +731,8 @@ function isAccountType(value?: string): value is AccountType {
 }
 
 /**
- * La vista previa en vivo: la fila que aparecerá en Cuentas sobre la losa. Cambia mientras se escribe.
+ * La vista previa en vivo (marca D, H-09): una boleta amarilla con el nombre y su ícono, el tipo y el saldo grande;
+ * cambia mientras se escribe. Con dos monedas, la segunda va debajo a menor tamaño.
  */
 function AccountPreview({
   name,
@@ -758,45 +749,58 @@ function AccountPreview({
   lines: { currency: string; balance: number }[];
   sensitive: boolean;
 }) {
+  const Icon = getAccountIcon(type);
+  const [first, ...rest] = lines;
   return (
-    <XStack mt={18} px={16} py={14} gap={12} items="center" rounded={radius.lg} bg="$slab" overflow="hidden">
-      <View width={38} height={38} rounded={999} bg="$glassSlab" borderWidth={1} borderColor="$glassSlabLine" items="center" justify="center">
-        {type === "cash" ? (
-          <Banknote size={18} color="$slabInk" strokeWidth={1.9} />
-        ) : (
-          <FText tone="slabInk" style={{ fontFamily: fontFace.display[600], fontSize: 15 }}>
-            {name.charAt(0).toUpperCase() || "·"}
-          </FText>
-        )}
-      </View>
-      <YStack flex={1} minW={0}>
-        <FText variant="body-strong" tone={name ? "slabInk" : "slabMuted"} numberOfLines={1}>
-          {name || placeholder}
-        </FText>
-        <FText variant="caption" tone="slabMuted" numberOfLines={1}>
-          {typeLabel}
-        </FText>
-      </YStack>
-      <YStack items="flex-end" shrink={0}>
-        {lines.map((line) => (
-          <Amount
-            key={line.currency}
-            value={line.balance}
-            currency={line.currency}
-            onSlab
-            sensitive={sensitive}
-            style={{ fontSize: 17, lineHeight: 22, letterSpacing: -0.4 }}
-          />
-        ))}
-      </YStack>
-    </XStack>
+    <View mt={14}>
+      <Ticket
+        top={
+          <YStack gap={4}>
+            <XStack items="center" justify="space-between" gap={10}>
+              <XStack items="center" gap={8} flex={1} minW={0}>
+                <Icon size={16} color="$slabInk" strokeWidth={2.2} />
+                <FText tone={name ? "slabInk" : "slabMuted"} numberOfLines={1} style={{ flexShrink: 1, fontFamily: fontFace.display[700], fontSize: 14, lineHeight: 19 }}>
+                  {name || placeholder}
+                </FText>
+              </XStack>
+              <FText tone="slabMuted" numberOfLines={1} style={{ fontFamily: fontFace.sans[600], fontSize: 12, lineHeight: 16 }}>
+                {typeLabel}
+              </FText>
+            </XStack>
+            {first ? (
+              <Amount
+                value={first.balance}
+                currency={first.currency}
+                variant="amount-hero"
+                onSlab
+                smallCents
+                sensitive={sensitive}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                style={{ fontSize: 38, lineHeight: 46, letterSpacing: -0.8, marginTop: 6 }}
+              />
+            ) : null}
+            {rest.map((line) => (
+              <Amount
+                key={line.currency}
+                value={line.balance}
+                currency={line.currency}
+                onSlab
+                sensitive={sensitive}
+                style={{ fontFamily: fontFace.mono[600], fontSize: 18, lineHeight: 24 }}
+              />
+            ))}
+          </YStack>
+        }
+      />
+    </View>
   );
 }
 
 function Field({ label, hint, error, children }: { label: string; hint?: string; error?: string; children: ReactNode }) {
   return (
     <YStack mt={18}>
-      <FText variant="caption" tone="inkMuted" style={{ marginBottom: 6, marginLeft: 2 }}>
+      <FText tone="inkFaint" style={{ fontFamily: fontFace.sans[600], fontSize: 12, lineHeight: 16, marginBottom: 6, marginLeft: 2 }}>
         {label}
       </FText>
       {children}
@@ -826,7 +830,7 @@ function Hint({ children }: { children: ReactNode }) {
   );
 }
 
-/** Campo hundido que pasa a `surface` con borde `brand` mientras tiene el foco. */
+/** Campo de la hoja de componentes: filete `lineStrong` en reposo y borde `ink` mientras tiene el foco. */
 function FocusField({ leading, children }: { leading?: ReactNode; children: (focus: { onFocus: () => void; onBlur: () => void }) => ReactNode }) {
   const [focused, setFocused] = useState(false);
   return (
@@ -892,7 +896,7 @@ function LockedRow({ icon: Icon, label, code, lockedLabel }: { icon?: typeof Ban
   );
 }
 
-/** Una opción de tipo: icono y nombre. La elegida, en `brandWash` con borde `brand`. */
+/** Una opción de tipo: icono y nombre sobre `surface`. La elegida, en tinta (`chipOn`) como los segmentados. */
 function TypeTile({
   type,
   label,
@@ -921,16 +925,16 @@ function TypeTile({
         height={52}
         items="center"
         gap={10}
-        px={selected ? 11 : 12}
+        px={12}
         rounded={radius.md}
-        borderWidth={selected ? 2 : 1}
-        borderColor={selected ? "$brand" : "$line"}
-        bg={selected ? "$brandWash" : "$surface"}
+        bg={selected ? "$chipOn" : "$surface"}
         opacity={disabled ? 0.45 : 1}
       >
-        <Icon size={18} color={selected ? "$brand" : "$inkMuted"} strokeWidth={1.8} />
+        <Icon size={18} color={selected ? "$onChipOn" : "$inkMuted"} strokeWidth={1.8} />
         <FText
           variant="body"
+          color={selected ? "$onChipOn" : "$ink"}
+          maxFontSizeMultiplier={1.3}
           style={{
             fontSize: 14,
             fontFamily: fontFace.sans[selected ? 600 : 500],
@@ -948,8 +952,8 @@ function AddLink({ label, onPress }: { label: string; onPress: () => void }) {
   return (
     <PressableScale onPress={onPress} accessibilityRole="button" style={{ alignSelf: "flex-start", marginTop: 14 }}>
       <XStack items="center" gap={6} py={6} px={2}>
-        <Plus size={16} color="$brand" strokeWidth={2.2} />
-        <FText variant="body-strong" tone="brand" style={{ fontSize: 14 }}>
+        <Plus size={16} color="$ink" strokeWidth={2.2} />
+        <FText variant="body-strong" style={{ fontSize: 14 }}>
           {label}
         </FText>
       </XStack>
@@ -986,10 +990,10 @@ function KeywordsField({ value, onChange }: { value: string[]; onChange: (next: 
         p={8}
         minH={48}
         items="center"
-        rounded={radius.md}
-        bg={focused ? "$surface" : "$surfaceSunken"}
+        rounded={16}
+        bg="$surface"
         borderWidth={focused ? 1.5 : 1}
-        borderColor={focused ? "$brand" : "$lineStrong"}
+        borderColor={focused ? "$ink" : "$lineStrong"}
       >
         {value.map((keyword) => (
           <XStack
@@ -1000,11 +1004,9 @@ function KeywordsField({ value, onChange }: { value: string[]; onChange: (next: 
             gap={2}
             items="center"
             rounded={radius.pill}
-            bg="$surface"
-            borderWidth={1}
-            borderColor="$line"
+            bg="$surfaceSunken"
           >
-            <FText variant="caption" style={{ fontSize: 13, fontFamily: fontFace.sans[500] }}>
+            <FText variant="caption" style={{ fontSize: 13, fontFamily: fontFace.sans[600] }}>
               {keyword}
             </FText>
             <Pressable
@@ -1040,7 +1042,7 @@ function KeywordsField({ value, onChange }: { value: string[]; onChange: (next: 
             maxLength={60}
             placeholder={t("accountForm.keywordsAdd")}
             placeholderTextColor={theme.inkFaint.val}
-            selectionColor={theme.brand.val}
+            selectionColor={theme.ink.val}
             accessibilityLabel={t("accountForm.keywords")}
             style={[
               textStyles.body,
@@ -1082,7 +1084,7 @@ function ConfirmSheet({
   return (
     <FintSheet open={open} onClose={onClose}>
       <YStack items="center" px={space[5]} pt={space[4]}>
-        <View width={56} height={56} rounded={999} bg="$red2" items="center" justify="center">
+        <View width={60} height={60} rounded={20} bg="$dangerWash" items="center" justify="center">
           <Trash2 size={24} color="$dangerHard" strokeWidth={2} />
         </View>
         <FText
@@ -1112,7 +1114,7 @@ function ConfirmSheet({
           <FintButton variant="danger" haptic="warning" pending={pending} onPress={onConfirm}>
             {confirmLabel}
           </FintButton>
-          <FintButton variant="ghost" bg="$surfaceSunken" color="$ink" onPress={onClose}>
+          <FintButton variant="soft" onPress={onClose}>
             {t("actions.cancel")}
           </FintButton>
         </YStack>
@@ -1124,11 +1126,15 @@ function ConfirmSheet({
 function FormSkeleton() {
   return (
     <YStack gap={18} mt={18}>
-      <View height={66} rounded={radius.lg} bg="$surfaceSunken" />
+      {/* La boleta de la vista previa sigue amarilla, con sus barras al 12 %. */}
+      <View bg="$slab" rounded={26} p={18} gap={10}>
+        <TicketBar width={150} height={16} />
+        <TicketBar width={190} height={38} rounded={12} />
+      </View>
       {[0, 1, 2].map((i) => (
         <YStack key={i} gap={8}>
-          <AmountSkeleton width={70} height={10} />
-          <View height={48} rounded={radius.md} bg="$surfaceSunken" />
+          <SkeletonBlock width={70} height={10} rounded={6} />
+          <SkeletonBlock width="100%" height={52} rounded={16} />
         </YStack>
       ))}
     </YStack>

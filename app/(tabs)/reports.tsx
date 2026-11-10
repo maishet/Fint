@@ -17,7 +17,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import type { TFunction } from "i18next";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { RefreshControl, ScrollView } from "react-native";
+import { RefreshControl, ScrollView, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { View, XStack, YStack, useTheme, type ColorTokens } from "tamagui";
 import { financeApi } from "../../src/api/finance";
@@ -28,7 +28,6 @@ import { suggestedCategoryIcons } from "../../src/finance/categoryIcons";
 import { getCategoryLabel } from "../../src/finance/categoryLabels";
 import type { ReportExportLabels, ReportExportOptions } from "../../src/finance/report-export";
 import { useCategoryIcons } from "../../src/finance/useCategoryIcons";
-import { categoryColorIndex } from "../../src/home/spending";
 import { getAppLocale } from "../../src/i18n";
 import { CategoryBreakdown } from "../../src/reports/CategoryBreakdown";
 import { FlowChart, type FlowChartColumn } from "../../src/reports/FlowChart";
@@ -46,12 +45,12 @@ import {
   type CategoryRow,
   type PeriodKind,
 } from "../../src/reports/logic";
-import { radius, space } from "../../src/theme/tokens";
+import { COMPACT_FONT_SCALE, radius, space } from "../../src/theme/tokens";
 import { fontFace } from "../../src/theme/typography";
 import { useScreenStatusBar } from "../../src/theme/useScreenStatusBar";
-import { Amount, FintCard, FintSheet, FText, IconButton, ListRow, Monogram, PressableScale, SegmentedControl, SoonBadge, useComingSoon } from "../../src/ui";
+import { Amount, FintCard, FintSheet, FText, IconButton, ListRow, Monogram, PressableScale, RowAmount, SegmentedControl, SoonBadge, Ticket, TicketBar, useComingSoon } from "../../src/ui";
+import { SkeletonBlock, SkeletonGroup } from "../../src/components/Skeleton";
 import { isComingSoon } from "../../src/config/comingSoon";
-import { AmountSkeleton } from "../../src/ui/AmountSkeleton";
 
 const ALL_ACCOUNTS = "__all__";
 const PERIODS: PeriodKind[] = ["week", "month", "year"];
@@ -297,15 +296,15 @@ export default function ReportsScreen() {
                 setPulling(false),
               );
             }}
-            tintColor={theme.brand.val}
-            colors={[theme.brand.val]}
+            tintColor={theme.ink.val}
+            colors={[theme.ink.val]}
             progressBackgroundColor={theme.surface.val}
           />
         }
       >
         {/* Título y descargar el reporte (PDF o Excel). */}
-        <XStack items="center" justify="space-between" px={space[4]} gap={space[3]}>
-          <FText variant="heading" accessibilityRole="header">
+        <XStack items="center" justify="space-between" px={space[5]} gap={space[3]}>
+          <FText accessibilityRole="header" maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={TAB_TITLE}>
             {t("reportsTab.title")}
           </FText>
           {isComingSoon("reportExport") ? (
@@ -326,7 +325,7 @@ export default function ReportsScreen() {
         </XStack>
 
         {/* Periodo: Semana, Mes o Año; flechas entre periodos y la cuenta. */}
-        <View mx={space[4]} mt={14}>
+        <View mx={space[5]} mt={10}>
           <SegmentedControl
             options={PERIODS.map((p) => ({ value: p, label: t(`reportsTab.periods.${p}`) }))}
             value={kind}
@@ -335,22 +334,27 @@ export default function ReportsScreen() {
           />
         </View>
         {/* El periodo tiene su fila: con una cuenta de nombre largo, la fecha ya no se corta. */}
-        <XStack mx={space[4]} mt={12} items="center" justify="space-between" gap={space[3]}>
+        <XStack mx={space[5]} mt={12} items="center" justify="space-between" gap={space[2]}>
           <ArrowButton label={t("reportsTab.previous")} onPress={() => setStart(shiftPeriod(kind, start, -1))}>
-            <ChevronLeft size={16} color="$inkMuted" strokeWidth={2.2} />
+            <ChevronLeft size={20} color="$ink" strokeWidth={2} />
           </ArrowButton>
-          <FText variant="body-strong" numberOfLines={1} style={{ flex: 1, textAlign: "center" }} accessibilityLiveRegion="polite">
+          <FText
+            numberOfLines={2}
+            maxFontSizeMultiplier={1.5}
+            style={{ flex: 1, textAlign: "center", fontFamily: fontFace.display[700], fontSize: 16, lineHeight: 21 }}
+            accessibilityLiveRegion="polite"
+          >
             {periodTitle(kind, start, locale)}
           </FText>
           <ArrowButton label={t("reportsTab.next")} disabled={current} onPress={() => setStart(shiftPeriod(kind, start, 1))}>
-            <ChevronRight size={16} color="$inkMuted" strokeWidth={2.2} />
+            <ChevronRight size={20} color="$ink" strokeWidth={2} />
           </ArrowButton>
         </XStack>
         {/* Los filtros, debajo y con todo el ancho: la cuenta con su icono para que se lea como filtro. */}
-        <XStack mx={space[4]} mt={10} items="center" gap={8}>
+        <XStack mx={space[5]} mt={10} items="center" gap={6} flexWrap="wrap">
           <View shrink={1}>
             <Pill
-              icon={<Wallet size={14} color="$inkMuted" strokeWidth={2} />}
+              icon={<Wallet size={14} color="$ink" strokeWidth={2} />}
               label={accountLabel}
               a11yLabel={`${t("reportsTab.account")}: ${accountLabel}`}
               onPress={() => setSheet("account")}
@@ -369,7 +373,7 @@ export default function ReportsScreen() {
               accessibilityRole="button"
               accessibilityLabel={t("reportsTab.backToCurrentA11y")}
             >
-              <XStack height={34} px={12} gap={6} items="center" rounded={radius.pill} bg="$surfaceSunken">
+              <XStack height={32} px={12} gap={6} items="center" rounded={radius.pill} bg="$surface">
                 <RotateCcw size={14} color="$ink" strokeWidth={2.2} />
                 <FText variant="label" tone="ink" numberOfLines={1} style={{ fontSize: 13, fontFamily: fontFace.sans[600] }}>
                   {t(`reportsTab.backToCurrent.${kind}`)}
@@ -380,16 +384,17 @@ export default function ReportsScreen() {
         </XStack>
 
         {currencies.length > 1 ? (
-          <XStack mx={space[4]} mt={space[2]} gap={6} items="center">
-            <Info size={14} color="$inkFaint" />
-            <FText variant="caption" tone="inkFaint" style={{ flex: 1 }}>
+          // Varias monedas (I-07): el aviso va en una tarjeta `surface`.
+          <XStack mx={space[5]} mt={10} p={14} gap={10} items="flex-start" rounded={22} bg="$surface">
+            <Info size={16} color="$inkMuted" strokeWidth={2} />
+            <FText tone="inkMuted" style={{ flex: 1, fontSize: 13, lineHeight: 18 }}>
               {t("reports.mixed")}
             </FText>
           </XStack>
         ) : null}
 
         {error ? (
-          <View mx={space[4]} mt={space[4]}>
+          <View mx={space[5]} mt={space[4]}>
             <DataStateCard
               message={t("states.error")}
               onRetry={() => {
@@ -407,10 +412,10 @@ export default function ReportsScreen() {
             <StatusCard report={report} kind={kind} previousLabel={previousLabel} />
 
             <Section title={t(`reportsTab.flow.${kind}`)}>
-              <FintCard p={space[5]}>
+              <View>
                 {(kind === "week" && weekQuery.isLoading) || columns.length === 0 ? (
                   kind === "week" && weekQuery.isLoading ? (
-                    <AmountSkeleton width={200} height={120} />
+                    <SkeletonBlock width="100%" height={120} rounded={16} />
                   ) : (
                     <EmptyLine text={t("reportsTab.flowEmpty")} />
                   )
@@ -419,7 +424,7 @@ export default function ReportsScreen() {
                 ) : (
                   <FlowChart columns={columns} currency={report.filters.currency} initialIndex={initialIndex} />
                 )}
-              </FintCard>
+              </View>
             </Section>
 
             <Section
@@ -432,13 +437,13 @@ export default function ReportsScreen() {
                 ) : null
               }
             >
-              <FintCard p={space[5]}>
+              <View>
                 {rows.length === 0 ? (
                   <EmptyLine text={t("reportsTab.categoriesEmpty")} />
                 ) : (
-                  <CategoryBreakdown rows={rows} currency={report.filters.currency} onOpen={openCategory} />
+                  <CategoryBreakdown rows={rows} currency={report.filters.currency} onOpen={openCategory} iconFor={(name) => iconFor(name, "expense")} />
                 )}
-              </FintCard>
+              </View>
             </Section>
 
             <Section
@@ -447,30 +452,29 @@ export default function ReportsScreen() {
                 topExpenses.length > 3 ? (
                   <PressableScale onPress={() => setSheet("top")} haptic="tap" hitSlop={8} accessibilityRole="button">
                     <XStack items="center" gap={2}>
-                      <FText variant="label" tone="inkMuted" style={{ fontSize: 13, fontFamily: fontFace.sans[600] }}>
+                      <FText maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={{ fontSize: 14, lineHeight: 19, fontFamily: fontFace.display[700] }}>
                         {t("reportsTab.seeAll")}
                       </FText>
-                      <ChevronRight size={14} color="$inkMuted" strokeWidth={2.2} />
+                      <ChevronRight size={16} color="$ink" strokeWidth={2.2} />
                     </XStack>
                   </PressableScale>
                 ) : null
               }
             >
-              <FintCard p={0} overflow="hidden">
+              <View>
                 {topQuery.isLoading ? (
-                  <View p={space[5]}>
-                    <AmountSkeleton width={220} height={14} />
-                  </View>
+                  <XStack items="center" gap={12} py={10}>
+                    <SkeletonBlock width={44} height={44} rounded={14} />
+                    <SkeletonBlock width="50%" height={14} rounded={6} />
+                  </XStack>
                 ) : topExpenses.length === 0 ? (
-                  <View p={space[5]}>
-                    <EmptyLine text={t("reportsTab.topEmpty")} />
-                  </View>
+                  <EmptyLine text={t("reportsTab.topEmpty")} />
                 ) : (
                   topExpenses.slice(0, 3).map((item, i) => (
                     <TopExpenseRow key={item.id} item={item} first={i === 0} locale={locale} emoji={iconFor(item.category, "expense")} currency={report.filters.currency} />
                   ))
                 )}
-              </FintCard>
+              </View>
             </Section>
 
             <PositionCard position={positionQuery.data} loading={positionQuery.isLoading} currency={report.filters.currency} locale={locale} />
@@ -486,7 +490,7 @@ export default function ReportsScreen() {
             divider={i > 0}
             title={a.name}
             subtitle={a.currency || undefined}
-            trailing={a.id === accountId ? <Check size={18} color="$brand" strokeWidth={2.4} /> : undefined}
+            trailing={a.id === accountId ? <Check size={18} color="$ink" strokeWidth={2.4} /> : undefined}
             onPress={() => {
               setAccountId(a.id);
               // Una cuenta es de una moneda: el reporte pasa a esa moneda.
@@ -503,7 +507,7 @@ export default function ReportsScreen() {
             key={c}
             divider={i > 0}
             title={c}
-            trailing={c === selectedCurrency ? <Check size={18} color="$brand" strokeWidth={2.4} /> : undefined}
+            trailing={c === selectedCurrency ? <Check size={18} color="$ink" strokeWidth={2.4} /> : undefined}
             onPress={() => {
               setCurrency(c);
               setSheet(null);
@@ -522,7 +526,7 @@ export default function ReportsScreen() {
         options={exportOptions}
       />
       <FintSheet open={sheet === "top"} onClose={() => setSheet(null)} title={t("reportsTab.topExpenses")} subtitle={periodTitle(kind, start, locale)} scrollable snapPoints={[70]}>
-        <View height={4} />
+        <View height={4} px={space[5]} />
         {topExpenses.map((item, i) => (
           <TopExpenseRow key={item.id} item={item} first={i === 0} locale={locale} emoji={iconFor(item.category, "expense")} currency={report?.filters.currency ?? selectedCurrency} />
         ))}
@@ -531,22 +535,29 @@ export default function ReportsScreen() {
   );
 }
 
+/** Título de pestaña de la marca D: 32 en Figtree Bold (no hay 800 cargado), con tope 1.3. */
+const TAB_TITLE = { fontFamily: fontFace.display[700], fontSize: 32, lineHeight: 38, letterSpacing: -0.9 } as const;
+/** Título de sección: 20 en Figtree Bold. */
+const SECTION_TITLE = { fontFamily: fontFace.display[700], fontSize: 20, lineHeight: 25, letterSpacing: -0.4 } as const;
+
+/** Flecha de periodo: círculo `surface` de 36 (44 de toque con `hitSlop`). */
 function ArrowButton({ label, disabled, onPress, children }: { label: string; disabled?: boolean; onPress: () => void; children: ReactNode }) {
   return (
-    <PressableScale onPress={onPress} disabled={disabled} haptic="select" hitSlop={6} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }}>
-      <View width={32} height={32} rounded={radius.pill} bg="$surface" borderWidth={1} borderColor="$line" items="center" justify="center" opacity={disabled ? 0.38 : 1}>
+    <PressableScale onPress={onPress} disabled={disabled} haptic="select" hitSlop={4} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }}>
+      <View width={36} height={36} rounded={radius.pill} bg="$surface" items="center" justify="center" opacity={disabled ? 0.38 : 1}>
         {children}
       </View>
     </PressableScale>
   );
 }
 
+/** Filtro de cuenta o moneda: ficha `surface` de 32 con el valor y la flecha, sin borde (F-07). */
 function Pill({ label, a11yLabel, icon, onPress }: { label: string; a11yLabel: string; icon?: ReactNode; onPress: () => void }) {
   return (
-    <PressableScale onPress={onPress} haptic="tap" accessibilityRole="button" accessibilityLabel={a11yLabel}>
-      <XStack height={34} pl={icon ? 12 : 14} pr={12} gap={6} items="center" rounded={radius.pill} borderWidth={1} borderColor="$lineStrong" bg="$surface">
+    <PressableScale onPress={onPress} haptic="tap" hitSlop={{ top: 6, bottom: 6 }} accessibilityRole="button" accessibilityLabel={a11yLabel}>
+      <XStack height={32} pl={12} pr={10} gap={4} items="center" rounded={radius.pill} bg="$surface">
         {icon}
-        <FText variant="label" numberOfLines={1} style={{ fontSize: 13, flexShrink: 1 }}>
+        <FText numberOfLines={1} maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18, flexShrink: 1 }}>
           {label}
         </FText>
         <ChevronDown size={14} color="$ink" strokeWidth={2.2} />
@@ -557,9 +568,9 @@ function Pill({ label, a11yLabel, icon, onPress }: { label: string; a11yLabel: s
 
 function Section({ title, trailing, children }: { title: string; trailing?: ReactNode; children: ReactNode }) {
   return (
-    <YStack mx={space[4]} mt={space[6]}>
-      <XStack items="baseline" justify="space-between" gap={space[3]} mb={space[3]}>
-        <FText variant="title" accessibilityRole="header" style={{ fontSize: 20, lineHeight: 25 }}>
+    <YStack mx={space[5]} mt={26}>
+      <XStack items="center" justify="space-between" gap={space[3]} mb={10} flexWrap="wrap">
+        <FText accessibilityRole="header" maxFontSizeMultiplier={1.5} style={SECTION_TITLE}>
           {title}
         </FText>
         {trailing}
@@ -582,48 +593,49 @@ function comparable(current: number, previous: number) {
   return previous === 0 ? null : changePercent(current, previous);
 }
 
-/** Variación de ingresos o egresos: verde cuando es buena noticia (ingresos que suben, egresos que bajan). */
+/**
+ * Variación de ingresos o egresos dentro de la boleta: el porcentaje en `flowInSlab` cuando es buena noticia
+ * (ingresos que suben, egresos que bajan) o `flowOutSlab` si no, y "vs. octubre" en `slabMuted`.
+ */
 function Change({ value, goodWhenUp, previousLabel }: { value: number | null; goodWhenUp: boolean; previousLabel: string }) {
   const { t } = useTranslation();
   const vs = t("reportsTab.vs", { period: previousLabel });
   if (value === null || value === 0) {
     // Sin nada en el periodo anterior no hay con qué comparar: "sin movimientos en agosto", no "nueva".
     return (
-      <FText variant="caption" tone="inkFaint" style={{ fontSize: 11, lineHeight: 14, marginTop: 3 }} numberOfLines={1}>
+      <FText tone="slabMuted" style={{ fontSize: 12, lineHeight: 16 }}>
         {value === null ? t("reportsTab.noPrevious", { period: previousLabel }) : `${t("reportsTab.same")} ${vs}`}
       </FText>
     );
   }
   const good = goodWhenUp ? value > 0 : value < 0;
-  const tone = good ? "flowIn" : "flowOut";
+  const tone = good ? "flowInSlab" : "flowOutSlab";
   const Icon = value > 0 ? ArrowUp : ArrowDown;
   return (
-    <XStack items="center" gap={4} mt={3}>
+    <XStack items="center" gap={4} flexWrap="wrap">
       <Icon size={11} color={`$${tone}` as ColorTokens} strokeWidth={2.6} />
-      <FText variant="figure-caption" tone={tone} style={{ fontSize: 11 }}>
+      <FText tone={tone} style={{ fontFamily: fontFace.mono[600], fontSize: 12, lineHeight: 16 }}>
         {`${Math.abs(value)}%`}
       </FText>
-      <FText variant="figure-caption" tone="inkFaint" style={{ fontSize: 11 }} numberOfLines={1}>
+      <FText tone="slabMuted" style={{ fontSize: 12, lineHeight: 16 }}>
         {vs}
       </FText>
     </XStack>
   );
 }
 
-/** Neto del periodo en `flowIn` o `flowOut`, la etiqueta del estado, una frase, e ingresos y egresos con su variación. */
+/**
+ * El neto del periodo en la boleta amarilla (marca D, F-07): arriba "Neto del mes" con el estado en una píldora
+ * tinta (`slabInk`, igual en los dos temas; texto amarillo, con su ícono), el neto grande con su signo y la frase del ahorro; tras el filete, ingresos y
+ * egresos con su variación. Todo en las tintas de la boleta (`slabInk`, `slabMuted`).
+ */
 function StatusCard({ report, kind, previousLabel }: { report: FinancialReportPeriod; kind: PeriodKind; previousLabel: string }) {
   const { t } = useTranslation();
+  const { fontScale } = useWindowDimensions();
   const { summary } = report;
   const currency = report.filters.currency;
   const status = summary.status;
-  const badge =
-    status === "healthy"
-      ? { icon: <Check size={12} color="$flowIn" strokeWidth={2.6} />, tone: "flowIn" as const }
-      : status === "attention"
-        ? { icon: <AlertTriangle size={12} color="$flowOut" strokeWidth={2.4} />, tone: "flowOut" as const }
-        : status === "balanced"
-          ? { icon: <Minus size={12} color="$inkMuted" strokeWidth={2.6} />, tone: "inkMuted" as const }
-          : null;
+  const StatusIcon = status === "healthy" ? Check : status === "attention" ? AlertTriangle : status === "balanced" ? Minus : null;
   // El backend manda el porcentaje con decimales; la frase lo dice entero ("Ahorraste el 66%").
   const rate = summary.savingsRate === null ? null : Math.round(summary.savingsRate);
 
@@ -634,80 +646,96 @@ function StatusCard({ report, kind, previousLabel }: { report: FinancialReportPe
     message = (
       <>
         {`${t("reportsTab.savedBefore")} `}
-        <FText variant="caption" style={{ fontSize: 13, fontFamily: fontFace.mono[500] }}>{`${rate}%`}</FText>
+        <FText tone="slabMuted" style={{ fontSize: 13, fontFamily: fontFace.mono[600] }}>{`${rate}%`}</FText>
         {` ${t("reportsTab.savedAfter")}`}
       </>
     );
   else message = t("reportsTab.overspent");
 
   return (
-    <YStack mx={space[4]} mt={space[5]}>
-      <XStack items="center" justify="space-between" gap={space[3]}>
-        <FText variant="caption" tone="inkMuted" style={{ fontSize: 13 }}>
-          {t(`reportsTab.net.${kind}`)}
-        </FText>
-        {badge ? (
-          <XStack height={24} px={10} gap={5} items="center" rounded={radius.pill} bg="$surfaceSunken">
-            {badge.icon}
-            <FText variant="caption" tone={badge.tone} style={{ fontFamily: fontFace.sans[600] }}>
-              {t(`reports.statuses.${status}`)}
+    <View mx={space[5]} mt={14}>
+      <Ticket
+        top={
+          <>
+            <XStack items="center" justify="space-between" gap={space[3]} flexWrap="wrap">
+              <FText tone="slabInk" maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={{ fontFamily: fontFace.sans[600], fontSize: 14, lineHeight: 19 }}>
+                {t(`reportsTab.net.${kind}`)}
+              </FText>
+              {StatusIcon ? (
+                <XStack height={26} px={10} gap={5} items="center" rounded={radius.pill} bg="$slabInk">
+                  <StatusIcon size={12} color="$slab" strokeWidth={2.6} />
+                  <FText maxFontSizeMultiplier={COMPACT_FONT_SCALE} color="$slab" style={{ fontFamily: fontFace.sans[600], fontSize: 12, lineHeight: 16 }}>
+                    {t(`reports.statuses.${status}`)}
+                  </FText>
+                </XStack>
+              ) : null}
+            </XStack>
+            <Amount
+              value={summary.net}
+              currency={currency}
+              kind={summary.net > 0 ? "income" : summary.net < 0 ? "expense" : "neutral"}
+              variant="amount-hero"
+              onSlab
+              tone="slabInk"
+              smallCents
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              style={{ fontSize: 44, lineHeight: 52, letterSpacing: -1, marginTop: 6 }}
+            />
+            <FText tone="slabMuted" style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18, marginTop: 2 }}>
+              {message}
             </FText>
+          </>
+        }
+        bottom={
+          <XStack gap={10} flexWrap={fontScale >= COMPACT_FONT_SCALE ? "wrap" : "nowrap"}>
+            <YStack flex={1} minW={140} gap={2}>
+              <FText tone="slabMuted" style={{ fontFamily: fontFace.sans[600], fontSize: 12, lineHeight: 16 }}>
+                {t("reportsTab.income")}
+              </FText>
+              <Amount value={summary.income} currency={currency} onSlab style={{ fontFamily: fontFace.mono[600], fontSize: 18, lineHeight: 24 }} />
+              <Change value={comparable(summary.income, summary.previousIncome)} goodWhenUp previousLabel={previousLabel} />
+            </YStack>
+            <YStack flex={1} minW={140} gap={2}>
+              <FText tone="slabMuted" style={{ fontFamily: fontFace.sans[600], fontSize: 12, lineHeight: 16 }}>
+                {t("reportsTab.expenses")}
+              </FText>
+              <Amount value={summary.expenses} currency={currency} onSlab style={{ fontFamily: fontFace.mono[600], fontSize: 18, lineHeight: 24 }} />
+              <Change value={comparable(summary.expenses, summary.previousExpenses)} goodWhenUp={false} previousLabel={previousLabel} />
+            </YStack>
           </XStack>
-        ) : null}
-      </XStack>
-      <Amount
-        value={summary.net}
-        currency={currency}
-        kind={summary.net > 0 ? "income" : summary.net < 0 ? "expense" : "neutral"}
-        tone={summary.net > 0 ? "flowIn" : summary.net < 0 ? "flowOut" : "ink"}
-        variant="amount-lg"
-        style={{ fontSize: 40, lineHeight: 46, letterSpacing: -1.2, marginTop: 4 }}
+        }
       />
-      <FText variant="caption" tone="inkMuted" style={{ fontSize: 13, marginTop: 4 }}>
-        {message}
-      </FText>
-      <XStack mt={16} pt={14} borderTopWidth={1} borderColor="$line">
-        <YStack flex={1} minW={0} pr={space[3]}>
-          <FText variant="caption" tone="inkMuted">
-            {t("reportsTab.income")}
-          </FText>
-          <Amount value={summary.income} currency={currency} style={{ fontSize: 17, lineHeight: 22, letterSpacing: -0.4, marginTop: 2 }} />
-          <Change value={comparable(summary.income, summary.previousIncome)} goodWhenUp previousLabel={previousLabel} />
-        </YStack>
-        <YStack flex={1} minW={0} pl={space[4]} borderLeftWidth={1} borderColor="$line">
-          <FText variant="caption" tone="inkMuted">
-            {t("reportsTab.expenses")}
-          </FText>
-          <Amount value={summary.expenses} currency={currency} style={{ fontSize: 17, lineHeight: 22, letterSpacing: -0.4, marginTop: 2 }} />
-          <Change value={comparable(summary.expenses, summary.previousExpenses)} goodWhenUp={false} previousLabel={previousLabel} />
-        </YStack>
-      </XStack>
-    </YStack>
+    </View>
   );
 }
 
-/** Una de las mayores transacciones: el emoji de su categoría, la nota (o la categoría), la fecha y el monto. */
+/** Una de las mayores transacciones: el emoji de su categoría en el cuadro de 44, la categoría, la fecha y el monto. */
 function TopExpenseRow({ item, first, locale, emoji, currency }: { item: FinancialTopTransaction; first: boolean; locale: string; emoji: string | null; currency: string }) {
   const { t } = useTranslation();
+  const { fontScale } = useWindowDimensions();
+  const stacked = fontScale >= COMPACT_FONT_SCALE;
   const category = getCategoryLabel(item.category, t);
   const date = shortDate(parseIso(item.date), locale);
+  const amount = <RowAmount value={item.amount} currency={currency} kind="expense" />;
   return (
-    <XStack items="center" gap={space[3]} px={space[4]} py={space[3]} borderTopWidth={first ? 0 : 1} borderColor="$line">
-      <Monogram name={category} emoji={emoji} color={`$chart${categoryColorIndex(category)}` as ColorTokens} />
-      <YStack flex={1} minW={0}>
-        <FText variant="body-strong" numberOfLines={1} style={{ letterSpacing: -0.15 }}>
+    <XStack items={stacked ? "flex-start" : "center"} gap={space[3]} py={space[3]} borderTopWidth={first ? 0 : 1} borderColor="$line">
+      <Monogram name={category} emoji={emoji} size={44} />
+      <YStack flex={1} minW={0} gap={2}>
+        <FText numberOfLines={stacked ? undefined : 1} style={{ fontFamily: fontFace.display[700], fontSize: 16, lineHeight: 21, letterSpacing: -0.15 }}>
           {category}
         </FText>
-        <FText variant="caption" tone="inkFaint" numberOfLines={1} style={{ marginTop: 1 }}>
+        <FText tone="inkFaint" numberOfLines={stacked ? undefined : 1} style={{ fontSize: 13, lineHeight: 18 }}>
           {`${date} · ${item.account}`}
         </FText>
+        {stacked ? <View mt={2}>{amount}</View> : null}
       </YStack>
-      <Amount value={item.amount} currency={currency} kind="expense" />
+      {stacked ? null : amount}
     </XStack>
   );
 }
 
-/** Una barra partida entre lo que hay en cuentas (`chart-1`) y lo que se debe (`flowOut`), los dos montos y la posición neta. */
+/** Una barra partida entre lo que hay en cuentas (`flowIn`) y lo que se debe (`flowOut`), los dos montos y la posición neta. */
 function PositionCard({ position, loading, currency, locale }: { position?: FinancialReportPosition; loading: boolean; currency: string; locale: string }) {
   const { t } = useTranslation();
   const asOf = position ? parseIso(position.asOf) : new Date();
@@ -716,32 +744,30 @@ function PositionCard({ position, loading, currency, locale }: { position?: Fina
   const debts = Math.max(0, position?.totalDebtOutstanding ?? 0);
   return (
     <Section title={t("reportsTab.position", { date })}>
-      <FintCard p={space[5]}>
+      <FintCard p={18}>
         {loading || !position ? (
-          <AmountSkeleton width={220} height={14} />
+          <SkeletonBlock width={220} height={14} rounded={6} bg="$canvas" />
         ) : (
           <>
-            <XStack height={10} rounded={radius.pill} overflow="hidden" gap={accounts > 0 && debts > 0 ? 2 : 0} mb={12} bg="$chartTrack">
-              {accounts > 0 ? <View height="100%" bg="$chart1" style={{ flex: accounts }} /> : null}
+            <XStack height={10} rounded={radius.pill} overflow="hidden" gap={accounts > 0 && debts > 0 ? 3 : 0} mb={12} bg="$line">
+              {accounts > 0 ? <View height="100%" bg="$flowIn" style={{ flex: accounts }} /> : null}
               {debts > 0 ? <View height="100%" bg="$flowOut" style={{ flex: debts }} /> : null}
             </XStack>
-            <XStack justify="space-between" items="center">
-              <FText variant="caption" tone="inkMuted" style={{ fontSize: 13 }}>
+            <XStack justify="space-between" items="center" gap={space[3]} flexWrap="wrap">
+              <FText tone="inkMuted" style={{ fontSize: 13, lineHeight: 18 }}>
                 {t("reportsTab.accounts")}
               </FText>
-              <Amount value={position.totalAccountBalance} currency={currency} variant="amount-sm" />
+              <Amount value={position.totalAccountBalance} currency={currency} style={{ fontFamily: fontFace.mono[600], fontSize: 14, lineHeight: 19 }} />
             </XStack>
-            <XStack justify="space-between" items="center" mt={6}>
-              <FText variant="caption" tone="inkMuted" style={{ fontSize: 13 }}>
+            <XStack justify="space-between" items="center" gap={space[3]} flexWrap="wrap" mt={6}>
+              <FText tone="inkMuted" style={{ fontSize: 13, lineHeight: 18 }}>
                 {t("reportsTab.debts")}
               </FText>
-              <Amount value={-Math.abs(position.totalDebtOutstanding)} currency={currency} variant="amount-sm" />
+              <Amount value={-Math.abs(position.totalDebtOutstanding)} currency={currency} style={{ fontFamily: fontFace.mono[600], fontSize: 14, lineHeight: 19 }} />
             </XStack>
-            <XStack justify="space-between" items="center" mt={10} pt={10} borderTopWidth={1} borderColor="$line">
-              <FText variant="body-strong" style={{ fontSize: 14 }}>
-                {t("reportsTab.netPosition")}
-              </FText>
-              <Amount value={position.netPosition} currency={currency} style={{ fontSize: 14, fontFamily: fontFace.mono[600] }} />
+            <XStack justify="space-between" items="center" gap={space[3]} flexWrap="wrap" mt={10} pt={10} borderTopWidth={1} borderColor="$line">
+              <FText style={{ fontFamily: fontFace.display[700], fontSize: 15, lineHeight: 20 }}>{t("reportsTab.netPosition")}</FText>
+              <Amount value={position.netPosition} currency={currency} style={{ fontSize: 16, lineHeight: 21, fontFamily: fontFace.mono[600] }} />
             </XStack>
           </>
         )}
@@ -750,19 +776,29 @@ function PositionCard({ position, loading, currency, locale }: { position?: Fina
   );
 }
 
+/** Carga con la forma real: la boleta amarilla con sus barras al 12 %, el título del flujo y sus columnas. */
 function ReportSkeleton() {
+  const { t } = useTranslation();
   return (
-    <YStack mx={space[4]} mt={space[4]} gap={space[4]}>
-      <FintCard p={space[5]} gap={10}>
-        <AmountSkeleton width={110} height={12} />
-        <AmountSkeleton width={190} height={28} />
-        <AmountSkeleton width={170} height={12} />
-      </FintCard>
-      <FintCard p={space[5]} gap={10}>
-        <AmountSkeleton width={140} height={12} />
-        <AmountSkeleton width={260} height={110} />
-      </FintCard>
-    </YStack>
+    <SkeletonGroup label={t("states.loading")}>
+      <YStack mx={space[5]} mt={14}>
+        <View bg="$slab" rounded={26} p={18} gap={10}>
+          <TicketBar width={120} height={14} />
+          <TicketBar width={200} height={40} rounded={12} />
+          <TicketBar width={170} height={12} />
+          <XStack gap={10} mt={16}>
+            <TicketBar width="45%" height={34} />
+            <TicketBar width="45%" height={34} />
+          </XStack>
+        </View>
+        <SkeletonBlock width={150} height={18} rounded={6} mt={28} />
+        <XStack mt={14} gap={10} items="flex-end" height={110}>
+          {[38, 100, 24, 60, 12].map((h, i) => (
+            <SkeletonBlock key={i} flex={1} height={h} rounded={7} />
+          ))}
+        </XStack>
+      </YStack>
+    </SkeletonGroup>
   );
 }
 

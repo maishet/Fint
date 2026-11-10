@@ -147,7 +147,7 @@ export function FlowChart({ columns, currency, initialIndex }: { columns: readon
                   </XStack>
                   <FText
                     variant="figure-caption"
-                    tone={on ? "brand" : "inkFaint"}
+                    tone={on ? "ink" : "inkFaint"}
                     numberOfLines={1}
                     style={{ marginTop: 8, fontSize: 10, fontFamily: on ? fontFace.mono[600] : fontFace.mono[400] }}
                   >
