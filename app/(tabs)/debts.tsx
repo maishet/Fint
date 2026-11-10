@@ -20,13 +20,15 @@ import { HistoryRow, PaymentRow } from "../../src/payments/PaymentRow";
 import { radius, space } from "../../src/theme/tokens";
 import { fontFace } from "../../src/theme/typography";
 import { useScreenStatusBar } from "../../src/theme/useScreenStatusBar";
-import { Amount, FintButton, FintCard, FintConfirmDialog, FintLottie, FintSheet, FText, IconButton, ListRow, PressableScale, SegmentedControl } from "../../src/ui";
+import { Amount, FintButton, FintConfirmDialog, FintLottie, FintSheet, FText, IconButton, ListRow, PressableScale, SegmentedControl } from "../../src/ui";
 import { AmountSkeleton } from "../../src/ui/AmountSkeleton";
 import { useNotify } from "../../src/ui/notify";
 
 type PaymentsTab = "pending" | "history";
 
 const PILE_SIZE = 76;
+const SUMMARY_SIZE = 40;
+const SUMMARY_LINE = 46;
 
 function capitalize(text: string) {
   return text.charAt(0).toUpperCase() + text.slice(1);
@@ -216,7 +218,7 @@ export default function PaymentsScreen() {
       >
         {/* Título y crear pago recurrente. */}
         <XStack items="center" justify="space-between" px={space[4]} gap={space[3]}>
-          <FText variant="display-lg" accessibilityRole="header">
+          <FText variant="heading" accessibilityRole="header">
             {t("paymentsTab.title")}
           </FText>
           {capabilities.features.recurringPayments ? (
@@ -225,7 +227,7 @@ export default function PaymentsScreen() {
         </XStack>
 
         {/* Resumen del mes: lleva riel porque el total es un límite conocido. */}
-        <FintCard mx={space[4]} mt={space[4]} p={space[5]}>
+        <YStack mx={space[4]} mt={space[5]}>
           <XStack items="center" justify="space-between" gap={space[3]}>
             <FText variant="label" tone="inkMuted" style={{ fontSize: 13, fontFamily: fontFace.sans[400] }}>
               {t("paymentsTab.remaining", { month: monthName })}
@@ -243,10 +245,10 @@ export default function PaymentsScreen() {
           </XStack>
           {summaryLoading ? (
             <View mt={8} mb={2}>
-              <AmountSkeleton width={170} height={26} />
+              <AmountSkeleton width={210} height={34} />
             </View>
           ) : (
-            <Amount value={summary?.remaining ?? 0} currency={currency} variant="amount-lg" style={{ fontSize: 30, lineHeight: 34, letterSpacing: -1, marginTop: 2 }} />
+            <Amount value={summary?.remaining ?? 0} currency={currency} variant="amount-lg" style={{ fontSize: SUMMARY_SIZE, lineHeight: SUMMARY_LINE, letterSpacing: -1.2, marginTop: 4 }} />
           )}
           <View height={8} mt={16} mb={10} rounded={radius.pill} bg="$chartTrack" overflow="hidden">
             {summary && summary.total > 0 ? (
@@ -268,7 +270,7 @@ export default function PaymentsScreen() {
               {t("paymentsTab.active", { count: activeCount })}
             </FText>
           </XStack>
-        </FintCard>
+        </YStack>
 
         <View mx={space[4]} mt={space[4]}>
           <SegmentedControl

@@ -37,7 +37,7 @@ import {
 import { radius, space } from "../../src/theme/tokens";
 import { fontFace, textStyles } from "../../src/theme/typography";
 import { useScreenStatusBar } from "../../src/theme/useScreenStatusBar";
-import { Amount, Chip, FintButton, FintCard, FintConfirmDialog, FintLottie, FintSheet, FintSpinner, FText, IconButton, ListRow, PressableScale, SoonBadge, useComingSoon } from "../../src/ui";
+import { Amount, Chip, FintButton, FintConfirmDialog, FintLottie, FintSheet, FintSpinner, FText, IconButton, ListRow, PressableScale, SoonBadge, useComingSoon } from "../../src/ui";
 import { AmountSkeleton } from "../../src/ui/AmountSkeleton";
 import { useNotify } from "../../src/ui/notify";
 import { detailParams } from "../../src/movements/detailParams";
@@ -234,7 +234,7 @@ export default function MovementsScreen() {
     <YStack pt={space[2]} pb={space[2]}>
       {/* Título y Escanear. Registrar a mano está en el botón central de la barra. */}
       <XStack items="center" justify="space-between" px={space[4]} gap={space[3]}>
-        <FText variant="display-lg" accessibilityRole="header">
+        <FText variant="heading" accessibilityRole="header">
           {t("movementsTab.title")}
         </FText>
         {isComingSoon("photoCapture") ? (
@@ -580,6 +580,8 @@ function Pill({ label, icon, onPress }: { label: string; icon?: React.ReactNode;
 }
 
 /** "Entró" en `flowIn` y "Salió" con signo menos en `ink`, separadas por un filete; debajo, la cantidad y el neto. */
+const LOOSE_FIGURE = { fontSize: 30, lineHeight: 36, letterSpacing: -0.9 } as const;
+
 function SummaryCard({
   loading,
   currency,
@@ -597,29 +599,29 @@ function SummaryCard({
 }) {
   const { t } = useTranslation();
   return (
-    <FintCard mx={space[4]} mt={space[3]} p={0}>
+    <YStack mx={space[4]} mt={space[4]}>
       <XStack>
-        <YStack flex={1} px={space[4]} pt={14} pb={12} gap={4}>
+        <YStack flex={1} pr={space[4]} pb={14} gap={4}>
           <XStack items="center" gap={6}>
             <ArrowUp size={14} color="$flowIn" strokeWidth={2.2} />
             <FText variant="caption" tone="inkMuted">
               {t("movementsTab.in")}
             </FText>
           </XStack>
-          {loading ? <AmountSkeleton width={120} height={20} /> : <Amount value={income} currency={currency} kind="income" variant="amount-lg" />}
+          {loading ? <AmountSkeleton width={130} height={28} /> : <Amount value={income} currency={currency} kind="income" variant="amount-lg" style={LOOSE_FIGURE} />}
         </YStack>
-        <View width={1} my={14} bg="$line" />
-        <YStack flex={1} px={space[4]} pt={14} pb={12} gap={4}>
+        <View width={1} mb={14} bg="$line" />
+        <YStack flex={1} pl={space[4]} pb={14} gap={4}>
           <XStack items="center" gap={6}>
             <ArrowDown size={14} color="$flowOut" strokeWidth={2.2} />
             <FText variant="caption" tone="inkMuted">
               {t("movementsTab.out")}
             </FText>
           </XStack>
-          {loading ? <AmountSkeleton width={120} height={20} /> : <Amount value={expenses} currency={currency} kind="expense" variant="amount-lg" />}
+          {loading ? <AmountSkeleton width={130} height={28} /> : <Amount value={expenses} currency={currency} kind="expense" variant="amount-lg" style={LOOSE_FIGURE} />}
         </YStack>
       </XStack>
-      <XStack mx={space[4]} py={12} borderTopWidth={1} borderColor="$line" justify="space-between" items="center">
+      <XStack py={12} borderTopWidth={1} borderColor="$line" justify="space-between" items="center">
         <FText variant="caption" tone="inkMuted">
           {t("movementsTab.count", { count })}
         </FText>
@@ -630,7 +632,7 @@ function SummaryCard({
           <Amount value={net} currency={currency} kind={net > 0 ? "income" : net < 0 ? "expense" : "neutral"} variant="amount-sm" />
         </XStack>
       </XStack>
-    </FintCard>
+    </YStack>
   );
 }
 

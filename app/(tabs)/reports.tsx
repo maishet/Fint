@@ -306,7 +306,7 @@ export default function ReportsScreen() {
       >
         {/* Título y descargar el reporte (PDF o Excel). */}
         <XStack items="center" justify="space-between" px={space[4]} gap={space[3]}>
-          <FText variant="display-lg" accessibilityRole="header">
+          <FText variant="heading" accessibilityRole="header">
             {t("reportsTab.title")}
           </FText>
           {isComingSoon("reportExport") ? (
@@ -642,7 +642,7 @@ function StatusCard({ report, kind, previousLabel }: { report: FinancialReportPe
   else message = t("reportsTab.overspent");
 
   return (
-    <FintCard mx={space[4]} mt={space[4]} p={space[5]}>
+    <YStack mx={space[4]} mt={space[5]}>
       <XStack items="center" justify="space-between" gap={space[3]}>
         <FText variant="caption" tone="inkMuted" style={{ fontSize: 13 }}>
           {t(`reportsTab.net.${kind}`)}
@@ -662,7 +662,7 @@ function StatusCard({ report, kind, previousLabel }: { report: FinancialReportPe
         kind={summary.net > 0 ? "income" : summary.net < 0 ? "expense" : "neutral"}
         tone={summary.net > 0 ? "flowIn" : summary.net < 0 ? "flowOut" : "ink"}
         variant="amount-lg"
-        style={{ fontSize: 32, lineHeight: 36, letterSpacing: -1.2, marginTop: 4 }}
+        style={{ fontSize: 40, lineHeight: 46, letterSpacing: -1.2, marginTop: 4 }}
       />
       <FText variant="caption" tone="inkMuted" style={{ fontSize: 13, marginTop: 4 }}>
         {message}
@@ -683,7 +683,7 @@ function StatusCard({ report, kind, previousLabel }: { report: FinancialReportPe
           <Change value={comparable(summary.expenses, summary.previousExpenses)} goodWhenUp={false} previousLabel={previousLabel} />
         </YStack>
       </XStack>
-    </FintCard>
+    </YStack>
   );
 }
 
