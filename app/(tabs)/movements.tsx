@@ -564,16 +564,25 @@ function MonthGrid({ value, locale, onPick }: { value: Date; locale: string; onP
   );
 }
 
-/** Píldora de mes o de moneda. Sin `onPress` (una sola moneda) no lleva flecha. */
+/** Píldora de mes o de moneda. Sin `onPress` (una sola moneda) es solo el código, sin borde ni flecha. */
 function Pill({ label, icon, onPress }: { label: string; icon?: React.ReactNode; onPress?: () => void }) {
+  if (!onPress) {
+    return (
+      <XStack height={40} px={4} items="center" accessibilityLabel={label}>
+        <FText variant="label" tone="inkMuted" style={{ fontSize: 14, fontFamily: fontFace.sans[600] }}>
+          {label}
+        </FText>
+      </XStack>
+    );
+  }
   return (
-    <PressableScale onPress={onPress} disabled={!onPress} haptic="tap" accessibilityRole="button" accessibilityLabel={label}>
-      <XStack height={40} pl={14} pr={onPress ? 12 : 14} gap={8} items="center" rounded={radius.pill} borderWidth={1} borderColor="$lineStrong" bg="$surface">
+    <PressableScale onPress={onPress} haptic="tap" accessibilityRole="button" accessibilityLabel={label}>
+      <XStack height={40} pl={14} pr={12} gap={8} items="center" rounded={radius.pill} borderWidth={1} borderColor="$lineStrong" bg="$surface">
         {icon}
         <FText variant="label" style={{ fontSize: 14 }}>
           {label}
         </FText>
-        {onPress ? <ChevronDown size={16} color="$ink" strokeWidth={2.2} /> : null}
+        <ChevronDown size={16} color="$ink" strokeWidth={2.2} />
       </XStack>
     </PressableScale>
   );

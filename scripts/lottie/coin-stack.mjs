@@ -1,8 +1,8 @@
-import { animated, composition, ease, ellipse, fill, fixed, group, layer } from "./lib.mjs";
+import { animated, composition, ease, ellipse, fill, fixed, group, layer, stroke } from "./lib.mjs";
 
 export const segments = { build: [0, 54], shine: [54, 90], breathe: [90, 210] };
 
-export const slots = { disc: "slab", coin: "slabInk", signal: "signal" };
+export const slots = { disc: "slab", discLine: "slabLine", coin: "slabInk", signal: "signal" };
 
 function coin(nm, index, { size, opacity, y, show }) {
   return layer(nm, {
@@ -100,7 +100,7 @@ export function build() {
 
   const disc = layer("disco", {
     index: 7,
-    shapes: [group("disco", [ellipse("disco", { center: [60, 60], size: [116, 116] }), fill("disco", "disc")])],
+    shapes: [group("disco", [ellipse("disco", { center: [60, 60], size: [116, 116] }), fill("disco", "disc"), stroke("disco-borde", "discLine", { width: 2, opacity: 100 })])],
   });
 
   return composition("coin-stack", {

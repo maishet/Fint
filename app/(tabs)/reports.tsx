@@ -381,9 +381,9 @@ export default function ReportsScreen() {
         </XStack>
 
         {currencies.length > 1 ? (
-          <XStack mx={space[4]} mt={space[3]} px={space[4]} py={12} gap={10} rounded={radius.md} bg="$surfaceSunken" items="center">
-            <Info size={16} color="$inkMuted" />
-            <FText variant="caption" tone="inkMuted" style={{ flex: 1 }}>
+          <XStack mx={space[4]} mt={space[2]} gap={6} items="center">
+            <Info size={14} color="$inkFaint" />
+            <FText variant="caption" tone="inkFaint" style={{ flex: 1 }}>
               {t("reports.mixed")}
             </FText>
           </XStack>

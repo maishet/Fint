@@ -16,6 +16,7 @@
       },
       "slots": {
         "disc": "slab",
+        "discLine": "slabLine",
         "coin": "slabInk",
         "accent": "brandSlab"
       }
@@ -38,6 +39,7 @@
       },
       "slots": {
         "disc": "slab",
+        "discLine": "slabLine",
         "coin": "slabInk",
         "signal": "signal"
       }

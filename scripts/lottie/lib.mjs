@@ -3,6 +3,7 @@ export const CANVAS = 120;
 
 export const SLOT_DEFAULTS = {
   disc: "#14172B",
+  discLine: "#2E3454",
   coin: "#F5F6FB",
   accent: "#8C9CFF",
   signal: "#F5BC3F",

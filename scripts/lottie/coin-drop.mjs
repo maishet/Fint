@@ -6,7 +6,7 @@ const END = 42;
 
 export const segments = { drop: [0, END], rest: [END, END] };
 
-export const slots = { disc: "slab", coin: "slabInk", accent: "brandSlab" };
+export const slots = { disc: "slab", discLine: "slabLine", coin: "slabInk", accent: "brandSlab" };
 
 export function build() {
   const ring = layer("anillo", {
@@ -76,7 +76,7 @@ export function build() {
 
   const disc = layer("disco", {
     index: 4,
-    shapes: [group("disco", [ellipse("disco", { center: [60, 60], size: [116, 116] }), fill("disco", "disc")])],
+    shapes: [group("disco", [ellipse("disco", { center: [60, 60], size: [116, 116] }), fill("disco", "disc"), stroke("disco-borde", "discLine", { width: 2, opacity: 100 })])],
   });
 
   return composition("coin-drop", { layers: [ring, top, base, disc], segments });
