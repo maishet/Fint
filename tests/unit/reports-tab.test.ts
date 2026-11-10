@@ -67,20 +67,25 @@ describe('categoryRows', () => {
 })
 
 describe('fillSeries', () => {
-  test('un mes: semanas desde el lunes, las vacías en cero, hasta la de hoy', () => {
+  test('un mes: la primera semana arranca el día 1, no en el lunes del mes anterior', () => {
     const cols = fillSeries('month', new Date(2026, 8, 1), [{ period: '2026-08-31', income: 100, expenses: 5 }, { period: '2026-09-14', income: 0, expenses: 9 }], today)
-    expect(cols.map((c) => c.start)).toEqual(['2026-08-31', '2026-09-07', '2026-09-14', '2026-09-21'])
+    expect(cols.map((c) => c.start)).toEqual(['2026-09-01', '2026-09-07', '2026-09-14', '2026-09-21'])
+    expect(cols[0]).toEqual({ start: '2026-09-01', income: 100, expenses: 5 })
     expect(cols[1]).toEqual({ start: '2026-09-07', income: 0, expenses: 0 })
   })
 
+  test('un mes que empieza en lunes no cambia su primera columna', () => {
+    expect(fillSeries('month', new Date(2026, 5, 1), [], today)[0].start).toBe('2026-06-01')
+  })
+
   test('un mes pasado llega a su última semana; un año, a sus doce meses (o hasta el actual)', () => {
-    expect(fillSeries('month', new Date(2026, 7, 1), [], today).map((c) => c.start)).toEqual(['2026-07-27', '2026-08-03', '2026-08-10', '2026-08-17', '2026-08-24', '2026-08-31'])
+    expect(fillSeries('month', new Date(2026, 7, 1), [], today).map((c) => c.start)).toEqual(['2026-08-01', '2026-08-03', '2026-08-10', '2026-08-17', '2026-08-24', '2026-08-31'])
     expect(fillSeries('year', new Date(2025, 0, 1), [], today)).toHaveLength(12)
     expect(fillSeries('year', new Date(2026, 0, 1), [{ period: '2026-09-01', income: 1, expenses: 2 }], today).map((c) => c.start).at(-1)).toBe('2026-09-01')
   })
 
   test('si el backend agrupa con otro inicio de semana, se usa su serie', () => {
-    expect(fillSeries('month', new Date(2026, 8, 1), [{ period: '2026-09-01', income: 1, expenses: 0 }], today).map((c) => c.start)).toEqual(['2026-09-01'])
+    expect(fillSeries('month', new Date(2026, 8, 1), [{ period: '2026-09-06', income: 1, expenses: 0 }], today).map((c) => c.start)).toEqual(['2026-09-06'])
   })
 })
 

@@ -220,12 +220,11 @@ export default function ReportsScreen() {
           expenses: s.expenses,
         };
       }
-      const to = new Date(Math.min(new Date(from.getFullYear(), from.getMonth(), from.getDate() + 6).getTime(), end.getTime()));
+      const sunday = new Date(from.getFullYear(), from.getMonth(), from.getDate() + 6 - ((from.getDay() + 6) % 7));
+      const to = new Date(Math.min(sunday.getTime(), end.getTime()));
       const month = (d: Date) => monthShort(d, locale);
-      // "7-13 set"; una semana que empieza en el mes anterior se lee "31-6 set" y su resumen, completo.
-      const label = `${from.getDate()}-${to.getDate()} ${month(to)}`;
-      const title = from.getMonth() === to.getMonth() ? label : `${from.getDate()} ${month(from)} – ${to.getDate()} ${month(to)}`;
-      return { key: s.start, label, title, income: s.income, expenses: s.expenses };
+      const label = from.getDate() === to.getDate() ? `${to.getDate()} ${month(to)}` : `${from.getDate()}-${to.getDate()} ${month(to)}`;
+      return { key: s.start, label, title: label, income: s.income, expenses: s.expenses };
     });
   }, [kind, locale, range.to, report, selectedCurrency, start, weekQuery.data]);
   // La columna de hoy si el periodo es el actual; si no, la última.
