@@ -6,7 +6,6 @@ import { useColorScheme, useWindowDimensions } from "react-native";
 import Animated, { FadeIn, useAnimatedStyle, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, Theme, YStack, type YStackProps } from "tamagui";
-import { HeroMesh } from "../home/HeroMesh";
 import { motion, radius } from "../theme/tokens";
 import { fontFace } from "../theme/typography";
 import { FintLogoLoader } from "./FintLogoLoader";
@@ -106,11 +105,6 @@ export function FintLoadingScreen({
       overflow="hidden"
       {...props}
     >
-      {onSlab ? (
-        <Animated.View entering={startComplete ? FadeIn.duration(motion.fade.duration) : undefined} style={{ position: "absolute", inset: 0 }}>
-          <HeroMesh width={width} height={height} />
-        </Animated.View>
-      ) : null}
       {shown ? (
         <YStack items="center" width="100%" px={28}>
           {/* El logo y la frase se anuncian juntos como barra de progreso; "Reintentar" queda aparte. */}

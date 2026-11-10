@@ -3,7 +3,7 @@ import { StyleSheet, type StyleProp, type TextStyle } from "react-native";
 import { Text, View, type ColorTokens, type TextProps } from "tamagui";
 import { amountParts, THIN_SPACE, type SignMode } from "../finance/formatAmount";
 import { useSensitiveAmounts } from "../privacy/SensitiveAmountsProvider";
-import { textStyles } from "../theme/typography";
+import { fontFace, textStyles } from "../theme/typography";
 import { AmountSkeleton } from "./AmountSkeleton";
 import type { FTextTone } from "./FText";
 
@@ -36,6 +36,10 @@ export interface AmountProps extends Omit<TextProps, "children"> {
 }
 
 const hidden = "••••••";
+/** Montos en filas y tarjetas: crecen con la letra del sistema hasta 1.5 y siempre en una línea. */
+const ROW_FONT_SCALE = 1.5;
+/** Los montos grandes (boleta y formulario) no escalan: ya son grandes y cambiarían de línea. */
+const FIXED_VARIANTS: readonly AmountVariant[] = ["amount-input", "amount-hero"];
 
 export function minorScale(fontSize: number): { symbol: number; cents: number } {
   if (fontSize >= 22) return { symbol: 0.52, cents: 0.6 };
@@ -79,6 +83,7 @@ export function Amount({
   const centsSize = smallCents === false ? size : Math.round(size * scale.cents);
 
   const isHidden = sensitive && !(isHydrated && amountsVisible);
+  const scaling = FIXED_VARIANTS.includes(variant) ? { allowFontScaling: false } : { maxFontSizeMultiplier: ROW_FONT_SCALE };
   const label = isHidden
     ? t("privacy.amounts.hiddenLabel")
     : `${parts.sign}${parts.symbol} ${parts.integer.replaceAll(THIN_SPACE, "")}.${parts.fraction}`;
@@ -94,9 +99,16 @@ export function Amount({
     );
   }
 
+  // Oculto: el símbolo se queda ("S/ ••••••"), así se sigue sabiendo en qué moneda está.
   if (isHidden) {
     return (
-      <Text color={`$${resolvedTone}` as ColorTokens} style={[base, style]} aria-label={label} {...props}>
+      <Text color={`$${resolvedTone}` as ColorTokens} style={[base, style]} aria-label={label} numberOfLines={1} {...scaling} {...props}>
+        {showSymbol ? (
+          <Text color={`$${resolvedTone}` as ColorTokens} style={{ fontSize: symbolSize, letterSpacing: 0 }}>
+            {parts.symbol}
+            {THIN_SPACE}
+          </Text>
+        ) : null}
         {hidden}
       </Text>
     );
@@ -106,7 +118,7 @@ export function Amount({
   const color = `$${resolvedTone}` as ColorTokens;
 
   return (
-    <Text color={color} style={[base, style]} aria-label={label} numberOfLines={1} {...props}>
+    <Text color={color} style={[base, style]} aria-label={label} numberOfLines={1} {...scaling} {...props}>
       {parts.sign}
       {showSymbol ? (
         <Text color={color} style={{ fontSize: symbolSize, letterSpacing: 0 }}>
@@ -124,4 +136,9 @@ export function Amount({
       ) : null}
     </Text>
   );
+}
+
+/** El monto de una fila de movimiento (marca D): 16/600 en Plex, con signo y color según `kind`. */
+export function RowAmount(props: Omit<AmountProps, "variant">) {
+  return <Amount variant="amount" {...props} style={[{ fontFamily: fontFace.mono[600], fontSize: 16, lineHeight: 21 }, props.style]} />;
 }

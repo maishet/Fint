@@ -274,7 +274,7 @@ export function LocationSheet({ open, onClose, value, suggestion, context, onSav
                 accessibilityLabel={t("movementForm.locationSheet.search")}
               />
               {search.isSearching || search.isSuggesting ? (
-                <FintSpinner size="small" color="$brand" />
+                <FintSpinner size="small" color="$ink" />
               ) : search.query ? (
                 <Pressable onPress={() => search.reset()} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("movementForm.clearSearch")}>
                   <X size={16} color="$inkFaint" />
@@ -292,7 +292,7 @@ export function LocationSheet({ open, onClose, value, suggestion, context, onSav
                   return (
                     <PlaceRow
                       key={suggestionKey(s)}
-                      icon={search.resolvingKey === suggestionKey(s) ? <FintSpinner size="small" color="$brand" /> : <PlaceCategoryIcon category={s.category} size={17} />}
+                      icon={search.resolvingKey === suggestionKey(s) ? <FintSpinner size="small" color="$ink" /> : <PlaceCategoryIcon category={s.category} size={17} />}
                       title={s.primaryText || t("location.coordinatesOnly")}
                       query={search.query}
                       subtitle={s.secondaryText}
@@ -308,7 +308,7 @@ export function LocationSheet({ open, onClose, value, suggestion, context, onSav
                 ) : null}
                 {draft ? (
                   <PlaceRow
-                    icon={<MapPin size={17} color="$brand" />}
+                    icon={<MapPin size={17} color="$ink" />}
                     title={t("movementForm.locationSheet.mapPoint")}
                     subtitle={draft.parts?.primary ?? draft.formattedAddress}
                     onPress={() => {
@@ -381,7 +381,7 @@ export function LocationSheet({ open, onClose, value, suggestion, context, onSav
                     <Maximize2 size={15} color="$ink" />
                   </GlassButton>
                   <GlassButton label={t("movementForm.locationSheet.myLocation")} onPress={isLocating ? undefined : () => void useCurrent()} style={{ right: 10, bottom: 10 }}>
-                    {isLocating ? <FintSpinner size="small" color="$brand" /> : <LocateFixed size={17} color="$brand" />}
+                    {isLocating ? <FintSpinner size="small" color="$ink" /> : <LocateFixed size={17} color="$ink" />}
                   </GlassButton>
                 </View>
 
@@ -396,7 +396,7 @@ export function LocationSheet({ open, onClose, value, suggestion, context, onSav
                         justify="center"
                         style={{ backgroundColor: withAlpha(draft.category ? theme.chart6.val : theme.brand.val, 0.14) }}
                       >
-                        {draft.category ? <PlaceCategoryIcon category={draft.category} size={20} /> : <MapPin size={20} color="$brand" strokeWidth={2} />}
+                        {draft.category ? <PlaceCategoryIcon category={draft.category} size={20} /> : <MapPin size={20} color="$ink" strokeWidth={2} />}
                       </View>
                       <YStack flex={1} minW={0}>
                         <Animated.View key={isResolving ? "resolving" : (draft.formattedAddress ?? "none")} entering={FadeIn.duration(motion.fade.duration)}>
@@ -405,8 +405,8 @@ export function LocationSheet({ open, onClose, value, suggestion, context, onSav
                               {isResolving ? t("movementForm.locationSheet.resolving") : (draft.parts?.primary ?? draft.formattedAddress?.split(", ")[0] ?? t("location.coordinatesOnly"))}
                             </FText>
                             {saved && !isResolving ? (
-                              <View px={8} py={2} rounded={999} bg="$brandWash">
-                                <FText tone="brand" style={{ fontFamily: fontFace.sans[600], fontSize: 11, lineHeight: 14 }}>
+                              <View px={8} py={2} rounded={999} bg="$surface">
+                                <FText tone="ink" style={{ fontFamily: fontFace.sans[600], fontSize: 11, lineHeight: 14 }}>
                                   {saved.name}
                                 </FText>
                               </View>
@@ -624,9 +624,9 @@ function MetaPill({ label, value }: { label: string; value?: string }) {
 }
 
 function SavedIcon({ place }: { place: SavedPlace }) {
-  if (place.kind === "home") return <Home size={17} color="$brand" />;
-  if (place.kind === "work") return <Briefcase size={17} color="$brand" />;
-  return <Star size={17} color="$brand" />;
+  if (place.kind === "home") return <Home size={17} color="$ink" />;
+  if (place.kind === "work") return <Briefcase size={17} color="$ink" />;
+  return <Star size={17} color="$ink" />;
 }
 
 function PlaceRow({

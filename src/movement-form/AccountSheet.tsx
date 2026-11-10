@@ -59,7 +59,7 @@ export function AccountSheet({ open, onClose, title, accounts, selected, onSelec
             trailing={
               <XStack items="center" gap={10}>
                 {balance !== null ? <Amount value={balance} currency={currency} variant="amount-sm" tone="inkMuted" /> : null}
-                {isSelected ? <Check size={18} color="$brand" strokeWidth={2.4} /> : null}
+                {isSelected ? <Check size={18} color="$ink" strokeWidth={2.4} /> : null}
               </XStack>
             }
             onPress={() => {

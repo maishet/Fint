@@ -13,6 +13,7 @@ import { PressableScale } from "../ui/PressableScale";
 import { setFabOrigin } from "../ui/fabOrigin";
 import { haptics } from "../ui/haptics";
 
+/** Medidas de la marca D: barra de 70 con radio 26, botón central de 58 con radio 20 y punto activo de 5. */
 const BAR_HEIGHT = 70;
 const BAR_RADIUS = 26;
 const BAR_PADDING = 6;
@@ -25,13 +26,25 @@ const DOT = 5;
 const LABEL_COLOR_ON = "#FFFFFF";
 const BAR_SHADOW = "0 14px 30px -14px rgba(20,20,18,0.6)";
 
+/** Alto que ocupa la barra flotante; úsalo para el padding inferior de las listas. */
 export function floatingTabBarHeight(bottomInset: number) {
   return BAR_HEIGHT + Math.max(bottomInset, BAR_INSET) + BAR_BOTTOM_GAP;
 }
 
 export interface FintTabBarProps extends BottomTabBarProps {
+  /**
+   * El botón central de registro: el cuadrado amarillo de 58 en su propio hueco, entre los tabs 2 y 3. Siempre es
+   * el mismo más y siempre abre la misma hoja, en cualquier tab.
+   */
   centerAction?: { label: string; onPress: () => void };
 }
+
+/**
+ * Barra de tabs flotante, tinta en los dos temas. El tab activo lleva el ícono amarillo con trazo 2.3 y la etiqueta
+ * en blanco, y un punto amarillo que se desliza a la nueva pestaña con `springUi` (con movimiento reducido aparece
+ * sin moverse). Desde `COMPACT_FONT_SCALE` la barra deja las etiquetas y agranda los íconos; cada tab conserva su
+ * nombre para el lector de pantalla.
+ */
 
 export function FintTabBar({ state, descriptors, navigation, centerAction }: FintTabBarProps) {
   const fabRef = useRef<View>(null);
@@ -46,6 +59,7 @@ export function FintTabBar({ state, descriptors, navigation, centerAction }: Fin
   const centerIndex = centerAction ? Math.ceil(count / 2) : -1;
   const slots = count + (centerAction ? 1 : 0);
   const slotW = barWidth > 0 ? (barWidth - BAR_PADDING * 2) / slots : 0;
+  /** Hueco de cada tab dentro de la barra, contando el del botón central. */
   const slotOf = (index: number) => index + (centerAction && index >= centerIndex ? 1 : 0);
   const dotX = (index: number) => BAR_PADDING + slotOf(index) * slotW + slotW / 2 - DOT / 2;
 
@@ -73,6 +87,8 @@ export function FintTabBar({ state, descriptors, navigation, centerAction }: Fin
       <PressableScale onPress={centerAction.onPress} haptic="tap" accessibilityRole="button" accessibilityLabel={centerAction.label}>
         <View
           ref={fabRef}
+          // El formulario de movimiento crece desde aquí: se guarda su centro en la pantalla. `measure` y no
+          // `measureInWindow`, que en Android descuenta la barra de estado.
           onLayout={() =>
             fabRef.current?.measure((_x, _y, w, h, pageX, pageY) => setFabOrigin({ x: pageX + w / 2, y: pageY + h / 2, size: w }))
           }
@@ -137,6 +153,7 @@ export function FintTabBar({ state, descriptors, navigation, centerAction }: Fin
             : rawIcon;
           return (
             <Fragment key={route.key}>
+              {/* El botón central va en su hueco del árbol, entre los tabs 2 y 3: el lector lo recorre en el orden en que se ve. */}
               {centerAction && index === centerIndex ? centerButton : null}
               <TabButton
                 label={label}
@@ -184,6 +201,7 @@ function TabButton({
     >
       {icon}
       {showLabel ? (
+        // La etiqueta es visual: el nombre ya va en `accessibilityLabel` del tab, así no se lee dos veces.
         <Text
           numberOfLines={1}
           maxFontSizeMultiplier={COMPACT_FONT_SCALE}

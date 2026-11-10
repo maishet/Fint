@@ -26,16 +26,16 @@ import { View, XStack, YStack, useTheme } from "tamagui";
 import { DataStateCard } from "../../src/components/DataStateCard";
 import { floatingTabBarHeight } from "../../src/components/FintTabBar";
 import { MoreSheet } from "../../src/components/RecordSheet";
-import { SkeletonBlock, SkeletonContentCard } from "../../src/components/Skeleton";
+import { SkeletonBlock, SkeletonGroup } from "../../src/components/Skeleton";
 import { AttentionRail } from "../../src/home/AttentionRail";
 import { GettingStartedCard } from "../../src/home/GettingStartedCard";
 import { HomeLayoutSheet } from "../../src/home/HomeLayoutSheet";
-import { HomeHero, ProfileAvatar, SHEET_OVERLAP, type HeroPage } from "../../src/home/HomeHero";
+import { HomeHero, ProfileAvatar, TICKET_CONTROL, type HeroPage } from "../../src/home/HomeHero";
 import { RecentMovementsCard } from "../../src/home/RecentMovementsCard";
 import { SpendingCard } from "../../src/home/SpendingCard";
 import { useHomeData } from "../../src/home/useHomeData";
 import { useHomeLayout } from "../../src/home/useHomeLayout";
-import { motion, radius, space } from "../../src/theme/tokens";
+import { COMPACT_FONT_SCALE, motion, radius, space } from "../../src/theme/tokens";
 import { fontFace } from "../../src/theme/typography";
 import { useScreenStatusBar } from "../../src/theme/useScreenStatusBar";
 import { Amount, FintLottie, FText, PressableScale, useComingSoon } from "../../src/ui";
@@ -64,7 +64,7 @@ function rubberBand(distance: number) {
 }
 
 /**
- * Inicio v3. Responde tres preguntas, en orden: ¿cuánto tengo? (el hero),
+ * Inicio (marca D). Responde tres preguntas, en orden: ¿cuánto tengo? (la boleta),
  * ¿tengo algo que hacer? (los avisos) y ¿cómo voy este mes y en qué se me va?
  * (movimientos y gasto del mes). Todo el análisis vive en Reportes.
  */
@@ -124,8 +124,9 @@ export default function DashboardScreen() {
       if (active !== previous) runOnJS(setCompactActive)(active);
     },
   );
-  // El hero y la barra compacta son oscuros en los dos temas: iconos claros.
-  useScreenStatusBar("light");
+  // El Inicio va sobre `canvas`: iconos según el tema. La barra compacta es amarilla, así que con ella se ven
+  // oscuros en los dos temas.
+  useScreenStatusBar(compactActive ? "dark" : undefined);
   // Con la pestaña en segundo plano la pantalla se congela y ese aviso puede perderse: al volver, se resincroniza.
   useFocusEffect(
     useCallback(() => {
@@ -133,7 +134,7 @@ export default function DashboardScreen() {
     }, [scrollY]),
   );
 
-  // Tirar hacia abajo desde el tope: el hero se estira con goma, la malla con él, y pasados 80px refresca.
+  // Tirar hacia abajo desde el tope: el contenido baja con goma y pasados 80px refresca.
   // El gesto solo se activa arriba del todo y hacia abajo; en cualquier otro caso falla enseguida y no le
   // quita nada al scroll, al carrusel del saldo ni al arrastre de Ritmo.
   const reduceMotion = useReducedMotion();
@@ -171,7 +172,7 @@ export default function DashboardScreen() {
   );
 
   // Con lector de pantalla no hay forma de tirar hacia abajo: el saldo ofrece "Actualizar" como acción. Reusa el
-  // spinner del tirón (el hero se abre a `PULL_HOLD`) y anuncia cuándo empieza y cuándo termina.
+  // spinner del tirón (el contenido baja a `PULL_HOLD`) y anuncia cuándo empieza y cuándo termina.
   const refreshFromAction = useCallback(() => {
     if (refreshing) return;
     pull.value = withSpring(PULL_HOLD, motion.springUi);
@@ -232,16 +233,13 @@ export default function DashboardScreen() {
           overScrollMode="never"
         >
           <Animated.View style={[{ flexGrow: 1 }, pullStyle]}>
-            {/* Al tirar hacia abajo se ve losa, no el fondo claro: el hueco sobre el hero es losa. Se mete 2px
-                bajo el hero porque con el desplazamiento fraccional quedaba una costura de 1px. */}
-            <View position="absolute" t={-1000} l={0} r={0} height={1002} bg="$slab" />
-
             <HomeHero
               pages={pages}
               index={pageIndex}
               onIndexChange={setPageIndex}
               scrollY={scrollY}
-              pull={pull}
+              loading={home.isLoading}
+              unavailable={Boolean(home.error) && !overview}
               attentionCount={bell.count}
               hasUnread={bell.dot}
               onProfile={() => router.push("/settings")}
@@ -254,79 +252,59 @@ export default function DashboardScreen() {
               onRefresh={refreshFromAction}
             />
 
-            {/* La hoja entra subiendo 40px con spring-ui. */}
-            <Animated.View entering={riseIn({ distance: 40, reduceMotion })} style={{ flexGrow: 1, marginTop: -SHEET_OVERLAP }}>
-              <YStack
-                flex={1}
-                bg="$canvas"
-                pt={space[3]}
-                gap={space[6]}
-                pb={floatingTabBarHeight(insets.bottom) + space[10]}
-                style={{ borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl }}
-              >
-                <View self="center" width={36} height={5} rounded={999} bg="$line" />
-
-                {home.isLoading ? (
-                  <YStack px={space[4]} gap={space[6]}>
-                    <SkeletonBlock height={62} />
-                    <SkeletonContentCard rows={3} />
-                    <SkeletonBlock height={280} />
-                  </YStack>
-                ) : home.error ? (
-                  <YStack px={space[4]}>
-                    <DataStateCard message={t("states.error")} onRetry={() => void home.refetchAll()} />
-                  </YStack>
-                ) : overview && needsSetup ? (
-                  <GettingStartedCard
-                    accountCount={overview.accountCount}
-                    currency={overview.currency}
-                    hasMovements={overview.recentTransactions.length > 0}
-                  />
-                ) : overview ? (
-                  <>
-                    {/* En el orden de "Personalizar inicio"; las ocultas no salen. */}
-                    {homeLayout.layout.sections
-                      .filter((section) => section.visible)
-                      .map((section) =>
-                        section.id === "attention" ? (
-                          <AttentionRail
-                            key="attention"
-                            items={home.attention}
-                            upcoming={home.upcoming}
-                            onOpen={(item) => router.push(item.kind === "review" ? "/pending-movements" : item.kind === "gmail" ? "/gmail-settings" : "/(tabs)/debts")}
-                          />
-                        ) : section.id === "transactions" ? (
-                          <RecentMovementsCard key="transactions" transactions={overview.recentTransactions} />
-                        ) : (
-                          <SpendingCard
-                            key="spending"
-                            currency={overview.currency}
-                            series={home.spending}
-                            categories={home.categories}
-                            accountLabel={page?.label ?? t("home.accountsAll")}
-                            loading={home.isSpendingLoading}
-                          />
-                        ),
-                      )}
-                    {homeLayout.available ? (
-                      <PressableScale
-                        onPress={() => setCustomizeOpen(true)}
-                        accessibilityRole="button"
-                        hitSlop={8}
-                        style={{ alignSelf: "center" }}
-                      >
-                        <XStack items="center" gap={6} py={4}>
-                          <SlidersHorizontal size={15} color="$inkMuted" strokeWidth={2} />
-                          <FText tone="inkMuted" style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18 }}>
-                            {t("home.customize.link")}
-                          </FText>
-                        </XStack>
-                      </PressableScale>
-                    ) : null}
-                  </>
-                ) : null}
-              </YStack>
-            </Animated.View>
+            <YStack flex={1} pt={space[6]} gap={space[6]} pb={floatingTabBarHeight(insets.bottom) + space[10]}>
+              {home.isLoading ? (
+                <HomeSkeleton label={t("states.loading")} />
+              ) : home.error ? (
+                <YStack px={space[5]}>
+                  <DataStateCard message={t("states.error")} onRetry={() => void home.refetchAll()} />
+                </YStack>
+              ) : overview && needsSetup ? (
+                <GettingStartedCard
+                  accountCount={overview.accountCount}
+                  currency={overview.currency}
+                  hasMovements={overview.recentTransactions.length > 0}
+                />
+              ) : overview ? (
+                <>
+                  {/* En el orden de "Personalizar inicio"; las ocultas no salen. */}
+                  {homeLayout.layout.sections
+                    .filter((section) => section.visible)
+                    .map((section) =>
+                      section.id === "attention" ? (
+                        <AttentionRail
+                          key="attention"
+                          items={home.attention}
+                          upcoming={home.upcoming}
+                          onOpen={(item) => router.push(item.kind === "review" ? "/pending-movements" : item.kind === "gmail" ? "/gmail-settings" : "/(tabs)/debts")}
+                        />
+                      ) : section.id === "transactions" ? (
+                        <RecentMovementsCard key="transactions" transactions={overview.recentTransactions} />
+                      ) : (
+                        <SpendingCard
+                          key="spending"
+                          currency={overview.currency}
+                          series={home.spending}
+                          categories={home.categories}
+                          accountLabel={page?.label ?? t("home.accountsAll")}
+                          loading={home.isSpendingLoading}
+                        />
+                      ),
+                    )}
+                  {homeLayout.available ? (
+                    // "Personalizar inicio": ficha `surface` de 36 con el ícono, centrada al pie.
+                    <PressableScale onPress={() => setCustomizeOpen(true)} accessibilityRole="button" hitSlop={4} style={{ alignSelf: "center" }}>
+                      <XStack items="center" gap={6} minH={36} px={14} rounded={radius.pill} bg="$surface">
+                        <SlidersHorizontal size={15} color="$ink" strokeWidth={2} />
+                        <FText maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18 }}>
+                          {t("home.customize.link")}
+                        </FText>
+                      </XStack>
+                    </PressableScale>
+                  ) : null}
+                </>
+              ) : null}
+            </YStack>
           </Animated.View>
         </Animated.ScrollView>
       </GestureDetector>
@@ -339,30 +317,34 @@ export default function DashboardScreen() {
         <FintLottie name="coin-pull" size={COIN_SIZE} frame={coinFrame} />
       </Animated.View>
 
-      {/* Cuando la hoja cubre el hero, el saldo viaja a una barra compacta arriba, en el lugar del buscador:
-          avatar, cuenta y saldo al centro, y el buscador como botón. */}
+      {/* Al bajar, el saldo viaja a una barra compacta amarilla arriba, en el lugar del buscador: avatar, cuenta y
+          saldo al centro, y el buscador como botón. */}
       <Animated.View
         pointerEvents={compactActive ? "auto" : "none"}
         accessibilityElementsHidden={!compactActive}
         importantForAccessibility={compactActive ? "auto" : "no-hide-descendants"}
         style={[{ position: "absolute", top: 0, left: 0, right: 0, paddingTop: insets.top, backgroundColor: theme.slab.val }, compactStyle]}
       >
-        <XStack height={56} items="center" gap={space[3]} px={space[4]}>
-          <ProfileAvatar size={32} onPress={() => router.push("/settings")} />
+        <XStack minH={58} items="center" gap={10} px={space[4]} pb={4}>
+          <ProfileAvatar size={34} onTicket onPress={() => router.push("/settings")} />
           <YStack flex={1} minW={0} items="center">
-            <FText variant="caption" tone="slabMuted" numberOfLines={1}>
+            <FText tone="slabMuted" numberOfLines={1} maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={{ fontFamily: fontFace.sans[600], fontSize: 11, lineHeight: 14 }}>
               {page?.label}
             </FText>
-            {page ? <Amount value={page.balance} currency={page.currency} variant="amount" onSlab /> : null}
+            {page ? (
+              <Amount
+                value={page.balance}
+                currency={page.currency}
+                variant="amount"
+                onSlab
+                maxFontSizeMultiplier={COMPACT_FONT_SCALE}
+                style={{ fontFamily: fontFace.mono[600], fontSize: 18, lineHeight: 23 }}
+              />
+            ) : null}
           </YStack>
-          <PressableScale
-            onPress={() => router.push("/(tabs)/movements")}
-            haptic="tap"
-            accessibilityRole="search"
-            accessibilityLabel={t("home.bar.search")}
-          >
-            <View width={32} height={32} rounded={999} bg="$glassSlab" borderWidth={1} borderColor="$glassSlabLine" items="center" justify="center">
-              <Search size={15} color="$slabInk" strokeWidth={2} />
+          <PressableScale onPress={() => router.push("/search")} haptic="tap" hitSlop={5} accessibilityRole="search" accessibilityLabel={t("home.bar.search")}>
+            <View width={34} height={34} rounded={999} items="center" justify="center" style={{ backgroundColor: TICKET_CONTROL }}>
+              <Search size={18} color="$slabInk" strokeWidth={2} />
             </View>
           </PressableScale>
         </XStack>
@@ -373,5 +355,33 @@ export default function DashboardScreen() {
         <HomeLayoutSheet open={customizeOpen} onClose={() => setCustomizeOpen(false)} layout={homeLayout.layout} onChange={(next) => void homeLayout.save(next)} />
       ) : null}
     </View>
+  );
+}
+
+/** Carga del Inicio con la forma real (la boleta lleva su propio esqueleto): título, dos avisos, título y tres filas. */
+function HomeSkeleton({ label }: { label: string }) {
+  return (
+    <SkeletonGroup label={label}>
+      <YStack gap={12}>
+        <SkeletonBlock width={90} height={16} rounded={6} mx={space[5]} />
+        <XStack gap={10} px={space[5]} overflow="hidden">
+          <SkeletonBlock width={268} height={108} rounded={24} />
+          <SkeletonBlock width={268} height={108} rounded={24} />
+        </XStack>
+        <SkeletonBlock width={120} height={16} rounded={6} mx={space[5]} mt={16} />
+        <YStack px={space[5]}>
+          {[0, 1, 2].map((i) => (
+            <XStack key={i} gap={12} py={12} items="center" borderTopWidth={i > 0 ? 1 : 0} borderColor="$line">
+              <SkeletonBlock width={44} height={44} rounded={14} />
+              <YStack flex={1} gap={8}>
+                <SkeletonBlock width="60%" height={14} rounded={6} />
+                <SkeletonBlock width="40%" height={11} rounded={6} />
+              </YStack>
+              <SkeletonBlock width={64} height={14} rounded={6} />
+            </XStack>
+          ))}
+        </YStack>
+      </YStack>
+    </SkeletonGroup>
   );
 }

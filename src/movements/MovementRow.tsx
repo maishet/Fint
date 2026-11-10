@@ -1,21 +1,20 @@
 import { ArrowLeftRight, Pencil, RotateCcw, Trash2 } from "@tamagui/lucide-icons-2";
 import { useTranslation } from "react-i18next";
-import { Pressable } from "react-native";
-import { XStack, YStack, type ColorTokens } from "tamagui";
+import { Pressable, useWindowDimensions } from "react-native";
+import { View, XStack, YStack } from "tamagui";
 import { getCategoryLabel } from "../finance/categoryLabels";
-import { categoryColorIndex } from "../home/spending";
 import { getAppLocale } from "../i18n";
 import { useSensitiveMoney } from "../privacy/useSensitiveMoney";
-import { space } from "../theme/tokens";
-import { Amount, FText, Monogram } from "../ui";
-import { GroupedCell } from "../ui/GroupedCell";
+import { COMPACT_FONT_SCALE, space } from "../theme/tokens";
+import { fontFace } from "../theme/typography";
+import { FText, Monogram, RowAmount } from "../ui";
 import { SwipeActions, type SwipeAction } from "../ui/SwipeActions";
 import { itemDate, spokenDate, type MovementItem } from "./logic";
 import { movementText } from "./text";
 
 export interface MovementRowProps {
   item: MovementItem;
-  /** Primera y última fila de su día: el grupo se dibuja como una tarjeta. */
+  /** Primera y última fila de su día: la primera va sin filete arriba. */
   first: boolean;
   last: boolean;
   emoji: string | null;
@@ -27,15 +26,18 @@ export interface MovementRowProps {
 }
 
 /**
- * Fila del tab Movimientos: emoji de la categoría (o monograma), categoría,
- * nota o cuenta, y el monto con su signo. Deslizar a la izquierda muestra
- * Editar y Eliminar (o Revertir). La fila sigue al dedo; pasado el ancho de las
- * acciones resiste con goma y, si se suelta lejos, ejecuta la acción de la
- * derecha, que igual pide confirmación.
+ * Fila del tab Movimientos (marca D): a todo el ancho sobre `canvas`, separada de la anterior por un filete. Cuadro
+ * de 44 con el emoji de la categoría sobre su fondo, categoría (16), nota o cuenta (13) y el monto con su signo
+ * (`flowIn` +, `flowOut` −). Desde `COMPACT_FONT_SCALE` el texto se parte en varias líneas y el monto baja debajo del
+ * detalle. Deslizar a la izquierda muestra Editar (tinta) y Eliminar o Revertir (`dangerHard`). La fila sigue al
+ * dedo; pasado el ancho de las acciones resiste con goma y, si se suelta lejos, ejecuta la acción de la derecha, que
+ * igual pide confirmación.
  */
-export function MovementRow({ item, first, last, emoji, onOpen, onEdit, onDestroy, destroyKind }: MovementRowProps) {
+export function MovementRow({ item, first, emoji, onOpen, onEdit, onDestroy, destroyKind }: MovementRowProps) {
   const { t, i18n } = useTranslation();
   const { formatSensitiveAmount, sensitiveAmountAccessibilityLabel } = useSensitiveMoney();
+  const { fontScale } = useWindowDimensions();
+  const stacked = fontScale >= COMPACT_FONT_SCALE;
 
   const transfer = item.kind === "transfer" || item.movement.type === "transfer";
   const tx = item.kind === "movement" ? item.movement : null;
@@ -62,7 +64,7 @@ export function MovementRow({ item, first, last, emoji, onOpen, onEdit, onDestro
   const label = [title, subtitle, spokenAmount, spokenDate(itemDate(item), new Date(), getAppLocale(i18n.resolvedLanguage))].filter(Boolean).join(", ");
 
   const actions: SwipeAction[] = [];
-  if (onEdit) actions.push({ key: "edit", label: t("movementsTab.edit"), icon: <Pencil size={18} color="$ink" />, tone: "neutral", run: onEdit });
+  if (onEdit) actions.push({ key: "edit", label: t("movementsTab.edit"), icon: <Pencil size={18} color="$canvas" />, tone: "ink", run: onEdit });
   if (onDestroy)
     actions.push({
       key: "destroy",
@@ -71,6 +73,8 @@ export function MovementRow({ item, first, last, emoji, onOpen, onEdit, onDestro
       tone: "danger",
       run: onDestroy,
     });
+
+  const amountNode = <RowAmount value={amount} currency={currency} kind={kind} />;
 
   const content = (
     <Pressable
@@ -82,29 +86,31 @@ export function MovementRow({ item, first, last, emoji, onOpen, onEdit, onDestro
       onAccessibilityAction={(e) => actions.find((a) => a.key === e.nativeEvent.actionName)?.run()}
     >
       {({ pressed }) => (
-        <XStack items="center" gap={space[3]} px={space[4]} py={space[3]} bg={pressed ? "$surfaceSunken" : "$surface"}>
+        // Fondo opaco: al deslizar, la fila tapa las acciones que quedan detrás.
+        <XStack items={stacked ? "flex-start" : "center"} gap={space[3]} py={space[3]} bg={pressed ? "$surfaceSunken" : "$canvas"}>
           {transfer ? (
-            <Monogram name={title} icon={<ArrowLeftRight size={16} color="$inkMuted" strokeWidth={2} />} />
+            <Monogram name={title} size={44} icon={<ArrowLeftRight size={18} color="$inkMuted" strokeWidth={2} />} />
           ) : (
-            <Monogram name={title} emoji={emoji} color={`$chart${categoryColorIndex(tx!.category)}` as ColorTokens} />
+            <Monogram name={title} size={44} emoji={emoji} />
           )}
-          <YStack flex={1} minW={0}>
-            <FText variant="body-strong" numberOfLines={1} style={{ letterSpacing: -0.15 }}>
+          <YStack flex={1} minW={0} gap={2}>
+            <FText numberOfLines={stacked ? undefined : 1} style={{ fontFamily: fontFace.display[700], fontSize: 16, lineHeight: 21, letterSpacing: -0.15 }}>
               {title}
             </FText>
-            <FText variant="caption" tone="inkFaint" numberOfLines={1} style={{ marginTop: 1 }}>
+            <FText tone="inkFaint" numberOfLines={stacked ? undefined : 1} style={{ fontSize: 13, lineHeight: 18 }}>
               {subtitle}
             </FText>
+            {stacked ? <View mt={2}>{amountNode}</View> : null}
           </YStack>
-          <Amount value={amount} currency={currency} kind={kind} />
+          {stacked ? null : amountNode}
         </XStack>
       )}
     </Pressable>
   );
 
   return (
-    <GroupedCell first={first} last={last}>
+    <View borderTopWidth={first ? 0 : 1} borderColor="$line">
       <SwipeActions actions={actions}>{content}</SwipeActions>
-    </GroupedCell>
+    </View>
   );
 }

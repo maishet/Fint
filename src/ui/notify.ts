@@ -77,7 +77,7 @@ function notifyWithPreset(
     description: opts.message,
     duration,
     action: resolveAction(id, opts),
-    ...(opts.action ? actionToastOptions(duration) : {}),
+    ...(opts.action ? actionToastOptions(duration, preset, Boolean(opts.icon)) : {}),
     ...(opts.icon ? { icon: opts.icon } : {}),
   };
   if (preset === "success") return toast.success(title, data);

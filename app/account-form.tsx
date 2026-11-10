@@ -1,4 +1,3 @@
-import { Canvas, Circle, RadialGradient, vec } from "@shopify/react-native-skia";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Banknote, ChevronDown, Lock, Plus, Trash2, X } from "@tamagui/lucide-icons-2";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -742,8 +741,7 @@ function isAccountType(value?: string): value is AccountType {
 }
 
 /**
- * La vista previa en vivo: la fila que aparecerá en Cuentas sobre la losa, con
- * un resplandor `heroGlow` arriba a la derecha. Cambia mientras se escribe.
+ * La vista previa en vivo: la fila que aparecerá en Cuentas sobre la losa. Cambia mientras se escribe.
  */
 function AccountPreview({
   name,
@@ -760,23 +758,8 @@ function AccountPreview({
   lines: { currency: string; balance: number }[];
   sensitive: boolean;
 }) {
-  const theme = useTheme();
   return (
     <XStack mt={18} px={16} py={14} gap={12} items="center" rounded={radius.lg} bg="$slab" overflow="hidden">
-      <Canvas
-        style={{
-          position: "absolute",
-          width: 220,
-          height: 220,
-          right: -70,
-          top: -120,
-        }}
-        pointerEvents="none"
-      >
-        <Circle c={vec(110, 110)} r={110}>
-          <RadialGradient c={vec(110, 110)} r={110} colors={[theme.heroGlow.val, "rgba(0,0,0,0)"]} />
-        </Circle>
-      </Canvas>
       <View width={38} height={38} rounded={999} bg="$glassSlab" borderWidth={1} borderColor="$glassSlabLine" items="center" justify="center">
         {type === "cash" ? (
           <Banknote size={18} color="$slabInk" strokeWidth={1.9} />

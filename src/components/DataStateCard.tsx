@@ -1,30 +1,34 @@
-import { AlertCircle, Inbox, RefreshCw } from '@tamagui/lucide-icons-2'
+import { Inbox, WifiOff } from '@tamagui/lucide-icons-2'
 import { useTranslation } from 'react-i18next'
-import { Paragraph, YStack } from 'tamagui'
-import { FintButton, FintCard } from '../ui'
+import { View, YStack } from 'tamagui'
+import { fontFace } from '../theme/typography'
+import { FintButton, FText } from '../ui'
 
+/**
+ * Estado de una sección sin datos o con error (marca D): tarjeta `surface` de radio 24 con el ícono en un cuadro
+ * `canvas`, el título 17/800 y el mensaje. Con `onRetry`, el ícono es "sin conexión" y abajo va "Reintentar" en tinta.
+ */
 export function DataStateCard({ message, onRetry, title }: { message: string; onRetry?: () => void; title?: string }) {
   const { t } = useTranslation()
   const isError = Boolean(onRetry)
   return (
-    <FintCard bg={isError ? '$red2' : '$card'} borderColor={isError ? '$red5' : '$borderColor'} items="center" py="$5">
-      <YStack gap="$3" items="center" maxW={300}>
-        <YStack
-          width={44}
-          height={44}
-          rounded="$10"
-          bg={isError ? '$red4' : '$secondary'}
-          items="center"
-          justify="center"
-        >
-          {isError ? <AlertCircle size={22} color="$red10" /> : <Inbox size={22} color="$color10" />}
-        </YStack>
-        <YStack gap="$1" items="center">
-          {isError ? <Paragraph color="$color12" text="center" fontFamily="$heading" fontSize="$4" fontWeight="600">{title ?? t('states.errorTitle')}</Paragraph> : null}
-          <Paragraph color="$color10" text="center" fontWeight={isError ? '400' : '600'}>{message}</Paragraph>
-        </YStack>
-        {onRetry ? <FintButton size="row" icon={<RefreshCw size={16} />} onPress={onRetry}>{t('actions.retry')}</FintButton> : null}
-      </YStack>
-    </FintCard>
+    <YStack bg="$surface" rounded={24} px={20} py={22} items="center" gap={8}>
+      <View width={52} height={52} rounded={18} bg="$canvas" items="center" justify="center">
+        {isError ? <WifiOff size={22} color="$ink" strokeWidth={2} /> : <Inbox size={22} color="$inkMuted" strokeWidth={2} />}
+      </View>
+      {isError ? (
+        <FText style={{ fontFamily: fontFace.display[700], fontSize: 17, lineHeight: 22, textAlign: 'center', marginTop: 4 }}>
+          {title ?? t('states.errorTitle')}
+        </FText>
+      ) : null}
+      <FText tone="inkMuted" style={{ fontSize: 14, lineHeight: 20, textAlign: 'center', maxWidth: 300 }}>
+        {message}
+      </FText>
+      {onRetry ? (
+        <FintButton variant="ink" size="row" minH={44} mt={8} onPress={onRetry}>
+          {t('actions.retry')}
+        </FintButton>
+      ) : null}
+    </YStack>
   )
 }

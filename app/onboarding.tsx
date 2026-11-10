@@ -20,7 +20,6 @@ import Animated, {
 import { useSafeAreaFrame, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, useTheme, View, XStack, YStack } from "tamagui";
 import { financeApi } from "../src/api/finance";
-import { HeroMesh } from "../src/home/HeroMesh";
 import { amountParts, formatAmount, THIN_SPACE } from "../src/finance/formatAmount";
 import { getAppLocale, getCurrentAppLanguage } from "../src/i18n";
 import { shortDay } from "../src/movement-form/DateSheet";
@@ -262,7 +261,6 @@ function SlideFrame({
 
   return (
     <YStack width={width} height={height} bg={onSlab ? "$slab" : "$background"} pt={topInset} pb={bottomSpace} overflow="hidden">
-      {onSlab ? <HeroMesh width={width} height={height} /> : null}
       {topBar}
       <Animated.View style={[{ flex: 1, maxHeight: onSlab ? 300 : 330, marginTop: 8 }, parallax]}>
         {onSlab ? (

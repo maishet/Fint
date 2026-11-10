@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { CalendarDays, ChevronDown, ChevronRight, FileText, MapPin, Plus, X } from "@tamagui/lucide-icons-2";
+import { CalendarDays, ChevronDown, ChevronRight, FileText, Grid2x2, MapPin, Plus, Wallet, X } from "@tamagui/lucide-icons-2";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { View, XStack, YStack, useTheme } from "tamagui";
 import { financeApi } from "../src/api/finance";
 import { getAppLocale } from "../src/i18n";
-import type { AccountOption } from "../src/api/types";
+import type { AccountOption, Category } from "../src/api/types";
 import { UnsavedChangesDialog } from "../src/components/UnsavedChangesDialog";
 import { getCategoryLabel } from "../src/finance/categoryLabels";
 import { formatAmount } from "../src/finance/formatAmount";
@@ -21,7 +21,8 @@ import { useLocationPreference } from "../src/location/LocationPreferenceProvide
 import { findSavedPlace, locationLines } from "../src/location/places";
 import { useSavedPlaces } from "../src/location/savedPlaces";
 import { AccountSheet } from "../src/movement-form/AccountSheet";
-import { CategorySheet, CategoryTile, NewTile } from "../src/movement-form/CategorySheet";
+import { CategorySheet } from "../src/movement-form/CategorySheet";
+import { CategoryStrip } from "../src/movement-form/CategoryStrip";
 import { DateSheet, shortDay } from "../src/movement-form/DateSheet";
 import { GrowPresence, type GrowPresenceHandle } from "../src/movement-form/GrowPresence";
 import { LocationSheet } from "../src/movement-form/LocationSheet";
@@ -39,12 +40,13 @@ import {
 import { NOTE_MAX, NoteSheet } from "../src/movement-form/NoteSheet";
 import { TransferAccounts } from "../src/movement-form/TransferAccounts";
 import { useSensitiveMoney } from "../src/privacy/useSensitiveMoney";
-import { compactBlockMaxWidth, radius } from "../src/theme/tokens";
+import { COMPACT_FONT_SCALE } from "../src/theme/tokens";
 import { fontFace } from "../src/theme/typography";
 import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
 import {
   Amount,
   AmountDisplay,
+  Chip,
   AmountKeypad,
   FintButton,
   FintLottie,
@@ -53,6 +55,7 @@ import {
   FText,
   IconButton,
   ListRow,
+  Monogram,
   PressableScale,
   SegmentedControl,
 } from "../src/ui";
@@ -88,7 +91,9 @@ export default function TransactionFormScreen() {
   const locale = getAppLocale(i18n.resolvedLanguage);
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const { width: screenWidth } = useWindowDimensions();
+  const { width: screenWidth, fontScale } = useWindowDimensions();
+  // Desde 1.3, la tira de categorías y las fichas de detalle pasan a filas de Detalles con el valor en varias líneas.
+  const largeText = fontScale >= COMPACT_FONT_SCALE;
   useScreenStatusBar();
   const reduceMotion = useReducedMotion();
   const toast = useNotify();
@@ -453,191 +458,172 @@ export default function TransactionFormScreen() {
 
       <GrowPresence ref={grow} fromFab={params.origin === "fab"} onEntered={() => setEntered(true)}>
         <YStack flex={1} bg="$canvas" pt={insets.top}>
-          {/* Barra superior: cerrar y tipo. */}
-          <XStack items="center" gap={10} px={16} pt={8}>
-            <IconButton label={t("movementForm.close")} icon={<X size={18} color="$ink" strokeWidth={2} />} onPress={requestClose} />
+          {/* Barra superior: cerrar y tipo (el activo en amarillo). */}
+          <XStack items="center" gap={10} px={20} pt={8}>
+            <IconButton label={t("movementForm.close")} icon={<X size={20} color="$ink" strokeWidth={2} />} onPress={requestClose} />
             <View flex={1}>
-              <SegmentedControl options={tabs} value={kind} onChange={changeKind} accessibilityLabel={t("movementForm.tabsLabel")} />
+              <SegmentedControl tone="brand" options={tabs} value={kind} onChange={changeKind} accessibilityLabel={t("movementForm.tabsLabel")} />
             </View>
           </XStack>
 
           <ScrollView
             style={{ flex: 1 }}
-            contentContainerStyle={{ paddingBottom: 20 }}
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 8 }}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            {/* Cuenta: una píldora, o dos tarjetas en una transferencia. */}
-            {kind === "transfer" ? (
-              <Animated.View key="transfer" entering={riseIn({ distance: 8, reduceMotion })} exiting={FadeOut.duration(120)}>
-                {loadingAccounts ? (
-                  <YStack gap={8} mx={16} mt={22}>
-                    <AmountSkeleton width={320} height={64} />
-                    <AmountSkeleton width={320} height={64} />
-                  </YStack>
-                ) : (
-                  <TransferAccounts
-                    origin={origin}
-                    destination={destination}
-                    currency={displayCurrency}
-                    onPickOrigin={() => setSheet("origin")}
-                    onPickDestination={() => setSheet("destination")}
-                    onSwap={() => {
-                      setOriginId(destinationId);
-                      setDestinationId(originId);
-                    }}
-                  />
-                )}
-              </Animated.View>
-            ) : (
-              <Animated.View key="single" entering={riseIn({ distance: 8, reduceMotion })} exiting={FadeOut.duration(120)}>
-                {/* `pb` deja sitio al `hitSlop` de la píldora: Android recorta el área de toque al borde del contenedor. */}
-                <YStack items="center" gap={8} mt={26} pb={PILL_SLOP}>
-                  {/* "Sale de" ya va en la etiqueta de la píldora: oculto al lector para que no lo lea dos veces. */}
-                  <FText variant="caption" tone="inkMuted" accessibilityElementsHidden importantForAccessibility="no">
-                    {t(kind === "income" ? "movementForm.to" : "movementForm.from")}
-                  </FText>
+            {/* El monto y la cuenta se centran en el espacio libre que dejan la tira y el teclado. */}
+            <YStack flex={1} justify="center" minH={170} py={12}>
+              {kind === "transfer" ? (
+                <Animated.View key="transfer" entering={riseIn({ distance: 8, reduceMotion })} exiting={FadeOut.duration(120)}>
                   {loadingAccounts ? (
-                    <AmountSkeleton width={180} height={34} />
-                  ) : noAccounts ? (
-                    <FintButton variant="outlined" minH={36} px={16} icon={<Plus size={16} />} onPress={() => router.push("/account-form")}>
-                      {t("movementForm.createAccount")}
-                    </FintButton>
+                    <YStack gap={8} mx={20} mb={12}>
+                      <AmountSkeleton width={320} height={64} />
+                      <AmountSkeleton width={320} height={64} />
+                    </YStack>
                   ) : (
-                    <AccountPill
-                      label={t(kind === "income" ? "movementForm.to" : "movementForm.from")}
-                      account={account}
-                      currency={movementCurrency}
-                      onPress={() => setSheet("account")}
+                    <TransferAccounts
+                      origin={origin}
+                      destination={destination}
+                      currency={displayCurrency}
+                      onPickOrigin={() => setSheet("origin")}
+                      onPickDestination={() => setSheet("destination")}
+                      onSwap={() => {
+                        setOriginId(destinationId);
+                        setDestinationId(originId);
+                      }}
                     />
                   )}
-                  {errors.account ? <ErrorText>{errors.account}</ErrorText> : null}
-                  {noAccounts ? (
-                    <FText variant="caption" tone="inkFaint">
-                      {t("movementForm.noAccounts")}
-                    </FText>
-                  ) : null}
-                </YStack>
-              </Animated.View>
-            )}
+                </Animated.View>
+              ) : null}
 
-            <Animated.View layout={layout}>
-              {/* Monto. */}
-              <View mt={kind === "transfer" ? 22 : 18 - PILL_SLOP} px={16}>
-                <AmountDisplay input={amount} currency={displayCurrency} kind={kind} expectedWidth={screenWidth - 32} />
-              </View>
+              <Animated.View layout={layout}>
+                {/* Monto: 62px, no escala con la letra del sistema. */}
+                <View mt={kind === "transfer" ? 16 : 0} px={20}>
+                  <AmountDisplay input={amount} currency={displayCurrency} kind={kind} expectedWidth={screenWidth - 40} />
+                </View>
 
-              {/* Debajo del monto: cómo queda la cuenta, la moneda de la transferencia o el error. */}
-              <View minH={18} mt={kind === "transfer" ? 4 : 6} px={16} items="center">
-                {errors.amount ? (
-                  <ErrorText>{errors.amount}</ErrorText>
-                ) : kind === "transfer" ? (
-                  <TransferCurrencyLine
-                    shared={shared}
-                    currency={transferCur}
-                    error={errors.transfer}
-                    hasBoth={Boolean(origin && destination)}
-                    onPick={() => setSheet("currency")}
-                  />
-                ) : account && value > 0 ? (
-                  <BalanceLine account={account} currency={movementCurrency} amount={value} kind={kind} offset={editOffset} />
-                ) : null}
-              </View>
-
-              {entered ? (
-                <Animated.View entering={riseIn({ distance: 8, reduceMotion })}>
-                  {/*
-                    Categoría: las cuatro frecuentes y "Otra" en discos, como en la hoja; las cinco se ven siempre, sin
-                    deslizar. "Todas" y "Otra" abren la hoja completa.
-                  */}
-                  {kind !== "transfer" ? (
-                    <YStack mt={18}>
-                      <XStack px={20} mb={8} items="baseline" justify="space-between">
-                        <FText variant="caption" tone="inkMuted" accessibilityRole="header">
-                          {t("movementForm.category")}
+                {kind !== "transfer" ? (
+                  <Animated.View key="single" entering={riseIn({ distance: 8, reduceMotion })} exiting={FadeOut.duration(120)}>
+                    {/* `pb` deja sitio al `hitSlop` de la píldora: Android recorta el área de toque al borde del contenedor. */}
+                    <YStack items="center" gap={8} mt={8} pb={PILL_SLOP}>
+                      {loadingAccounts ? (
+                        <AmountSkeleton width={180} height={34} />
+                      ) : noAccounts ? (
+                        <FintButton variant="outlined" size="mini" minH={36} px={16} icon={<Plus size={16} />} onPress={() => router.push("/account-form")}>
+                          {t("movementForm.createAccount")}
+                        </FintButton>
+                      ) : (
+                        <AccountPill
+                          label={t(kind === "income" ? "movementForm.to" : "movementForm.from")}
+                          account={account}
+                          currency={movementCurrency}
+                          onPress={() => setSheet("account")}
+                        />
+                      )}
+                      {errors.account ? <ErrorText>{errors.account}</ErrorText> : null}
+                      {noAccounts ? (
+                        <FText variant="caption" tone="inkFaint">
+                          {t("movementForm.noAccounts")}
                         </FText>
-                      </XStack>
-                      <XStack px={6} width="100%" maxW={compactBlockMaxWidth} self="center" accessibilityRole="radiogroup" accessibilityLabel={t("movementForm.category")}>
-                        {categoriesQuery.isLoading
-                          ? [0, 1, 2, 3].map((i) => (
-                              <YStack key={i} width="20%" items="center" gap={6} py={4}>
-                                <View width={50} height={50} rounded={999} bg="$surfaceSunken" />
-                                <AmountSkeleton width={44} height={10} />
-                              </YStack>
-                            ))
-                          : chipCategories.map((c) => (
-                              <CategoryTile
-                                key={c.id}
-                                compact
-                                category={c}
-                                label={getCategoryLabel(c.name, t)}
-                                selected={c.name === category}
-                                onPress={() => {
-                                  haptics.select();
-                                  setCategory(c.name);
-                                  clearError("category");
-                                }}
-                              />
-                            ))}
-                        <NewTile compact label={t("movementForm.allCategoriesShort")} onPress={() => setSheet("category")} />
-                      </XStack>
-                      {errors.category ? (
-                        <View px={16} mt={6}>
-                          <ErrorText align="left">{errors.category}</ErrorText>
-                        </View>
                       ) : null}
                     </YStack>
-                  ) : null}
+                  </Animated.View>
+                ) : null}
 
-                  {/* Detalles: campos con etiqueta y valor, uno por fila. En una transferencia, solo fecha y nota. */}
-                  <FText variant="caption" tone="inkMuted" accessibilityRole="header" style={{ paddingHorizontal: 20, marginTop: 16, marginBottom: 8 }}>
-                    {t("movementForm.details")}
-                  </FText>
-                  <YStack px={16} gap={8}>
-                    <DetailField
-                      icon={<CalendarDays size={17} color="$inkMuted" strokeWidth={2} />}
-                      label={t("movementForm.date")}
-                      value={dateLabel}
-                      onPress={() => setSheet("date")}
+                {/* Debajo: cómo queda la cuenta, la moneda de la transferencia o el error. */}
+                <View minH={18} mt={kind === "transfer" ? 6 : 0} px={20} items="center">
+                  {errors.amount ? (
+                    <ErrorText>{errors.amount}</ErrorText>
+                  ) : kind === "transfer" ? (
+                    <TransferCurrencyLine
+                      shared={shared}
+                      currency={transferCur}
+                      error={errors.transfer}
+                      hasBoth={Boolean(origin && destination)}
+                      onPick={() => setSheet("currency")}
                     />
-                    {showLocation ? (
-                      <LocationField
-                        location={location}
-                        suggestion={suggestion}
-                        // El nombre sale de la lista actual: si quitas o renombras el lugar en la hoja, se ve al instante.
-                        placeName={savedPlace?.name ?? null}
-                        onPress={() => setSheet("location")}
-                        onUse={() => suggestion && setLocation(suggestion)}
-                      />
+                  ) : account && value > 0 ? (
+                    <BalanceLine account={account} currency={movementCurrency} amount={value} kind={kind} offset={editOffset} />
+                  ) : null}
+                </View>
+              </Animated.View>
+            </YStack>
+
+            {largeText ? (
+              // Con letra grande, en lugar de la tira y las fichas, las filas de Detalles con el valor en varias líneas.
+              <DetailsList
+                kind={kind}
+                category={kind !== "transfer" ? (categories.find((c) => c.name === category) ?? null) : null}
+                categoryLabel={category ? getCategoryLabel(category, t) : null}
+                dateLabel={dateLabel}
+                showLocation={showLocation}
+                location={location}
+                placeName={savedPlace?.name ?? null}
+                note={note}
+                onCategory={() => setSheet("category")}
+                onDate={() => setSheet("date")}
+                onLocation={() => setSheet("location")}
+                onNote={() => setSheet("note")}
+                categoryError={errors.category}
+              />
+            ) : (
+              <YStack gap={10}>
+                {/* Categoría: el botón de tres puntos abre la hoja; las frecuentes van como fichas con su emoji. */}
+                {kind !== "transfer" ? (
+                  <YStack>
+                    <CategoryStrip
+                      categories={chipCategories.map((c) => ({ category: c, label: getCategoryLabel(c.name, t) }))}
+                      value={category}
+                      loading={!entered || categoriesQuery.isLoading}
+                      onSelect={(name) => {
+                        setCategory(name);
+                        clearError("category");
+                      }}
+                      onAll={() => setSheet("category")}
+                      allLabel={t("movementForm.allCategoriesA11y")}
+                      accessibilityLabel={t("movementForm.category")}
+                    />
+                    {errors.category ? (
+                      <View px={20} mt={6}>
+                        <ErrorText align="left">{errors.category}</ErrorText>
+                      </View>
                     ) : null}
-                    {/* La nota va al final y completa (hasta cuatro líneas), porque puede ser larga. */}
-                    <NoteField note={note} onPress={() => setSheet("note")} />
                   </YStack>
-                </Animated.View>
-              ) : (
-                <SectionsSkeleton
-                  withCategory={kind !== "transfer"}
-                  withLocation={showLocation}
-                  categoryLabel={t("movementForm.category")}
-                  onAllPress={() => setSheet("category")}
-                  otherLabel={t("movementForm.allCategoriesShort")}
-                  detailsLabel={t("movementForm.details")}
-                />
-              )}
-            </Animated.View>
+                ) : null}
+
+                {/* Fecha, Lugar y Nota en fichas que se envuelven en dos filas; llenas en `surface`, vacías con contorno. */}
+                <XStack px={20} gap={6} flexWrap="wrap">
+                  <DetailChip icon={<CalendarDays size={16} color="$ink" strokeWidth={2} />} label={dateLabel} a11y={`${t("movementForm.date")}: ${dateLabel}`} onPress={() => setSheet("date")} />
+                  {showLocation ? (
+                    <DetailChip
+                      icon={<MapPin size={16} color={location ? "$ink" : "$inkMuted"} strokeWidth={2} />}
+                      label={location ? (savedPlace?.name ?? locationLines(location).primary ?? t("movementForm.location")) : suggestion ? t("movementForm.nearby") : t("movementForm.addLocation")}
+                      a11y={location ? `${t("movementForm.location")}: ${savedPlace?.name ?? locationLines(location).primary ?? ""}` : t("movementForm.addLocation")}
+                      empty={!location}
+                      onPress={() => setSheet("location")}
+                    />
+                  ) : null}
+                  <DetailChip
+                    icon={<FileText size={16} color={note.trim() ? "$ink" : "$inkMuted"} strokeWidth={2} />}
+                    label={note.trim() || t("movementForm.note")}
+                    a11y={note.trim() ? `${t("movementForm.note")}: ${note.trim()}` : t("movementForm.addNote")}
+                    empty={!note.trim()}
+                    onPress={() => setSheet("note")}
+                  />
+                </XStack>
+              </YStack>
+            )}
           </ScrollView>
 
-          {/* Teclado y botón: un solo bloque, separado por un filete. */}
+          {/* Teclado y botón pegados abajo, sin hueco debajo del botón. */}
           <AmountKeypad onKey={onKey} onClear={() => setAmount("")} />
-          <View px={16} pt={16} pb={Math.max(insets.bottom, 16) + 10}>
+          <View px={20} pt={12} pb={Math.max(insets.bottom, 12) + 4}>
             <FintButton
-              minH={52}
-              rounded={radius.md}
-              opacity={ready || isPending ? 1 : 0.55}
-              disabled={isPending || (loadingAccounts && !noAccounts)}
+              disabled={loadingAccounts && !noAccounts && !isPending}
+              pending={isPending}
               icon={isPending ? <FintSpinner color="$onBrand" /> : undefined}
               onPress={submit}
-              fontSize={16}
             >
               {ctaLabel}
             </FintButton>
@@ -692,7 +678,7 @@ export default function TransactionFormScreen() {
               subtitle={code}
               trailing={
                 code === transferCur ? (
-                  <FText tone="brand" variant="body-strong">
+                  <FText tone="ink" variant="body-strong">
                     ✓
                   </FText>
                 ) : undefined
@@ -768,7 +754,7 @@ function currencyName(t: (key: string, options?: Record<string, unknown>) => str
 const PILL_SLOP = 7;
 
 /**
- * La píldora de la cuenta: nombre y saldo disponible. Abre la hoja de cuentas. Para el lector: "Sale de: BCP Soles,
+ * La píldora de la cuenta (ficha `surface` de 34 con su ícono): nombre y saldo disponible. Abre la hoja de cuentas. Para el lector: "Sale de: BCP Soles,
  * disponible S/ 4 080.80" (con montos ocultos, "Monto oculto") y la pista de que cambia la cuenta.
  */
 function AccountPill({ label, account, currency, onPress }: { label: string; account?: AccountOption; currency: string; onPress: () => void }) {
@@ -794,8 +780,9 @@ function AccountPill({ label, account, currency, onPress }: { label: string; acc
       accessibilityLabel={a11yLabel}
       accessibilityHint={t("movementForm.accountHint")}
     >
-      <XStack height={34} pl={14} pr={12} gap={6} items="center" rounded={999} borderWidth={1} borderColor="$lineStrong" bg="$surface">
-        <FText variant="label" numberOfLines={1} style={{ maxWidth: 180 }}>
+      <XStack minH={34} pl={12} pr={10} gap={6} items="center" rounded={999} bg="$surface">
+        <Wallet size={15} color="$inkMuted" strokeWidth={2} />
+        <FText variant="label" numberOfLines={1} maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={{ maxWidth: 180, fontFamily: fontFace.sans[600], fontSize: 13 }}>
           {name}
         </FText>
         {balance !== null ? (
@@ -882,232 +869,179 @@ function TransferCurrencyLine({
   }
   return (
     <PressableScale onPress={onPick} haptic="tap" accessibilityRole="button">
-      <FText variant="caption" tone="brand" style={{ textAlign: "center", fontFamily: fontFace.sans[500] }}>
+      <FText variant="caption" tone="ink" style={{ textAlign: "center", fontFamily: fontFace.sans[600] }}>
         {t("movementForm.sharedCurrencyPick", { currency: name })}
       </FText>
     </PressableScale>
   );
 }
 
-/** La nota completa, a lo ancho. Sin nota, una invitación a escribirla. Tocarla abre la hoja de nota. */
-/** Un campo de Detalles: icono en un cuadrado teñido al 14 %, la etiqueta y el valor, y un chevron. */
 /**
- * Categoría y Detalles mientras la pantalla entra: los títulos reales y la forma de discos y campos, con el mismo
- * alto que ocupan después. Así esas secciones no se ven vacías y, al montarse las reales, nada salta de lugar.
- * "Todas" y "Otra" ya son reales y abren la hoja de categorías: no dependen de lo que falta montar.
+ * Una ficha de detalle (Fecha, Lugar, Nota): llena en `surface` con el valor, o vacía con contorno `line` y la
+ * invitación. Un texto largo se corta con puntos suspensivos; se lee completo en su hoja o, con letra grande, en
+ * las filas de Detalles.
  */
-function SectionsSkeleton({
-  withCategory,
-  withLocation,
-  categoryLabel,
-  onAllPress,
-  otherLabel,
-  detailsLabel,
-}: {
-  withCategory: boolean;
-  withLocation: boolean;
-  categoryLabel: string;
-  onAllPress: () => void;
-  otherLabel: string;
-  detailsLabel: string;
-}) {
-  const fields = withLocation ? 3 : 2;
+function DetailChip({ icon, label, a11y, empty = false, onPress }: { icon: ReactNode; label: string; a11y: string; empty?: boolean; onPress: () => void }) {
   return (
-    <View>
-      {withCategory ? (
-        <YStack mt={18}>
-          <XStack px={20} mb={8} items="baseline" justify="space-between">
-            <FText variant="caption" tone="inkMuted" accessibilityRole="header">
-              {categoryLabel}
-            </FText>
-          </XStack>
-          <XStack px={6} width="100%" maxW={compactBlockMaxWidth} self="center">
-            <XStack width="80%" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-              {[0, 1, 2, 3].map((i) => (
-                <YStack key={i} width="25%" items="center" gap={6} py={4}>
-                  <View width={50} height={50} rounded={999} bg="$surfaceSunken" />
-                  <AmountSkeleton width={44} height={10} />
-                </YStack>
-              ))}
-            </XStack>
-            <NewTile compact label={otherLabel} onPress={onAllPress} />
-          </XStack>
-        </YStack>
-      ) : null}
-      <FText variant="caption" tone="inkMuted" accessibilityRole="header" style={{ paddingHorizontal: 20, marginTop: 16, marginBottom: 8 }}>
-        {detailsLabel}
-      </FText>
-      <YStack px={16} gap={8} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        {Array.from({ length: fields }, (_, i) => (
-          <XStack key={i} items="center" gap={10} px={12} py={10} rounded={radius.lg} bg="$surface" borderWidth={1} borderColor="$line">
-            <View width={36} height={36} rounded={radius.md} bg="$surfaceSunken" />
-            <YStack gap={6}>
-              <AmountSkeleton width={40} height={8} />
-              <AmountSkeleton width={i === fields - 1 ? 120 : 84} height={12} />
-            </YStack>
-          </XStack>
-        ))}
-      </YStack>
+    <View maxW="100%">
+      <Chip variant="detail" icon={icon} label={label} empty={empty} accessibilityLabel={a11y} onPress={onPress} />
     </View>
   );
 }
 
-function DetailField({ icon, label, value, onPress }: { icon: ReactNode; label: string; value: string; onPress: () => void }) {
-  return (
-    <PressableScale onPress={onPress} scaleTo={0.99} haptic="tap" accessibilityRole="button" accessibilityLabel={`${label}: ${value}`}>
-      <XStack items="center" gap={10} px={12} py={10} rounded={radius.lg} bg="$surface" borderWidth={1} borderColor="$line">
-        <View width={36} height={36} rounded={radius.md} items="center" justify="center" bg="$surfaceSunken">
-          {icon}
-        </View>
-        <YStack flex={1} minW={0}>
-          <FText tone="inkFaint" style={{ fontSize: 11, lineHeight: 14 }}>
-            {label}
-          </FText>
-          <FText numberOfLines={1} style={{ fontFamily: fontFace.sans[600], fontSize: 14, lineHeight: 19, letterSpacing: -0.15 }}>
-            {value}
-          </FText>
-        </YStack>
-        <ChevronRight size={16} color="$inkFaint" />
-      </XStack>
-    </PressableScale>
-  );
-}
-
 /**
- * El campo Ubicación: la miniatura del mapa, la etiqueta (con el nombre del lugar guardado en una píldora) y la
- * dirección en dos líneas. Sugerida (la persona activó "Ubicación en movimientos" y no la guardó todavía): filete
- * punteado, el punto con su precisión y "Usar"; nunca se guarda sola. Sin ninguna, una fila para agregarla.
+ * Detalles con letra grande (desde `COMPACT_FONT_SCALE`): Categoría, Fecha, Ubicación con su mapa chico y Nota
+ * completa, una fila por campo y separadas por un filete. La etiqueta va arriba en `inkFaint` y el valor puede
+ * ocupar varias líneas. En una transferencia, solo Fecha y Nota.
  */
-function LocationField({
+function DetailsList({
+  kind,
+  category,
+  categoryLabel,
+  dateLabel,
+  showLocation,
   location,
-  suggestion,
   placeName,
-  onPress,
-  onUse,
+  note,
+  onCategory,
+  onDate,
+  onLocation,
+  onNote,
+  categoryError,
 }: {
+  kind: MovementKind;
+  category: Category | null;
+  categoryLabel: string | null;
+  dateLabel: string;
+  showLocation: boolean;
   location: CapturedLocation | null;
-  suggestion: CapturedLocation | null;
   placeName: string | null;
-  onPress: () => void;
-  onUse: () => void;
+  note: string;
+  onCategory: () => void;
+  onDate: () => void;
+  onLocation: () => void;
+  onNote: () => void;
+  categoryError?: string;
 }) {
   const { t } = useTranslation();
-  const theme = useTheme();
-  const shown = location ?? suggestion;
-  const nearby = !location && Boolean(suggestion);
-
-  if (!shown) {
-    return (
-      <DetailField
-        icon={<MapPin size={17} color="$inkMuted" strokeWidth={2} />}
-        label={t("movementForm.location")}
-        value={t("movementForm.addLocation")}
-        onPress={onPress}
-      />
+  const lines = location ? locationLines(location) : null;
+  const text = note.trim();
+  const rows: ReactNode[] = [];
+  if (kind !== "transfer") {
+    rows.push(
+      <DetailRow
+        key="category"
+        leading={category ? <Monogram name={categoryLabel ?? category.name} emoji={category.icon} size={44} /> : <DetailIcon icon={<Grid2x2 size={20} color="$inkMuted" strokeWidth={2} />} />}
+        label={t("movementForm.category")}
+        value={categoryLabel ?? t("movementForm.allCategories")}
+        empty={!categoryLabel}
+        onPress={onCategory}
+      />,
     );
   }
-
-  const lines = locationLines(shown);
-  const accuracy = nearby && shown.accuracy ? ` · ± ${Math.round(shown.accuracy)} m` : "";
-  return (
-    <PressableScale
-      onPress={onPress}
-      scaleTo={0.99}
-      haptic="tap"
-      accessibilityRole="button"
-      accessibilityLabel={[t("movementForm.location"), placeName, lines.primary, lines.secondary].filter(Boolean).join(", ")}
-      // "Usar" está dentro de este botón y el lector no llega a él: con una sugerencia, va como acción del campo.
-      accessibilityActions={nearby ? [{ name: "useSuggestion", label: t("movementForm.useSuggestion") }] : undefined}
-      onAccessibilityAction={(e) => {
-        if (e.nativeEvent.actionName === "useSuggestion") onUse();
-      }}
-    >
-      <XStack
-        items="center"
-        gap={10}
-        pl={8}
-        pr={12}
-        py={8}
-        rounded={radius.lg}
-        bg={nearby ? "$surfaceSunken" : "$surface"}
-        borderWidth={1}
-        borderColor={nearby ? "$surfaceSunken" : "$line"}
+  rows.push(<DetailRow key="date" leading={<DetailIcon icon={<CalendarDays size={20} color="$inkMuted" strokeWidth={2} />} />} label={t("movementForm.date")} value={dateLabel} onPress={onDate} />);
+  if (kind !== "transfer" && showLocation) {
+    rows.push(
+      <DetailRow
+        key="location"
+        leading={<DetailIcon icon={<MapPin size={20} color="$inkMuted" strokeWidth={2} />} />}
+        label={t("movementForm.location")}
+        value={placeName ?? lines?.primary ?? t("movementForm.addLocation")}
+        secondary={lines?.secondary ?? undefined}
+        empty={!location}
+        onPress={onLocation}
       >
-        <MapThumb nearby={nearby} />
-        <YStack flex={1} minW={0}>
-          <XStack items="center" gap={6}>
-            <FText tone="inkFaint" style={{ fontSize: 11, lineHeight: 14 }}>
-              {nearby ? `${t("movementForm.nearby")}${accuracy}` : t("movementForm.location")}
-            </FText>
-            {!nearby && placeName ? (
-              <View px={7} rounded={999} bg="$brandWash">
-                <FText tone="brand" style={{ fontFamily: fontFace.sans[600], fontSize: 10.5, lineHeight: 15 }}>
-                  {placeName}
-                </FText>
-              </View>
-            ) : null}
-          </XStack>
-          <FText numberOfLines={1} style={{ fontFamily: fontFace.sans[600], fontSize: 14, lineHeight: 19, letterSpacing: -0.15 }}>
-            {lines.primary ?? t("movementForm.location")}
-          </FText>
-          {lines.secondary ? (
-            <FText tone="inkMuted" numberOfLines={1} style={{ fontSize: 12, lineHeight: 16 }}>
-              {lines.secondary}
-            </FText>
-          ) : null}
-        </YStack>
-        {nearby ? (
-          <PressableScale onPress={onUse} haptic="tap" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-            <XStack height={32} px={13} rounded={999} bg="$brandWash" items="center">
-              <FText tone="brand" style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18 }}>
-                {t("movementForm.useLocation")}
-              </FText>
-            </XStack>
-          </PressableScale>
-        ) : (
-          <ChevronRight size={16} color="$inkFaint" />
-        )}
-      </XStack>
-    </PressableScale>
+        {location ? (
+          <View mt={10}>
+            <MapThumb />
+          </View>
+        ) : null}
+      </DetailRow>,
+    );
+  }
+  rows.push(
+    <DetailRow
+      key="note"
+      leading={<DetailIcon icon={<FileText size={20} color="$inkMuted" strokeWidth={2} />} />}
+      label={t("movementForm.note")}
+      value={text || t("movementForm.addNote")}
+      count={text ? t("movementForm.noteCount", { count: text.length, max: NOTE_MAX }) : undefined}
+      empty={!text}
+      onPress={onNote}
+    />,
+  );
+  return (
+    <YStack px={20}>
+      {rows.map((row, i) => (
+        <View key={i} borderTopWidth={i > 0 ? 1 : 0} borderColor="$line">
+          {row}
+        </View>
+      ))}
+      {categoryError ? (
+        <View mt={6}>
+          <ErrorText align="left">{categoryError}</ErrorText>
+        </View>
+      ) : null}
+    </YStack>
   );
 }
 
-/** La nota, sola y al final: su texto completo hasta cuatro líneas y el contador; vacía, una sola línea. */
-function NoteField({ note, onPress }: { note: string; onPress: () => void }) {
-  const { t } = useTranslation();
-  const theme = useTheme();
-  const text = note.trim();
+function DetailIcon({ icon }: { icon: ReactNode }) {
   return (
-    <PressableScale
-      onPress={onPress}
-      scaleTo={0.99}
-      haptic="tap"
-      accessibilityRole="button"
-      accessibilityLabel={text ? `${t("movementForm.note")}: ${text}` : t("movementForm.addNote")}
-    >
-      <XStack gap={10} pl={12} pr={14} py={text ? 12 : 10} items={text ? "flex-start" : "center"} rounded={radius.lg} bg="$surface" borderWidth={1} borderColor="$line">
-        <View width={36} height={36} rounded={radius.md} items="center" justify="center" bg="$surfaceSunken">
-          <FileText size={17} color="$inkMuted" strokeWidth={2} />
-        </View>
-        <YStack flex={1} minW={0}>
-          <XStack items="center" justify="space-between">
-            <FText tone="inkFaint" style={{ fontSize: 11, lineHeight: 14 }}>
-              {t("movementForm.note")}
+    <View width={44} height={44} rounded={14} bg="$surface" items="center" justify="center">
+      {icon}
+    </View>
+  );
+}
+
+/** Una fila de Detalles: cuadro de 44, la etiqueta arriba (12/700), el valor (15/700, varias líneas) y un chevron. */
+function DetailRow({
+  leading,
+  label,
+  value,
+  secondary,
+  count,
+  empty = false,
+  onPress,
+  children,
+}: {
+  leading: ReactNode;
+  label: string;
+  value: string;
+  secondary?: string;
+  count?: string;
+  empty?: boolean;
+  onPress: () => void;
+  children?: ReactNode;
+}) {
+  return (
+    <PressableScale onPress={onPress} scaleTo={0.99} haptic="tap" accessibilityRole="button" accessibilityLabel={[label, value, secondary].filter(Boolean).join(": ")}>
+      <XStack gap={12} py={14} items="flex-start">
+        {leading}
+        <YStack flex={1} minW={0} gap={2}>
+          <XStack justify="space-between" gap={8}>
+            <FText tone="inkFaint" style={{ fontFamily: fontFace.sans[600], fontSize: 12, lineHeight: 16 }}>
+              {label}
             </FText>
-            {text ? (
-              <FText
-                tone="inkFaint"
-                style={{ fontFamily: fontFace.mono[400], fontSize: 10.5, lineHeight: 14 }}
-                accessibilityLabel={t("movementForm.noteCount", { count: text.length, max: NOTE_MAX })}
-              >
-                {`${text.length} / ${NOTE_MAX}`}
+            {count ? (
+              <FText tone="inkFaint" style={{ fontFamily: fontFace.mono[500], fontSize: 12, lineHeight: 16 }}>
+                {count}
               </FText>
             ) : null}
           </XStack>
-          <FText tone={text ? "ink" : "inkMuted"} numberOfLines={text ? 4 : 1} style={{ fontSize: 14, lineHeight: 20, marginTop: 2 }}>
-            {text || t("movementForm.addNote")}
+          <FText tone={empty ? "inkMuted" : "ink"} style={{ fontFamily: fontFace.display[700], fontSize: 15, lineHeight: 20 }}>
+            {value}
           </FText>
+          {secondary ? (
+            <FText tone="inkFaint" style={{ fontSize: 13, lineHeight: 18 }}>
+              {secondary}
+            </FText>
+          ) : null}
+          {children}
         </YStack>
+        <View pt={8}>
+          <ChevronRight size={18} color="$inkFaint" strokeWidth={2} />
+        </View>
       </XStack>
     </PressableScale>
   );

@@ -20,6 +20,8 @@ export interface SegmentedControlProps<T extends string> {
   onChange: (value: T) => void;
   /** `md` 48px (pestañas de tarjeta y del formulario), `sm` 40px (dentro de un recuadro). */
   size?: "md" | "sm";
+  /** `ink` (por defecto): filtros y vistas, el activo en `chipOn`. `brand`: el tipo de movimiento, el activo en amarillo. */
+  tone?: "ink" | "brand";
   accessibilityLabel?: string;
 }
 
@@ -32,7 +34,7 @@ const PAD = 4;
  * el dedo sobre el control no lo activa (WCAG 2.5.2); el cambio visual se
  * deshace solo si el toque se cancela.
  */
-export function SegmentedControl<T extends string>({ options, value, onChange, size = "md", accessibilityLabel }: SegmentedControlProps<T>) {
+export function SegmentedControl<T extends string>({ options, value, onChange, size = "md", tone = "ink", accessibilityLabel }: SegmentedControlProps<T>) {
   const theme = useTheme();
   const [width, setWidth] = useState(0);
   const [pressing, setPressing] = useState<T | null>(null);
@@ -72,7 +74,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange, s
               width: segment,
               height: height - PAD * 2,
               borderRadius: radius.pill,
-              backgroundColor: theme.chipOn.val,
+              backgroundColor: tone === "brand" ? theme.brand.val : theme.chipOn.val,
             },
             thumbStyle,
           ]}
@@ -85,6 +87,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange, s
           <Pressable
             key={option.value}
             style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+            // Cada segmento mide 32-40; el área de toque llega a 48 (Android) sin cambiar lo que se ve.
             hitSlop={{ top: (48 - height) / 2 + PAD, bottom: (48 - height) / 2 + PAD }}
             accessibilityRole="tab"
             accessibilityState={{ selected }}
@@ -102,7 +105,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange, s
             <FText
               variant="label"
               tone={active ? undefined : "inkMuted"}
-              color={active ? "$onChipOn" : undefined}
+              color={active ? (tone === "brand" ? "$onBrand" : "$onChipOn") : undefined}
               style={{ fontFamily: fontFace.sans[600], fontSize: 14 }}
               numberOfLines={1}
               maxFontSizeMultiplier={COMPACT_FONT_SCALE}
@@ -112,7 +115,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange, s
                 <FText
                   variant="label"
                   tone={active ? undefined : "inkFaint"}
-                  color={active ? "$onChipOn" : undefined}
+                  color={active ? (tone === "brand" ? "$onBrand" : "$onChipOn") : undefined}
                   style={{ fontFamily: fontFace.mono[500], fontSize: 12, opacity: active ? 0.72 : 1 }}
                 >
                   {`  ${option.count}`}

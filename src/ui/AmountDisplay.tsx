@@ -22,7 +22,7 @@ import { fontFace } from "../theme/typography";
 const ANNOUNCE_MS = 600;
 
 /** Tamaños del monto: baja en pasos de 8px si no cabe, nunca pasa a dos líneas. */
-const SIZES = [64, 56, 48, 40] as const;
+const SIZES = [62, 56, 48, 40] as const;
 const HEIGHT = 72;
 /**
  * Los dígitos de IBM Plex Sans son tabulares: todos avanzan lo mismo, así cada pieza se ubica con cálculo. El
@@ -31,9 +31,9 @@ const HEIGHT = 72;
 const ADVANCE = 0.6;
 const FACE = fontFace.mono[600];
 const PROBE_SIZE = 40;
-/** Interletrado por carácter: −1px a 64px. El −3px de `amount-input` encimaba los dígitos en Android. */
+/** Interletrado por carácter: −1px a 62px. El −3px de `amount-input` encimaba los dígitos en Android. */
 const TRACKING = -0.016;
-/** El símbolo y el signo, a 30px cuando la cifra va a 64px. */
+/** El símbolo y el signo, a 29px cuando la cifra va a 62px. */
 const MINOR = 30 / 64;
 /** Alto de línea de cada texto, en proporción a su tamaño. Igual para todos, para alinear líneas base. */
 const LINE = 1.0625;
@@ -102,7 +102,7 @@ function rowStart(g: Geometry) {
 }
 
 /**
- * El monto del formulario, en `amount-input`: 64px centrado, con el símbolo a
+ * El monto del formulario, en `amount-input`: 62px centrado, con el símbolo a
  * 30px en `inkFaint`, el signo delante y todo sobre la misma línea base. Sin
  * monto muestra "0" en `inkFaint`.
  *
@@ -259,7 +259,7 @@ export function AmountDisplay({ input, currency = "PEN", kind = "expense", activ
     >
       {/* Sondas invisibles: miden el avance real de un dígito y el ancho del símbolo en este dispositivo. */}
       {/* Sin escalar con el tamaño de letra del sistema (aquí y en las cifras): las posiciones de cada dígito salen de
-          estas medidas en unidades de `em`, y con la letra agrandada se encimarían. El monto ya es de 64px. */}
+          estas medidas en unidades de `em`, y con la letra agrandada se encimarían. El monto ya es de 62px. */}
       <Text
         allowFontScaling={false}
         style={{ position: "absolute", opacity: 0, fontFamily: FACE, fontSize: PROBE_SIZE, includeFontPadding: false }}

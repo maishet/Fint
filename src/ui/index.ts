@@ -17,7 +17,7 @@ export type { NotifyOptions, NotifyAction, NotifyPreset } from './notify'
 // Sistema de diseño v3 (tinta, cifra y señal)
 export { FText } from './FText'
 export type { FTextProps, FTextTone } from './FText'
-export { Amount } from './Amount'
+export { Amount, RowAmount } from './Amount'
 export type { AmountKind, AmountProps } from './Amount'
 export { PressableScale } from './PressableScale'
 export { IconButton } from './IconButton'

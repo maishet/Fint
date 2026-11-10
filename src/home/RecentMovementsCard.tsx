@@ -8,15 +8,18 @@ import { getCategoryLabel } from "../finance/categoryLabels";
 import { useCategoryIcons } from "../finance/useCategoryIcons";
 import { getAppLocale } from "../i18n";
 import { space } from "../theme/tokens";
-import { Amount, FintCard, FText, ListRow, Monogram, SectionHeader } from "../ui";
+import { FText, ListRow, Monogram, RowAmount, SectionHeader } from "../ui";
 import { riseIn } from "../ui/entering";
-import { categoryColorIndex, transactionDay } from "./spending";
+import { transactionDay } from "./spending";
 import { detailParams } from "../movements/detailParams";
 import { movementText } from "../movements/text";
 
 const ROWS = 3;
 
-/** Los tres últimos movimientos. Una cuarta fila no dice nada nuevo y el tab está a un toque. */
+/**
+ * Los tres últimos movimientos, como filas sobre `canvas` separadas por un filete (sin tarjeta). Una cuarta fila no
+ * dice nada nuevo y el tab está a un toque.
+ */
 export function RecentMovementsCard({ transactions }: { transactions: Transaction[] }) {
   const { t, i18n } = useTranslation();
   const router = useRouter();
@@ -26,11 +29,11 @@ export function RecentMovementsCard({ transactions }: { transactions: Transactio
   const rows = transactions.slice(0, ROWS);
 
   return (
-    <YStack px={space[4]}>
+    <YStack px={space[5]}>
       <SectionHeader title={t("home.recent.title")} actionLabel={t("actions.viewAll")} onAction={() => router.push("/(tabs)/movements")} />
-      <FintCard p={0} overflow="hidden">
+      <YStack>
         {rows.length === 0 ? (
-          <YStack p={space[4]}>
+          <YStack py={space[3]}>
             <FText tone="inkMuted">{t("dashboard.emptyMovements")}</FText>
           </YStack>
         ) : (
@@ -43,23 +46,24 @@ export function RecentMovementsCard({ transactions }: { transactions: Transactio
               <Animated.View key={tx.id} entering={riseIn({ distance: 0, delay: i * 30, reduceMotion })}>
                 <ListRow
                   divider={i > 0}
+                  flush
                   title={title}
                   subtitle={subtitle}
                   leading={
                     transfer ? (
-                      <Monogram name={title} icon={<ArrowLeftRight size={16} color="$inkMuted" strokeWidth={2} />} />
+                      <Monogram name={title} size={44} icon={<ArrowLeftRight size={18} color="$inkMuted" strokeWidth={2} />} />
                     ) : (
-                      <Monogram name={title} emoji={iconFor(tx.category, tx.type)} color={`$chart${categoryColorIndex(tx.category)}` as never} />
+                      <Monogram name={title} size={44} emoji={iconFor(tx.category, tx.type)} />
                     )
                   }
-                  trailing={<Amount value={tx.amount} currency={tx.currency} kind={tx.type === "income" ? "income" : transfer ? "transfer" : "expense"} />}
+                  trailing={<RowAmount value={tx.amount} currency={tx.currency} kind={tx.type === "income" ? "income" : transfer ? "transfer" : "expense"} />}
                   onPress={transfer ? undefined : () => openDetail(router, tx)}
                 />
               </Animated.View>
             );
           })
         )}
-      </FintCard>
+      </YStack>
     </YStack>
   );
 }

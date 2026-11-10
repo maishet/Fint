@@ -28,6 +28,8 @@ export interface ChipProps {
    * interruptor. El contenedor lleva `accessibilityRole="radiogroup"`.
    */
   single?: boolean;
+  /** Nombre para el lector cuando la etiqueta visible no basta ("Nota: …" en lugar del texto cortado). */
+  accessibilityLabel?: string;
   onPress?: () => void;
 }
 
@@ -41,6 +43,7 @@ export function Chip({
   empty = false,
   grow = false,
   single = false,
+  accessibilityLabel,
   onPress,
 }: ChipProps) {
   const on = variant !== "detail" && selected;
@@ -53,7 +56,8 @@ export function Chip({
       haptic="select"
       accessibilityRole={variant === "detail" ? "button" : single ? "radio" : "togglebutton"}
       accessibilityState={single ? { checked: selected } : { selected }}
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
+      // La forma mide 36 o 40; el área de toque llega a 48 (Android) sin cambiar lo que se ve.
       hitSlop={{ top: (48 - height) / 2, bottom: (48 - height) / 2 }}
       style={grow ? { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0 } : undefined}
     >

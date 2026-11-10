@@ -231,6 +231,12 @@ function Grid({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * El cuadro de una categoría, igual en la hoja y en el formulario: el emoji al 52 % sobre el fondo de su propio
+ * tono (`categoryTint`), con radio del 32 % del lado; sin emoji, la inicial en `ink` sobre `surface`. Elegida, anillo
+ * `ink` y la marca arriba a la derecha. `compact` es la versión del formulario (cinco en una fila: cuadro de 50px y
+ * nombre a 11px).
+ */
 export function CategoryTile({
   category,
   label,
@@ -252,6 +258,7 @@ export function CategoryTile({
   const theme = useTheme();
   const { themeMode } = useThemeMode();
   const reduceMotion = useReducedMotion();
+  // El anillo `ink` crece desde el centro y la marca entra de 0.6 a 1, con `spring-ui`.
   const on = useSharedValue(selected ? 1 : 0);
   useEffect(() => {
     on.value = reduceMotion ? withTiming(selected ? 1 : 0, motion.fade) : withSpring(selected ? 1 : 0, motion.springUi);
@@ -331,6 +338,7 @@ export function CategoryTile({
   );
 }
 
+/** "Nueva" en la hoja (cuadro `surface` con el más en tinta) o "Todas" en el formulario (`compact`, cuadro hundido con la cuadrícula). */
 export function NewTile({ label, onPress, compact = false }: { label: string; onPress: () => void; compact?: boolean }) {
   const DISC = compact ? COMPACT_DISC : SHEET_DISC;
   return (

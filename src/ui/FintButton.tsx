@@ -7,9 +7,23 @@ type FintButtonVariant = "solid" | "ink" | "outlined" | "soft" | "destructive" |
 type FintButtonSize = "cta" | "row" | "mini";
 
 const MIN_TOUCH_HEIGHT = 44;
+/** Alturas de la hoja de componentes: CTA 56, en fila 40, mini 32. Las de menos de 44 completan el toque con `hitSlop`. */
 const HEIGHTS: Record<FintButtonSize, number> = { cta: 56, row: 40, mini: 32 };
 const FONT_SIZES: Record<FintButtonSize, number> = { cta: 17, row: 14, mini: 14 };
 
+/**
+ * - `solid`: la acción principal, amarillo `brand` con texto `onBrand`; presionado en `brandPress`. Una por pantalla.
+ * - `ink`: acción fuerte que no es la principal (Sincronizar, Reconectar), `ink` con texto `canvas`.
+ * - `outlined`: secundaria con contorno `line` de 1.5px (Quitar, Descartar, Agregar más); presionada en `surfaceSunken`.
+ * - `soft`: secundaria en `surface` con texto `ink` (Confirmar en una lista, Pagar no vencido).
+ * - `destructive`: borrar desde una fila o un detalle, `surface` con texto `dangerHard`.
+ * - `danger`: solo en el diálogo que confirma el borrado. Relleno `dangerHard`.
+ * - `ghost`: solo texto, para "Ahora no" o "Cancelar" bajo otro botón.
+ *
+ * `disabled` es "todavía no se puede": todas las variantes pasan a `surface` con texto `inkFaint`. `pending` es "ya
+ * se está haciendo" (guardando, con el spinner dentro): ignora los toques pero conserva su color y el lector lo
+ * anuncia ocupado, no desactivado. Quien pasa su propio `opacity` o `bg` manda sobre los dos.
+ */
 const variantStyles: Record<FintButtonVariant, { bg: string; pressBg: string; color: string; border: string }> = {
   solid: { bg: "$brand", pressBg: "$brandPress", color: "$onBrand", border: "transparent" },
   ink: { bg: "$ink", pressBg: "$ink", color: "$canvas", border: "transparent" },
@@ -20,6 +34,7 @@ const variantStyles: Record<FintButtonVariant, { bg: string; pressBg: string; co
   ghost: { bg: "transparent", pressBg: "$surfaceSunken", color: "$inkMuted", border: "transparent" },
 };
 
+/** Deshabilitado, igual en todas las variantes. */
 const DISABLED = { bg: "$surface", color: "$inkFaint", border: "transparent" };
 
 interface FintButtonProps extends Omit<ButtonProps, "variant" | "size"> {
@@ -27,6 +42,7 @@ interface FintButtonProps extends Omit<ButtonProps, "variant" | "size"> {
   haptic?: "tap" | "select" | "warning" | "none";
   /** Guardando: no responde al toque, pero no se atenúa ni se anuncia desactivado. */
   pending?: boolean;
+  /** `cta` 56 (por defecto), `row` 40, `mini` 32. Un `minH` explícito manda sobre el tamaño. */
   size?: FintButtonSize;
 }
 

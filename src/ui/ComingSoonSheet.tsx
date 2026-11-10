@@ -1,9 +1,7 @@
 import { createContext, useCallback, useContext, useState, type ComponentType, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { useWindowDimensions } from "react-native";
 import { View, YStack } from "tamagui";
 import type { ComingSoonFeature } from "../config/comingSoon";
-import { SlabMesh } from "../home/HeroMesh";
 import { space } from "../theme/tokens";
 import { fontFace } from "../theme/typography";
 import { ExportDemo, GmailDemo, KeywordsDemo, ScanDemo, STAGE_HEIGHT, type DemoProps } from "./comingSoon/demos";
@@ -47,13 +45,11 @@ export function ComingSoonProvider({ children }: { children: ReactNode }) {
 
 function ComingSoonSheet({ feature, open, onClose }: { feature: ComingSoonFeature; open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
-  const { width } = useWindowDimensions();
   const progress = useLoop(open);
   const Demo = demos[feature];
 
   const hero = (
     <View height={HERO_HEIGHT} bg="$slab" overflow="hidden" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-      <SlabMesh width={width} height={HERO_HEIGHT} paused={!open} />
       <View position="absolute" t={22} l={space[5]}>
         <SoonBadge onSlab />
       </View>

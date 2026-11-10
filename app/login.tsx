@@ -16,7 +16,6 @@ import { authErrorFor, type AuthErrorField } from "../src/auth/authErrors";
 import { ForgotPasswordStep } from "../src/auth/ForgotPasswordStep";
 import { VerifyEmailStep } from "../src/auth/VerifyEmailStep";
 import { getValidationMessage, useSubmitValidation } from "../src/forms";
-import { HeroMesh } from "../src/home/HeroMesh";
 import { radius, space } from "../src/theme/tokens";
 import { fontFace, textStyles } from "../src/theme/typography";
 import { ErrorLine, FintButton, FintSpinner, FText, PressableScale } from "../src/ui";
@@ -177,7 +176,6 @@ export default function LoginScreen() {
           overflow="hidden"
           onLayout={(e) => setHeroSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
         >
-          <HeroMesh width={heroSize.width} height={heroSize.height} />
           <YStack width="100%" maxW={420} self="center">
           <XStack items="center" gap={10}>
             <BrandSymbol size={34} disc="$glassSlab" />

@@ -46,8 +46,8 @@ export function shortDay(date: Date, locale: string) {
 
 /**
  * Hoja de fecha: atajos Hoy y Ayer, y el calendario del mes (empieza en lunes).
- * El día elegido va relleno en `brand` y se desliza desde el anterior; hoy
- * lleva un anillo; los días futuros no se pueden elegir (un movimiento ocurre
+ * El día elegido va relleno en `brand` (amarillo, con el número en tinta) y se
+ * desliza desde el anterior; hoy lleva un anillo `ink`; los días futuros no se pueden elegir (un movimiento ocurre
  * en el pasado; lo que viene se programa en Pagos). Un punto marca los días con
  * movimientos. Tocar un día lo elige y cierra: no hay botón de confirmar.
  */
@@ -285,12 +285,12 @@ function CalendarGrid({
                 items="center"
                 justify="center"
                 borderWidth={isToday && !isSelected ? 1.5 : 0}
-                borderColor="$brand"
+                borderColor="$ink"
                 opacity={future ? opacity.disabled : 1}
               >
                 <Text
                   style={[textStyles.amount, { fontSize: 15 }]}
-                  color={isSelected ? "$onBrand" : isToday ? "$brand" : future ? "$inkFaint" : "$ink"}
+                  color={isSelected ? "$onBrand" : isToday ? "$ink" : future ? "$inkFaint" : "$ink"}
                 >
                   {day}
                 </Text>

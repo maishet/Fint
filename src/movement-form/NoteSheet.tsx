@@ -17,7 +17,7 @@ export interface NoteSheetProps {
 }
 
 /**
- * Hoja de nota: un campo de varias líneas con el borde `brand` activo, un
+ * Hoja de nota: un campo de varias líneas con el borde `ink` activo, un
  * contador en `mono` hasta 200 caracteres y las notas recientes como chips
  * (tocar uno lo copia). "Listo" reemplaza la X porque el teclado del sistema
  * ocupa la mitad de abajo; la hoja sube pegada a él.
@@ -60,10 +60,10 @@ export function NoteSheet({ open, onClose, value, onChange, recent }: NoteSheetP
       <YStack
         mx={16}
         mt={14}
-        rounded={radius.md}
-        bg="$surfaceSunken"
-        borderWidth={1.5}
-        borderColor="$brand"
+        rounded={20}
+        bg="$surface"
+        borderWidth={2}
+        borderColor="$ink"
         px={14}
         pt={12}
         pb={10}
@@ -78,7 +78,7 @@ export function NoteSheet({ open, onClose, value, onChange, recent }: NoteSheetP
           multiline
           placeholder={t("movementForm.noteSheet.placeholder")}
           placeholderTextColor={theme.inkFaint.val}
-          selectionColor={theme.brand.val}
+          selectionColor={theme.ink.val}
           accessibilityLabel={t("movementForm.note")}
           style={[
             textStyles.body,
