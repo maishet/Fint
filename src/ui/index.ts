@@ -9,6 +9,8 @@ export { FintLogoLoader } from './FintLogoLoader'
 export { FintLoadingScreen } from './FintLoadingScreen'
 export { FintSpinner } from './FintSpinner'
 export { FintToaster } from './FintToaster'
+export { FintLottie } from './FintLottie'
+export type { FintLottieProps, LottieName } from './FintLottie'
 export { notify, useNotify } from './notify'
 export type { NotifyOptions, NotifyAction, NotifyPreset } from './notify'
 

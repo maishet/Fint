@@ -370,9 +370,9 @@ export default function ReportsScreen() {
               accessibilityRole="button"
               accessibilityLabel={t("reportsTab.backToCurrentA11y")}
             >
-              <XStack height={34} px={12} gap={6} items="center" rounded={radius.pill} bg="$brandWash">
-                <RotateCcw size={14} color="$brand" strokeWidth={2.2} />
-                <FText variant="label" tone="brand" numberOfLines={1} style={{ fontSize: 13, fontFamily: fontFace.sans[600] }}>
+              <XStack height={34} px={12} gap={6} items="center" rounded={radius.pill} bg="$surfaceSunken">
+                <RotateCcw size={14} color="$ink" strokeWidth={2.2} />
+                <FText variant="label" tone="ink" numberOfLines={1} style={{ fontSize: 13, fontFamily: fontFace.sans[600] }}>
                   {t(`reportsTab.backToCurrent.${kind}`)}
                 </FText>
               </XStack>
@@ -448,10 +448,10 @@ export default function ReportsScreen() {
                 topExpenses.length > 3 ? (
                   <PressableScale onPress={() => setSheet("top")} haptic="tap" hitSlop={8} accessibilityRole="button">
                     <XStack items="center" gap={2}>
-                      <FText variant="label" tone="brand" style={{ fontSize: 13, fontFamily: fontFace.sans[600] }}>
+                      <FText variant="label" tone="inkMuted" style={{ fontSize: 13, fontFamily: fontFace.sans[600] }}>
                         {t("reportsTab.seeAll")}
                       </FText>
-                      <ChevronRight size={14} color="$brand" strokeWidth={2.2} />
+                      <ChevronRight size={14} color="$inkMuted" strokeWidth={2.2} />
                     </XStack>
                   </PressableScale>
                 ) : null

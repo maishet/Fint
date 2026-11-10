@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { StyleSheet, type StyleProp, type TextStyle } from "react-native";
 import { Text, View, type ColorTokens, type TextProps } from "tamagui";
 import { amountParts, THIN_SPACE, type SignMode } from "../finance/formatAmount";
 import { useSensitiveAmounts } from "../privacy/SensitiveAmountsProvider";
@@ -36,6 +37,12 @@ export interface AmountProps extends Omit<TextProps, "children"> {
 
 const hidden = "••••••";
 
+export function minorScale(fontSize: number): { symbol: number; cents: number } {
+  if (fontSize >= 22) return { symbol: 0.52, cents: 0.6 };
+  if (fontSize >= 15) return { symbol: 0.72, cents: 0.8 };
+  return { symbol: 0.85, cents: 1 };
+}
+
 /**
  * Toda cifra de la app pasa por aquí: IBM Plex Sans con cifras tabulares, signo
  * menos tipográfico, espacio fino de miles y el símbolo un poco más chico.
@@ -51,7 +58,7 @@ export function Amount({
   tone,
   onSlab = false,
   showSymbol = true,
-  smallCents = false,
+  smallCents,
   sensitive = true,
   style,
   ...props
@@ -66,7 +73,10 @@ export function Amount({
 
   const resolvedTone: FTextTone =
     tone ?? (onSlab ? "slabInk" : kind === "income" ? "flowIn" : kind === "expense" ? "flowOut" : kind === "transfer" ? "inkMuted" : "ink");
-  const minor = Math.round(base.fontSize * (variant === "amount-hero" ? 26 / 48 : variant === "amount-input" ? 30 / 64 : 0.82));
+  const size = (StyleSheet.flatten(style as StyleProp<TextStyle>)?.fontSize as number | undefined) ?? base.fontSize;
+  const scale = minorScale(size);
+  const symbolSize = Math.round(size * scale.symbol);
+  const centsSize = smallCents === false ? size : Math.round(size * scale.cents);
 
   const isHidden = sensitive && !(isHydrated && amountsVisible);
   const label = isHidden
@@ -99,16 +109,18 @@ export function Amount({
     <Text color={color} style={[base, style]} aria-label={label} numberOfLines={1} {...props}>
       {parts.sign}
       {showSymbol ? (
-        <Text color={color} style={{ fontSize: minor, letterSpacing: 0 }}>
+        <Text color={color} style={{ fontSize: symbolSize, letterSpacing: 0 }}>
           {parts.symbol}
           {THIN_SPACE}
         </Text>
       ) : null}
       {parts.integer}
-      {smallCents ? (
-        <Text color={color} style={{ fontSize: minor }}>.{parts.fraction}</Text>
-      ) : parts.fraction ? (
-        `.${parts.fraction}`
+      {parts.fraction ? (
+        centsSize < size ? (
+          <Text color={color} style={{ fontSize: centsSize, letterSpacing: 0 }}>.{parts.fraction}</Text>
+        ) : (
+          `.${parts.fraction}`
+        )
       ) : null}
     </Text>
   );

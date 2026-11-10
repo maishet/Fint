@@ -469,7 +469,6 @@ export function LocationSheet({ open, onClose, value, suggestion, context, onSav
                           ))}
                           <Chip
                             variant="choice"
-                            dashed
                             label={naming?.kind === "other" && naming.name ? naming.name : t("movementForm.locationSheet.other")}
                             icon={<Plus size={14} color="$inkMuted" />}
                             selected={naming?.kind === "other"}

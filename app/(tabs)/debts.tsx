@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CalendarCheck, Check, ChevronDown, Plus, Repeat, Trash2 } from "@tamagui/lucide-icons-2";
+import { AlertTriangle, CalendarCheck, Check, ChevronDown, Plus, Trash2 } from "@tamagui/lucide-icons-2";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -20,11 +20,13 @@ import { HistoryRow, PaymentRow } from "../../src/payments/PaymentRow";
 import { radius, space } from "../../src/theme/tokens";
 import { fontFace } from "../../src/theme/typography";
 import { useScreenStatusBar } from "../../src/theme/useScreenStatusBar";
-import { Amount, FintButton, FintCard, FintConfirmDialog, FintSheet, FText, IconButton, ListRow, PressableScale, SegmentedControl } from "../../src/ui";
+import { Amount, FintButton, FintCard, FintConfirmDialog, FintLottie, FintSheet, FText, IconButton, ListRow, PressableScale, SegmentedControl } from "../../src/ui";
 import { AmountSkeleton } from "../../src/ui/AmountSkeleton";
 import { useNotify } from "../../src/ui/notify";
 
 type PaymentsTab = "pending" | "history";
+
+const PILE_SIZE = 76;
 
 function capitalize(text: string) {
   return text.charAt(0).toUpperCase() + text.slice(1);
@@ -179,10 +181,11 @@ export default function PaymentsScreen() {
     );
   else if (tab === "pending" && groups.length === 0)
     body = hasRules ? (
-      <EmptyState icon={<CalendarCheck size={22} color="$flowIn" />} title={t("paymentsTab.caughtUpTitle")} hint={t("paymentsTab.caughtUpHint")} />
+      <EmptyState icon={<FintLottie name="coin-stack" size={PILE_SIZE} play={["build", "shine"]} loop="breathe" />} bare title={t("paymentsTab.caughtUpTitle")} hint={t("paymentsTab.caughtUpHint")} />
     ) : (
       <EmptyState
-        icon={<Repeat size={22} color="$inkMuted" />}
+        icon={<FintLottie name="coin-stack" size={PILE_SIZE} loop="breathe" />}
+        bare
         title={t("paymentsTab.emptyTitle")}
         action={capabilities.features.recurringPayments ? { label: t("paymentsTab.emptyAction"), onPress: openCreate } : undefined}
       />
@@ -217,7 +220,7 @@ export default function PaymentsScreen() {
             {t("paymentsTab.title")}
           </FText>
           {capabilities.features.recurringPayments ? (
-            <IconButton tone="brand" label={t("payments.newRecurring")} icon={<Plus size={20} color="$onBrand" strokeWidth={2.2} />} onPress={openCreate} />
+            <IconButton label={t("payments.newRecurring")} icon={<Plus size={20} color="$ink" strokeWidth={2.2} />} onPress={openCreate} />
           ) : null}
         </XStack>
 
@@ -337,12 +340,16 @@ function GroupHeader({ group, count }: { group: PendingGroupKey; count: number }
   );
 }
 
-function EmptyState({ icon, title, hint, action }: { icon: React.ReactNode; title: string; hint?: string; action?: { label: string; onPress: () => void } }) {
+function EmptyState({ icon, bare = false, title, hint, action }: { icon: React.ReactNode; bare?: boolean; title: string; hint?: string; action?: { label: string; onPress: () => void } }) {
   return (
     <YStack items="center" gap={space[3]} px={space[6]} pt={space[8]}>
-      <View width={52} height={52} rounded={999} bg="$surfaceSunken" items="center" justify="center">
-        {icon}
-      </View>
+      {bare ? (
+        icon
+      ) : (
+        <View width={52} height={52} rounded={999} bg="$surfaceSunken" items="center" justify="center">
+          {icon}
+        </View>
+      )}
       <FText variant="heading" style={{ textAlign: "center" }}>
         {title}
       </FText>

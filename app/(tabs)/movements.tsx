@@ -1,6 +1,6 @@
 import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowLeftRight, ArrowUp, CalendarDays, Check, ChevronDown, ChevronRight, Mail, ScanLine, Search, Trash2, X } from "@tamagui/lucide-icons-2";
+import { ArrowDown, ArrowUp, CalendarDays, Check, ChevronDown, ChevronRight, Mail, ScanLine, Search, Trash2, X } from "@tamagui/lucide-icons-2";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -37,7 +37,7 @@ import {
 import { radius, space } from "../../src/theme/tokens";
 import { fontFace, textStyles } from "../../src/theme/typography";
 import { useScreenStatusBar } from "../../src/theme/useScreenStatusBar";
-import { Amount, Chip, FintButton, FintCard, FintConfirmDialog, FintSheet, FintSpinner, FText, IconButton, ListRow, PressableScale, SoonBadge, useComingSoon } from "../../src/ui";
+import { Amount, Chip, FintButton, FintCard, FintConfirmDialog, FintLottie, FintSheet, FintSpinner, FText, IconButton, ListRow, PressableScale, SoonBadge, useComingSoon } from "../../src/ui";
 import { AmountSkeleton } from "../../src/ui/AmountSkeleton";
 import { useNotify } from "../../src/ui/notify";
 import { detailParams } from "../../src/movements/detailParams";
@@ -382,9 +382,13 @@ export default function MovementsScreen() {
     <ListSkeleton />
   ) : movementsQuery.error ? null : (
     <YStack items="center" gap={space[3]} px={space[6]} pt={space[8]}>
-      <View width={52} height={52} rounded={999} bg="$surfaceSunken" items="center" justify="center">
-        {isSearching ? <Search size={22} color="$inkMuted" /> : <ArrowLeftRight size={22} color="$inkMuted" />}
-      </View>
+      {isSearching ? (
+        <View width={52} height={52} rounded={999} bg="$surfaceSunken" items="center" justify="center">
+          <Search size={22} color="$inkMuted" />
+        </View>
+      ) : (
+        <FintLottie name="coin-stack" size={76} loop="breathe" />
+      )}
       <FText variant="heading" style={{ textAlign: "center" }}>
         {isSearching
           ? t("movementsTab.searchEmptyTitle")

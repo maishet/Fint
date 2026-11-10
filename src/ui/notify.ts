@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { AccessibilityInfo, Alert, Platform } from "react-native";
 import { toast } from "sonner-native";
 import { haptics } from "./haptics";
@@ -26,6 +26,7 @@ export type NotifyOptions = {
   action?: NotifyAction;
   detail?: string;
   detailLabel?: string;
+  icon?: ReactNode;
 };
 
 function triggerHaptic(preset?: NotifyPreset) {
@@ -74,6 +75,7 @@ function notifyWithPreset(
     description: opts.message,
     duration: toastDuration(opts.duration, Boolean(opts.action), screenReaderOn),
     action: resolveAction(id, opts),
+    ...(opts.icon ? { icon: opts.icon } : {}),
   };
   if (preset === "success") return toast.success(title, data);
   if (preset === "error") return toast.error(title, data);

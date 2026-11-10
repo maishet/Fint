@@ -4,6 +4,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-na
 import { Text, View, type ColorTokens } from "tamagui";
 import { motion } from "../theme/tokens";
 import { fontFace } from "../theme/typography";
+import { useCategoryWash } from "./categoryWash";
 
 export interface MonogramProps {
   /** Nombre del comercio, banco o categoría. Se usa su inicial. */
@@ -30,6 +31,7 @@ export interface MonogramProps {
  */
 export function Monogram({ name, color = "$inkMuted", logoUrl, icon, emoji, size = 38, badge }: MonogramProps) {
   const [failed, setFailed] = useState(false);
+  const wash = useCategoryWash(icon ? undefined : color);
   const logoOpacity = useSharedValue(0);
   const logoStyle = useAnimatedStyle(() => ({ opacity: logoOpacity.value }));
   const initial = name.trim().charAt(0).toUpperCase() || "·";
@@ -40,7 +42,8 @@ export function Monogram({ name, color = "$inkMuted", logoUrl, icon, emoji, size
       width={size}
       height={size}
       rounded={999}
-      bg="$surfaceSunken"
+      bg={wash ? undefined : "$surfaceSunken"}
+      style={wash ? { backgroundColor: wash } : undefined}
       items="center"
       justify="center"
       accessibilityElementsHidden

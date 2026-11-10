@@ -19,7 +19,6 @@ import { radius, space } from "../src/theme/tokens";
 import { fontFace, textStyles } from "../src/theme/typography";
 import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
 import { ErrorLine, FintButton, FintCard, FintSheet, FintSpinner, FText, IconButton, PressableScale, useNotify } from "../src/ui";
-import { DashedOutline } from "../src/ui/DashedOutline";
 import { GoogleMark } from "../src/ui/GoogleMark";
 import { TaskProgress } from "../src/ui/TaskProgress";
 import { haptics } from "../src/ui/haptics";
@@ -149,9 +148,7 @@ export default function GmailSettingsScreen() {
               accessibilityRole="button"
               accessibilityLabel={sources.length ? t("gmailScreen.connectAnother") : t("gmailScreen.connectFirst")}
             >
-              <XStack mx={space[4]} mt={14} height={50} rounded={radius.lg} items="center" justify="center" gap={8} opacity={full ? 0.42 : 1}>
-                {/* En Android el borde punteado con esquinas redondeadas sale continuo: va en SVG. */}
-                <DashedOutline radius={radius.lg} />
+              <XStack mx={space[4]} mt={14} height={50} rounded={radius.lg} bg="$surfaceSunken" items="center" justify="center" gap={8} opacity={full ? 0.42 : 1}>
                 {connectMutation.isPending ? <FintSpinner color="$brand" /> : <Plus size={16} color="$brand" strokeWidth={2.2} />}
                 <FText variant="body-strong" tone="brand" style={{ fontSize: 14 }}>
                   {sources.length ? t("gmailScreen.connectAnother") : t("gmailScreen.connectFirst")}

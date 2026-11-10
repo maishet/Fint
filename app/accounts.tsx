@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Banknote, ChevronLeft, Pencil, Plus, Trash2, Wallet } from "@tamagui/lucide-icons-2";
+import { Banknote, ChevronLeft, Pencil, Plus, Trash2 } from "@tamagui/lucide-icons-2";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,7 +16,7 @@ import { usePressOnce } from "../src/hooks/usePressOnce";
 import { AccountMonogram } from "../src/movement-form/AccountSheet";
 import { radius, space } from "../src/theme/tokens";
 import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
-import { Amount, FintButton, FintCard, FintConfirmDialog, FText, IconButton, SegmentedControl } from "../src/ui";
+import { Amount, FintButton, FintCard, FintConfirmDialog, FintLottie, FText, IconButton, SegmentedControl } from "../src/ui";
 import { AmountSkeleton } from "../src/ui/AmountSkeleton";
 import { GroupedCell } from "../src/ui/GroupedCell";
 import { useNotify } from "../src/ui/notify";
@@ -100,7 +100,7 @@ export default function AccountsScreen() {
           <FText variant="display-lg" accessibilityRole="header" style={{ flex: 1 }} numberOfLines={1}>
             {t("accountsScreen.title")}
           </FText>
-          <IconButton tone="brand" label={t("actions.newAccount")} icon={<Plus size={20} color="$onBrand" strokeWidth={2.2} />} onPress={openCreate} />
+          <IconButton label={t("actions.newAccount")} icon={<Plus size={20} color="$ink" strokeWidth={2.2} />} onPress={openCreate} />
         </XStack>
 
         {/* Patrimonio neto: activos en `chart1`, pasivos en `flowOut`. */}
@@ -157,9 +157,7 @@ export default function AccountsScreen() {
           <ListSkeleton />
         ) : overview && accounts.length === 0 ? (
           <YStack items="center" gap={space[3]} px={space[6]} pt={space[8]}>
-            <View width={52} height={52} rounded={999} bg="$surfaceSunken" items="center" justify="center">
-              <Wallet size={22} color="$inkMuted" />
-            </View>
+            <FintLottie name="coin-stack" size={76} loop="breathe" />
             <FText variant="heading" style={{ textAlign: "center" }}>
               {t("accountsScreen.emptyTitle")}
             </FText>

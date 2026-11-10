@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "fps": 60,
+  "animations": {
+    "coin-drop": {
+      "file": "coin-drop.json",
+      "segments": {
+        "drop": [
+          0,
+          42
+        ],
+        "rest": [
+          42,
+          42
+        ]
+      },
+      "slots": {
+        "disc": "slab",
+        "coin": "slabInk",
+        "accent": "brandSlab"
+      }
+    },
+    "coin-stack": {
+      "file": "coin-stack.json",
+      "segments": {
+        "build": [
+          0,
+          54
+        ],
+        "shine": [
+          54,
+          90
+        ],
+        "breathe": [
+          90,
+          210
+        ]
+      },
+      "slots": {
+        "disc": "slab",
+        "coin": "slabInk",
+        "signal": "signal"
+      }
+    },
+    "coin-pull": {
+      "file": "coin-pull.json",
+      "segments": {
+        "pull": [
+          0,
+          40
+        ],
+        "spin": [
+          40,
+          80
+        ]
+      },
+      "slots": {
+        "coin": "slabInk"
+      }
+    }
+  }
+}

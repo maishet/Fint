@@ -25,7 +25,7 @@ import { withAlpha } from "../src/theme/color";
 import { COMPACT_FONT_SCALE, motion, radius, space } from "../src/theme/tokens";
 import { fontFace } from "../src/theme/typography";
 import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
-import { Amount, FintConfirmDialog, FText, IconButton, PressableScale, SegmentedControl } from "../src/ui";
+import { Amount, FintConfirmDialog, FintLottie, FText, IconButton, PressableScale, SegmentedControl } from "../src/ui";
 import { AmountSkeleton } from "../src/ui/AmountSkeleton";
 import { useNotify } from "../src/ui/notify";
 
@@ -564,9 +564,7 @@ function AllClear({ upcoming, onChoose }: { upcoming: PaymentOccurrence | null; 
   return (
     <Animated.View entering={FadeIn.duration(motion.fade.duration)}>
       <YStack items="center" px={space[6]} mt={48}>
-        <View width={64} height={64} rounded={radius.pill} items="center" justify="center" style={{ backgroundColor: withAlpha(theme.flowIn.val, 0.14) }}>
-          <Check size={28} color="$flowIn" strokeWidth={2.4} />
-        </View>
+        <FintLottie name="coin-stack" size={76} play={["build", "shine"]} loop="breathe" />
         <FText variant="section-title" style={{ marginTop: space[4], textAlign: "center" }}>
           {t("notificationsScreen.allClear")}
         </FText>

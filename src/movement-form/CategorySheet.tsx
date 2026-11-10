@@ -1,4 +1,4 @@
-import { Check, Plus, Search, X } from "@tamagui/lucide-icons-2";
+import { Check, Grid2x2, Plus, Search, X } from "@tamagui/lucide-icons-2";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable } from "react-native";
@@ -12,7 +12,7 @@ import { useThemeMode } from "../theme/ThemeMode";
 import { compactBlockMaxWidth, motion } from "../theme/tokens";
 import { fontFace } from "../theme/typography";
 import { FintSheet, FText, SheetField, SheetTextInput } from "../ui";
-import { DashedOutline } from "../ui/DashedOutline";
+import { useCategoryWash } from "../ui/categoryWash";
 import { haptics } from "../ui/haptics";
 
 /** Tiempo para que la persona alcance a ver su elección antes de que la hoja se cierre. */
@@ -266,6 +266,8 @@ export function CategoryTile({
 
   const initial = label.trim().charAt(0).toUpperCase() || "·";
   const DISC = compact ? COMPACT_DISC : SHEET_DISC;
+  const tone = `$chart${categoryColorIndex(category.name)}` as ColorTokens;
+  const wash = useCategoryWash(tone);
 
   return (
     <Pressable
@@ -286,14 +288,15 @@ export function CategoryTile({
           rounded={999}
           items="center"
           justify="center"
-          bg={selected ? "$brandWash" : "$surfaceSunken"}
-          borderWidth={themeMode === "dark" && !selected ? 1 : 0}
+          bg={selected ? "$brandWash" : wash ? undefined : "$surfaceSunken"}
+          style={!selected && wash ? { backgroundColor: wash } : undefined}
+          borderWidth={themeMode === "dark" && !selected && !wash ? 1 : 0}
           borderColor="$line"
         >
           {category.icon ? (
             <Text style={{ fontSize: 24, lineHeight: 30, includeFontPadding: false, textAlign: "center" }}>{category.icon}</Text>
           ) : (
-            <Text fontFamily={fontFace.display[600] as never} fontSize={20} color={`$chart${categoryColorIndex(category.name)}` as ColorTokens}>
+            <Text fontFamily={fontFace.display[600] as never} fontSize={20} color={tone}>
               {initial}
             </Text>
           )}
@@ -327,7 +330,7 @@ export function CategoryTile({
   );
 }
 
-/** El disco punteado: "Nueva" en la hoja (en `brand`) u "Otra" en el formulario (`compact`, en `inkMuted`). */
+/** "Nueva" en la hoja (disco `brandWash` con el más) o "Todas" en el formulario (`compact`, disco hundido con la cuadrícula). */
 export function NewTile({ label, onPress, compact = false }: { label: string; onPress: () => void; compact?: boolean }) {
   const DISC = compact ? COMPACT_DISC : SHEET_DISC;
   return (
@@ -340,9 +343,12 @@ export function NewTile({ label, onPress, compact = false }: { label: string; on
       accessibilityRole="button"
       accessibilityLabel={label}
     >
-      <View width={DISC} height={DISC} rounded={999} items="center" justify="center">
-        <DashedOutline radius={DISC / 2} />
-        <Plus size={compact ? 20 : 22} color={compact ? "$inkMuted" : "$brand"} strokeWidth={2.2} />
+      <View width={DISC} height={DISC} rounded={999} items="center" justify="center" bg={compact ? "$surfaceSunken" : "$brandWash"}>
+        {compact ? (
+          <Grid2x2 size={20} color="$inkMuted" strokeWidth={2} />
+        ) : (
+          <Plus size={22} color="$brand" strokeWidth={2.2} />
+        )}
       </View>
       <FText
         variant="caption"

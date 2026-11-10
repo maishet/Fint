@@ -14,7 +14,7 @@ export interface SectionHeaderProps {
   aside?: string;
 }
 
-/** Título de sección del Inicio y las pestañas: `section-title` a la izquierda, acción en `brand` a la derecha. */
+/** Título de sección del Inicio y las pestañas: `section-title` a la izquierda, acción en `inkMuted` a la derecha. */
 export function SectionHeader({ title, actionLabel, onAction, aside }: SectionHeaderProps) {
   return (
     <XStack items="baseline" justify="space-between" gap={space[3]} mb={space[3]}>
@@ -24,10 +24,10 @@ export function SectionHeader({ title, actionLabel, onAction, aside }: SectionHe
       {actionLabel && onAction ? (
         <PressableScale onPress={onAction} hitSlop={8} accessibilityRole="link">
           <XStack items="center" gap={2}>
-            <FText variant="label" tone="brand" style={{ fontFamily: fontFace.sans[600] }}>
+            <FText variant="label" tone="inkMuted" style={{ fontFamily: fontFace.sans[600] }}>
               {actionLabel}
             </FText>
-            <ChevronRight size={14} color="$brand" strokeWidth={2.2} />
+            <ChevronRight size={14} color="$inkMuted" strokeWidth={2.2} />
           </XStack>
         </PressableScale>
       ) : aside ? (

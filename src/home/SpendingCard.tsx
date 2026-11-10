@@ -165,10 +165,10 @@ export function SpendingCard({ currency, series, categories, accountLabel, loadi
                 </FText>
                 <Pressable onPress={() => router.push("/(tabs)/reports")} hitSlop={10} accessibilityRole="link">
                   <XStack items="center" gap={2}>
-                    <FText variant="label" tone="brand" style={{ fontFamily: fontFace.sans[600] }}>
+                    <FText variant="label" tone="inkMuted" style={{ fontFamily: fontFace.sans[600] }}>
                       {t("home.spending.viewDetail")}
                     </FText>
-                    <ChevronRight size={14} color="$brand" strokeWidth={2.2} />
+                    <ChevronRight size={14} color="$inkMuted" strokeWidth={2.2} />
                   </XStack>
                 </Pressable>
               </XStack>

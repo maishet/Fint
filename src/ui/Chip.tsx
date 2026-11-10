@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { Text, View, XStack, type ColorTokens } from "tamagui";
 import { COMPACT_FONT_SCALE, radius } from "../theme/tokens";
 import { fontFace } from "../theme/typography";
-import { DashedOutline } from "./DashedOutline";
 import { FText } from "./FText";
 import { PressableScale } from "./PressableScale";
 
@@ -20,8 +19,6 @@ export interface ChipProps {
   /** El emoji que la persona eligió para la categoría; va en lugar del punto. */
   emoji?: string | null;
   icon?: ReactNode;
-  /** Borde punteado para "Más" o "Nueva". */
-  dashed?: boolean;
   /** Chip de detalle sin valor todavía: texto en `inkMuted`. */
   empty?: boolean;
   /** Ocupa el ancho disponible (chips de detalle de igual ancho). */
@@ -41,7 +38,6 @@ export function Chip({
   dotColor,
   emoji,
   icon,
-  dashed = false,
   empty = false,
   grow = false,
   single = false,
@@ -69,11 +65,10 @@ export function Chip({
         items="center"
         justify="center"
         rounded={radius.pill}
-        borderWidth={dashed ? 0 : 1}
+        borderWidth={1}
         bg={filterOn ? "$ink" : choiceOn ? "$brandWash" : "$surface"}
         borderColor={filterOn ? "$ink" : choiceOn ? "$brand" : "$lineStrong"}
       >
-        {dashed ? <DashedOutline radius={radius.pill} strokeWidth={1} /> : null}
         {emoji ? (
           <Text style={{ fontSize: 15, lineHeight: 19, includeFontPadding: false }} accessibilityElementsHidden importantForAccessibility="no">
             {emoji}

@@ -24,7 +24,6 @@ import { radius, space } from "../src/theme/tokens";
 import { fontFace } from "../src/theme/typography";
 import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
 import { Amount, FintButton, FintCard, FintSheet, FText, IconButton, Monogram, PressableScale } from "../src/ui";
-import { DashedOutline } from "../src/ui/DashedOutline";
 import { useNotify } from "../src/ui/notify";
 
 type DetailParams = {
@@ -306,7 +305,7 @@ export default function TransactionDetailScreen() {
                 ) : null}
               </YStack>
               <PressableScale onPress={() => setSheet("location")} haptic="tap" hitSlop={10} accessibilityRole="button">
-                <FText variant="label" tone="brand" style={{ fontSize: 13, fontFamily: fontFace.sans[600] }}>
+                <FText variant="label" tone="inkMuted" style={{ fontSize: 13, fontFamily: fontFace.sans[600] }}>
                   {t("movementDetail.editLocation")}
                 </FText>
               </PressableScale>
@@ -319,8 +318,7 @@ export default function TransactionDetailScreen() {
         )}
 
         {/* Recibo: pronto se podrá adjuntar. */}
-        <XStack mx={space[4]} mt={space[3]} p={space[4]} gap={12} items="center">
-          <DashedOutline radius={radius.lg} />
+        <XStack mx={space[4]} mt={space[3]} p={space[4]} gap={12} items="center" rounded={radius.lg} bg="$surfaceSunken">
           <View width={40} height={40} rounded={999} bg="$surfaceSunken" items="center" justify="center">
             <Receipt size={18} color="$inkFaint" strokeWidth={2} />
           </View>

@@ -13,14 +13,14 @@ export const fintPalette = {
     accent: "#2C41D6",
     action: "#2C41D6",
     actionPressed: "#1E2FAD",
-    success: "#067165", // flow-in
+    success: "#007768", // flow-in
     danger: "#B03E2C", // flow-out
     positiveTint: "#DCF3EF",
     negativeTint: "#FBE7E3",
     ground: "#14172B", // slab
     groundForeground: "#F5F6FB", // slab-ink
     groundMuted: "#A7AFCE", // slab-muted
-    groundAccent: "#46D9C4", // flow-in-slab
+    groundAccent: "#50CFBD", // flow-in-slab
     headerBackground: "#14172B",
     headerBorder: "transparent",
     headerText: "#F5F6FB",
@@ -56,10 +56,10 @@ export const fintPalette = {
     brandWash: "#EAEDFD",
     onBrand: "#FFFFFF",
     focus: "#2C41D6",
-    flowIn: "#067165",
-    flowOut: "#B03E2C",
-    flowInSlab: "#46D9C4",
-    flowOutSlab: "#FF9B85",
+    flowIn: "#007768",
+    flowOut: "#9A4A1C",
+    flowInSlab: "#50CFBD",
+    flowOutSlab: "#F2A06A",
     brandSlab: "#8C9CFF",
     heroGlow: "rgba(58,79,230,0.40)",
     heroGlowSoft: "rgba(92,108,255,0.22)",
@@ -87,14 +87,14 @@ export const fintPalette = {
     accent: "#8C9CFF",
     action: "#8C9CFF",
     actionPressed: "#A8B4FF",
-    success: "#41D6C0",
+    success: "#50CFBD",
     danger: "#FF8E78",
     positiveTint: "#0E3A36",
     negativeTint: "#3E211C",
     ground: "#1A2040",
     groundForeground: "#F2F4FB",
     groundMuted: "#A7AFCE",
-    groundAccent: "#46D9C4",
+    groundAccent: "#50CFBD",
     headerBackground: "#1A2040",
     headerBorder: "transparent",
     headerText: "#F2F4FB",
@@ -130,10 +130,10 @@ export const fintPalette = {
     brandWash: "#1C2246",
     onBrand: "#0A0C15",
     focus: "#8C9CFF",
-    flowIn: "#41D6C0",
-    flowOut: "#FF8E78",
-    flowInSlab: "#46D9C4",
-    flowOutSlab: "#FF9B85",
+    flowIn: "#50CFBD",
+    flowOut: "#F2A06A",
+    flowInSlab: "#50CFBD",
+    flowOutSlab: "#F2A06A",
     brandSlab: "#8C9CFF",
     heroGlow: "rgba(58,79,230,0.40)",
     heroGlowSoft: "rgba(92,108,255,0.22)",

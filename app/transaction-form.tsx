@@ -38,7 +38,6 @@ import {
 } from "../src/movement-form/logic";
 import { NOTE_MAX, NoteSheet } from "../src/movement-form/NoteSheet";
 import { TransferAccounts } from "../src/movement-form/TransferAccounts";
-import { withAlpha } from "../src/theme/color";
 import { useSensitiveMoney } from "../src/privacy/useSensitiveMoney";
 import { compactBlockMaxWidth, radius } from "../src/theme/tokens";
 import { fontFace } from "../src/theme/typography";
@@ -48,6 +47,7 @@ import {
   AmountDisplay,
   AmountKeypad,
   FintButton,
+  FintLottie,
   FintSheet,
   FintSpinner,
   FText,
@@ -57,7 +57,6 @@ import {
   SegmentedControl,
 } from "../src/ui";
 import { AmountSkeleton } from "../src/ui/AmountSkeleton";
-import { DashedOutline } from "../src/ui/DashedOutline";
 import { riseIn } from "../src/ui/entering";
 import { haptics } from "../src/ui/haptics";
 import { useNotify } from "../src/ui/notify";
@@ -70,6 +69,8 @@ const SHEET_UNMOUNT_MS = 600;
 
 /** Tiempo que el toast ofrece "Deshacer". */
 const UNDO_MS = 5000;
+const COIN_ICON = 30;
+const COIN_DELAY_MS = 350;
 
 /**
  * Formulario de movimiento v3: pantalla modal completa sobre `canvas`. El monto
@@ -294,6 +295,7 @@ export default function TransactionFormScreen() {
         ...(result
           ? {
               duration: UNDO_MS,
+              icon: <FintLottie name="coin-drop" size={COIN_ICON} play={["drop"]} loop="rest" delay={COIN_DELAY_MS} />,
               action: {
                 label: t("movementForm.undo"),
                 onPress: () => void undo(() => financeApi.deleteTransaction(result.id)),
@@ -325,6 +327,7 @@ export default function TransactionFormScreen() {
         message: t("movements.createdMessage"),
         preset: "success",
         duration: UNDO_MS,
+        icon: <FintLottie name="coin-drop" size={COIN_ICON} play={["drop"]} loop="rest" delay={COIN_DELAY_MS} />,
         action: {
           label: t("movementForm.undo"),
           onPress: () => void undo(() => financeApi.reverseTransfer(result.transferGroupId)),
@@ -553,11 +556,6 @@ export default function TransactionFormScreen() {
                         <FText variant="caption" tone="inkMuted" accessibilityRole="header">
                           {t("movementForm.category")}
                         </FText>
-                        <Pressable onPress={() => setSheet("category")} hitSlop={10} accessibilityRole="button">
-                          <FText variant="caption" tone="brand" style={{ fontFamily: fontFace.sans[600] }}>
-                            {t("movementForm.allCategories")}
-                          </FText>
-                        </Pressable>
                       </XStack>
                       <XStack px={6} width="100%" maxW={compactBlockMaxWidth} self="center" accessibilityRole="radiogroup" accessibilityLabel={t("movementForm.category")}>
                         {categoriesQuery.isLoading
@@ -581,7 +579,7 @@ export default function TransactionFormScreen() {
                                 }}
                               />
                             ))}
-                        <NewTile compact label={t("movementForm.otherCategory")} onPress={() => setSheet("category")} />
+                        <NewTile compact label={t("movementForm.allCategoriesShort")} onPress={() => setSheet("category")} />
                       </XStack>
                       {errors.category ? (
                         <View px={16} mt={6}>
@@ -597,8 +595,7 @@ export default function TransactionFormScreen() {
                   </FText>
                   <YStack px={16} gap={8}>
                     <DetailField
-                      icon={<CalendarDays size={17} color="$brand" strokeWidth={2} />}
-                      tint={theme.brand.val}
+                      icon={<CalendarDays size={17} color="$inkMuted" strokeWidth={2} />}
                       label={t("movementForm.date")}
                       value={dateLabel}
                       onPress={() => setSheet("date")}
@@ -622,9 +619,8 @@ export default function TransactionFormScreen() {
                   withCategory={kind !== "transfer"}
                   withLocation={showLocation}
                   categoryLabel={t("movementForm.category")}
-                  allLabel={t("movementForm.allCategories")}
                   onAllPress={() => setSheet("category")}
-                  otherLabel={t("movementForm.otherCategory")}
+                  otherLabel={t("movementForm.allCategoriesShort")}
                   detailsLabel={t("movementForm.details")}
                 />
               )}
@@ -904,7 +900,6 @@ function SectionsSkeleton({
   withCategory,
   withLocation,
   categoryLabel,
-  allLabel,
   onAllPress,
   otherLabel,
   detailsLabel,
@@ -912,7 +907,6 @@ function SectionsSkeleton({
   withCategory: boolean;
   withLocation: boolean;
   categoryLabel: string;
-  allLabel: string;
   onAllPress: () => void;
   otherLabel: string;
   detailsLabel: string;
@@ -926,11 +920,6 @@ function SectionsSkeleton({
             <FText variant="caption" tone="inkMuted" accessibilityRole="header">
               {categoryLabel}
             </FText>
-            <Pressable onPress={onAllPress} hitSlop={10} accessibilityRole="button">
-              <FText variant="caption" tone="brand" style={{ fontFamily: fontFace.sans[600] }}>
-                {allLabel}
-              </FText>
-            </Pressable>
           </XStack>
           <XStack px={6} width="100%" maxW={compactBlockMaxWidth} self="center">
             <XStack width="80%" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
@@ -963,11 +952,11 @@ function SectionsSkeleton({
   );
 }
 
-function DetailField({ icon, tint, label, value, onPress }: { icon: ReactNode; tint: string; label: string; value: string; onPress: () => void }) {
+function DetailField({ icon, label, value, onPress }: { icon: ReactNode; label: string; value: string; onPress: () => void }) {
   return (
     <PressableScale onPress={onPress} scaleTo={0.99} haptic="tap" accessibilityRole="button" accessibilityLabel={`${label}: ${value}`}>
       <XStack items="center" gap={10} px={12} py={10} rounded={radius.lg} bg="$surface" borderWidth={1} borderColor="$line">
-        <View width={36} height={36} rounded={radius.md} items="center" justify="center" style={{ backgroundColor: withAlpha(tint, 0.14) }}>
+        <View width={36} height={36} rounded={radius.md} items="center" justify="center" bg="$surfaceSunken">
           {icon}
         </View>
         <YStack flex={1} minW={0}>
@@ -1010,8 +999,7 @@ function LocationField({
   if (!shown) {
     return (
       <DetailField
-        icon={<MapPin size={17} color={theme.chart4.val as never} strokeWidth={2} />}
-        tint={theme.chart4.val}
+        icon={<MapPin size={17} color="$inkMuted" strokeWidth={2} />}
         label={t("movementForm.location")}
         value={t("movementForm.addLocation")}
         onPress={onPress}
@@ -1041,11 +1029,10 @@ function LocationField({
         pr={12}
         py={8}
         rounded={radius.lg}
-        bg={nearby ? "transparent" : "$surface"}
+        bg={nearby ? "$surfaceSunken" : "$surface"}
         borderWidth={1}
-        borderColor={nearby ? "transparent" : "$line"}
+        borderColor={nearby ? "$surfaceSunken" : "$line"}
       >
-        {nearby ? <DashedOutline radius={radius.lg} /> : null}
         <MapThumb nearby={nearby} />
         <YStack flex={1} minW={0}>
           <XStack items="center" gap={6}>
@@ -1099,8 +1086,8 @@ function NoteField({ note, onPress }: { note: string; onPress: () => void }) {
       accessibilityLabel={text ? `${t("movementForm.note")}: ${text}` : t("movementForm.addNote")}
     >
       <XStack gap={10} pl={12} pr={14} py={text ? 12 : 10} items={text ? "flex-start" : "center"} rounded={radius.lg} bg="$surface" borderWidth={1} borderColor="$line">
-        <View width={36} height={36} rounded={radius.md} items="center" justify="center" style={{ backgroundColor: withAlpha(theme.chart3.val, 0.14) }}>
-          <FileText size={17} color={theme.chart3.val as never} strokeWidth={2} />
+        <View width={36} height={36} rounded={radius.md} items="center" justify="center" bg="$surfaceSunken">
+          <FileText size={17} color="$inkMuted" strokeWidth={2} />
         </View>
         <YStack flex={1} minW={0}>
           <XStack items="center" justify="space-between">

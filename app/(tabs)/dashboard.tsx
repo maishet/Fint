@@ -5,15 +5,21 @@ import { useTranslation } from "react-i18next";
 import { AccessibilityInfo } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
+  Easing,
   Extrapolation,
+  cancelAnimation,
   interpolate,
   runOnJS,
   useAnimatedReaction,
   useAnimatedScrollHandler,
   useAnimatedStyle,
+  useDerivedValue,
   useReducedMotion,
   useSharedValue,
+  withRepeat,
+  withSequence,
   withSpring,
+  withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { View, XStack, YStack, useTheme } from "tamagui";
@@ -32,7 +38,7 @@ import { useHomeLayout } from "../../src/home/useHomeLayout";
 import { motion, radius, space } from "../../src/theme/tokens";
 import { fontFace } from "../../src/theme/typography";
 import { useScreenStatusBar } from "../../src/theme/useScreenStatusBar";
-import { Amount, FintSpinner, FText, PressableScale, useComingSoon } from "../../src/ui";
+import { Amount, FintLottie, FText, PressableScale, useComingSoon } from "../../src/ui";
 import { isComingSoon } from "../../src/config/comingSoon";
 import { riseIn } from "../../src/ui/entering";
 import { bellState } from "../../src/notifications/logic";
@@ -41,10 +47,14 @@ import { haptics } from "../../src/ui/haptics";
 
 /** Tirón (ya con goma) que dispara el refresco. */
 const PULL_TRIGGER = 80;
-/** Lo que el hero queda abierto mientras refresca, con el spinner en el hueco. */
+/** Lo que el hero queda abierto mientras refresca, con la pila de monedas en el hueco. */
 const PULL_HOLD = 56;
 /** Cuánto hay que mover el dedo hacia abajo antes de que el tirón se active. */
 const PULL_SLOP = 10;
+const COIN_SIZE = 40;
+const COIN_OPEN = 40;
+const COIN_SPIN_END = 80;
+const COIN_SPIN_MS = 667;
 
 /** Función de goma: cuanto más se tira, menos se estira. */
 function rubberBand(distance: number) {
@@ -144,6 +154,22 @@ export default function DashboardScreen() {
     if (!refreshing) pull.value = withSpring(0, motion.springUi);
   }, [pull, refreshing, refreshingNow]);
 
+  const spinFrame = useSharedValue(COIN_OPEN);
+  useEffect(() => {
+    if (refreshing && !reduceMotion) {
+      spinFrame.value = withRepeat(
+        withSequence(withTiming(COIN_OPEN, { duration: 0 }), withTiming(COIN_SPIN_END, { duration: COIN_SPIN_MS, easing: Easing.linear })),
+        -1,
+      );
+    } else {
+      cancelAnimation(spinFrame);
+      spinFrame.value = COIN_OPEN;
+    }
+  }, [refreshing, reduceMotion, spinFrame]);
+  const coinFrame = useDerivedValue(() =>
+    refreshingNow.value ? spinFrame.value : interpolate(pull.value, [16, PULL_TRIGGER], [0, COIN_OPEN], Extrapolation.CLAMP),
+  );
+
   // Con lector de pantalla no hay forma de tirar hacia abajo: el saldo ofrece "Actualizar" como acción. Reusa el
   // spinner del tirón (el hero se abre a `PULL_HOLD`) y anuncia cuándo empieza y cuándo termina.
   const refreshFromAction = useCallback(() => {
@@ -189,7 +215,6 @@ export default function DashboardScreen() {
   const pullStyle = useAnimatedStyle(() => ({ transform: [{ translateY: pull.value }] }));
   const spinnerStyle = useAnimatedStyle(() => ({
     opacity: interpolate(pull.value, [16, PULL_HOLD], [0, 1], Extrapolation.CLAMP),
-    transform: [{ rotate: `${Math.min(pull.value / PULL_TRIGGER, 1) * 270}deg` }],
   }));
 
   const needsSetup = overview && (overview.accountCount === 0 || overview.recentTransactions.length === 0);
@@ -291,8 +316,8 @@ export default function DashboardScreen() {
                         style={{ alignSelf: "center" }}
                       >
                         <XStack items="center" gap={6} py={4}>
-                          <SlidersHorizontal size={15} color="$brand" strokeWidth={2} />
-                          <FText tone="brand" style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18 }}>
+                          <SlidersHorizontal size={15} color="$inkMuted" strokeWidth={2} />
+                          <FText tone="inkMuted" style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18 }}>
                             {t("home.customize.link")}
                           </FText>
                         </XStack>
@@ -311,7 +336,7 @@ export default function DashboardScreen() {
         pointerEvents="none"
         style={[{ position: "absolute", top: insets.top + 12, left: 0, right: 0, alignItems: "center" }, spinnerStyle]}
       >
-        {refreshing ? <FintSpinner color="$slabInk" size="large" /> : <View width={24} height={24} rounded={999} borderWidth={2.5} borderColor="$slabInk" style={{ borderTopColor: "transparent" }} />}
+        <FintLottie name="coin-pull" size={COIN_SIZE} frame={coinFrame} />
       </Animated.View>
 
       {/* Cuando la hoja cubre el hero, el saldo viaja a una barra compacta arriba, en el lugar del buscador:
