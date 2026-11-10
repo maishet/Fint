@@ -1,36 +1,33 @@
 import { useEffect, useRef } from "react";
 import { Button, type ButtonProps } from "tamagui";
-import { opacity } from "../theme/tokens";
+import { opacity, pressScale } from "../theme/tokens";
 import { haptics } from "./haptics";
 
-type FintButtonVariant = "solid" | "outlined" | "soft" | "danger" | "ghost";
+type FintButtonVariant = "solid" | "ink" | "outlined" | "soft" | "destructive" | "danger" | "ghost";
+type FintButtonSize = "cta" | "row" | "mini";
 
 const MIN_TOUCH_HEIGHT = 44;
+const HEIGHTS: Record<FintButtonSize, number> = { cta: 56, row: 40, mini: 32 };
+const FONT_SIZES: Record<FintButtonSize, number> = { cta: 17, row: 14, mini: 14 };
 
-/**
- * - `solid`: la acción principal, relleno `brand`. Una por pantalla.
- * - `outlined`: secundaria con borde `lineStrong` (Quitar, Descartar).
- * - `soft`: secundaria en `brandWash` con texto `brand` (Confirmar en una lista, Pagar no vencido).
- * - `danger`: solo para borrar. Relleno `dangerHard`.
- * - `ghost`: solo texto, para "Ahora no" o "Cancelar" bajo otro botón.
- *
- * `disabled` es "todavía no se puede": conserva el color y baja a `opacity.disabled`. `pending` es "ya se está
- * haciendo" (guardando, con el spinner dentro): ignora los toques pero queda a opacidad completa y el lector lo
- * anuncia ocupado, no desactivado. Quien pasa su propio `opacity` manda sobre los dos.
- */
 const variantStyles: Record<FintButtonVariant, { bg: string; pressBg: string; color: string; border: string }> = {
-  solid: { bg: "$brand", pressBg: "$brandStrong", color: "$onBrand", border: "$brand" },
-  outlined: { bg: "transparent", pressBg: "$surfaceSunken", color: "$ink", border: "$lineStrong" },
-  soft: { bg: "$brandWash", pressBg: "$brandWash", color: "$brand", border: "$brandWash" },
-  danger: { bg: "$dangerHard", pressBg: "$dangerHard", color: "$onDanger", border: "$dangerHard" },
+  solid: { bg: "$brand", pressBg: "$brandPress", color: "$onBrand", border: "transparent" },
+  ink: { bg: "$ink", pressBg: "$ink", color: "$canvas", border: "transparent" },
+  outlined: { bg: "transparent", pressBg: "$surfaceSunken", color: "$ink", border: "$line" },
+  soft: { bg: "$surface", pressBg: "$surfaceSunken", color: "$ink", border: "transparent" },
+  destructive: { bg: "$surface", pressBg: "$surfaceSunken", color: "$dangerHard", border: "transparent" },
+  danger: { bg: "$dangerHard", pressBg: "$dangerHard", color: "$onDanger", border: "transparent" },
   ghost: { bg: "transparent", pressBg: "$surfaceSunken", color: "$inkMuted", border: "transparent" },
 };
 
-interface FintButtonProps extends Omit<ButtonProps, "variant"> {
+const DISABLED = { bg: "$surface", color: "$inkFaint", border: "transparent" };
+
+interface FintButtonProps extends Omit<ButtonProps, "variant" | "size"> {
   variant?: FintButtonVariant;
   haptic?: "tap" | "select" | "warning" | "none";
   /** Guardando: no responde al toque, pero no se atenúa ni se anuncia desactivado. */
   pending?: boolean;
+  size?: FintButtonSize;
 }
 
 export function FintButton({
@@ -41,9 +38,11 @@ export function FintButton({
   haptic = "tap",
   circular,
   minH,
+  size = "cta",
   ...props
 }: FintButtonProps) {
-  const height = Math.max(typeof minH === "number" ? minH : 52, MIN_TOUCH_HEIGHT);
+  const height = typeof minH === "number" ? Math.max(minH, MIN_TOUCH_HEIGHT) : HEIGHTS[size];
+  const slop = Math.max(0, Math.ceil((MIN_TOUCH_HEIGHT - height) / 2));
   // El candado vive solo en el ref: con `disabled` el lector de pantalla anunciaba "desactivado" tras cada toque.
   const isPressLockedRef = useRef(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -75,7 +74,8 @@ export function FintButton({
     timeoutRef.current = setTimeout(unlock, 700);
   };
 
-  const v = variantStyles[variant];
+  const v = disabled ? { ...variantStyles[variant], ...DISABLED, pressBg: DISABLED.bg } : variantStyles[variant];
+  const outlined = variant === "outlined" && !disabled;
 
   return (
     <Button
@@ -83,26 +83,28 @@ export function FintButton({
       bg={v.bg as ButtonProps["bg"]}
       color={v.color as ButtonProps["color"]}
       borderColor={v.border as ButtonProps["borderColor"]}
-      borderWidth={variant === "outlined" ? 1 : 0}
+      borderWidth={outlined ? 1.5 : 0}
       circular={circular}
-      {...(circular ? null : { minH: height, height, rounded: 14 })}
+      {...(circular ? null : { minH: height, height, rounded: 999, px: size === "cta" ? 24 : 20 })}
+      hitSlop={slop ? { top: slop, bottom: slop } : undefined}
       fontFamily="$body"
-      fontWeight="600"
+      fontWeight="700"
+      fontSize={FONT_SIZES[size]}
       hoverStyle={{
         bg: v.pressBg as ButtonProps["bg"],
         borderColor: v.border as ButtonProps["borderColor"],
       }}
       pressStyle={
-        pending
+        pending || disabled
           ? undefined
           : {
               bg: v.pressBg as ButtonProps["bg"],
               borderColor: v.border as ButtonProps["borderColor"],
-              opacity: opacity.press,
-              scale: 0.97,
+              opacity: variant === "ink" ? opacity.press : 1,
+              scale: pressScale,
             }
       }
-      opacity={disabled ? opacity.disabled : 1}
+      focusVisibleStyle={{ outlineWidth: 2, outlineStyle: "solid", outlineColor: "$ink", outlineOffset: 2 }}
       disabled={disabled}
       aria-busy={pending || undefined}
       onPress={handlePress}

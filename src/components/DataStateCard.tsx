@@ -23,7 +23,7 @@ export function DataStateCard({ message, onRetry, title }: { message: string; on
           {isError ? <Paragraph color="$color12" text="center" fontFamily="$heading" fontSize="$4" fontWeight="600">{title ?? t('states.errorTitle')}</Paragraph> : null}
           <Paragraph color="$color10" text="center" fontWeight={isError ? '400' : '600'}>{message}</Paragraph>
         </YStack>
-        {onRetry ? <FintButton size="$3" icon={<RefreshCw size={16} />} onPress={onRetry}>{t('actions.retry')}</FintButton> : null}
+        {onRetry ? <FintButton size="row" icon={<RefreshCw size={16} />} onPress={onRetry}>{t('actions.retry')}</FintButton> : null}
       </YStack>
     </FintCard>
   )

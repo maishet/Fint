@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { financeApi } from "../api/finance";
 import type { MovementKind } from "../api/types";
+import { warmCategoryHues } from "./emojiHue";
 
 /**
  * El emoji que la persona eligió para cada categoría, para pintarlo en las
@@ -11,6 +12,10 @@ import type { MovementKind } from "../api/types";
  */
 export function useCategoryIcons() {
   const query = useQuery({ queryKey: ["categories"], queryFn: () => financeApi.listCategories(), staleTime: 5 * 60_000 });
+
+  useEffect(() => {
+    if (query.data) warmCategoryHues(query.data.map((c) => c.icon));
+  }, [query.data]);
 
   const byKey = useMemo(() => {
     const map = new Map<string, string>();

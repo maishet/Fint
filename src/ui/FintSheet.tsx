@@ -138,7 +138,7 @@ export function FintSheet({
         </YStack>
         {headerAction ? (
           <PressableScale onPress={headerAction.onPress} hitSlop={10} accessibilityRole="button">
-            <FText variant="body-strong" tone="brand">
+            <FText variant="body-strong" tone="ink">
               {headerAction.label}
             </FText>
           </PressableScale>
@@ -214,31 +214,18 @@ export function FintSheet({
   );
 }
 
-/**
- * Relleno hundido dentro de una hoja (buscador, campo). En oscuro,
- * `surfaceSunken` y `surfaceOverlay` casi no se distinguen (1.13:1 en claro,
- * 1.03:1 en oscuro), así que lleva además un filete `lineStrong` de 1px en
- * reposo: 3.97:1 en claro y 3.23:1 en oscuro, sobre los 3:1 que pide WCAG 1.4.11.
- */
 export function SheetField({ children, focused = false, invalid = false }: { children: ReactNode; focused?: boolean; invalid?: boolean }) {
-  // Con error, borde `dangerHard` de 1.5px aunque tenga el foco: el error se ve hasta que la persona corrige.
-  if (invalid) {
-    return (
-      <XStack minH={48} px={14} gap={10} items="center" rounded={radius.md} bg="$surfaceSunken" borderWidth={1.5} borderColor="$dangerHard">
-        {children}
-      </XStack>
-    );
-  }
+  const { themeMode } = useThemeMode();
   return (
     <XStack
-      minH={48}
+      minH={52}
       px={14}
       gap={10}
       items="center"
-      rounded={radius.md}
-      bg={focused ? "$surface" : "$surfaceSunken"}
-      borderWidth={focused ? 1.5 : 1}
-      borderColor={focused ? "$brand" : "$lineStrong"}
+      rounded={16}
+      bg={themeMode === "dark" ? "$surfaceSunken" : "$surface"}
+      borderWidth={1.5}
+      borderColor={invalid ? "$dangerHard" : focused ? "$ink" : "transparent"}
     >
       {children}
     </XStack>
@@ -252,7 +239,7 @@ export function SheetTextInput(props: TextInputProps & { ref?: Ref<TextInput> })
   return (
     <TextInput
       placeholderTextColor={theme.inkFaint.val}
-      selectionColor={theme.brand.val}
+      selectionColor={theme.ink.val}
       {...props}
       style={[textStyles.body, { flex: 1, color: theme.ink.val, paddingVertical: 12 }, props.style]}
     />

@@ -9,8 +9,8 @@ export interface ChipProps {
   label: string;
   selected?: boolean;
   /**
-   * - `filter`: filtros de lista. Elegido = relleno `ink`.
-   * - `choice`: una opción de formulario (categoría rápida). Elegido = `brandWash` con filete `brand`.
+   * - `filter`: filtros de lista. Elegido = `chipOn`.
+   * - `choice`: una opción de formulario (categoría rápida). Elegido = `chipOn`.
    * - `detail`: los chips de fecha, lugar y nota del formulario. Nunca "elegidos"; `empty` los apaga.
    */
   variant?: "filter" | "choice" | "detail";
@@ -19,7 +19,7 @@ export interface ChipProps {
   /** El emoji que la persona eligió para la categoría; va en lugar del punto. */
   emoji?: string | null;
   icon?: ReactNode;
-  /** Chip de detalle sin valor todavía: texto en `inkMuted`. */
+  /** Chip de detalle sin valor todavía: contorno `line` y texto en `inkMuted`. */
   empty?: boolean;
   /** Ocupa el ancho disponible (chips de detalle de igual ancho). */
   grow?: boolean;
@@ -43,9 +43,9 @@ export function Chip({
   single = false,
   onPress,
 }: ChipProps) {
-  const filterOn = variant === "filter" && selected;
-  const choiceOn = variant === "choice" && selected;
-  const tone = filterOn ? "canvas" : choiceOn || variant === "detail" ? (empty ? "inkMuted" : "ink") : "inkMuted";
+  const on = variant !== "detail" && selected;
+  const emptyDetail = variant === "detail" && empty;
+  const height = variant === "filter" ? 36 : 40;
 
   return (
     <PressableScale
@@ -54,20 +54,19 @@ export function Chip({
       accessibilityRole={variant === "detail" ? "button" : single ? "radio" : "togglebutton"}
       accessibilityState={single ? { checked: selected } : { selected }}
       accessibilityLabel={label}
-      // La forma mide 32; el área de toque llega a 48 (Android) sin cambiar lo que se ve.
-      hitSlop={{ top: 8, bottom: 8 }}
+      hitSlop={{ top: (48 - height) / 2, bottom: (48 - height) / 2 }}
       style={grow ? { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0 } : undefined}
     >
       <XStack
-        minH={32}
-        px={13}
+        minH={height}
+        px={variant === "filter" ? 16 : 14}
         gap={6}
         items="center"
         justify="center"
         rounded={radius.pill}
-        borderWidth={1}
-        bg={filterOn ? "$ink" : choiceOn ? "$brandWash" : "$surface"}
-        borderColor={filterOn ? "$ink" : choiceOn ? "$brand" : "$lineStrong"}
+        borderWidth={emptyDetail ? 1.5 : 0}
+        borderColor="$line"
+        bg={on ? "$chipOn" : emptyDetail ? "transparent" : "$surface"}
       >
         {emoji ? (
           <Text style={{ fontSize: 15, lineHeight: 19, includeFontPadding: false }} accessibilityElementsHidden importantForAccessibility="no">
@@ -79,9 +78,9 @@ export function Chip({
         {icon}
         <FText
           variant="label"
-          tone={tone === "canvas" ? undefined : (tone as "ink" | "inkMuted")}
-          color={tone === "canvas" ? "$canvas" : undefined}
-          style={[{ flexShrink: 1 }, selected ? { fontFamily: fontFace.sans[600] } : null]}
+          tone={on ? undefined : variant === "filter" || emptyDetail ? "inkMuted" : "ink"}
+          color={on ? "$onChipOn" : undefined}
+          style={[{ flexShrink: 1, fontFamily: fontFace.sans[600], fontSize: variant === "filter" ? 14 : 13 }]}
           numberOfLines={1}
           maxFontSizeMultiplier={COMPACT_FONT_SCALE}
         >
