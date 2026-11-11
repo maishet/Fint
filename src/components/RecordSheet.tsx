@@ -3,12 +3,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, type Href } from "expo-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable } from "react-native";
 import Animated, {
   cancelAnimation,
   Easing,
   FadeIn,
-  interpolateColor,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -33,8 +31,9 @@ interface SheetProps {
 }
 
 /**
- * La hoja del botón central: Egreso, Ingreso y Transferencia, en ese orden,
- * que es el de frecuencia real. Es siempre la misma hoja, desde cualquier tab.
+ * La hoja del botón central (marca D, con el lenguaje de la hoja Más): Egreso, lo que más se registra, como acceso
+ * grande en amarillo a todo el ancho, y debajo Ingreso y Transferencia en dos accesos `surface`. Es siempre la misma
+ * hoja, desde cualquier tab.
  */
 export function RecordSheet({ open, onClose }: SheetProps) {
   const { t } = useTranslation();
@@ -57,80 +56,97 @@ export function RecordSheet({ open, onClose }: SheetProps) {
   };
 
   return (
-    <FintSheet open={open} onClose={onClose} title={t("home.record.title")} titleSize="compact">
-      <YStack px={space[4]} pt={space[3]} gap={4}>
-        <Option
-          icon={<ArrowDown size={20} color="$flowOut" strokeWidth={2} />}
+    <FintSheet open={open} onClose={onClose} title={t("home.record.title")}>
+      <YStack px={space[5]} pt={space[2]} gap={10}>
+        <KindTile
+          primary
+          icon={<ArrowDown size={22} color="$slabInk" strokeWidth={2.2} />}
           title={t("home.record.expense")}
           hint={t("home.record.expenseHint")}
-          selected={chosen === "expense"}
+          dimmed={chosen !== null && chosen !== "expense"}
           onPress={() => go("expense")}
         />
-        <Option
-          icon={<ArrowUp size={20} color="$flowIn" strokeWidth={2} />}
-          title={t("home.record.income")}
-          hint={t("home.record.incomeHint")}
-          selected={chosen === "income"}
-          onPress={() => go("income")}
-        />
-        <Option
-          icon={<ArrowLeftRight size={20} color="$inkMuted" strokeWidth={2} />}
-          title={t("home.record.transfer")}
-          hint={t("home.record.transferHint")}
-          selected={chosen === "transfer"}
-          onPress={() => go("transfer")}
-        />
+        <XStack gap={10}>
+          <KindTile
+            icon={<ArrowUp size={20} color="$flowIn" strokeWidth={2.2} />}
+            title={t("home.record.income")}
+            hint={t("home.record.incomeHint")}
+            dimmed={chosen !== null && chosen !== "income"}
+            onPress={() => go("income")}
+          />
+          <KindTile
+            icon={<ArrowLeftRight size={20} color="$ink" strokeWidth={2.2} />}
+            title={t("home.record.transfer")}
+            hint={t("home.record.transferHint")}
+            dimmed={chosen !== null && chosen !== "transfer"}
+            onPress={() => go("transfer")}
+          />
+        </XStack>
       </YStack>
     </FintSheet>
   );
 }
 
 /**
- * Una opción de la hoja: sin borde; al presionar, el fondo pasa a `surfaceSunken` con la curva `press`. Elegida
- * (`selected`), el fondo se queda mientras se abre el formulario.
+ * Un acceso de la hoja de registrar. `primary` (Egreso): la losa amarilla a todo el ancho, con el ícono en un cuadro
+ * de tinta translúcida, el nombre a 20 y la línea al lado. Los demás: `surface` de radio 20 con el ícono en un
+ * círculo `canvas`, el nombre a 16 y la línea debajo (hasta dos renglones). Al elegir uno, los otros se apagan
+ * mientras se abre el formulario, para que se note que el toque llegó.
  */
-function Option({ icon, title, hint, selected, onPress }: { icon: ReactNode; title: string; hint: string; selected: boolean; onPress: () => void }) {
-  const theme = useTheme();
-  const pressed = useSharedValue(0);
-  const from = "rgba(0,0,0,0)";
-  const to = theme.surfaceSunken.val;
-  const bgStyle = useAnimatedStyle(() => ({ backgroundColor: interpolateColor(pressed.value, [0, 1], [from, to]) }));
-
-  useEffect(() => {
-    if (!selected) pressed.value = withTiming(0, motion.fade);
-  }, [pressed, selected]);
-
+function KindTile({
+  icon,
+  title,
+  hint,
+  primary = false,
+  dimmed,
+  onPress,
+}: {
+  icon: ReactNode;
+  title: string;
+  hint: string;
+  primary?: boolean;
+  dimmed: boolean;
+  onPress: () => void;
+}) {
   return (
-    <Pressable
-      onPress={() => {
-        // `onPressOut` ya empezó a apagar el fondo: se vuelve a encender porque la opción queda elegida.
-        pressed.value = withTiming(1, motion.press);
-        onPress();
-      }}
-      onPressIn={() => {
-        pressed.value = withTiming(1, motion.press);
-        haptics.tap();
-      }}
-      onPressOut={() => {
-        if (!selected) pressed.value = withTiming(0, motion.fade);
-      }}
+    <PressableScale
+      onPress={onPress}
+      haptic="tap"
       accessibilityRole="button"
       accessibilityLabel={`${title}. ${hint}`}
+      style={{ flex: primary ? undefined : 1, opacity: dimmed ? 0.45 : 1 }}
     >
-      <Animated.View style={[{ borderRadius: radius.md }, bgStyle]}>
-        <XStack items="center" gap={14} px={space[3]} py={13}>
-          <View width={40} height={40} rounded={radius.md} bg="$surfaceSunken" items="center" justify="center">
+      {primary ? (
+        <XStack minH={96} px={18} py={16} gap={14} items="center" rounded={24} bg="$slab">
+          <View width={48} height={48} rounded={16} items="center" justify="center" style={{ backgroundColor: "rgba(20,20,18,0.10)" }}>
             {icon}
           </View>
-          <YStack flex={1} minW={0}>
-            <FText variant="body-strong">{title}</FText>
-            <FText variant="caption" tone="inkFaint" numberOfLines={1}>
+          <YStack flex={1} minW={0} gap={2}>
+            <FText tone="slabInk" maxFontSizeMultiplier={1.5} style={{ fontFamily: fontFace.display[700], fontSize: 20, lineHeight: 25 }}>
+              {title}
+            </FText>
+            <FText tone="slabMuted" style={{ fontSize: 14, lineHeight: 19 }}>
               {hint}
             </FText>
           </YStack>
+          <ChevronRight size={20} color="$slabInk" strokeWidth={2} />
         </XStack>
-      </Animated.View>
-    </Pressable>
+      ) : (
+        <YStack flex={1} minH={124} p={16} gap={12} justify="space-between" rounded={20} bg="$surface">
+          <View width={40} height={40} rounded={999} bg="$canvas" items="center" justify="center">
+            {icon}
+          </View>
+          <YStack gap={2}>
+            <FText maxFontSizeMultiplier={1.5} style={{ fontFamily: fontFace.display[700], fontSize: 16, lineHeight: 21 }}>
+              {title}
+            </FText>
+            <FText tone="inkFaint" numberOfLines={2} style={{ fontSize: 12, lineHeight: 16 }}>
+              {hint}
+            </FText>
+          </YStack>
+        </YStack>
+      )}
+    </PressableScale>
   );
 }
 
