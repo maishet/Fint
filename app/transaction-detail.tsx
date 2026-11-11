@@ -5,7 +5,8 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, Share } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { View, XStack, YStack } from "tamagui";
+import Svg, { Path } from "react-native-svg";
+import { useTheme, View, XStack, YStack } from "tamagui";
 import { financeApi } from "../src/api/finance";
 import { MiniMap } from "../src/components/MiniMap";
 import { getCategoryLabel } from "../src/finance/categoryLabels";
@@ -83,6 +84,7 @@ export default function TransactionDetailScreen() {
   const [date, setDate] = useState(rawDate.slice(0, 10));
   /** Alto de la cabecera de la boleta: ahí van el filete y las dos muescas. */
   const [headHeight, setHeadHeight] = useState(0);
+  const [ticketSize, setTicketSize] = useState({ width: 0, height: 0 });
   // La nota es solo lo que escribió la persona; la descripción del correo va aparte (con el backend anterior, `note`
   // trae una o la otra).
   const [note, setNote] = useState(params.userNote ?? params.note ?? "");
@@ -233,9 +235,16 @@ export default function TransactionDetailScreen() {
       <ScrollView contentContainerStyle={{ paddingTop: 10, paddingBottom: space[4] }}>
         {/*
           La boleta blanca (marca D, H-00): `canvas` con filete `line` de 1.5 y una sombra corta, radio 26 y dos muescas
-          que cortan el filete entre la cabecera y los datos. `overflow` oculta la mitad de afuera de cada muesca.
+          entre la cabecera y los datos. El contorno se dibuja con SVG y las muescas son parte de la forma (el filete
+          las rodea): como la boleta y el fondo son del mismo color, unos círculos pintados encima no se veían.
         */}
-        <View mx={space[5]} rounded={26} bg="$canvas" borderWidth={1.5} borderColor="$line" overflow="hidden" style={{ boxShadow: "0 16px 30px -22px rgba(20,20,18,0.5)" }}>
+        <View
+          mx={space[5]}
+          rounded={26}
+          style={{ boxShadow: "0 16px 30px -22px rgba(20,20,18,0.5)" }}
+          onLayout={(e) => setTicketSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
+        >
+          {ticketSize.width && headHeight ? <TicketOutline width={ticketSize.width} height={ticketSize.height} notchY={headHeight} /> : null}
           {/* Cabecera: el emoji, la categoría, el monto con signo y de dónde vino. */}
           <YStack items="center" px={space[5]} pt={22} pb={20} gap={8} onLayout={(e) => setHeadHeight(e.nativeEvent.layout.height)}>
             <Monogram name={title} emoji={emoji} size={64} />
@@ -253,12 +262,6 @@ export default function TransactionDetailScreen() {
           </YStack>
 
           <View height={0} mx={22} borderTopWidth={1.5} borderColor="$line" />
-          {headHeight ? (
-            <>
-              <View position="absolute" l={-13.5} t={headHeight - 12} width={24} height={24} rounded={999} bg="$canvas" borderWidth={1.5} borderColor="$line" />
-              <View position="absolute" r={-13.5} t={headHeight - 12} width={24} height={24} rounded={999} bg="$canvas" borderWidth={1.5} borderColor="$line" />
-            </>
-          ) : null}
 
           {/* Datos: etiqueta arriba y valor debajo; cada fila abre la hoja del formulario y guarda al elegir. */}
           <YStack px={space[5]} pt={6} pb={8}>
@@ -496,5 +499,51 @@ function DataRow({
         </XStack>
       )}
     </Pressable>
+  );
+}
+
+/** Radio de la boleta blanca y de sus muescas, y el grosor del filete. */
+const TICKET_RADIUS = 26;
+const NOTCH_RADIUS = 12;
+const OUTLINE = 1.5;
+
+/**
+ * El contorno de la boleta blanca: rectángulo de radio 26 con una muesca semicircular a cada lado a la altura
+ * `notchY`, relleno `canvas` y filete `line`. Va detrás del contenido y no lo lee el lector.
+ */
+function TicketOutline({ width, height, notchY }: { width: number; height: number; notchY: number }) {
+  const theme = useTheme();
+  const s = OUTLINE / 2;
+  const r = TICKET_RADIUS;
+  const n = NOTCH_RADIUS;
+  const w = width - s;
+  const h = height - s;
+  const d = [
+    `M ${s + r} ${s}`,
+    `H ${w - r}`,
+    `A ${r} ${r} 0 0 1 ${w} ${s + r}`,
+    `V ${notchY - n}`,
+    `A ${n} ${n} 0 0 0 ${w} ${notchY + n}`,
+    `V ${h - r}`,
+    `A ${r} ${r} 0 0 1 ${w - r} ${h}`,
+    `H ${s + r}`,
+    `A ${r} ${r} 0 0 1 ${s} ${h - r}`,
+    `V ${notchY + n}`,
+    `A ${n} ${n} 0 0 0 ${s} ${notchY - n}`,
+    `V ${s + r}`,
+    `A ${r} ${r} 0 0 1 ${s + r} ${s}`,
+    "Z",
+  ].join(" ");
+  return (
+    <Svg
+      width={width}
+      height={height}
+      style={{ position: "absolute", top: 0, left: 0 }}
+      pointerEvents="none"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
+      <Path d={d} fill={theme.canvas.val} stroke={theme.line.val} strokeWidth={OUTLINE} />
+    </Svg>
   );
 }

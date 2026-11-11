@@ -1,17 +1,29 @@
 export const FPS = 60;
 export const CANVAS = 120;
 
+/**
+ * Colores de respaldo que quedan escritos en los JSON (marca D: las animaciones siempre se ven sobre amarillo).
+ * En la app no se ven: `FintLottie` pisa cada slot con el token del manifiesto al cargar. Sirven para abrir los
+ * JSON fuera de la app (LottieFiles, After Effects) con los colores reales.
+ */
 export const SLOT_DEFAULTS = {
-  disc: "#14172B",
-  discLine: "#2E3454",
-  coin: "#F5F6FB",
-  accent: "#8C9CFF",
-  signal: "#F5BC3F",
+  disc: "#FFC629",
+  discLine: "rgba(20,20,18,0.18)",
+  coin: "#141412",
+  accent: "#141412",
+  signal: "#5C4A12",
 };
 
-export function rgba(hex) {
-  const n = parseInt(hex.slice(1), 16);
-  return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255, 1].map((v) => Math.round(v * 1000) / 1000);
+/** `#RRGGBB` o `rgba(r,g,b,a)` → `[r, g, b, a]` de 0 a 1, como los pide Lottie. */
+export function rgba(color) {
+  const m = color.match(/^rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([\d.]+)\s*\)$/);
+  const parts = m
+    ? [Number(m[1]) / 255, Number(m[2]) / 255, Number(m[3]) / 255, Number(m[4])]
+    : (() => {
+        const n = parseInt(color.slice(1), 16);
+        return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255, 1];
+      })();
+  return parts.map((v) => Math.round(v * 1000) / 1000);
 }
 
 export const ease = {

@@ -37,19 +37,20 @@ export function BigAmountInput({
     const sub = Keyboard.addListener("keyboardDidHide", () => input.current?.blur());
     return () => sub.remove();
   }, []);
+  // El monto grande no escala con la letra del sistema (como `amount-input`): ya es grande y saldría de la pantalla.
   const style = [textStyles.amount, { fontFamily: fontFace.mono[600], fontSize: 44, lineHeight: 52, letterSpacing: -1 }];
   return (
     <XStack justify="center" items="center" gap={6} mt={4} maxW="100%">
-      <FText tone="inkFaint" style={{ fontFamily: fontFace.mono[500], fontSize: 22, lineHeight: 28, marginTop: 8 }}>
+      <FText tone="inkFaint" allowFontScaling={false} style={{ fontFamily: fontFace.mono[500], fontSize: 22, lineHeight: 28, marginTop: 8 }}>
         {`${sign ?? ""}${getCurrencySymbol(currency)}`}
       </FText>
-      <Text position="absolute" opacity={0} style={style} onLayout={(e) => setWidth(e.nativeEvent.layout.width)} pointerEvents="none">
+      <Text position="absolute" opacity={0} allowFontScaling={false} style={style} onLayout={(e) => setWidth(e.nativeEvent.layout.width)} pointerEvents="none">
         {value || "0.00"}
       </Text>
       <View>
         {/* El marcador va aparte: en Android el `placeholder` de un campo no usa la fuente `mono`. */}
         {value ? null : (
-          <Text position="absolute" l={0} r={0} numberOfLines={1} color="$inkFaint" style={style} pointerEvents="none">
+          <Text position="absolute" l={0} r={0} numberOfLines={1} allowFontScaling={false} color="$inkFaint" style={style} pointerEvents="none">
             0.00
           </Text>
         )}
@@ -61,6 +62,7 @@ export function BigAmountInput({
           keyboardType="decimal-pad"
           // Tocar el monto lo selecciona entero: lo que se escribe lo reemplaza, en lugar de insertarse a la mitad.
           selectTextOnFocus
+          allowFontScaling={false}
           selectionColor={theme.brand.val}
           accessibilityLabel={`${label} (${currency})`}
           style={[style, { color: locked ? theme.inkMuted.val : theme.ink.val, width: width ? width + 6 : undefined, minWidth: 40, padding: 0 }]}

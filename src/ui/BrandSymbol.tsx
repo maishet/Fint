@@ -21,8 +21,11 @@ export const BRAND_COIN_EDGE = "#6B5A1E";
 export const BRAND_TILE = { inset: 9.55, radius: 26.2 } as const;
 export const BRAND_TILE_SCALE = 0.83;
 
-/** El canto de una moneda: los lados y la mitad de abajo de la elipse, `depth` más abajo que la cara. */
-export function coinEdgePath(cy: number, rx: number, ry: number, depth = BRAND_COIN_DEPTH) {
+/**
+ * El canto de una moneda: los lados y la mitad de abajo de la elipse, `depth` más abajo que la cara. `depth` va
+ * siempre como argumento: es un worklet y un valor por defecto que lea `BRAND_COIN_DEPTH` no llega al hilo de UI.
+ */
+export function coinEdgePath(cy: number, rx: number, ry: number, depth: number) {
   "worklet";
   const l = 60 - rx;
   const r = 60 + rx;
@@ -51,7 +54,7 @@ export function BrandSymbol({ size, tile = false }: BrandSymbolProps) {
       <G transform={`translate(60 60) scale(${scale}) translate(-60 -60)`}>
         {BRAND_COINS.map((c, k) => (
           <G key={k}>
-            <Path d={coinEdgePath(c.cy, c.rx, c.ry)} fill={BRAND_COIN_EDGE} />
+            <Path d={coinEdgePath(c.cy, c.rx, c.ry, BRAND_COIN_DEPTH)} fill={BRAND_COIN_EDGE} />
             <Ellipse cx={60} cy={c.cy} rx={c.rx} ry={c.ry} fill={coin} />
           </G>
         ))}

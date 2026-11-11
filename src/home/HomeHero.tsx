@@ -17,7 +17,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, View, XStack, YStack, useTheme } from "tamagui";
 import { useUserAvatar } from "../auth/useUserAvatar";
-import { amountParts, THIN_SPACE } from "../finance/formatAmount";
+import { amountParts, formatAmount, THIN_SPACE } from "../finance/formatAmount";
 import { useSensitiveAmounts } from "../privacy/SensitiveAmountsProvider";
 import { useThemeMode } from "../theme/ThemeMode";
 import { fintPalette } from "../theme/palette";
@@ -447,11 +447,16 @@ function SwipeableBalance({
         onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
         accessible
         accessibilityRole="adjustable"
+        // M-07: la boleta se lee como un solo elemento: cuenta, saldo y cambio del mes (con signo, como se ve).
         accessibilityLabel={
           unavailable
             ? `${page.label}: ${t("states.errorTitle")}`
             : visible
-              ? `${page.label}: ${parts.sign}${parts.symbol} ${parts.integer.replaceAll(THIN_SPACE, "")}.${parts.fraction}`
+              ? `${page.label}: ${parts.sign}${parts.symbol} ${parts.integer.replaceAll(THIN_SPACE, "")}.${parts.fraction}${
+                  change != null && change !== 0
+                    ? `, ${formatAmount(change, page.currency, { sign: "always" }).replaceAll(THIN_SPACE, "")} ${t("home.thisMonth")}`
+                    : ""
+                }`
               : t("privacy.amounts.hiddenLabel")
         }
         accessibilityHint={t("home.balanceHint")}
@@ -468,7 +473,9 @@ function SwipeableBalance({
           else toggle();
         }}
       >
-        <Pressable onPress={toggle} accessible={false}>
+        {/* Fuera del lector: el grupo de arriba ya lee el saldo y lo alterna con "activar". En Android, un
+            `Pressable` tocable seguía siendo foco aunque tuviera `accessible={false}` y el saldo se leía dos veces. */}
+        <Pressable onPress={toggle} accessible={false} importantForAccessibility="no">
           {unavailable ? (
             <Text allowFontScaling={false} numberOfLines={1} style={{ ...hero, color: theme.slabMuted.val }}>
               {`${parts.symbol}${THIN_SPACE}—`}

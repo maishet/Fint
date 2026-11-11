@@ -345,7 +345,7 @@ function WelcomeCards() {
         <FText variant="overline" tone="slabMuted">
           {t("onboardingScreen.welcome.netWorth")}
         </FText>
-        <Text color="$slabInk" mt={6} style={{ ...textStyles["amount-hero"], fontSize: 34, lineHeight: 40, letterSpacing: -1.4 }}>
+        <Text color="$slabInk" mt={6} allowFontScaling={false} style={{ ...textStyles["amount-hero"], fontSize: 34, lineHeight: 40, letterSpacing: -1.4 }}>
           <Text color="$slabMuted" style={{ fontSize: 18, letterSpacing: 0 }}>
             {worth.symbol}
             {THIN_SPACE}
@@ -588,7 +588,7 @@ function NotificationsIllustration() {
   return (
     <YStack gap={12} px={18}>
       <YStack items="center" mb={10}>
-        <Text color="$ink" style={{ fontFamily: fontFace.mono[500], fontSize: 60, lineHeight: 66, letterSpacing: -1.5, opacity: 0.9 }}>
+        <Text color="$ink" allowFontScaling={false} style={{ fontFamily: fontFace.mono[500], fontSize: 60, lineHeight: 66, letterSpacing: -1.5, opacity: 0.9 }}>
           {clock}
         </Text>
         <FText variant="label" tone="inkMuted">

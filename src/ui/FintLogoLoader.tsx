@@ -15,7 +15,7 @@ import Animated, {
 } from "react-native-reanimated";
 import Svg, { Ellipse, G, Path, Rect } from "react-native-svg";
 import { useTheme } from "tamagui";
-import { BRAND_COIN_EDGE, BRAND_COINS, BRAND_TILE, BRAND_TILE_SCALE, coinEdgePath } from "./BrandSymbol";
+import { BRAND_COIN_DEPTH, BRAND_COIN_EDGE, BRAND_COINS, BRAND_TILE, BRAND_TILE_SCALE, coinEdgePath } from "./BrandSymbol";
 
 const AnimatedEllipse = Animated.createAnimatedComponent(Ellipse);
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -64,13 +64,14 @@ function springGesture(u: number) {
 /** Cada moneda (cara y canto) cae desde 34 unidades más arriba, escalonada, y aparece con opacidad 1. */
 function useCoinProps(t: SharedValue<number>, k: 0 | 1 | 2) {
   const c = BRAND_COINS[k];
+  const depth = BRAND_COIN_DEPTH;
   const face = useAnimatedProps(() => {
     const u = (t.value - T.drop - k * T.stagger) / T.dropDur;
     return { cy: c.cy - 34 * (1 - springGesture(clamp01(u))), opacity: clamp01(u * 3) };
   });
   const edge = useAnimatedProps(() => {
     const u = (t.value - T.drop - k * T.stagger) / T.dropDur;
-    return { d: coinEdgePath(c.cy - 34 * (1 - springGesture(clamp01(u))), c.rx, c.ry), opacity: clamp01(u * 3) };
+    return { d: coinEdgePath(c.cy - 34 * (1 - springGesture(clamp01(u))), c.rx, c.ry, depth), opacity: clamp01(u * 3) };
   });
   return { face, edge };
 }

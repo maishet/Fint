@@ -118,7 +118,7 @@ export function ForgotPasswordStep({ initialEmail, onBack }: { initialEmail: str
   const generalError = serverError && serverError.field === null ? serverError.message : null;
   const passwordToggle = (
     <Pressable
-      hitSlop={10}
+      hitSlop={13}
       accessibilityRole="button"
       accessibilityLabel={isPasswordVisible ? t("auth.hidePassword") : t("auth.showPassword")}
       onPress={() => setIsPasswordVisible((current) => !current)}

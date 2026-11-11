@@ -300,7 +300,7 @@ export default function PaymentsScreen() {
             key={c}
             divider={i > 0}
             title={c}
-            trailing={c === currency ? <Check size={18} color="$brand" strokeWidth={2.4} /> : undefined}
+            trailing={c === currency ? <Check size={18} color="$ink" strokeWidth={2.4} /> : undefined}
             onPress={() => {
               setSummaryCurrency(c);
               setCurrencySheet(false);

@@ -188,14 +188,14 @@ export function LocationEditSheet({
               bg="$card"
               borderWidth={1}
               borderColor="$borderColor"
-              shadowColor="rgba(4,48,54,0.2)"
+              shadowColor="rgba(20,20,18,0.2)"
               shadowRadius={10}
               shadowOffset={{ width: 0, height: 4 }}
               icon={<ChevronLeft size={20} color="$color12" />}
               onPress={closeSheet}
               aria-label={t('actions.cancel')}
             />
-            <XStack flex={1} items="center" gap="$2" bg="$card" borderColor="$borderColor" borderWidth={1} rounded={14} px="$3" py="$1" shadowColor="rgba(4,48,54,0.2)" shadowRadius={10} shadowOffset={{ width: 0, height: 4 }}>
+            <XStack flex={1} items="center" gap="$2" bg="$card" borderColor="$borderColor" borderWidth={1} rounded={14} px="$3" py="$1" shadowColor="rgba(20,20,18,0.2)" shadowRadius={10} shadowOffset={{ width: 0, height: 4 }}>
               <Search size={17} color="$color10" />
               <Input
                 flex={1}
@@ -221,14 +221,14 @@ export function LocationEditSheet({
           </XStack>
 
           {search.isSuggesting ? (
-            <XStack items="center" gap="$2" px="$3" py="$2.5" bg="$card" borderColor="$borderColor" borderWidth={1} rounded={14} shadowColor="rgba(4,48,54,0.2)" shadowRadius={10} shadowOffset={{ width: 0, height: 4 }}>
+            <XStack items="center" gap="$2" px="$3" py="$2.5" bg="$card" borderColor="$borderColor" borderWidth={1} rounded={14} shadowColor="rgba(20,20,18,0.2)" shadowRadius={10} shadowOffset={{ width: 0, height: 4 }}>
               <FintSpinner size="small" color="$primary" />
               <Paragraph color="$color10" fontSize="$1">
                 {t('location.searchingSuggestions')}
               </Paragraph>
             </XStack>
           ) : search.suggestions.length > 0 ? (
-            <YStack bg="$card" borderColor="$borderColor" borderWidth={1} rounded={14} overflow="hidden" shadowColor="rgba(4,48,54,0.2)" shadowRadius={14} shadowOffset={{ width: 0, height: 6 }}>
+            <YStack bg="$card" borderColor="$borderColor" borderWidth={1} rounded={14} overflow="hidden" shadowColor="rgba(20,20,18,0.2)" shadowRadius={14} shadowOffset={{ width: 0, height: 6 }}>
               {search.suggestions.map((suggestion, index) => {
                 const key = suggestionKey(suggestion)
                 const isResolving = search.resolvingKey === key
@@ -285,7 +285,7 @@ export function LocationEditSheet({
           pt="$3"
           pb={Math.max(insets.bottom, 16)}
           gap="$3"
-          shadowColor="rgba(4,48,54,0.25)"
+          shadowColor="rgba(20,20,18,0.25)"
           shadowRadius={18}
           shadowOffset={{ width: 0, height: -6 }}
         >

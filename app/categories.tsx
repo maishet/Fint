@@ -194,7 +194,7 @@ export default function CategoriesScreen() {
                 onBlur={() => setSearchFocused(false)}
               />
               {query ? (
-                <Pressable onPress={() => setQuery("")} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("movementForm.clearSearch")}>
+                <Pressable onPress={() => setQuery("")} hitSlop={14} accessibilityRole="button" accessibilityLabel={t("movementForm.clearSearch")}>
                   <X size={16} color="$inkFaint" />
                 </Pressable>
               ) : null}

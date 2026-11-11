@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, Pressable, RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { View, XStack, YStack, useTheme, type ColorTokens } from "tamagui";
+import { View, XStack, YStack, useTheme } from "tamagui";
 import { useCapabilities } from "../src/api/capabilities";
 import { financeApi } from "../src/api/finance";
 import type { Category, ConfirmPendingInput, PaymentOccurrence, PendingMovementCard } from "../src/api/types";
@@ -13,7 +13,6 @@ import { supabase } from "../src/auth/supabase";
 import { DataStateCard } from "../src/components/DataStateCard";
 import { getCategoryLabel } from "../src/finance/categoryLabels";
 import { parseDateString } from "../src/finance/dates";
-import { categoryColorIndex } from "../src/home/spending";
 import { getAppLocale } from "../src/i18n";
 import { CategorySheet } from "../src/movement-form/CategorySheet";
 import { shortDay } from "../src/movement-form/DateSheet";
@@ -389,7 +388,7 @@ export default function PendingMovementsScreen() {
         ListFooterComponent={
           pendingQuery.isFetchingNextPage ? (
             <YStack py={space[4]} items="center">
-              <FintSpinner color="$brand" />
+              <FintSpinner color="$ink" />
             </YStack>
           ) : null
         }
@@ -515,7 +514,7 @@ function transferLine(item: PendingMovementCard, t: (key: string, options?: Reco
 function TextAction({ label, onPress }: { label: string; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} hitSlop={10} accessibilityRole="button">
-      <FText variant="body-strong" tone="brand">
+      <FText variant="body-strong" tone="ink">
         {label}
       </FText>
     </Pressable>
@@ -597,7 +596,7 @@ function PendingCard({
       {item.transfer ? (
         <Monogram name={item.title} icon={<ArrowLeftRight size={17} color="$inkMuted" strokeWidth={2} />} />
       ) : (
-        <Monogram name={item.title} color={`$chart${categoryColorIndex(item.title)}` as ColorTokens} />
+        <Monogram name={item.title} />
       )}
       <YStack flex={1} minW={0}>
         <FText variant="body-strong" numberOfLines={1} style={{ letterSpacing: -0.15 }}>
@@ -672,7 +671,7 @@ function PendingCard({
           gap={12}
           opacity={busy ? 0.6 : 1}
           borderWidth={selected ? 1.5 : 1}
-          borderColor={selected ? "$brand" : "$line"}
+          borderColor={selected ? "$ink" : "$line"}
         >
           {!selectionMode ? (
             <XStack items="center" gap={6}>
@@ -727,8 +726,8 @@ function PendingCard({
                   borderWidth={primaryIsConfirm ? 0 : 1}
                   borderColor="$lineStrong"
                 >
-                  {busy ? <FintSpinner color="$brand" /> : null}
-                  <FText variant="body-strong" tone={primaryIsConfirm ? "brand" : "ink"} style={{ fontSize: 14 }}>
+                  {busy ? <FintSpinner color="$ink" /> : null}
+                  <FText variant="body-strong" tone="ink" style={{ fontSize: 14 }}>
                     {primaryLabel}
                   </FText>
                 </XStack>

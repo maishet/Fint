@@ -128,7 +128,7 @@ export function PaymentRow({ item, rule, emoji, first, last, late, today, onPay,
         accessibilityLabel={t("paymentsTab.payA11y", { title: lead.title })}
       >
         <View height={28} px={12} rounded={radius.pill} bg={late ? "$brand" : "$brandWash"} items="center" justify="center">
-          <FText variant="caption" tone={late ? "onBrand" : "brand"} style={{ fontFamily: fontFace.sans[600] }}>
+          <FText variant="caption" tone={late ? "onBrand" : "ink"} style={{ fontFamily: fontFace.sans[600] }}>
             {t("paymentsTab.pay")}
           </FText>
         </View>

@@ -507,7 +507,7 @@ function CaptureRowItem({
         ) : null}
         {/* Respaldo del deslizar: el tacho en inkFaint. */}
         {canDelete ? (
-          <Pressable onPress={() => onRequestDelete(row)} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("capture.deleteRow")}>
+          <Pressable onPress={() => onRequestDelete(row)} hitSlop={14} accessibilityRole="button" accessibilityLabel={t("capture.deleteRow")}>
             <Trash2 size={16} color="$inkFaint" strokeWidth={2} />
           </Pressable>
         ) : null}

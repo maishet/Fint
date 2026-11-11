@@ -1,9 +1,8 @@
 import { Check } from "@tamagui/lucide-icons-2";
 import { useTranslation } from "react-i18next";
-import { XStack, type ColorTokens } from "tamagui";
+import { XStack } from "tamagui";
 import type { AccountOption } from "../api/types";
 import { getAccountTypeLabel } from "../finance/accountTypes";
-import { categoryColorIndex } from "../home/spending";
 import { Amount, FintSheet, ListRow, Monogram } from "../ui";
 import { haptics } from "../ui/haptics";
 import { accountBalance, accountCurrencies } from "./logic";
@@ -28,9 +27,12 @@ export interface AccountSheetProps {
   perBalance?: boolean;
 }
 
-/** La inicial de la cuenta en el color de identidad que le toca por su nombre. */
+/**
+ * La inicial de la cuenta en tinta sobre `surface`, como en Cuentas (F-08): las cuentas no tienen emoji en la API,
+ * así que no llevan `categoryTint` ni los colores `$chart` de la v3.
+ */
 export function AccountMonogram({ name, size = 38 }: { name: string; size?: 32 | 38 }) {
-  return <Monogram name={name} size={size} color={`$chart${categoryColorIndex(name)}` as ColorTokens} />;
+  return <Monogram name={name} size={size} />;
 }
 
 /** Hoja para elegir la cuenta del movimiento: nombre, tipo y saldo disponible. */

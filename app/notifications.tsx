@@ -218,7 +218,7 @@ export default function NotificationsScreen() {
                 hitSlop={8}
                 accessibilityRole="button"
               >
-                <FText tone="brand" style={{ fontFamily: fontFace.sans[600], fontSize: 14, lineHeight: 19 }}>
+                <FText tone="ink" style={{ fontFamily: fontFace.sans[600], fontSize: 14, lineHeight: 19 }}>
                   {t("notificationsScreen.markRead")}
                 </FText>
               </PressableScale>
@@ -278,7 +278,7 @@ export default function NotificationsScreen() {
               : null}
             {showTabs && tab === "all" && feed.hasMore ? (
               <PressableScale onPress={feed.loadMore} disabled={feed.loadingMore} accessibilityRole="button" style={{ alignSelf: "center", marginTop: space[4] }}>
-                <FText tone="brand" style={{ fontFamily: fontFace.sans[600], fontSize: 14, opacity: feed.loadingMore ? 0.5 : 1 }}>
+                <FText tone="ink" style={{ fontFamily: fontFace.sans[600], fontSize: 14, opacity: feed.loadingMore ? 0.5 : 1 }}>
                   {t("notificationsScreen.loadMore")}
                 </FText>
               </PressableScale>
@@ -437,7 +437,7 @@ function NoticeCard({
               <PressableScale key={action.label} onPress={action.onPress} haptic="tap" hitSlop={{ top: 7, bottom: 7 }} accessibilityRole="button">
                 <XStack minH={34} px={14} rounded={radius.pill} bg={action.soft ? "$brandWash" : "$brand"} items="center">
                   <FText
-                    tone={action.soft ? "brand" : "onBrand"}
+                    tone={action.soft ? "ink" : "onBrand"}
                     maxFontSizeMultiplier={COMPACT_FONT_SCALE}
                     style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18 }}
                   >
@@ -589,7 +589,7 @@ function AllClear({ upcoming, onChoose }: { upcoming: PaymentOccurrence | null; 
         </XStack>
       ) : null}
       <PressableScale onPress={onChoose} accessibilityRole="button" style={{ alignSelf: "center", marginTop: space[5] }}>
-        <FText variant="label" tone="brand" style={{ fontFamily: fontFace.sans[600] }}>
+        <FText variant="label" tone="ink" style={{ fontFamily: fontFace.sans[600] }}>
           {t("notificationsScreen.choose")}
         </FText>
       </PressableScale>

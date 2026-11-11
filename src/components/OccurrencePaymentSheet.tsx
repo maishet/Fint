@@ -200,7 +200,7 @@ export function OccurrencePaymentSheet({
                           </FText>
                         </YStack>
                         {balance !== null ? <Amount value={balance} currency={account.currency} variant="amount-sm" tone="inkMuted" /> : null}
-                        <View width={18}>{selected ? <Check size={18} color="$brand" strokeWidth={2.4} /> : null}</View>
+                        <View width={18}>{selected ? <Check size={18} color="$ink" strokeWidth={2.4} /> : null}</View>
                       </XStack>
                     )}
                   </Pressable>

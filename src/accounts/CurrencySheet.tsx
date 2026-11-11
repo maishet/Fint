@@ -83,7 +83,7 @@ export function CurrencySheet({ open, onClose, title, value, exclude = [], onSel
             divider={i > 0}
             leading={<CurrencyCode code={option.code} />}
             title={option.name}
-            trailing={option.code === value ? <Check size={18} color="$brand" strokeWidth={2.4} /> : undefined}
+            trailing={option.code === value ? <Check size={18} color="$ink" strokeWidth={2.4} /> : undefined}
             onPress={() => {
               haptics.select();
               onSelect(option.code);

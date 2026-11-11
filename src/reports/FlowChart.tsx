@@ -6,6 +6,7 @@ import Animated, { runOnJS, useAnimatedStyle, useReducedMotion, useSharedValue, 
 import { View, XStack, YStack } from "tamagui";
 import { motion, opacity, radius, space } from "../theme/tokens";
 import { fontFace } from "../theme/typography";
+import { useSensitiveMoney } from "../privacy/useSensitiveMoney";
 import { Amount, FText } from "../ui";
 import { haptics } from "../ui/haptics";
 
@@ -33,6 +34,7 @@ export interface FlowChartColumn {
  */
 export function FlowChart({ columns, currency, initialIndex }: { columns: readonly FlowChartColumn[]; currency: string; initialIndex: number }) {
   const { t } = useTranslation();
+  const { formatSensitiveAmount } = useSensitiveMoney();
   const reduceMotion = useReducedMotion();
   const [width, setWidth] = useState(0);
   const [selected, setSelected] = useState(initialIndex);
@@ -116,7 +118,13 @@ export function FlowChart({ columns, currency, initialIndex }: { columns: readon
           style={{ height: LENS_H + 8 + LABEL_H + 6, marginTop: 12 }}
           accessible
           accessibilityRole="adjustable"
-          accessibilityLabel={sel ? `${sel.title}. ${t("reportsTab.income")}: ${sel.income}. ${t("reportsTab.expenses")}: ${sel.expenses}` : undefined}
+          // Resumen para el lector: la columna elegida con los montos en su moneda (antes se leían los números sueltos);
+          // con "Ocultar montos", ocultos también para el lector.
+          accessibilityLabel={
+            sel
+              ? `${sel.title}. ${t("reportsTab.income")}: ${formatSensitiveAmount(sel.income, currency)}. ${t("reportsTab.expenses")}: ${formatSensitiveAmount(sel.expenses, currency)}`
+              : undefined
+          }
           accessibilityActions={[{ name: "increment" }, { name: "decrement" }]}
           onAccessibilityAction={(e) => {
             const next = e.nativeEvent.actionName === "increment" ? index + 1 : index - 1;

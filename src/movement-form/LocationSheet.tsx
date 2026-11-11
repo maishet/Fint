@@ -276,7 +276,7 @@ export function LocationSheet({ open, onClose, value, suggestion, context, onSav
               {search.isSearching || search.isSuggesting ? (
                 <FintSpinner size="small" color="$ink" />
               ) : search.query ? (
-                <Pressable onPress={() => search.reset()} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("movementForm.clearSearch")}>
+                <Pressable onPress={() => search.reset()} hitSlop={14} accessibilityRole="button" accessibilityLabel={t("movementForm.clearSearch")}>
                   <X size={16} color="$inkFaint" />
                 </Pressable>
               ) : null}

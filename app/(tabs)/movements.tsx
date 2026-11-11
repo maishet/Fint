@@ -257,19 +257,37 @@ export default function MovementsScreen() {
       {/* Buscador: en comercio, nota y categoría de todos los meses. Campo `surface` con filete `lineStrong` (≥ 3:1). */}
       <XStack mx={space[5]} mt={space[3]} minH={44} px={16} gap={10} items="center" rounded={radius.pill} bg="$surface" borderWidth={1} borderColor="$lineStrong">
         <Search size={18} color="$inkFaint" />
-        <TextInput
-          value={search}
-          onChangeText={setSearch}
-          placeholder={t("movementsTab.search")}
-          placeholderTextColor={theme.inkFaint.val}
-          selectionColor={theme.ink.val}
-          returnKeyType="search"
-          autoCapitalize="none"
-          accessibilityLabel={t("movementsTab.search")}
-          style={[textStyles.body, { flex: 1, color: theme.ink.val, paddingVertical: 10 }]}
-        />
+        <View flex={1} justify="center">
+          {/* El marcador va aparte, en una línea con puntos suspensivos: el `placeholder` de Android salta de línea
+              con letra grande y se corta dentro de la píldora. */}
+          {search ? null : (
+            <View position="absolute" l={0} r={0} t={0} b={0} justify="center" pointerEvents="none">
+              <FText
+                tone="inkFaint"
+                numberOfLines={1}
+                maxFontSizeMultiplier={COMPACT_FONT_SCALE}
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+                style={textStyles.body}
+              >
+                {t("movementsTab.search")}
+              </FText>
+            </View>
+          )}
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            // Campo de una línea en una píldora: tope 1.3 como los filtros.
+            maxFontSizeMultiplier={COMPACT_FONT_SCALE}
+            selectionColor={theme.ink.val}
+            returnKeyType="search"
+            autoCapitalize="none"
+            accessibilityLabel={t("movementsTab.search")}
+            style={[textStyles.body, { color: theme.ink.val, paddingVertical: 10 }]}
+          />
+        </View>
         {search ? (
-          <Pressable onPress={() => setSearch("")} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("movementsTab.searchClear")}>
+          <Pressable onPress={() => setSearch("")} hitSlop={14} accessibilityRole="button" accessibilityLabel={t("movementsTab.searchClear")}>
             <X size={16} color="$inkFaint" />
           </Pressable>
         ) : null}

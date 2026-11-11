@@ -62,7 +62,7 @@ function ComingSoonSheet({ feature, open, onClose }: { feature: ComingSoonFeatur
   return (
     <FintSheet open={open} onClose={onClose} hero={hero}>
       <YStack px={space[5]} pt={space[5]} accessible accessibilityLabel={`${t("comingSoon.badge")}. ${t(`comingSoon.${feature}.kicker`)}. ${t(`comingSoon.${feature}.title`)}. ${t(`comingSoon.${feature}.line`)}`}>
-        <FText tone="brand" style={{ fontFamily: fontFace.sans[600], fontSize: 12, lineHeight: 16 }}>
+        <FText tone="ink" style={{ fontFamily: fontFace.sans[600], fontSize: 12, lineHeight: 16 }}>
           {t(`comingSoon.${feature}.kicker`)}
         </FText>
         <FText variant="title" style={{ fontSize: 23, lineHeight: 28, marginTop: 4 }}>

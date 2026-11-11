@@ -238,7 +238,7 @@ export default function SearchScreen() {
                           </FText>
                         ) : null}
                       </XStack>
-                      <Pressable onPress={() => forget(item)} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("search.removeRecent", { text: item })}>
+                      <Pressable onPress={() => forget(item)} hitSlop={14} accessibilityRole="button" accessibilityLabel={t("search.removeRecent", { text: item })}>
                         <X size={16} color="$inkFaint" strokeWidth={2} />
                       </Pressable>
                     </XStack>
@@ -387,25 +387,44 @@ export default function SearchScreen() {
           borderColor={focused ? "$ink" : "$lineStrong"}
         >
           <Search size={18} color="$inkMuted" strokeWidth={2} />
-          <TextInput
-            ref={input}
-            autoFocus
-            value={text}
-            onChangeText={setText}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
-            onSubmitEditing={() => remember(text)}
-            placeholder={t("search.placeholder")}
-            placeholderTextColor={theme.inkFaint.val}
-            returnKeyType="search"
-            autoCorrect={false}
-            accessibilityRole="search"
-            accessibilityLabel={t("search.label")}
-            selectionColor={theme.ink.val}
-            style={[textStyles.body as TextStyle, { flex: 1, fontSize: 16, color: theme.ink.val, paddingVertical: 0 }]}
-          />
+          <View flex={1} justify="center">
+            {/* El marcador va aparte, en una línea con puntos suspensivos: el `placeholder` de Android salta de línea
+                con letra grande y se corta dentro del campo de 48. */}
+            {text ? null : (
+              <View position="absolute" l={0} r={0} t={0} b={0} justify="center" pointerEvents="none">
+                <FText
+                  tone="inkFaint"
+                  numberOfLines={1}
+                  maxFontSizeMultiplier={COMPACT_FONT_SCALE}
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
+                  style={[textStyles.body as TextStyle, { fontSize: 16 }]}
+                >
+                  {t("search.placeholder")}
+                </FText>
+              </View>
+            )}
+            <TextInput
+              ref={input}
+              autoFocus
+              value={text}
+              onChangeText={setText}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              onSubmitEditing={() => remember(text)}
+              // Campo de una línea de 48: tope 1.3 como los filtros.
+              maxFontSizeMultiplier={COMPACT_FONT_SCALE}
+              returnKeyType="search"
+              autoCorrect={false}
+              accessibilityRole="search"
+              accessibilityLabel={t("search.label")}
+              accessibilityHint={t("search.placeholder")}
+              selectionColor={theme.ink.val}
+              style={[textStyles.body as TextStyle, { fontSize: 16, color: theme.ink.val, paddingVertical: 0 }]}
+            />
+          </View>
           {text ? (
-            <Pressable onPress={() => setText("")} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("search.clear")}>
+            <Pressable onPress={() => setText("")} hitSlop={12} accessibilityRole="button" accessibilityLabel={t("search.clear")}>
               <View width={20} height={20} rounded={radius.pill} bg="$inkFaint" items="center" justify="center">
                 <X size={12} color="$surface" strokeWidth={2.6} />
               </View>
@@ -525,7 +544,10 @@ function FrequentTile({ name, label, emoji, onPress }: { name: string; label: st
         ) : (
           <Monogram name={label} size={32} />
         )}
-        <FText style={{ fontFamily: fontFace.display[700], fontSize: 14, lineHeight: 19 }}>{label}</FText>
+        {/* Ficha: tope 1.3, como las demás fichas; más grande, el nombre se partía a mitad de palabra. */}
+        <FText maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={{ fontFamily: fontFace.display[700], fontSize: 14, lineHeight: 19 }}>
+          {label}
+        </FText>
       </YStack>
     </PressableScale>
   );

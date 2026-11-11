@@ -10,6 +10,7 @@ import Animated, {
   FadeIn,
   interpolateColor,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withRepeat,
   withTiming,
@@ -388,18 +389,22 @@ function SmallButton({ label, onPress }: { label: string; onPress: () => void })
   );
 }
 
-/** Leer ahora: un botón redondo cuyo icono gira mientras dura la sincronización. */
+/**
+ * Leer ahora: un botón redondo cuyo icono gira mientras dura la sincronización. Con movimiento reducido no gira
+ * (sin animación continua): la espera se ve en el botón apagado y el lector la anuncia con `busy`.
+ */
 function ReadNowButton({ label, busy, onPress }: { label: string; busy: boolean; onPress: () => void }) {
   const turn = useSharedValue(0);
+  const reduceMotion = useReducedMotion();
   useEffect(() => {
-    if (busy) {
+    if (busy && !reduceMotion) {
       turn.value = 0;
       turn.value = withRepeat(withTiming(1, { duration: 900, easing: Easing.linear }), -1, false);
     } else {
       cancelAnimation(turn);
       turn.value = 0;
     }
-  }, [busy, turn]);
+  }, [busy, reduceMotion, turn]);
   const spin = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.value * 360}deg` }] }));
   return (
     <PressableScale onPress={onPress} disabled={busy} haptic="tap" accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ busy }}>
