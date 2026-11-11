@@ -24,7 +24,7 @@ import {
 } from "@tamagui/lucide-icons-2";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { AppState, Linking, ScrollView, Share } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -43,6 +43,7 @@ import {
   type PushPermissionState,
 } from "../src/notifications/pushNotifications";
 import { useSensitiveAmounts } from "../src/privacy/SensitiveAmountsProvider";
+import { LanguageFlag } from "../src/settings/LanguageFlag";
 import { activeGmailCount } from "../src/settings/logic";
 import { Avatar, Group, GroupTitle, Item, OptionSheet } from "../src/settings/SettingsList";
 import { getSupportDiagnostics } from "../src/support/diagnostics";
@@ -69,10 +70,10 @@ import { isComingSoon } from "../src/config/comingSoon";
 
 type Sheet = "language" | "appearance" | "notifications" | "delete" | null;
 const SHEET_UNMOUNT_MS = 600;
-const LANGUAGES: { value: AppLanguage; label: string }[] = [
-  { value: "es", label: "Español" },
-  { value: "en", label: "English" },
-  { value: "pt", label: "Português" },
+const LANGUAGES: { value: AppLanguage; label: string; icon: ReactNode }[] = [
+  { value: "es", label: "Español", icon: <LanguageFlag language="es" /> },
+  { value: "en", label: "English", icon: <LanguageFlag language="en" /> },
+  { value: "pt", label: "Português", icon: <LanguageFlag language="pt" /> },
 ];
 
 /**

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Banknote, ChevronLeft, CreditCard, Landmark, Pencil, Plus, Trash2, Wallet } from "@tamagui/lucide-icons-2";
+import { ChevronLeft, Pencil, Plus, Trash2 } from "@tamagui/lucide-icons-2";
+import { getAccountRowIcon } from "../src/finance/accountTypes";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -255,7 +256,7 @@ function TicketFigure({ label, value, currency }: { label: string; value: number
 
 /** El ícono del tipo de cuenta en el cuadro de 44: las cuentas no tienen emoji en la API. */
 function AccountIcon({ type }: { type: string }) {
-  const Icon = type === "cash" ? Banknote : type === "credit_card" ? CreditCard : type === "checking_account" || type === "savings_account" ? Landmark : Wallet;
+  const Icon = getAccountRowIcon(type);
   return (
     <View width={44} height={44} rounded={14} bg="$surface" items="center" justify="center" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <Icon size={22} color="$ink" strokeWidth={2} />

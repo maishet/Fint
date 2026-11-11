@@ -22,7 +22,7 @@ import { findSavedPlace, locationLines } from "../src/location/places";
 import { useSavedPlaces } from "../src/location/savedPlaces";
 import { AccountSheet } from "../src/movement-form/AccountSheet";
 import { CategorySheet } from "../src/movement-form/CategorySheet";
-import { CategoryStrip } from "../src/movement-form/CategoryStrip";
+import { CATEGORY_GRID_MAX, CategoryStrip } from "../src/movement-form/CategoryStrip";
 import { DateSheet, shortDay } from "../src/movement-form/DateSheet";
 import { GrowPresence, type GrowPresenceHandle } from "../src/movement-form/GrowPresence";
 import { LocationSheet } from "../src/movement-form/LocationSheet";
@@ -193,7 +193,7 @@ export default function TransactionFormScreen() {
   const displayCurrency = kind === "transfer" ? transferCur || origin?.currency || "PEN" : movementCurrency;
 
   const frequent = useMemo(
-    () => (kind === "transfer" ? [] : frequentCategories(recentQuery.data ?? [], categoryType, categories)),
+    () => (kind === "transfer" ? [] : frequentCategories(recentQuery.data ?? [], categoryType, categories, CATEGORY_GRID_MAX)),
     [categories, categoryType, kind, recentQuery.data],
   );
   const notes = useMemo(
@@ -442,8 +442,8 @@ export default function TransactionFormScreen() {
 
   const chipCategories = useMemo(() => {
     const picked = categories.find((c) => c.name === category);
-    // Cuatro discos (más "Otra"): la elegida desde la hoja entra primera si no está entre las frecuentes.
-    return (picked && !frequent.some((c) => c.id === picked.id) ? [picked, ...frequent] : frequent).slice(0, 4);
+    // Siete casillas junto a «Todas»: la elegida desde la hoja entra primera si no está entre las frecuentes.
+    return (picked && !frequent.some((c) => c.id === picked.id) ? [picked, ...frequent] : frequent).slice(0, CATEGORY_GRID_MAX);
   }, [categories, category, frequent]);
 
   const layout = reduceMotion ? undefined : LinearTransition.springify().damping(26).stiffness(240);
@@ -569,7 +569,7 @@ export default function TransactionFormScreen() {
               />
             ) : (
               <YStack gap={10}>
-                {/* Categoría: el botón de tres puntos abre la hoja; las frecuentes van como fichas con su emoji. */}
+                {/* Categoría: «Todas» abre la hoja; las frecuentes van en una cuadrícula de dos filas con su emoji. */}
                 {kind !== "transfer" ? (
                   <YStack>
                     <CategoryStrip
@@ -582,6 +582,7 @@ export default function TransactionFormScreen() {
                       }}
                       onAll={() => setSheet("category")}
                       allLabel={t("movementForm.allCategoriesA11y")}
+                      allShortLabel={t("movementForm.allCategoriesShort")}
                       accessibilityLabel={t("movementForm.category")}
                     />
                     {errors.category ? (

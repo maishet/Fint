@@ -190,7 +190,7 @@ export function OccurrencePaymentSheet({
                         borderColor="$line"
                         bg={pressed ? "$surfaceSunken" : "transparent"}
                       >
-                        <AccountMonogram name={account.name} />
+                        <AccountMonogram name={account.name} type={account.accountType} />
                         <YStack flex={1} minW={0}>
                           <FText variant="body-strong" numberOfLines={1}>
                             {account.name}
