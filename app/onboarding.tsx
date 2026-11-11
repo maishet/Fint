@@ -4,7 +4,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { setStatusBarStyle } from "expo-status-bar";
 import { useCallback, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { BackHandler, Pressable } from "react-native";
+import { BackHandler, Pressable, ScrollView, useWindowDimensions } from "react-native";
 import Animated, {
   Extrapolation,
   interpolate,
@@ -26,27 +26,37 @@ import { shortDay } from "../src/movement-form/DateSheet";
 import { requestAndRegisterPushInstallation, type PushPermissionState } from "../src/notifications/pushNotifications";
 import { ONBOARDING_SLIDES, primaryAction, slideAt, type OnboardingSlide } from "../src/onboarding/steps";
 import { useThemeMode } from "../src/theme/ThemeMode";
-import { radius, shadows, space } from "../src/theme/tokens";
+import { COMPACT_FONT_SCALE, radius, shadows, space } from "../src/theme/tokens";
 import { fontFace, textStyles } from "../src/theme/typography";
 import { FintButton, FintCard, FintSpinner, FText, IconButton, Monogram, notify, PressableScale } from "../src/ui";
 import { BrandSymbol } from "../src/ui/BrandSymbol";
 
 /** Las cifras de las ilustraciones son de ejemplo y siempre en soles, como en el diseño. */
 const SAMPLE_CURRENCY = "PEN";
-/** Alto del pie (puntos, botón y margen), sin el inset inferior; la última pantalla suma "Ahora no". */
-const FOOTER_HEIGHT = 6 + 18 + 52 + 20;
-const NOT_NOW_HEIGHT = 6 + 52;
+/** Alto del pie (puntos, botón CTA de 56 y margen), sin el inset inferior; la última pantalla suma "Ahora no". */
+const FOOTER_HEIGHT = 6 + 18 + 56 + 20;
+const NOT_NOW_HEIGHT = 6 + 56;
+/** Alto de la ilustración desde `COMPACT_FONT_SCALE`, cuando la pantalla se desplaza. */
+const COMPACT_ART_HEIGHT = 230;
+/**
+ * Las dos piezas de la bienvenida van sobre la losa amarilla en los dos temas, así que sus colores no siguen al
+ * tema: la boleta del patrimonio en papel blanco y el aviso de vencimiento en tinta.
+ */
+const WELCOME_PAPER = "#FFFFFF";
 /** La ilustración se mueve a 1.2 veces la velocidad del texto: da profundidad sin animar nada más. */
 const PARALLAX = 0.2;
 
 type PushState = PushPermissionState | "error" | "skipped" | null;
 
 /**
- * El recorrido de primera vez: Bienvenida sobre la losa (igual en los dos
- * temas) y Cuentas, Pagos, Privacidad y Notificaciones, cada una con una
- * ilustración hecha con piezas reales de la interfaz sobre `brandWash`. Las
- * pantallas siguen al dedo y el pie (puntos y botón) pasa de los colores de la
- * losa a los de la marca con el mismo desplazamiento.
+ * El recorrido de primera vez (marca D): Bienvenida sobre la losa amarilla
+ * (igual en los dos temas) y Cuentas, Pagos, Privacidad y Notificaciones sobre
+ * `canvas`, cada una con una ilustración hecha con piezas reales de la
+ * interfaz en un panel `surface` de radio 28. Las pantallas siguen al dedo y el
+ * pie (puntos y botón) pasa del tinta de la losa al amarillo del CTA con el
+ * mismo desplazamiento. Desde `COMPACT_FONT_SCALE` cada pantalla se desplaza
+ * en vertical y la ilustración tiene alto fijo, para no cortar el texto ni el
+ * CTA.
  */
 export default function OnboardingScreen() {
   const { t } = useTranslation();
@@ -88,10 +98,10 @@ export default function OnboardingScreen() {
 
   const goTo = useCallback((next: number) => scrollRef.current?.scrollTo({ x: next * width, animated: true }), [scrollRef, width]);
 
-  // La bienvenida va sobre la losa (texto claro); las demás siguen el tema.
+  // La bienvenida va sobre la losa amarilla (iconos oscuros); las demás siguen el tema.
   useFocusEffect(
     useCallback(() => {
-      setStatusBarStyle(index === 0 || themeMode === "dark" ? "light" : "dark");
+      setStatusBarStyle(index !== 0 && themeMode === "dark" ? "light" : "dark");
     }, [index, themeMode]),
   );
   useFocusEffect(
@@ -145,8 +155,8 @@ export default function OnboardingScreen() {
     <XStack items="center" justify="space-between" px={space[5]} pt={10} minH={50}>
       {slide === 0 ? (
         <XStack items="center" gap={10}>
-          <BrandSymbol size={30} disc="$glassSlab" />
-          <Text style={{ fontFamily: fontFace.display[600], fontSize: 20, letterSpacing: -0.6 }}>
+          <BrandSymbol size={34} />
+          <Text maxFontSizeMultiplier={1.3} style={{ fontFamily: fontFace.display[700], fontSize: 20, letterSpacing: -0.6 }}>
             <Text color="$slabMuted">My </Text>
             <Text color="$slabInk">Fint</Text>
           </Text>
@@ -213,11 +223,14 @@ export default function OnboardingScreen() {
                 {t("onboardingScreen.notNow")}
               </FintButton>
             ) : (
-              <View minH={52} justify="center" px={space[2]}>
-                <FText variant="caption" tone="inkMuted" style={{ textAlign: "center" }} numberOfLines={3}>
+              // Después de responder, la línea de estado en una tarjeta `surface` con el punto: `flowIn` si quedaron
+              // activadas; si no, `inkFaint` (no es un error, pero tampoco algo logrado).
+              <XStack minH={56} items="center" gap={10} px={14} py={10} rounded={16} bg="$surface">
+                <View width={8} height={8} rounded={999} bg={pushState === "granted" ? "$flowIn" : "$inkFaint"} />
+                <FText tone="inkMuted" style={{ flex: 1, fontSize: 13, lineHeight: 18 }} numberOfLines={3}>
                   {pushState === "skipped" ? t("onboardingScreen.notifications.later") : t(`onboarding.notifications.${pushStateKey(pushState)}`)}
                 </FText>
-              </View>
+              </XStack>
             )
           ) : null}
         </YStack>
@@ -232,8 +245,9 @@ function pushStateKey(state: Exclude<PushState, null | "skipped">) {
 
 /**
  * Una pantalla: barra de arriba, ilustración (con paralaje) y texto. La
- * bienvenida va sobre la losa con dos tarjetas `glassSlab`; las demás, sobre el
- * fondo con la ilustración en `brandWash`.
+ * bienvenida va sobre la losa con dos piezas inclinadas (la boleta en papel y
+ * el aviso en tinta); las demás, sobre `canvas` con la ilustración en un panel
+ * `surface` de radio 28, el título a 32 y las viñetas con check tinta.
  */
 function SlideFrame({
   slide,
@@ -255,47 +269,69 @@ function SlideFrame({
   topBar: ReactNode;
 }) {
   const { t } = useTranslation();
+  const { fontScale } = useWindowDimensions();
+  const compact = fontScale >= COMPACT_FONT_SCALE;
   const onSlab = slide === "welcome";
   const parallax = useAnimatedStyle(() => ({ transform: [{ translateX: -(scrollX.value - index * width) * PARALLAX }] }));
   const bullets = onSlab || slide === "notifications" ? [] : (t(`onboardingScreen.${slide}.bullets`, { returnObjects: true }) as string[]);
+  // Hasta 1.3 la ilustración ocupa lo que sobra; desde 1.3 tiene alto fijo y la pantalla se desplaza.
+  const artStyle = compact ? { height: COMPACT_ART_HEIGHT, marginTop: 8 } : { flex: 1, maxHeight: onSlab ? 300 : 330, marginTop: 8 };
 
   return (
-    <YStack width={width} height={height} bg={onSlab ? "$slab" : "$background"} pt={topInset} pb={bottomSpace} overflow="hidden">
+    <YStack width={width} height={height} bg={onSlab ? "$slab" : "$canvas"} pt={topInset} pb={bottomSpace} overflow="hidden">
       {topBar}
-      <Animated.View style={[{ flex: 1, maxHeight: onSlab ? 300 : 330, marginTop: 8 }, parallax]}>
-        {onSlab ? (
-          <WelcomeCards />
-        ) : (
-          <View flex={1} mx={space[4]} rounded={radius.xl} bg="$brandWash" overflow="hidden" justify="center">
-            {slide === "accounts" ? <AccountsIllustration /> : null}
-            {slide === "payments" ? <PaymentsIllustration /> : null}
-            {slide === "privacy" ? <PrivacyIllustration /> : null}
-            {slide === "notifications" ? <NotificationsIllustration /> : null}
-          </View>
-        )}
-      </Animated.View>
-      <YStack px={space[5]} mt={onSlab ? space[2] : 26}>
-        <Text color={onSlab ? "$slabInk" : "$ink"} style={{ ...textStyles["display-xl"], fontSize: 34, lineHeight: 38 }} accessibilityRole="header">
-          {t(`onboardingScreen.${slide}.title`)}
-        </Text>
-        <FText tone={onSlab ? "slabMuted" : "inkMuted"} style={{ marginTop: 10 }}>
-          {t(`onboardingScreen.${slide}.body`)}
-        </FText>
-        {bullets.length ? (
-          <YStack gap={10} mt={18}>
-            {bullets.map((bullet) => (
-              <XStack key={bullet} items="center" gap={10}>
-                <View width={24} height={24} rounded={999} bg="$brandWash" items="center" justify="center">
-                  <Check size={13} color="$brand" strokeWidth={2.6} />
-                </View>
-                <FText variant="label" tone="inkMuted" style={{ flex: 1, fontSize: 14 }}>
-                  {bullet}
-                </FText>
-              </XStack>
-            ))}
-          </YStack>
-        ) : null}
-      </YStack>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: space[4] }}
+        scrollEnabled={compact}
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled
+      >
+        <Animated.View style={[artStyle, parallax]}>
+          {onSlab ? (
+            <WelcomeCards />
+          ) : (
+            <View flex={1} mx={space[5]} rounded={28} bg="$surface" overflow="hidden" justify="center">
+              {slide === "accounts" ? <AccountsIllustration /> : null}
+              {slide === "payments" ? <PaymentsIllustration /> : null}
+              {slide === "privacy" ? <PrivacyIllustration /> : null}
+              {slide === "notifications" ? <NotificationsIllustration /> : null}
+            </View>
+          )}
+        </Animated.View>
+        <YStack px={space[5]} mt={onSlab ? space[2] : 26}>
+          <Text
+            color={onSlab ? "$slabInk" : "$ink"}
+            maxFontSizeMultiplier={1.3}
+            style={{
+              fontFamily: fontFace.display[700],
+              fontSize: onSlab ? 40 : 32,
+              lineHeight: onSlab ? 44 : 37,
+              letterSpacing: onSlab ? -1.4 : -1,
+            }}
+            accessibilityRole="header"
+          >
+            {t(`onboardingScreen.${slide}.title`)}
+          </Text>
+          <FText tone={onSlab ? "slabMuted" : "inkMuted"} style={{ marginTop: 10 }}>
+            {t(`onboardingScreen.${slide}.body`)}
+          </FText>
+          {bullets.length ? (
+            <YStack gap={10} mt={18}>
+              {bullets.map((bullet) => (
+                <XStack key={bullet} items={compact ? "flex-start" : "center"} gap={10}>
+                  <View width={24} height={24} rounded={999} bg="$ink" items="center" justify="center">
+                    <Check size={13} color="$canvas" strokeWidth={2.8} />
+                  </View>
+                  <FText variant="label" tone="inkMuted" style={{ flex: 1, fontSize: 14 }}>
+                    {bullet}
+                  </FText>
+                </XStack>
+              ))}
+            </YStack>
+          ) : null}
+        </YStack>
+      </ScrollView>
     </YStack>
   );
 }
@@ -305,7 +341,7 @@ function WelcomeCards() {
   const worth = amountParts(18420.65, SAMPLE_CURRENCY);
   return (
     <YStack flex={1} justify="center" px={space[6]} gap={space[4]}>
-      <YStack p={18} rounded={radius.lg} bg="$glassSlab" borderWidth={1} borderColor="$glassSlabLine">
+      <YStack p={18} rounded={22} style={{ backgroundColor: WELCOME_PAPER, transform: [{ rotate: "-3deg" }] }}>
         <FText variant="overline" tone="slabMuted">
           {t("onboardingScreen.welcome.netWorth")}
         </FText>
@@ -327,18 +363,17 @@ function WelcomeCards() {
         mx={space[6]}
         px={space[4]}
         py={space[3]}
-        rounded={radius.lg}
-        bg="$glassSlab"
-        borderWidth={1}
-        borderColor="$glassSlabLine"
+        rounded={18}
+        bg="$slabInk"
         items="center"
         justify="space-between"
         gap={space[3]}
+        style={{ transform: [{ rotate: "2deg" }] }}
       >
-        <FText variant="label" tone="slabInk" numberOfLines={1} style={{ flex: 1 }}>
+        <FText variant="label" numberOfLines={1} style={{ flex: 1, color: WELCOME_PAPER, fontFamily: fontFace.sans[600] }}>
           {t("onboardingScreen.welcome.dueTomorrow", { name: t("onboardingScreen.payments.power") })}
         </FText>
-        <FText variant="amount-sm" tone="slabMuted">
+        <FText variant="amount-sm" color="$slab">
           {formatAmount(128.4, SAMPLE_CURRENCY)}
         </FText>
       </XStack>
@@ -383,9 +418,18 @@ function SampleRow({
   );
 }
 
+/** Las tarjetas de las ilustraciones van en `canvas`: sobre el panel `surface` una tarjeta `surface` no se vería. */
 function FloatingCard({ children, inset = "center" }: { children: ReactNode; inset?: "center" | "right" }) {
+  const { themeMode } = useThemeMode();
   return (
-    <FintCard px={14} py={12} ml={inset === "right" ? 36 : 20} mr={inset === "right" ? 4 : 20}>
+    <FintCard
+      bg="$canvas"
+      px={14}
+      py={12}
+      ml={inset === "right" ? 36 : 20}
+      mr={inset === "right" ? 4 : 20}
+      style={{ boxShadow: shadows[themeMode].raised }}
+    >
       {children}
     </FintCard>
   );
@@ -418,7 +462,7 @@ function AccountsIllustration() {
   ];
   return (
     <YStack gap={14}>
-      <FintCard p={0} mx={20}>
+      <FintCard p={0} mx={20} bg="$canvas">
         {rows.map((row, i) => (
           <View key={row.key} px={14} py={12} borderTopWidth={i === 0 ? 0 : 1} borderColor="$line">
             <SampleRow icon={row.icon} name={row.name} detail={row.detail} amount={row.amount} />
@@ -508,7 +552,7 @@ function PrivacyIllustration() {
           ))}
         </XStack>
       </YStack>
-      <FintCard p={0} mx={20}>
+      <FintCard p={0} mx={20} bg="$canvas">
         {[
           {
             key: "salary",
@@ -544,7 +588,7 @@ function NotificationsIllustration() {
   return (
     <YStack gap={12} px={18}>
       <YStack items="center" mb={10}>
-        <Text color="$brand" style={{ fontFamily: fontFace.mono[500], fontSize: 60, lineHeight: 66, letterSpacing: -1.5, opacity: 0.9 }}>
+        <Text color="$ink" style={{ fontFamily: fontFace.mono[500], fontSize: 60, lineHeight: 66, letterSpacing: -1.5, opacity: 0.9 }}>
           {clock}
         </Text>
         <FText variant="label" tone="inkMuted">
@@ -574,14 +618,12 @@ function LockNotification({ when, title, body }: { when: string; title: string; 
       gap={12}
       px={14}
       py={12}
-      rounded={radius.lg}
-      bg="$glass"
-      borderWidth={1}
-      borderColor="$glassLine"
+      rounded={20}
+      bg="$canvas"
       items="flex-start"
       style={{ boxShadow: shadows[themeMode].raised }}
     >
-      <BrandSymbol size={34} />
+      <BrandSymbol size={34} tile />
       <YStack flex={1} minW={0}>
         <XStack justify="space-between" gap={8}>
           <FText variant="label" style={{ fontFamily: fontFace.sans[600] }}>
@@ -602,7 +644,7 @@ function LockNotification({ when, title, body }: { when: string; title: string; 
   );
 }
 
-/** Los puntos de página: el activo mide 20px; ancho y color siguen al dedo. Sobre la losa, `slabInk`; después, `brand`. */
+/** Los puntos de página: el activo mide 20px; ancho y color siguen al dedo. Sobre la losa, `slabInk`; después, `ink`. */
 function PageDots({ scrollX, width }: { scrollX: SharedValue<number>; width: number }) {
   return (
     <XStack justify="center" gap={6} pointerEvents="none">
@@ -615,14 +657,14 @@ function PageDots({ scrollX, width }: { scrollX: SharedValue<number>; width: num
 
 function Dot({ index, scrollX, width }: { index: number; scrollX: SharedValue<number>; width: number }) {
   const theme = useTheme();
-  const colors = { slabInk: theme.slabInk.val, slabMuted: theme.slabMuted.val, brand: theme.brand.val, lineStrong: theme.lineStrong.val };
+  const colors = { slabInk: theme.slabInk.val, slabMuted: theme.slabMuted.val, ink: theme.ink.val, lineStrong: theme.lineStrong.val };
   const style = useAnimatedStyle(() => {
     const w = Math.max(width, 1);
     const page = scrollX.value / w;
     const active = interpolate(Math.abs(page - index), [0, 1], [1, 0], Extrapolation.CLAMP);
-    const brandness = interpolate(page, [0, 1], [0, 1], Extrapolation.CLAMP);
-    const on = interpolateColor(brandness, [0, 1], [colors.slabInk, colors.brand]);
-    const off = interpolateColor(brandness, [0, 1], [colors.slabMuted, colors.lineStrong]);
+    const offSlab = interpolate(page, [0, 1], [0, 1], Extrapolation.CLAMP);
+    const on = interpolateColor(offSlab, [0, 1], [colors.slabInk, colors.ink]);
+    const off = interpolateColor(offSlab, [0, 1], [colors.slabMuted, colors.lineStrong]);
     return {
       width: 6 + 14 * active,
       opacity: 0.45 + 0.55 * active,
@@ -632,7 +674,10 @@ function Dot({ index, scrollX, width }: { index: number; scrollX: SharedValue<nu
   return <Animated.View style={[{ height: 6, borderRadius: 3 }, style]} />;
 }
 
-/** El botón principal: `slabInk` sobre la losa y `brand` después, mezclados con el desplazamiento. */
+/**
+ * El botón principal (CTA de 56): en la bienvenida, tinta con texto amarillo; después, amarillo (`brand`) con texto
+ * `onBrand`, mezclados con el desplazamiento.
+ */
 function PrimaryButton({
   scrollX,
   width,
@@ -670,10 +715,12 @@ function PrimaryButton({
       accessibilityState={{ busy }}
     >
       <Animated.View
-        style={[{ height: 52, borderRadius: radius.md, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }, bg]}
+        style={[{ height: 56, borderRadius: 999, paddingHorizontal: 24, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }, bg]}
       >
         {busy ? <FintSpinner color={onSlab ? "$slab" : "$onBrand"} /> : icon}
-        <Animated.Text style={[{ fontFamily: fontFace.sans[600], fontSize: 16, letterSpacing: -0.1 }, fg]}>{label}</Animated.Text>
+        <Animated.Text maxFontSizeMultiplier={1.3} numberOfLines={1} style={[{ fontFamily: fontFace.display[700], fontSize: 16, letterSpacing: -0.1 }, fg]}>
+          {label}
+        </Animated.Text>
       </Animated.View>
     </PressableScale>
   );

@@ -2,7 +2,7 @@ import { animated, composition, ease, ellipse, fill, fixed, group, layer, stroke
 
 export const segments = { build: [0, 54], shine: [54, 90], breathe: [90, 210] };
 
-export const slots = { disc: "slab", discLine: "slabLine", coin: "slabInk", signal: "signal" };
+export const slots = { disc: "slab", discLine: "slabLine", coin: "slabInk", signal: "slabMuted" };
 
 function coin(nm, index, { size, opacity, y, show }) {
   return layer(nm, {

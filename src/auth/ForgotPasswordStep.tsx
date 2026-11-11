@@ -245,7 +245,7 @@ export function ForgotPasswordStep({ initialEmail, onBack }: { initialEmail: str
       {/* Al pie, como el enlace de entrar / crear cuenta. */}
       <XStack mt="auto" pt={space[6]} items="center" justify="center">
         <Pressable onPress={onBack} hitSlop={10} accessibilityRole="button" disabled={isSubmitting}>
-          <FText tone="brand" style={{ fontSize: 14, fontFamily: fontFace.sans[600] }}>
+          <FText tone="ink" style={{ fontSize: 14, fontFamily: fontFace.sans[600], textDecorationLine: "underline" }}>
             {t("loginScreen.backToLogin")}
           </FText>
         </Pressable>

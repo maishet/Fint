@@ -41,7 +41,7 @@
         "disc": "slab",
         "discLine": "slabLine",
         "coin": "slabInk",
-        "signal": "signal"
+        "signal": "slabMuted"
       }
     },
     "coin-pull": {
