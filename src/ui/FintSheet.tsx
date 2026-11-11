@@ -9,7 +9,7 @@ import { useSheetBackHandler } from "../hooks/useSheetBackHandler";
 import { SensitiveAmountsContext } from "../privacy/SensitiveAmountsProvider";
 import { useThemeMode } from "../theme/ThemeMode";
 import { motion, radius, shadows, space } from "../theme/tokens";
-import { textStyles } from "../theme/typography";
+import { fontFace, textStyles } from "../theme/typography";
 import { FText } from "./FText";
 import { IconButton } from "./IconButton";
 import { useHoldModal } from "./ModalScope";
@@ -29,8 +29,8 @@ export interface FintSheetProps {
   title?: string;
   subtitle?: string;
   /**
-   * Acción de texto a la derecha de la cabecera en lugar del botón de cerrar,
-   * por ejemplo "Listo" en la hoja de Nota, donde el teclado ocupa la mitad de abajo.
+   * Acción a la derecha de la cabecera en lugar del botón de cerrar, como botón amarillo de 40: por ejemplo "Listo"
+   * en la hoja de Nota, donde el teclado ocupa la mitad de abajo.
    */
   headerAction?: { label: string; onPress: () => void };
   /** Contenido largo (lista de categorías, lugares): se desplaza dentro de la hoja. */
@@ -116,36 +116,44 @@ export function FintSheet({
     if (settleTimer.current) clearTimeout(settleTimer.current);
   }, []);
 
+  // Cabecera de la marca D (G-05, G-06, F-11): título a 24 (18 en `compact`), la línea de abajo a 14 en `inkMuted`,
+  // la X en un círculo `surface` de 40 y, si la hoja tiene acción propia ("Listo"), un botón amarillo de 40.
   const header =
     title || headerAction ? (
-      <XStack items="center" justify="space-between" gap={space[3]} pt={4} pl={space[5]} pr={space[4]}>
+      <XStack items={subtitle ? "flex-start" : "center"} justify="space-between" gap={space[3]} pt={4} px={space[5]}>
         <YStack flex={1} minW={0}>
           {title ? (
             <FText
-              variant="title"
               accessibilityRole="header"
               numberOfLines={1}
-              style={titleSize === "compact" ? { fontSize: 18, lineHeight: 23, letterSpacing: -0.3 } : undefined}
+              maxFontSizeMultiplier={1.5}
+              style={
+                titleSize === "compact"
+                  ? { fontFamily: fontFace.display[700], fontSize: 18, lineHeight: 23, letterSpacing: -0.3 }
+                  : { fontFamily: fontFace.display[700], fontSize: 24, lineHeight: 30, letterSpacing: -0.5 }
+              }
             >
               {title}
             </FText>
           ) : null}
           {subtitle ? (
-            <FText variant="caption" tone="inkFaint" numberOfLines={1}>
+            <FText tone="inkMuted" numberOfLines={1} style={{ fontSize: 14, lineHeight: 19, marginTop: 2 }}>
               {subtitle}
             </FText>
           ) : null}
         </YStack>
         {headerAction ? (
-          <PressableScale onPress={headerAction.onPress} hitSlop={10} accessibilityRole="button">
-            <FText variant="body-strong" tone="ink">
-              {headerAction.label}
-            </FText>
+          <PressableScale onPress={headerAction.onPress} haptic="tap" hitSlop={4} accessibilityRole="button">
+            <XStack height={40} px={16} rounded={999} bg="$brand" items="center">
+              <FText color="$onBrand" maxFontSizeMultiplier={1.3} style={{ fontFamily: fontFace.display[700], fontSize: 14, lineHeight: 19 }}>
+                {headerAction.label}
+              </FText>
+            </XStack>
           </PressableScale>
         ) : hideClose ? (
-          <YStack height={34} />
+          <YStack height={40} />
         ) : (
-          <IconButton label={t("actions.close")} tone="sunken" size={34} icon={<X size={16} color="$inkMuted" strokeWidth={2.2} />} onPress={onClose} />
+          <IconButton label={t("actions.close")} tone="default" size={40} icon={<X size={20} color="$ink" strokeWidth={2} />} onPress={onClose} />
         )}
       </XStack>
     ) : null;

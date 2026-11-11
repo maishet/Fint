@@ -77,7 +77,11 @@ export function Amount({
 
   const resolvedTone: FTextTone =
     tone ?? (onSlab ? "slabInk" : kind === "income" ? "flowIn" : kind === "expense" ? "flowOut" : kind === "transfer" ? "inkMuted" : "ink");
-  const size = (StyleSheet.flatten(style as StyleProp<TextStyle>)?.fontSize as number | undefined) ?? base.fontSize;
+  const flat = StyleSheet.flatten(style as StyleProp<TextStyle>);
+  const size = (flat?.fontSize as number | undefined) ?? base.fontSize;
+  // Un `color` en `style` (p. ej. la píldora tinta del cambio del mes) manda también en el símbolo y los centavos:
+  // sin esto, los tramos anidados salían en el color del tono y el "S/" no coincidía con la cifra.
+  const inner = flat?.color ? { color: flat.color } : null;
   const scale = minorScale(size);
   const symbolSize = Math.round(size * scale.symbol);
   const centsSize = smallCents === false ? size : Math.round(size * scale.cents);
@@ -104,7 +108,7 @@ export function Amount({
     return (
       <Text color={`$${resolvedTone}` as ColorTokens} style={[base, style]} aria-label={label} numberOfLines={1} {...scaling} {...props}>
         {showSymbol ? (
-          <Text color={`$${resolvedTone}` as ColorTokens} style={{ fontSize: symbolSize, letterSpacing: 0 }}>
+          <Text color={`$${resolvedTone}` as ColorTokens} style={[{ fontSize: symbolSize, letterSpacing: 0 }, inner]}>
             {parts.symbol}
             {THIN_SPACE}
           </Text>
@@ -121,7 +125,7 @@ export function Amount({
     <Text color={color} style={[base, style]} aria-label={label} numberOfLines={1} {...scaling} {...props}>
       {parts.sign}
       {showSymbol ? (
-        <Text color={color} style={{ fontSize: symbolSize, letterSpacing: 0 }}>
+        <Text color={color} style={[{ fontSize: symbolSize, letterSpacing: 0 }, inner]}>
           {parts.symbol}
           {THIN_SPACE}
         </Text>
@@ -129,7 +133,7 @@ export function Amount({
       {parts.integer}
       {parts.fraction ? (
         centsSize < size ? (
-          <Text color={color} style={{ fontSize: centsSize, letterSpacing: 0 }}>.{parts.fraction}</Text>
+          <Text color={color} style={[{ fontSize: centsSize, letterSpacing: 0 }, inner]}>.{parts.fraction}</Text>
         ) : (
           `.${parts.fraction}`
         )

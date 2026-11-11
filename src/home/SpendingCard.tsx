@@ -251,12 +251,21 @@ function PaceChart({
           xKey="day"
           yKeys={["cur", "prev"]}
           domain={{ x: [1, series.daysInMonth], y: [0, maxY] }}
-          padding={{ top: 6, bottom: 2, left: 0, right: 6 }}
+          // F-01 no lleva cuadrícula: victory-native 42 dibuja el eje y con líneas finas por defecto, así que se apagan.
+          xAxis={{ tickCount: 0, lineWidth: 0 }}
+          yAxis={[{ tickCount: 0, lineWidth: 0 }]}
+          frame={{ lineWidth: 0 }}
+          // Margen dentro del área: victory-native recorta el dibujo al área del gráfico, así que el punto de hoy
+          // (radio 7 con borde de 3) y las curvas se cortaban en los bordes con un margen de afuera.
+          padding={{ top: 0, bottom: 0, left: 0, right: 0 }}
+          domainPadding={{ top: 10, bottom: 10, left: 10, right: 10 }}
           chartPressState={state}
           // Arrastre horizontal inmediato, sin mantener presionado; si el dedo va en vertical, manda el scroll de la pantalla.
           chartPressConfig={{ pan: { activeOffsetX: [-6, 6], failOffsetY: [-10, 10] } }}
         >
-          {({ points, chartBounds }) => {
+          {({ points, yScale }) => {
+            // La base del área y de la guía es el cero de la escala (con `domainPadding` ya no es el borde de abajo).
+            const zero = yScale(0);
             const todayPoint = points.cur[series.today - 1];
             return (
               <>
@@ -266,12 +275,12 @@ function PaceChart({
                   </Line>
                 ) : null}
                 <Group opacity={draw}>
-                  <Area points={points.cur} y0={chartBounds.bottom} curveType="monotoneX" color={theme.brand.val} opacity={PACE_AREA_OPACITY} />
+                  <Area points={points.cur} y0={zero} curveType="monotoneX" color={theme.brand.val} opacity={PACE_AREA_OPACITY} />
                 </Group>
                 <Line points={points.cur} color={theme.ink.val} strokeWidth={3} curveType="monotoneX" end={draw} strokeCap="round" strokeJoin="round" />
                 {todayPoint?.y != null && !isActive ? (
                   <>
-                    <SkiaLine p1={vec(todayPoint.x, todayPoint.y)} p2={vec(todayPoint.x, chartBounds.bottom)} color={theme.ink.val} strokeWidth={1.5}>
+                    <SkiaLine p1={vec(todayPoint.x, todayPoint.y)} p2={vec(todayPoint.x, zero)} color={theme.ink.val} strokeWidth={1.5}>
                       <DashPathEffect intervals={[2, 3]} />
                     </SkiaLine>
                     <Circle cx={todayPoint.x} cy={todayPoint.y} r={7} color={theme.brand.val} />

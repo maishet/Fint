@@ -216,16 +216,8 @@ export function MoreSheet({ open, onClose }: SheetProps) {
       icon: Inbox,
       label: t("home.more.review"),
       subtitle: t("home.more.reviewBody", { count: pending }),
-      trailing: (
-        <XStack items="center" gap={6}>
-          <View minW={22} height={22} px={6} rounded={radius.pill} bg="$brand" items="center" justify="center">
-            <FText tone="onBrand" style={{ fontFamily: fontFace.mono[600], fontSize: 11, lineHeight: 14 }}>
-              {pending > 99 ? "99+" : String(pending)}
-            </FText>
-          </View>
-          <ChevronRight size={16} color="$inkFaint" />
-        </XStack>
-      ),
+      // F-11: "Revisar" en tinta; el número ya va en el subtítulo.
+      trailing: <PillButton label={t("home.more.reviewAction")} tone="ink" onPress={() => go("/pending-movements")} />,
       onPress: () => go("/pending-movements"),
     });
   }
@@ -252,7 +244,8 @@ export function MoreSheet({ open, onClose }: SheetProps) {
       key: "export",
       icon: Download,
       label: t("home.more.export"),
-      trailing: exportSoon ? <SoonBadge /> : <Aside text={t("home.more.exportHint")} />,
+      subtitle: t("home.more.exportHint"),
+      trailing: exportSoon ? <SoonBadge /> : <Aside />,
       onPress: exportSoon ? () => explain("reportExport") : () => go({ pathname: "/(tabs)/reports", params: { open: "export" } }),
       a11y: exportSoon ? `${t("home.more.export")}. ${t("comingSoon.tapHint")}` : undefined,
     },
@@ -262,43 +255,48 @@ export function MoreSheet({ open, onClose }: SheetProps) {
 
   const cards: { key: string; node: ReactNode }[] = [
     {
+      // F-11: Transferir es el acceso grande (amarillo, dos filas de alto); Importar y Categorías van a su lado en
+      // `surface`. Si Importar está oculto, Categorías ocupa la columna entera.
       key: "tiles",
       node: (
-        <XStack gap={8} px={space[4]} mt={space[4]}>
-          <ActionTile
+        <XStack gap={8} px={space[5]} mt={space[2]} minH={136}>
+          <BigTile
             icon={ArrowLeftRight}
             title={t("home.more.transfer")}
             detail={t("home.more.transferHint")}
             onPress={() => go({ pathname: "/transaction-form", params: { type: "transfer" } })}
           />
-          {isHidden("csvImport") ? null : (
-            <ActionTile icon={Upload} title={t("home.more.import")} detail={t("home.more.importHint")} onPress={() => go("/import-transactions")} />
-          )}
-          <ActionTile
-            icon={Tag}
-            title={t("home.more.categories")}
-            detail={categoriesQuery.data ? t("home.more.categoriesCount", { count: categoriesQuery.data.length }) : ""}
-            mono
-            onPress={() => go("/categories")}
-          />
+          <YStack flex={1.15} gap={8}>
+            {isHidden("csvImport") ? null : (
+              <ActionTile icon={Upload} title={t("home.more.import")} detail={t("home.more.importHint")} onPress={() => go("/import-transactions")} />
+            )}
+            <ActionTile
+              icon={Tag}
+              title={t("home.more.categories")}
+              detail={categoriesQuery.data ? t("home.more.categoriesCount", { count: categoriesQuery.data.length }) : ""}
+              onPress={() => go("/categories")}
+            />
+          </YStack>
         </XStack>
       ),
     },
     {
+      // Filas a todo el ancho sobre el fondo de la hoja, sin tarjeta, con el ícono en un cuadro `surface` de 40.
       key: "list",
       node: (
-        <YStack mx={space[4]} mt={space[3]} rounded={radius.lg} borderWidth={1} borderColor="$line" bg="$surface" overflow="hidden">
+        <YStack mx={space[5]} mt={space[2]}>
           {rows.map((row, i) => (
             <ListRow
               key={row.key}
+              flush
               divider={i > 0}
               title={row.label}
               subtitle={row.subtitle}
               leading={
-                <View width={32} height={32} rounded={radius.sm} bg="$surfaceSunken" items="center" justify="center">
-                  <row.icon size={17} color="$inkMuted" strokeWidth={1.8} />
+                <View width={40} height={40} rounded={14} bg="$surface" items="center" justify="center">
+                  <row.icon size={20} color="$inkMuted" strokeWidth={2} />
                   {row.key === "gmail" ? (
-                    <View position="absolute" r={-2} b={-2} width={10} height={10} rounded={radius.pill} bg={`$${gmailTone}`} borderWidth={2} borderColor="$surface" />
+                    <View position="absolute" r={-2} b={-2} width={11} height={11} rounded={radius.pill} bg={`$${gmailTone}`} borderWidth={2} borderColor="$background" />
                   ) : null}
                 </View>
               }
@@ -324,36 +322,19 @@ export function MoreSheet({ open, onClose }: SheetProps) {
   );
 }
 
-/** Un acceso grande de la hoja Más: icono en un círculo `surface`, nombre y una línea. */
-function ActionTile({
-  icon: Icon,
-  title,
-  detail,
-  mono,
-  onPress,
-}: {
-  icon: typeof Download;
-  title: string;
-  detail: string;
-  mono?: boolean;
-  onPress: () => void;
-}) {
-  const { themeMode } = useThemeMode();
+/** El acceso grande de la hoja Más (F-11): amarillo, ícono en un cuadro tinta al 10 %, nombre a 18 y su línea. */
+function BigTile({ icon: Icon, title, detail, onPress }: { icon: typeof Download; title: string; detail: string; onPress: () => void }) {
   return (
-    <PressableScale onPress={onPress} haptic="tap" accessibilityRole="button" accessibilityLabel={detail ? `${title}. ${detail}` : title} style={{ flex: 1 }}>
-      <YStack minH={96} p={12} gap={10} rounded={radius.lg} bg="$surfaceSunken" borderWidth={themeMode === "dark" ? 1 : 0} borderColor="$line">
-        <View width={36} height={36} rounded={radius.pill} items="center" justify="center" bg="$surface">
-          <Icon size={17} color="$ink" strokeWidth={2} />
+    <PressableScale onPress={onPress} haptic="tap" accessibilityRole="button" accessibilityLabel={`${title}. ${detail}`} style={{ flex: 1 }}>
+      <YStack flex={1} minH={136} p={16} gap={12} justify="space-between" rounded={24} bg="$slab">
+        <View width={44} height={44} rounded={14} items="center" justify="center" style={{ backgroundColor: "rgba(20,20,18,0.10)" }}>
+          <Icon size={22} color="$slabInk" strokeWidth={2} />
         </View>
-        <YStack>
-          <FText numberOfLines={1} style={{ fontFamily: fontFace.sans[600], fontSize: 14, lineHeight: 18, letterSpacing: -0.15 }}>
+        <YStack gap={2}>
+          <FText tone="slabInk" maxFontSizeMultiplier={1.5} style={{ fontFamily: fontFace.display[700], fontSize: 18, lineHeight: 23 }}>
             {title}
           </FText>
-          <FText
-            tone="inkFaint"
-            numberOfLines={2}
-            style={{ fontFamily: mono ? fontFace.mono[400] : fontFace.sans[400], fontSize: 11.5, lineHeight: 15, marginTop: 1 }}
-          >
+          <FText tone="slabMuted" style={{ fontSize: 13, lineHeight: 18 }}>
             {detail}
           </FText>
         </YStack>
@@ -362,26 +343,67 @@ function ActionTile({
   );
 }
 
-/** Lo de la derecha de una fila de la hoja Más: un dato corto (opcional) y el chevron. */
-function Aside({ text }: { text?: string }) {
+/** Un acceso chico de la hoja Más (F-11): `surface` de radio 20 con el ícono, el nombre a 15 y una línea. */
+function ActionTile({ icon: Icon, title, detail, onPress }: { icon: typeof Download; title: string; detail: string; onPress: () => void }) {
   return (
-    <XStack items="center" gap={4}>
-      {text ? (
-        <FText variant="caption" tone="inkFaint">
-          {text}
-        </FText>
-      ) : null}
-      <ChevronRight size={16} color="$inkFaint" />
-    </XStack>
+    <PressableScale onPress={onPress} haptic="tap" accessibilityRole="button" accessibilityLabel={detail ? `${title}. ${detail}` : title} style={{ flex: 1 }}>
+      <XStack flex={1} minH={64} px={14} py={12} gap={10} items="center" rounded={20} bg="$surface">
+        <Icon size={20} color="$ink" strokeWidth={2} />
+        <YStack flex={1} minW={0}>
+          <FText maxFontSizeMultiplier={1.5} style={{ fontFamily: fontFace.display[700], fontSize: 15, lineHeight: 20 }}>
+            {title}
+          </FText>
+          {detail ? (
+            <FText tone="inkFaint" style={{ fontSize: 12, lineHeight: 16 }}>
+              {detail}
+            </FText>
+          ) : null}
+        </YStack>
+      </XStack>
+    </PressableScale>
   );
 }
 
-/** Botón chico en `brand` de la fila de Gmail (Conectar, Reconectar). */
-function SmallButton({ label, onPress }: { label: string; onPress: () => void }) {
+/** Lo de la derecha de una fila de la hoja Más: el chevron. */
+function Aside() {
+  return <ChevronRight size={18} color="$inkFaint" />;
+}
+
+/**
+ * Botón de 34 en una fila de la hoja Más: `ink` (Revisar), `outline` (Leer ahora) o `brand` (Conectar, Reconectar).
+ * El área táctil llega a 44 con `hitSlop`.
+ */
+function PillButton({
+  label,
+  tone,
+  onPress,
+  disabled = false,
+  icon,
+}: {
+  label: string;
+  tone: "ink" | "outline" | "brand";
+  onPress: () => void;
+  disabled?: boolean;
+  icon?: ReactNode;
+}) {
   return (
-    <PressableScale onPress={onPress} haptic="tap" accessibilityRole="button">
-      <XStack height={34} px={14} rounded={radius.pill} bg="$brand" items="center">
-        <FText tone="onBrand" style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18 }}>
+    <PressableScale onPress={onPress} disabled={disabled} haptic="tap" hitSlop={5} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled, busy: disabled }}>
+      <XStack
+        height={34}
+        px={14}
+        gap={6}
+        rounded={radius.pill}
+        items="center"
+        bg={tone === "ink" ? "$ink" : tone === "brand" ? "$brand" : "transparent"}
+        borderWidth={tone === "outline" ? 1.5 : 0}
+        borderColor="$line"
+      >
+        {icon}
+        <FText
+          color={tone === "ink" ? "$canvas" : tone === "brand" ? "$onBrand" : "$ink"}
+          maxFontSizeMultiplier={1.3}
+          style={{ fontFamily: fontFace.display[700], fontSize: 13, lineHeight: 18 }}
+        >
           {label}
         </FText>
       </XStack>
@@ -389,9 +411,14 @@ function SmallButton({ label, onPress }: { label: string; onPress: () => void })
   );
 }
 
+/** Botón chico en `brand` de la fila de Gmail (Conectar, Reconectar). */
+function SmallButton({ label, onPress }: { label: string; onPress: () => void }) {
+  return <PillButton label={label} tone="brand" onPress={onPress} />;
+}
+
 /**
- * Leer ahora: un botón redondo cuyo icono gira mientras dura la sincronización. Con movimiento reducido no gira
- * (sin animación continua): la espera se ve en el botón apagado y el lector la anuncia con `busy`.
+ * Leer ahora (F-11): botón con contorno y el texto; mientras dura la sincronización el ícono gira. Con movimiento
+ * reducido no gira (sin animación continua): la espera se ve en el botón apagado y el lector la anuncia con `busy`.
  */
 function ReadNowButton({ label, busy, onPress }: { label: string; busy: boolean; onPress: () => void }) {
   const turn = useSharedValue(0);
@@ -407,12 +434,18 @@ function ReadNowButton({ label, busy, onPress }: { label: string; busy: boolean;
   }, [busy, reduceMotion, turn]);
   const spin = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.value * 360}deg` }] }));
   return (
-    <PressableScale onPress={onPress} disabled={busy} haptic="tap" accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ busy }}>
-      <View width={36} height={36} rounded={radius.pill} bg="$surfaceSunken" items="center" justify="center">
-        <Animated.View style={spin}>
-          <RefreshCw size={16} color="$ink" strokeWidth={2} />
-        </Animated.View>
-      </View>
-    </PressableScale>
+    <PillButton
+      label={label}
+      tone="outline"
+      disabled={busy}
+      onPress={onPress}
+      icon={
+        busy ? (
+          <Animated.View style={spin}>
+            <RefreshCw size={14} color="$ink" strokeWidth={2} />
+          </Animated.View>
+        ) : null
+      }
+    />
   );
 }

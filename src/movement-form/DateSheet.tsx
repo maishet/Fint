@@ -16,15 +16,17 @@ import { Text, View, XStack, YStack } from "tamagui";
 import { financeApi } from "../api/finance";
 import { getAppLocale } from "../i18n";
 import { parseDateString, toDateString, todayDateString } from "../finance/dates";
-import { COMPACT_FONT_SCALE, motion, opacity } from "../theme/tokens";
+import { COMPACT_FONT_SCALE, motion } from "../theme/tokens";
 import { fontFace, textStyles } from "../theme/typography";
 import { FintSheet, FText, IconButton, PressableScale } from "../ui";
 import { haptics } from "../ui/haptics";
 import { daysWithMovements, monthGrid, monthRange } from "./logic";
 
+/** Celda de 44 (área táctil) con el cuadro del día de 42 y radio 14, como en G-06. */
 const CELL_H = 44;
 const ROW_GAP = 2;
-const DOT = 38;
+const BOX_H = 42;
+const BOX_RADIUS = 14;
 const CLOSE_DELAY = 180;
 
 export interface DateSheetProps {
@@ -44,12 +46,24 @@ export function shortDay(date: Date, locale: string) {
   return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(date).replace(".", "");
 }
 
+/** "mar 10": el día de la semana corto, sin punto, y el número (los atajos de G-06). */
+function weekdayDay(date: Date, locale: string) {
+  const weekday = new Intl.DateTimeFormat(locale, { weekday: "short" }).format(date).replace(".", "");
+  return `${weekday} ${date.getDate()}`;
+}
+
+function sameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
 /**
- * Hoja de fecha: atajos Hoy y Ayer, y el calendario del mes (empieza en lunes).
- * El día elegido va relleno en `brand` (amarillo, con el número en tinta) y se
- * desliza desde el anterior; hoy lleva un anillo `ink`; los días futuros no se pueden elegir (un movimiento ocurre
- * en el pasado; lo que viene se programa en Pagos). Un punto marca los días con
- * movimientos. Tocar un día lo elige y cierra: no hay botón de confirmar.
+ * Hoja de fecha (marca D, G-06): atajos Hoy, Ayer y Anteayer (con pagos, Hoy y
+ * Mañana) en fichas `surface` de 52, la elegida en tinta, y el calendario del mes
+ * (empieza en lunes). El día elegido va en un cuadro amarillo de radio 14 con el
+ * número en tinta y se desliza desde el anterior; hoy lleva un anillo tinta de 2;
+ * los días futuros no se pueden elegir (un movimiento ocurre en el pasado; lo que
+ * viene se programa en Pagos). Un punto marca los días con movimientos. Tocar un
+ * día lo elige y cierra: no hay botón de confirmar.
  */
 export function DateSheet({ open, onClose, value, onChange, allowFuture = false }: DateSheetProps) {
   const { t, i18n } = useTranslation();
@@ -58,6 +72,7 @@ export function DateSheet({ open, onClose, value, onChange, allowFuture = false 
   const reduceMotion = useReducedMotion();
   const today = parseDateString(todayDateString())!;
   const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+  const twoDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 2);
   const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
   const selected = parseDateString(value) ?? today;
 
@@ -133,38 +148,45 @@ export function DateSheet({ open, onClose, value, onChange, allowFuture = false 
 
   return (
     <FintSheet open={open} onClose={onClose} title={t("movementForm.dateSheet.title")} subtitle={capitalize(subtitle)}>
-      <XStack gap={8} px={16} pt={14}>
-        <QuickChip label={t("movementForm.today")} date={shortDay(today, locale)} onPress={() => pick(today)} />
-        {allowFuture ? (
-          <QuickChip label={t("movementForm.tomorrow")} date={shortDay(tomorrow, locale)} onPress={() => pick(tomorrow)} />
-        ) : (
-          <QuickChip label={t("movementForm.yesterday")} date={shortDay(yesterday, locale)} onPress={() => pick(yesterday)} />
-        )}
+      <XStack gap={8} px={20} pt={14}>
+        {(allowFuture
+          ? [
+              { key: "today", label: t("movementForm.today"), date: today },
+              { key: "tomorrow", label: t("movementForm.tomorrow"), date: tomorrow },
+            ]
+          : [
+              { key: "today", label: t("movementForm.today"), date: today },
+              { key: "yesterday", label: t("movementForm.yesterday"), date: yesterday },
+              { key: "twoDaysAgo", label: t("movementForm.dayBeforeYesterday"), date: twoDaysAgo },
+            ]
+        ).map((q) => (
+          <QuickChip key={q.key} label={q.label} date={weekdayDay(q.date, locale)} selected={sameDay(q.date, selected)} onPress={() => pick(q.date)} />
+        ))}
       </XStack>
 
-      <XStack items="center" justify="space-between" mt={20} mb={6} mx={20}>
-        <FText variant="heading" style={{ fontFamily: fontFace.display[600], letterSpacing: -0.3 }}>
+      <XStack items="center" justify="space-between" mt={16} mb={8} mx={20}>
+        <FText maxFontSizeMultiplier={1.5} style={{ fontFamily: fontFace.display[700], fontSize: 16, lineHeight: 21 }}>
           {capitalize(title)}
         </FText>
         <XStack gap={6}>
-          <IconButton size={34} label={t("movementForm.dateSheet.previousMonth")} icon={<ChevronLeft size={16} color="$ink" />} onPress={() => go(-1)} />
+          <IconButton size={34} label={t("movementForm.dateSheet.previousMonth")} icon={<ChevronLeft size={20} color="$ink" strokeWidth={2} />} onPress={() => go(-1)} />
           <IconButton
             size={34}
             label={t("movementForm.dateSheet.nextMonth")}
             disabled={isCurrentMonth && !allowFuture}
-            icon={<ChevronRight size={16} color="$ink" />}
+            icon={<ChevronRight size={20} color="$ink" strokeWidth={2} />}
             onPress={() => go(1)}
           />
         </XStack>
       </XStack>
 
-      <XStack px={12}>
+      <XStack px={20}>
         {weekdays.map((d, i) => (
           <FText
             key={i}
-            variant="caption"
             tone="inkFaint"
-            style={{ flex: 1, textAlign: "center", fontSize: 11, fontFamily: fontFace.sans[600], paddingTop: 6, paddingBottom: 8 }}
+            maxFontSizeMultiplier={1.3}
+            style={{ flex: 1, textAlign: "center", fontSize: 12, lineHeight: 16, fontFamily: fontFace.display[700], paddingBottom: 4 }}
           >
             {d}
           </FText>
@@ -192,7 +214,7 @@ export function DateSheet({ open, onClose, value, onChange, allowFuture = false 
       </GestureDetector>
 
       {allowFuture ? null : (
-        <FText variant="caption" tone="inkFaint" style={{ textAlign: "center", marginTop: 12 }}>
+        <FText tone="inkFaint" style={{ fontSize: 12, lineHeight: 16, marginTop: 12, marginHorizontal: 20 }}>
           {t("movementForm.dateSheet.dotsHint")}
         </FText>
       )}
@@ -228,7 +250,8 @@ function CalendarGrid({
   );
   const isTodayMonth = view.y === today.getFullYear() && view.m === today.getMonth();
 
-  // El círculo del día elegido se desliza desde el día anterior con `spring-ui`.
+  // El cuadro amarillo del día elegido se desliza desde el día anterior con `spring-ui`.
+  const boxW = Math.max(0, cellW - 4);
   const x = useSharedValue(0);
   const y = useSharedValue(0);
   const shown = useSharedValue(0);
@@ -239,8 +262,8 @@ function CalendarGrid({
       placed.current = false;
       return;
     }
-    const nx = (selectedIndex % 7) * cellW + (cellW - DOT) / 2;
-    const ny = Math.floor(selectedIndex / 7) * (CELL_H + ROW_GAP) + (CELL_H - DOT) / 2;
+    const nx = (selectedIndex % 7) * cellW + 2;
+    const ny = Math.floor(selectedIndex / 7) * (CELL_H + ROW_GAP) + (CELL_H - BOX_H) / 2;
     if (!placed.current || reduceMotion) {
       x.value = nx;
       y.value = ny;
@@ -254,10 +277,10 @@ function CalendarGrid({
   const dotStyle = useAnimatedStyle(() => ({ opacity: shown.value, transform: [{ translateX: x.value }, { translateY: y.value }] }));
 
   return (
-    <YStack px={12} onLayout={(e: LayoutChangeEvent) => setCellW((e.nativeEvent.layout.width - 24) / 7)}>
+    <YStack px={20} onLayout={(e: LayoutChangeEvent) => setCellW((e.nativeEvent.layout.width - 40) / 7)}>
       {cellW > 0 ? (
-        <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 12, top: 0, width: DOT, height: DOT }, dotStyle]}>
-          <View flex={1} rounded={999} bg="$brand" />
+        <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 20, top: 0, width: boxW, height: BOX_H }, dotStyle]}>
+          <View flex={1} rounded={BOX_RADIUS} bg="$brand" />
         </Animated.View>
       ) : null}
       <XStack flexWrap="wrap" rowGap={ROW_GAP}>
@@ -279,25 +302,25 @@ function CalendarGrid({
               accessibilityLabel={marked.has(day) ? `${dayLabel.format(date)}, ${t("movementForm.dateSheet.withMovements")}` : dayLabel.format(date)}
             >
               <View
-                width={DOT}
-                height={DOT}
-                rounded={999}
+                width={boxW || "100%"}
+                height={BOX_H}
+                rounded={BOX_RADIUS}
                 items="center"
                 justify="center"
-                borderWidth={isToday && !isSelected ? 1.5 : 0}
+                gap={2}
+                borderWidth={isToday && !isSelected ? 2 : 0}
                 borderColor="$ink"
-                opacity={future ? opacity.disabled : 1}
+                opacity={future ? 0.4 : 1}
               >
                 <Text
-                  style={[textStyles.amount, { fontSize: 15 }]}
-                  color={isSelected ? "$onBrand" : isToday ? "$ink" : future ? "$inkFaint" : "$ink"}
+                  maxFontSizeMultiplier={1.3}
+                  style={[textStyles.amount, { fontSize: 15, fontFamily: isSelected ? fontFace.mono[600] : fontFace.mono[500] }]}
+                  color={isSelected ? "$onBrand" : future ? "$inkFaint" : "$ink"}
                 >
                   {day}
                 </Text>
+                <View width={4} height={4} rounded={999} bg={marked.has(day) ? (isSelected ? "$onBrand" : "$inkMuted") : "transparent"} />
               </View>
-              {marked.has(day) ? (
-                <View position="absolute" b={4} width={4} height={4} rounded={999} bg={isSelected ? "$onBrand" : "$inkFaint"} />
-              ) : null}
             </Pressable>
           );
         })}
@@ -306,25 +329,24 @@ function CalendarGrid({
   );
 }
 
-/** Atajo Hoy / Ayer: el nombre en `ink` y la fecha en `mono` apagada. */
-function QuickChip({ label, date, onPress }: { label: string; date: string; onPress: () => void }) {
+/** Atajo Hoy / Ayer / Anteayer (G-06): ficha `surface` de 52 con el nombre y "mar 10" debajo; la elegida en tinta. */
+function QuickChip({ label, date, selected, onPress }: { label: string; date: string; selected: boolean; onPress: () => void }) {
   return (
     <PressableScale
       onPress={onPress}
-      // La forma mide 32; el área de toque llega a 48 sin cambiar lo que se ve.
-      hitSlop={{ top: 8, bottom: 8 }}
       style={{ flexGrow: 1, flexBasis: 0 }}
       accessibilityRole="button"
       accessibilityLabel={`${label}, ${date}`}
+      accessibilityState={{ selected }}
     >
-      <XStack minH={32} gap={6} items="center" justify="center" rounded={999} borderWidth={1} borderColor="$lineStrong" bg="$surface">
-        <FText variant="label" maxFontSizeMultiplier={COMPACT_FONT_SCALE}>
+      <YStack minH={52} py={6} gap={1} items="center" justify="center" rounded={16} bg={selected ? "$ink" : "$surface"}>
+        <FText color={selected ? "$canvas" : "$ink"} maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={{ fontFamily: fontFace.display[700], fontSize: 14, lineHeight: 18 }}>
           {label}
         </FText>
-        <FText variant="caption" tone="inkFaint" maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={{ fontFamily: fontFace.mono[500] }}>
+        <FText color={selected ? "$canvas" : "$ink"} maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={{ fontSize: 12, lineHeight: 16, opacity: 0.75 }}>
           {date}
         </FText>
-      </XStack>
+      </YStack>
     </PressableScale>
   );
 }

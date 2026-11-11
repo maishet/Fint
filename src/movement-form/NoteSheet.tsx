@@ -17,10 +17,11 @@ export interface NoteSheetProps {
 }
 
 /**
- * Hoja de nota: un campo de varias líneas con el borde `ink` activo, un
+ * Hoja de nota (marca D, G-05): título con la línea "Algo para acordarte
+ * después", un campo `surface` de varias líneas con el borde tinta de 2, un
  * contador en `mono` hasta 200 caracteres y las notas recientes como chips
- * (tocar uno lo copia). "Listo" reemplaza la X porque el teclado del sistema
- * ocupa la mitad de abajo; la hoja sube pegada a él.
+ * (tocar uno lo copia). "Listo" (amarillo) reemplaza la X porque el teclado
+ * del sistema ocupa la mitad de abajo; la hoja sube pegada a él.
  */
 export function NoteSheet({ open, onClose, value, onChange, recent }: NoteSheetProps) {
   const { t } = useTranslation();
@@ -55,10 +56,11 @@ export function NoteSheet({ open, onClose, value, onChange, recent }: NoteSheetP
       open={open}
       onClose={done}
       title={t("movementForm.note")}
+      subtitle={t("movementForm.addNote")}
       headerAction={{ label: t("movementForm.noteSheet.done"), onPress: done }}
     >
       <YStack
-        mx={16}
+        mx={20}
         mt={14}
         rounded={20}
         bg="$surface"
@@ -85,7 +87,7 @@ export function NoteSheet({ open, onClose, value, onChange, recent }: NoteSheetP
             { fontSize: 16, lineHeight: 23, color: theme.ink.val, minHeight: 70, padding: 0, textAlignVertical: "top" },
           ]}
         />
-        <FText variant="figure-caption" tone="inkFaint" style={{ alignSelf: "flex-end", marginTop: 4 }}>
+        <FText tone="inkFaint" style={{ alignSelf: "flex-end", marginTop: 8, fontFamily: fontFace.mono[500], fontSize: 12, lineHeight: 16 }}>
           {`${draft.length} / ${NOTE_MAX}`}
         </FText>
       </YStack>
@@ -93,14 +95,13 @@ export function NoteSheet({ open, onClose, value, onChange, recent }: NoteSheetP
       {recent.length > 0 ? (
         <>
           <FText
-            variant="caption"
-            tone="inkMuted"
-            style={{ fontFamily: fontFace.sans[600], marginTop: 18, marginBottom: 8, marginHorizontal: 20 }}
+            tone="inkFaint"
+            style={{ fontFamily: fontFace.display[700], fontSize: 13, lineHeight: 18, marginTop: 16, marginBottom: 8, marginHorizontal: 20 }}
           >
             {t("movementForm.noteSheet.recent")}
           </FText>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-            <XStack gap={8} px={16}>
+            <XStack gap={6} px={20}>
               {recent.map((note) => (
                 <Chip
                   key={note}
