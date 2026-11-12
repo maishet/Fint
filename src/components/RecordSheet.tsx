@@ -3,16 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, type Href } from "expo-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import Animated, {
-  cancelAnimation,
-  Easing,
-  FadeIn,
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from "react-native-reanimated";
+import Animated, { cancelAnimation, Easing, FadeIn, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
 import { View, XStack, YStack, useTheme } from "tamagui";
 import { financeApi } from "../api/finance";
 import { getAppLocale } from "../i18n";
@@ -269,10 +260,12 @@ export function MoreSheet({ open, onClose }: SheetProps) {
     { key: "help", icon: HelpCircle, label: t("home.more.help"), trailing: <Aside />, onPress: () => go("/support") },
   );
 
+  const categoriesDetail = categoriesQuery.data ? t("home.more.categoriesCount", { count: categoriesQuery.data.length }) : "";
   const cards: { key: string; node: ReactNode }[] = [
     {
-      // F-11: Transferir es el acceso grande (amarillo, dos filas de alto); Importar y Categorías van a su lado en
-      // `surface`. Si Importar está oculto, Categorías ocupa la columna entera.
+      // F-11: Transferir es el acceso grande (amarillo, dos filas de alto); Importar y Categorías van a su lado,
+      // apilados. Si Importar está oculto, Categorías pasa a ser un acceso alto como Transferir (136, mitad y mitad,
+      // ícono arriba y texto abajo): un solo acceso chico a la derecha dejaba la columna medio vacía.
       key: "tiles",
       node: (
         <XStack gap={8} px={space[5]} mt={space[2]} minH={136}>
@@ -282,17 +275,14 @@ export function MoreSheet({ open, onClose }: SheetProps) {
             detail={t("home.more.transferHint")}
             onPress={() => go({ pathname: "/transaction-form", params: { type: "transfer" } })}
           />
-          <YStack flex={1.15} gap={8}>
-            {isHidden("csvImport") ? null : (
+          {isHidden("csvImport") ? (
+            <ActionTile tall icon={Tag} title={t("home.more.categories")} detail={categoriesDetail} onPress={() => go("/categories")} />
+          ) : (
+            <YStack flex={1.15} gap={8}>
               <ActionTile icon={Upload} title={t("home.more.import")} detail={t("home.more.importHint")} onPress={() => go("/import-transactions")} />
-            )}
-            <ActionTile
-              icon={Tag}
-              title={t("home.more.categories")}
-              detail={categoriesQuery.data ? t("home.more.categoriesCount", { count: categoriesQuery.data.length }) : ""}
-              onPress={() => go("/categories")}
-            />
-          </YStack>
+              <ActionTile icon={Tag} title={t("home.more.categories")} detail={categoriesDetail} onPress={() => go("/categories")} />
+            </YStack>
+          )}
         </XStack>
       ),
     },
@@ -312,7 +302,17 @@ export function MoreSheet({ open, onClose }: SheetProps) {
                 <View width={40} height={40} rounded={14} bg="$surface" items="center" justify="center">
                   <row.icon size={20} color="$inkMuted" strokeWidth={2} />
                   {row.key === "gmail" ? (
-                    <View position="absolute" r={-2} b={-2} width={11} height={11} rounded={radius.pill} bg={`$${gmailTone}`} borderWidth={2} borderColor="$background" />
+                    <View
+                      position="absolute"
+                      r={-2}
+                      b={-2}
+                      width={11}
+                      height={11}
+                      rounded={radius.pill}
+                      bg={`$${gmailTone}`}
+                      borderWidth={2}
+                      borderColor="$background"
+                    />
                   ) : null}
                 </View>
               }
@@ -359,23 +359,55 @@ function BigTile({ icon: Icon, title, detail, onPress }: { icon: typeof Download
   );
 }
 
-/** Un acceso chico de la hoja Más (F-11): `surface` de radio 20 con el ícono, el nombre a 15 y una línea. */
-function ActionTile({ icon: Icon, title, detail, onPress }: { icon: typeof Download; title: string; detail: string; onPress: () => void }) {
+/**
+ * Un acceso chico de la hoja Más (F-11): radio 20 con el ícono, el nombre a 15 y una línea. `tall`: el mismo alto y
+ * la misma forma que Transferir (136, ícono arriba en su cuadro de 44, texto abajo), para cuando va solo a su lado.
+ *
+ * El fondo es `surface` en claro y `surfaceSunken` en oscuro, como `SheetField`: en oscuro la hoja ya es `surface`
+ * y un acceso del mismo tono no se veía.
+ */
+function ActionTile({
+  icon: Icon,
+  title,
+  detail,
+  onPress,
+  tall = false,
+}: {
+  icon: typeof Download;
+  title: string;
+  detail: string;
+  onPress: () => void;
+  tall?: boolean;
+}) {
+  const { themeMode } = useThemeMode();
+  const bg = themeMode === "dark" ? "$surfaceSunken" : "$surface";
+  const text = (
+    <YStack flex={tall ? undefined : 1} minW={0} gap={tall ? 2 : 0}>
+      <FText maxFontSizeMultiplier={1.5} style={{ fontFamily: fontFace.display[700], fontSize: tall ? 18 : 15, lineHeight: tall ? 23 : 20 }}>
+        {title}
+      </FText>
+      {detail ? (
+        <FText tone="inkFaint" style={{ fontSize: tall ? 13 : 12, lineHeight: tall ? 18 : 16 }}>
+          {detail}
+        </FText>
+      ) : null}
+    </YStack>
+  );
   return (
     <PressableScale onPress={onPress} haptic="tap" accessibilityRole="button" accessibilityLabel={detail ? `${title}. ${detail}` : title} style={{ flex: 1 }}>
-      <XStack flex={1} minH={64} px={14} py={12} gap={10} items="center" rounded={20} bg="$surface">
-        <Icon size={20} color="$ink" strokeWidth={2} />
-        <YStack flex={1} minW={0}>
-          <FText maxFontSizeMultiplier={1.5} style={{ fontFamily: fontFace.display[700], fontSize: 15, lineHeight: 20 }}>
-            {title}
-          </FText>
-          {detail ? (
-            <FText tone="inkFaint" style={{ fontSize: 12, lineHeight: 16 }}>
-              {detail}
-            </FText>
-          ) : null}
+      {tall ? (
+        <YStack flex={1} minH={136} p={16} gap={12} justify="space-between" rounded={24} bg={bg}>
+          <View width={44} height={44} rounded={14} items="center" justify="center" bg="$canvas">
+            <Icon size={22} color="$ink" strokeWidth={2} />
+          </View>
+          {text}
         </YStack>
-      </XStack>
+      ) : (
+        <XStack flex={1} minH={64} px={14} py={12} gap={10} items="center" rounded={20} bg={bg}>
+          <Icon size={20} color="$ink" strokeWidth={2} />
+          {text}
+        </XStack>
+      )}
     </PressableScale>
   );
 }
@@ -403,7 +435,15 @@ function PillButton({
   icon?: ReactNode;
 }) {
   return (
-    <PressableScale onPress={onPress} disabled={disabled} haptic="tap" hitSlop={5} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled, busy: disabled }}>
+    <PressableScale
+      onPress={onPress}
+      disabled={disabled}
+      haptic="tap"
+      hitSlop={5}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled, busy: disabled }}
+    >
       <XStack
         height={34}
         px={14}

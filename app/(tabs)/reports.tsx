@@ -15,9 +15,9 @@ import {
 } from "@tamagui/lucide-icons-2";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { TFunction } from "i18next";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { RefreshControl, ScrollView, useWindowDimensions } from "react-native";
+import { RefreshControl, ScrollView, useWindowDimensions, type View as NativeView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { View, XStack, YStack, useTheme, type ColorTokens } from "tamagui";
 import { financeApi } from "../../src/api/finance";
@@ -48,7 +48,22 @@ import {
 import { COMPACT_FONT_SCALE, radius, space } from "../../src/theme/tokens";
 import { fontFace } from "../../src/theme/typography";
 import { useScreenStatusBar } from "../../src/theme/useScreenStatusBar";
-import { Amount, FintCard, FintSheet, FText, IconButton, ListRow, Monogram, PressableScale, RowAmount, SegmentedControl, SoonBadge, Ticket, TicketBar, useComingSoon } from "../../src/ui";
+import {
+  Amount,
+  FintCard,
+  FintSheet,
+  FText,
+  IconButton,
+  ListRow,
+  Monogram,
+  PressableScale,
+  RowAmount,
+  SegmentedControl,
+  SoonBadge,
+  Ticket,
+  TicketBar,
+  useComingSoon,
+} from "../../src/ui";
 import { SkeletonBlock, SkeletonGroup } from "../../src/components/Skeleton";
 import { isComingSoon } from "../../src/config/comingSoon";
 
@@ -57,13 +72,65 @@ const PERIODS: PeriodKind[] = ["week", "month", "year"];
 
 /** Las claves de `reports.*` que usa la exportación (PDF y Excel), igual que antes. */
 const REPORT_TEXT_KEYS = [
-  "title", "subtitle", "closing", "filters", "period", "account", "currency", "allAccounts", "currentMonth", "previousMonth",
-  "last3Months", "last6Months", "customRange", "fromDate", "toDate", "customRangeHint", "updated", "mixed", "loading", "error",
-  "empty", "exportTitle", "exportPdf", "exportExcel", "exporting", "exported", "exportError", "executiveSummary", "financialStatus",
-  "income", "expenses", "net", "savingsRate", "transactions", "previousPeriod", "flow", "categories", "accountActivity",
-  "currentPosition", "accounts", "debts", "topTransactions", "category", "date", "type", "amount", "balance", "outstanding",
-  "dueDate", "progress", "noData", "currentSnapshotNote", "incomeType", "expenseType", "viewMovements", "comparison",
-  "topCategory", "largestMovement", "noPrevious",
+  "title",
+  "subtitle",
+  "closing",
+  "filters",
+  "period",
+  "account",
+  "currency",
+  "allAccounts",
+  "currentMonth",
+  "previousMonth",
+  "last3Months",
+  "last6Months",
+  "customRange",
+  "fromDate",
+  "toDate",
+  "customRangeHint",
+  "updated",
+  "mixed",
+  "loading",
+  "error",
+  "empty",
+  "exportTitle",
+  "exportPdf",
+  "exportExcel",
+  "exporting",
+  "exported",
+  "exportError",
+  "executiveSummary",
+  "financialStatus",
+  "income",
+  "expenses",
+  "net",
+  "savingsRate",
+  "transactions",
+  "previousPeriod",
+  "flow",
+  "categories",
+  "accountActivity",
+  "currentPosition",
+  "accounts",
+  "debts",
+  "topTransactions",
+  "category",
+  "date",
+  "type",
+  "amount",
+  "balance",
+  "outstanding",
+  "dueDate",
+  "progress",
+  "noData",
+  "currentSnapshotNote",
+  "incomeType",
+  "expenseType",
+  "viewMovements",
+  "comparison",
+  "topCategory",
+  "largestMovement",
+  "noPrevious",
 ] as const;
 
 function capitalize(text: string) {
@@ -174,7 +241,8 @@ export default function ReportsScreen() {
   const hasMovements = Boolean(report?.summary.transactionCount);
   const accounts = optionsQuery.data?.accounts ?? [];
   const currencies = optionsQuery.data?.currencies ?? [];
-  const accountLabel = accountId === ALL_ACCOUNTS ? t("reportsTab.allAccounts") : (accounts.find((a) => a.id === accountId)?.name ?? t("reportsTab.allAccounts"));
+  const accountLabel =
+    accountId === ALL_ACCOUNTS ? t("reportsTab.allAccounts") : (accounts.find((a) => a.id === accountId)?.name ?? t("reportsTab.allAccounts"));
 
   const changeKind = (next: PeriodKind) => {
     setKind(next);
@@ -281,11 +349,39 @@ export default function ReportsScreen() {
     router.navigate({ pathname: "/(tabs)/movements", params: { q: row.key, qt: String(Date.now()) } });
   };
 
+  // Tocar una porción del donut trae su fila a la vista, solo si está tapada (arriba, o abajo detrás de la barra de tabs).
+  const scrollRef = useRef<ScrollView>(null);
+  // El contenido del `ScrollView`: la fila se mide contra él para saber su `y` dentro de lo desplazable.
+  const contentRef = useRef<NativeView>(null);
+  const scrollY = useRef(0);
+  const viewportH = useRef(0);
+  const revealRow = (row: NativeView) => {
+    const content = contentRef.current;
+    if (!content) return;
+    row.measureLayout(content, (_x, y, _w, h) => {
+      const top = scrollY.current;
+      const bottom = top + viewportH.current - floatingTabBarHeight(insets.bottom);
+      if (y >= top && y + h <= bottom) return;
+      scrollRef.current?.scrollTo({
+        y: Math.max(0, y - (y < top ? space[4] : viewportH.current - floatingTabBarHeight(insets.bottom) - h - space[6])),
+        animated: true,
+      });
+    });
+  };
+
   const error = optionsQuery.error ?? periodQuery.error;
 
   return (
     <YStack flex={1} bg="$canvas" pt={insets.top}>
       <ScrollView
+        ref={scrollRef}
+        onScroll={(e) => {
+          scrollY.current = e.nativeEvent.contentOffset.y;
+        }}
+        scrollEventThrottle={32}
+        onLayout={(e) => {
+          viewportH.current = e.nativeEvent.layout.height;
+        }}
         contentContainerStyle={{ paddingTop: space[2], paddingBottom: floatingTabBarHeight(insets.bottom) + space[4] }}
         refreshControl={
           <RefreshControl
@@ -302,184 +398,207 @@ export default function ReportsScreen() {
           />
         }
       >
-        {/* Título y descargar el reporte (PDF o Excel). */}
-        <XStack items="center" justify="space-between" px={space[5]} gap={space[3]}>
-          <FText accessibilityRole="header" maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={TAB_TITLE}>
-            {t("reportsTab.title")}
-          </FText>
-          {isComingSoon("reportExport") ? (
-            // Se ve, pero todavía no se puede usar.
-            <XStack items="center" gap={8}>
-              <SoonBadge />
-              <IconButton label={t("reportsTab.share")} accessibilityHint={t("comingSoon.tapHint")} icon={<Share size={18} color="$ink" strokeWidth={2} />} soon onPress={() => showSoon("reportExport")} />
-            </XStack>
-          ) : (
-            <IconButton
-              label={t("reportsTab.share")}
-              icon={<Share size={18} color="$ink" strokeWidth={2} />}
-              disabled={!hasMovements}
-              style={{ opacity: !hasMovements ? 0.42 : 1 }}
-              onPress={() => setSheet("export")}
-            />
-          )}
-        </XStack>
-
-        {/* Periodo: Semana, Mes o Año; flechas entre periodos y la cuenta. */}
-        <View mx={space[5]} mt={10}>
-          <SegmentedControl
-            options={PERIODS.map((p) => ({ value: p, label: t(`reportsTab.periods.${p}`) }))}
-            value={kind}
-            onChange={changeKind}
-            accessibilityLabel={t("reportsTab.periodsLabel")}
-          />
-        </View>
-        {/* El periodo tiene su fila: con una cuenta de nombre largo, la fecha ya no se corta. */}
-        <XStack mx={space[5]} mt={12} items="center" justify="space-between" gap={space[2]}>
-          <ArrowButton label={t("reportsTab.previous")} onPress={() => setStart(shiftPeriod(kind, start, -1))}>
-            <ChevronLeft size={20} color="$ink" strokeWidth={2} />
-          </ArrowButton>
-          <FText
-            numberOfLines={2}
-            maxFontSizeMultiplier={1.5}
-            style={{ flex: 1, textAlign: "center", fontFamily: fontFace.display[700], fontSize: 16, lineHeight: 21 }}
-            accessibilityLiveRegion="polite"
-          >
-            {periodTitle(kind, start, locale)}
-          </FText>
-          <ArrowButton label={t("reportsTab.next")} disabled={current} onPress={() => setStart(shiftPeriod(kind, start, 1))}>
-            <ChevronRight size={20} color="$ink" strokeWidth={2} />
-          </ArrowButton>
-        </XStack>
-        {/* Los filtros, debajo y con todo el ancho: la cuenta con su icono para que se lea como filtro. */}
-        <XStack mx={space[5]} mt={10} items="center" gap={6} flexWrap="wrap">
-          <View shrink={1}>
-            <Pill
-              icon={<Wallet size={14} color="$ink" strokeWidth={2} />}
-              label={accountLabel}
-              a11yLabel={`${t("reportsTab.account")}: ${accountLabel}`}
-              onPress={() => setSheet("account")}
-            />
-          </View>
-          {currencies.length > 1 ? (
-            <Pill label={selectedCurrency} a11yLabel={`${t("reportsTab.currency")}: ${selectedCurrency}`} onPress={() => setSheet("currency")} />
-          ) : null}
-          {/* Lejos del periodo actual, un toque para volver a él en lugar de ir de uno en uno con las flechas. */}
-          {!current ? (
-            <PressableScale
-              onPress={() => setStart(periodStart(kind, new Date()))}
-              haptic="select"
-              hitSlop={6}
-              style={{ marginLeft: "auto" }}
-              accessibilityRole="button"
-              accessibilityLabel={t("reportsTab.backToCurrentA11y")}
-            >
-              <XStack height={32} px={12} gap={6} items="center" rounded={radius.pill} bg="$surface">
-                <RotateCcw size={14} color="$ink" strokeWidth={2.2} />
-                <FText variant="label" tone="ink" numberOfLines={1} style={{ fontSize: 13, fontFamily: fontFace.sans[600] }}>
-                  {t(`reportsTab.backToCurrent.${kind}`)}
-                </FText>
-              </XStack>
-            </PressableScale>
-          ) : null}
-        </XStack>
-
-        {currencies.length > 1 ? (
-          // Varias monedas (I-07): el aviso va en una tarjeta `surface`.
-          <XStack mx={space[5]} mt={10} p={14} gap={10} items="flex-start" rounded={22} bg="$surface">
-            <Info size={16} color="$inkMuted" strokeWidth={2} />
-            <FText tone="inkMuted" style={{ flex: 1, fontSize: 13, lineHeight: 18 }}>
-              {t("reports.mixed")}
+        <View ref={contentRef} collapsable={false}>
+          {/* Título y descargar el reporte (PDF o Excel). */}
+          <XStack items="center" justify="space-between" px={space[5]} gap={space[3]}>
+            <FText accessibilityRole="header" maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={TAB_TITLE}>
+              {t("reportsTab.title")}
             </FText>
+            {isComingSoon("reportExport") ? (
+              // Se ve, pero todavía no se puede usar.
+              <XStack items="center" gap={8}>
+                <SoonBadge />
+                <IconButton
+                  label={t("reportsTab.share")}
+                  accessibilityHint={t("comingSoon.tapHint")}
+                  icon={<Share size={18} color="$ink" strokeWidth={2} />}
+                  soon
+                  onPress={() => showSoon("reportExport")}
+                />
+              </XStack>
+            ) : (
+              <IconButton
+                label={t("reportsTab.share")}
+                icon={<Share size={18} color="$ink" strokeWidth={2} />}
+                disabled={!hasMovements}
+                style={{ opacity: !hasMovements ? 0.42 : 1 }}
+                onPress={() => setSheet("export")}
+              />
+            )}
           </XStack>
-        ) : null}
 
-        {error ? (
-          <View mx={space[5]} mt={space[4]}>
-            <DataStateCard
-              message={t("states.error")}
-              onRetry={() => {
-                void optionsQuery.refetch();
-                void periodQuery.refetch();
-              }}
+          {/* Periodo: Semana, Mes o Año; flechas entre periodos y la cuenta. */}
+          <View mx={space[5]} mt={10}>
+            <SegmentedControl
+              options={PERIODS.map((p) => ({ value: p, label: t(`reportsTab.periods.${p}`) }))}
+              value={kind}
+              onChange={changeKind}
+              accessibilityLabel={t("reportsTab.periodsLabel")}
             />
           </View>
-        ) : null}
-
-        {periodQuery.isLoading ? (
-          <ReportSkeleton />
-        ) : report ? (
-          <>
-            <StatusCard report={report} kind={kind} previousLabel={previousLabel} />
-
-            <Section title={t(`reportsTab.flow.${kind}`)}>
-              <View>
-                {(kind === "week" && weekQuery.isLoading) || columns.length === 0 ? (
-                  kind === "week" && weekQuery.isLoading ? (
-                    <SkeletonBlock width="100%" height={120} rounded={16} />
-                  ) : (
-                    <EmptyLine text={t("reportsTab.flowEmpty")} />
-                  )
-                ) : columns.every((c) => c.income === 0 && c.expenses === 0) ? (
-                  <EmptyLine text={t("reportsTab.flowEmpty")} />
-                ) : (
-                  <FlowChart columns={columns} currency={report.filters.currency} initialIndex={initialIndex} />
-                )}
-              </View>
-            </Section>
-
-            <Section
-              title={t("reportsTab.categories")}
-              trailing={
-                rows.length > 0 ? (
-                  <FText variant="caption" tone="inkFaint">
-                    {t("reportsTab.vs", { period: previousLabel })}
+          {/* El periodo tiene su fila: con una cuenta de nombre largo, la fecha ya no se corta. */}
+          <XStack mx={space[5]} mt={12} items="center" justify="space-between" gap={space[2]}>
+            <ArrowButton label={t("reportsTab.previous")} onPress={() => setStart(shiftPeriod(kind, start, -1))}>
+              <ChevronLeft size={20} color="$ink" strokeWidth={2} />
+            </ArrowButton>
+            <FText
+              numberOfLines={2}
+              maxFontSizeMultiplier={1.5}
+              style={{ flex: 1, textAlign: "center", fontFamily: fontFace.display[700], fontSize: 16, lineHeight: 21 }}
+              accessibilityLiveRegion="polite"
+            >
+              {periodTitle(kind, start, locale)}
+            </FText>
+            <ArrowButton label={t("reportsTab.next")} disabled={current} onPress={() => setStart(shiftPeriod(kind, start, 1))}>
+              <ChevronRight size={20} color="$ink" strokeWidth={2} />
+            </ArrowButton>
+          </XStack>
+          {/* Los filtros, debajo y con todo el ancho: la cuenta con su icono para que se lea como filtro. */}
+          <XStack mx={space[5]} mt={10} items="center" gap={6} flexWrap="wrap">
+            <View shrink={1}>
+              <Pill
+                icon={<Wallet size={14} color="$ink" strokeWidth={2} />}
+                label={accountLabel}
+                a11yLabel={`${t("reportsTab.account")}: ${accountLabel}`}
+                onPress={() => setSheet("account")}
+              />
+            </View>
+            {currencies.length > 1 ? (
+              <Pill label={selectedCurrency} a11yLabel={`${t("reportsTab.currency")}: ${selectedCurrency}`} onPress={() => setSheet("currency")} />
+            ) : null}
+            {/* Lejos del periodo actual, un toque para volver a él en lugar de ir de uno en uno con las flechas. */}
+            {!current ? (
+              <PressableScale
+                onPress={() => setStart(periodStart(kind, new Date()))}
+                haptic="select"
+                hitSlop={6}
+                style={{ marginLeft: "auto" }}
+                accessibilityRole="button"
+                accessibilityLabel={t("reportsTab.backToCurrentA11y")}
+              >
+                <XStack height={32} px={12} gap={6} items="center" rounded={radius.pill} bg="$surface">
+                  <RotateCcw size={14} color="$ink" strokeWidth={2.2} />
+                  <FText variant="label" tone="ink" numberOfLines={1} style={{ fontSize: 13, fontFamily: fontFace.sans[600] }}>
+                    {t(`reportsTab.backToCurrent.${kind}`)}
                   </FText>
-                ) : null
-              }
-            >
-              <View>
-                {rows.length === 0 ? (
-                  <EmptyLine text={t("reportsTab.categoriesEmpty")} />
-                ) : (
-                  <CategoryBreakdown rows={rows} currency={report.filters.currency} onOpen={openCategory} iconFor={(name) => iconFor(name, "expense")} />
-                )}
-              </View>
-            </Section>
+                </XStack>
+              </PressableScale>
+            ) : null}
+          </XStack>
 
-            <Section
-              title={t("reportsTab.topExpenses")}
-              trailing={
-                topExpenses.length > 3 ? (
-                  <PressableScale onPress={() => setSheet("top")} haptic="tap" hitSlop={8} accessibilityRole="button">
-                    <XStack items="center" gap={2}>
-                      <FText maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={{ fontSize: 14, lineHeight: 19, fontFamily: fontFace.display[700] }}>
-                        {t("reportsTab.seeAll")}
-                      </FText>
-                      <ChevronRight size={16} color="$ink" strokeWidth={2.2} />
+          {currencies.length > 1 ? (
+            // Varias monedas (I-07): el aviso va en una tarjeta `surface`.
+            <XStack mx={space[5]} mt={10} p={14} gap={10} items="flex-start" rounded={22} bg="$surface">
+              <Info size={16} color="$inkMuted" strokeWidth={2} />
+              <FText tone="inkMuted" style={{ flex: 1, fontSize: 13, lineHeight: 18 }}>
+                {t("reports.mixed")}
+              </FText>
+            </XStack>
+          ) : null}
+
+          {error ? (
+            <View mx={space[5]} mt={space[4]}>
+              <DataStateCard
+                message={t("states.error")}
+                onRetry={() => {
+                  void optionsQuery.refetch();
+                  void periodQuery.refetch();
+                }}
+              />
+            </View>
+          ) : null}
+
+          {periodQuery.isLoading ? (
+            <ReportSkeleton />
+          ) : report ? (
+            <>
+              <StatusCard report={report} kind={kind} previousLabel={previousLabel} />
+
+              <Section title={t(`reportsTab.flow.${kind}`)}>
+                <View>
+                  {(kind === "week" && weekQuery.isLoading) || columns.length === 0 ? (
+                    kind === "week" && weekQuery.isLoading ? (
+                      <SkeletonBlock width="100%" height={120} rounded={16} />
+                    ) : (
+                      <EmptyLine text={t("reportsTab.flowEmpty")} />
+                    )
+                  ) : columns.every((c) => c.income === 0 && c.expenses === 0) ? (
+                    <EmptyLine text={t("reportsTab.flowEmpty")} />
+                  ) : (
+                    <FlowChart columns={columns} currency={report.filters.currency} initialIndex={initialIndex} />
+                  )}
+                </View>
+              </Section>
+
+              <Section
+                title={t("reportsTab.categories")}
+                trailing={
+                  rows.length > 0 ? (
+                    <FText variant="caption" tone="inkFaint">
+                      {t("reportsTab.vs", { period: previousLabel })}
+                    </FText>
+                  ) : null
+                }
+              >
+                <View>
+                  {rows.length === 0 ? (
+                    <EmptyLine text={t("reportsTab.categoriesEmpty")} />
+                  ) : (
+                    <CategoryBreakdown
+                      rows={rows}
+                      currency={report.filters.currency}
+                      onOpen={openCategory}
+                      onReveal={revealRow}
+                      iconFor={(name) => iconFor(name, "expense")}
+                    />
+                  )}
+                </View>
+              </Section>
+
+              <Section
+                title={t("reportsTab.topExpenses")}
+                trailing={
+                  topExpenses.length > 3 ? (
+                    <PressableScale onPress={() => setSheet("top")} haptic="tap" hitSlop={8} accessibilityRole="button">
+                      <XStack items="center" gap={2}>
+                        <FText maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={{ fontSize: 14, lineHeight: 19, fontFamily: fontFace.display[700] }}>
+                          {t("reportsTab.seeAll")}
+                        </FText>
+                        <ChevronRight size={16} color="$ink" strokeWidth={2.2} />
+                      </XStack>
+                    </PressableScale>
+                  ) : null
+                }
+              >
+                <View>
+                  {topQuery.isLoading ? (
+                    <XStack items="center" gap={12} py={10}>
+                      <SkeletonBlock width={44} height={44} rounded={14} />
+                      <SkeletonBlock width="50%" height={14} rounded={6} />
                     </XStack>
-                  </PressableScale>
-                ) : null
-              }
-            >
-              <View>
-                {topQuery.isLoading ? (
-                  <XStack items="center" gap={12} py={10}>
-                    <SkeletonBlock width={44} height={44} rounded={14} />
-                    <SkeletonBlock width="50%" height={14} rounded={6} />
-                  </XStack>
-                ) : topExpenses.length === 0 ? (
-                  <EmptyLine text={t("reportsTab.topEmpty")} />
-                ) : (
-                  topExpenses.slice(0, 3).map((item, i) => (
-                    <TopExpenseRow key={item.id} item={item} first={i === 0} locale={locale} emoji={iconFor(item.category, "expense")} currency={report.filters.currency} />
-                  ))
-                )}
-              </View>
-            </Section>
+                  ) : topExpenses.length === 0 ? (
+                    <EmptyLine text={t("reportsTab.topEmpty")} />
+                  ) : (
+                    topExpenses
+                      .slice(0, 3)
+                      .map((item, i) => (
+                        <TopExpenseRow
+                          key={item.id}
+                          item={item}
+                          first={i === 0}
+                          locale={locale}
+                          emoji={iconFor(item.category, "expense")}
+                          currency={report.filters.currency}
+                        />
+                      ))
+                  )}
+                </View>
+              </Section>
 
-            <PositionCard position={positionQuery.data} loading={positionQuery.isLoading} currency={report.filters.currency} locale={locale} />
-          </>
-        ) : null}
+              <PositionCard position={positionQuery.data} loading={positionQuery.isLoading} currency={report.filters.currency} locale={locale} />
+            </>
+          ) : null}
+        </View>
       </ScrollView>
 
       <FintSheet open={sheet === "account"} onClose={() => setSheet(null)} title={t("reportsTab.account")}>
@@ -525,10 +644,24 @@ export default function ReportsScreen() {
         prepare={prepareExport}
         options={exportOptions}
       />
-      <FintSheet open={sheet === "top"} onClose={() => setSheet(null)} title={t("reportsTab.topExpenses")} subtitle={periodTitle(kind, start, locale)} scrollable snapPoints={[70]}>
+      <FintSheet
+        open={sheet === "top"}
+        onClose={() => setSheet(null)}
+        title={t("reportsTab.topExpenses")}
+        subtitle={periodTitle(kind, start, locale)}
+        scrollable
+        snapPoints={[70]}
+      >
         <View height={4} px={space[5]} />
         {topExpenses.map((item, i) => (
-          <TopExpenseRow key={item.id} item={item} first={i === 0} locale={locale} emoji={iconFor(item.category, "expense")} currency={report?.filters.currency ?? selectedCurrency} />
+          <TopExpenseRow
+            key={item.id}
+            item={item}
+            first={i === 0}
+            locale={locale}
+            emoji={iconFor(item.category, "expense")}
+            currency={report?.filters.currency ?? selectedCurrency}
+          />
         ))}
       </FintSheet>
     </YStack>
@@ -543,7 +676,15 @@ const SECTION_TITLE = { fontFamily: fontFace.display[700], fontSize: 20, lineHei
 /** Flecha de periodo: círculo `surface` de 36 (44 de toque con `hitSlop`). */
 function ArrowButton({ label, disabled, onPress, children }: { label: string; disabled?: boolean; onPress: () => void; children: ReactNode }) {
   return (
-    <PressableScale onPress={onPress} disabled={disabled} haptic="select" hitSlop={4} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }}>
+    <PressableScale
+      onPress={onPress}
+      disabled={disabled}
+      haptic="select"
+      hitSlop={4}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+    >
       <View width={36} height={36} rounded={radius.pill} bg="$surface" items="center" justify="center" opacity={disabled ? 0.38 : 1}>
         {children}
       </View>
@@ -557,7 +698,11 @@ function Pill({ label, a11yLabel, icon, onPress }: { label: string; a11yLabel: s
     <PressableScale onPress={onPress} haptic="tap" hitSlop={{ top: 6, bottom: 6 }} accessibilityRole="button" accessibilityLabel={a11yLabel}>
       <XStack height={32} pl={12} pr={10} gap={4} items="center" rounded={radius.pill} bg="$surface">
         {icon}
-        <FText numberOfLines={1} maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18, flexShrink: 1 }}>
+        <FText
+          numberOfLines={1}
+          maxFontSizeMultiplier={COMPACT_FONT_SCALE}
+          style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18, flexShrink: 1 }}
+        >
           {label}
         </FText>
         <ChevronDown size={14} color="$ink" strokeWidth={2.2} />
@@ -711,7 +856,19 @@ function StatusCard({ report, kind, previousLabel }: { report: FinancialReportPe
 }
 
 /** Una de las mayores transacciones: el emoji de su categoría en el cuadro de 44, la categoría, la fecha y el monto. */
-function TopExpenseRow({ item, first, locale, emoji, currency }: { item: FinancialTopTransaction; first: boolean; locale: string; emoji: string | null; currency: string }) {
+function TopExpenseRow({
+  item,
+  first,
+  locale,
+  emoji,
+  currency,
+}: {
+  item: FinancialTopTransaction;
+  first: boolean;
+  locale: string;
+  emoji: string | null;
+  currency: string;
+}) {
   const { t } = useTranslation();
   const { fontScale } = useWindowDimensions();
   const stacked = fontScale >= COMPACT_FONT_SCALE;
@@ -763,7 +920,11 @@ function PositionCard({ position, loading, currency, locale }: { position?: Fina
               <FText tone="inkMuted" style={{ fontSize: 13, lineHeight: 18 }}>
                 {t("reportsTab.debts")}
               </FText>
-              <Amount value={-Math.abs(position.totalDebtOutstanding)} currency={currency} style={{ fontFamily: fontFace.mono[600], fontSize: 14, lineHeight: 19 }} />
+              <Amount
+                value={-Math.abs(position.totalDebtOutstanding)}
+                currency={currency}
+                style={{ fontFamily: fontFace.mono[600], fontSize: 14, lineHeight: 19 }}
+              />
             </XStack>
             <XStack justify="space-between" items="center" gap={space[3]} flexWrap="wrap" mt={10} pt={10} borderTopWidth={1} borderColor="$line">
               <FText style={{ fontFamily: fontFace.display[700], fontSize: 15, lineHeight: 20 }}>{t("reportsTab.netPosition")}</FText>

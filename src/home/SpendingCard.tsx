@@ -352,7 +352,7 @@ function Legend({ color, label, dashed }: { color: string; label: string; dashed
  * Categorías: un mosaico con las cuatro más grandes y "Otros" (los mismos datos que tenía el donut). La más grande
  * ocupa la columna izquierda a todo el alto; las demás se reparten a la derecha. Cada ficha lleva el fondo pastel del
  * tono de su emoji (`categoryTint`) y "Otros", `surface` con la cantidad de categorías que agrupa. Tocar una ficha
- * abre el análisis en Reportes.
+ * abre los movimientos de esa categoría, como las filas de Reportes; "Otros" abre el análisis en Reportes.
  */
 function CategoryMosaic({
   categories,
@@ -393,7 +393,10 @@ function CategoryMosaic({
     );
   }
 
-  const open = () => router.push("/(tabs)/reports");
+  const openReports = () => router.push("/(tabs)/reports");
+  // El contrato aún no filtra movimientos por categoría ni por mes: Movimientos busca el nombre de la categoría en
+  // todo el historial (igual que `openCategory` de Reportes). `qt` hace que la misma búsqueda se repita al volver.
+  const openCategory = (name: string) => router.navigate({ pathname: "/(tabs)/movements", params: { q: name, qt: String(Date.now()) } });
   const tile = (r: (typeof rows)[number], big: boolean) => (
     <MosaicTile
       key={r.isOther ? "__other__" : r.name}
@@ -404,7 +407,8 @@ function CategoryMosaic({
       percentage={r.percentage}
       currency={currency}
       big={big}
-      onPress={open}
+      opensMovements={!r.isOther}
+      onPress={r.raw ? () => openCategory(r.raw!) : openReports}
     />
   );
 
@@ -433,7 +437,10 @@ function CategoryMosaic({
   );
 }
 
-/** Una ficha del mosaico: emoji arriba (oculto al lector), nombre 12/800, monto y porcentaje abajo. */
+/**
+ * Una ficha del mosaico: emoji arriba (oculto al lector), nombre 12/800, monto y porcentaje abajo. Para el lector,
+ * las que abren sus movimientos lo dicen ("Vivienda, 53 %. Ver movimientos").
+ */
 function MosaicTile({
   name,
   emoji,
@@ -442,6 +449,7 @@ function MosaicTile({
   percentage,
   currency,
   big,
+  opensMovements,
   onPress,
 }: {
   name: string;
@@ -452,13 +460,15 @@ function MosaicTile({
   percentage: number;
   currency: string;
   big: boolean;
+  opensMovements: boolean;
   onPress: () => void;
 }) {
+  const { t } = useTranslation();
   const { themeMode } = useThemeMode();
   const hue = useCategoryHue(emoji, name);
   const isOther = otherCount != null;
   return (
-    <PressableScale onPress={onPress} haptic="tap" accessibilityRole="button" accessibilityLabel={`${name}, ${percentage}%`} style={{ flex: 1 }}>
+    <PressableScale onPress={onPress} haptic="tap" accessibilityRole="button" accessibilityLabel={opensMovements ? `${name}, ${percentage}%. ${t("reports.viewMovements")}` : `${name}, ${percentage}%`} style={{ flex: 1 }}>
       <YStack
         flex={1}
         rounded={18}
