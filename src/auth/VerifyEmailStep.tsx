@@ -112,7 +112,7 @@ export function VerifyEmailStep({ email, onChangeEmail }: { email: string; onCha
       {/* Al pie, como el enlace de entrar / crear cuenta: volver al formulario para corregir el correo. */}
       <XStack mt="auto" pt={space[6]} items="center" justify="center">
         <Pressable onPress={onChangeEmail} hitSlop={10} accessibilityRole="button" disabled={isVerifying}>
-          <FText tone="brand" style={{ fontSize: 14, fontFamily: fontFace.sans[600] }}>
+          <FText tone="ink" style={{ fontSize: 14, fontFamily: fontFace.sans[600], textDecorationLine: "underline" }}>
             {t("loginScreen.changeEmail")}
           </FText>
         </Pressable>

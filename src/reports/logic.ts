@@ -83,10 +83,11 @@ export function dailyFlow(transactions: readonly Transaction[], monday: Date, cu
 }
 
 /**
- * Las columnas del flujo de un mes (semanas que empiezan el lunes) o de un año
- * (meses), con las que el backend no manda en cero: una semana sin movimientos
- * también es una columna. En el periodo actual llegan hasta la de hoy. Si el
- * backend agrupara con otro inicio de semana, se usa su serie tal cual.
+ * Las columnas del flujo de un mes (semanas que empiezan el lunes, recortadas
+ * al mes: la primera arranca el día 1 aunque su lunes sea del mes anterior) o
+ * de un año (meses), con las que el backend no manda en cero. En el periodo
+ * actual llegan hasta la de hoy. Si el backend agrupara con otro inicio de
+ * semana, se usa su serie tal cual.
  */
 export function fillSeries(
   kind: "month" | "year",
@@ -100,7 +101,10 @@ export function fillSeries(
   for (let d = kind === "year" ? start : periodStart("week", start); d < limit; d = kind === "year" ? shiftPeriod("month", d, 1) : shiftPeriod("week", d, 1)) {
     buckets.push(iso(d));
   }
-  const byKey = new Map(series.map((s) => [s.period.slice(0, 10), s]));
+  const first = iso(start);
+  const clip = (key: string) => (key < first ? first : key);
+  if (kind === "month" && buckets.length) buckets[0] = clip(buckets[0]);
+  const byKey = new Map(series.map((s) => [clip(s.period.slice(0, 10)), s]));
   if ([...byKey.keys()].some((key) => !buckets.includes(key))) {
     return series.map((s) => ({ start: s.period.slice(0, 10), income: s.income, expenses: s.expenses }));
   }

@@ -1,16 +1,15 @@
 import { CheckCircle2, CreditCard, Pencil, Repeat, Trash2, Zap } from "@tamagui/lucide-icons-2";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable } from "react-native";
-import { Text, View, XStack, YStack } from "tamagui";
+import { Pressable, useWindowDimensions } from "react-native";
+import { View, XStack, YStack } from "tamagui";
 import type { PaymentOccurrence, PaymentRule } from "../api/types";
 import { parseDateString } from "../finance/dates";
 import { getAppLocale } from "../i18n";
 import { useSensitiveMoney } from "../privacy/useSensitiveMoney";
-import { radius, space } from "../theme/tokens";
+import { COMPACT_FONT_SCALE, radius, space } from "../theme/tokens";
 import { fontFace } from "../theme/typography";
-import { Amount, FText, PressableScale } from "../ui";
-import { GroupedCell } from "../ui/GroupedCell";
+import { Amount, FText, Monogram, PressableScale } from "../ui";
 import { SwipeActions, type SwipeAction } from "../ui/SwipeActions";
 import { dueText, leadOccurrence, paidDay, partialProgress, type PendingItem } from "./logic";
 
@@ -23,21 +22,28 @@ function shortDate(date: Date, locale: string) {
   return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(date).replace(".", "");
 }
 
-/** Icono del pago en `surface-sunken`: el emoji de su categoría o, sin él, repetir (o el rayo si se paga solo). */
-function PaymentIcon({ emoji, auto, late, card }: { emoji: string | null; auto: boolean; late: boolean; card?: boolean }) {
-  const color = late ? "$dangerHard" : "$inkMuted";
+/**
+ * El cuadro del pago (marca D, F-06): el emoji de su categoría sobre su fondo de color; sin emoji, repetir (o el
+ * rayo si se paga solo, o la tarjeta si es un pago heredado) sobre `surface`.
+ */
+function PaymentIcon({ title, emoji, auto, card }: { title: string; emoji: string | null; auto: boolean; card?: boolean }) {
+  const Icon = card ? CreditCard : auto ? Zap : Repeat;
+  return <Monogram name={title} size={44} emoji={emoji} icon={emoji ? undefined : <Icon size={20} color="$inkMuted" strokeWidth={2} />} />;
+}
+
+/** Ficha de 26 en `surface` (un período o "Automático"); el período atrasado lleva el texto en `dangerHard`. */
+function Tag({ label, danger = false, icon }: { label: string; danger?: boolean; icon?: ReactNode }) {
   return (
-    <View width={38} height={38} rounded={radius.md} bg="$surfaceSunken" items="center" justify="center" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      {emoji ? (
-        <Text style={{ fontSize: 18, lineHeight: 22 }}>{emoji}</Text>
-      ) : card ? (
-        <CreditCard size={18} color={color} strokeWidth={1.9} />
-      ) : auto ? (
-        <Zap size={18} color={color} strokeWidth={1.9} />
-      ) : (
-        <Repeat size={18} color={color} strokeWidth={1.9} />
-      )}
-    </View>
+    <XStack height={26} px={10} gap={4} items="center" rounded={radius.pill} bg="$surface">
+      {icon}
+      <FText
+        tone={danger ? "dangerHard" : "inkMuted"}
+        maxFontSizeMultiplier={COMPACT_FONT_SCALE}
+        style={{ fontFamily: fontFace.display[700], fontSize: 12, lineHeight: 16 }}
+      >
+        {label}
+      </FText>
+    </XStack>
   );
 }
 
@@ -47,7 +53,7 @@ export interface PaymentRowProps {
   emoji: string | null;
   first: boolean;
   last: boolean;
-  /** La fila está en el grupo Vencido: filete, detalle y botón cambian. */
+  /** La fila está en el grupo Vencido: el estado va en `dangerHard` y "Pagar" en amarillo. */
   late: boolean;
   today: Date;
   onPay: (occurrence: PaymentOccurrence) => void;
@@ -56,17 +62,17 @@ export interface PaymentRowProps {
 }
 
 /**
- * Fila de un pago pendiente: icono, título, cuándo vence y un detalle
- * (frecuencia, cuenta de cargo o lo que falta de un pago parcial), y a la
- * derecha el monto con la acción. "Pagar" va relleno en `brand` solo en lo
- * vencido; en lo demás, `brand-wash`. Si se paga solo, la etiqueta
- * "Automático" en lugar del botón. Los períodos atrasados de una misma regla
- * van en una fila, cada uno pagable por separado; "Pagar" sugiere el más
- * antiguo. Deslizar muestra Editar y Eliminar; tocar la fila la edita.
+ * Fila de un pago pendiente (marca D, F-06), a todo el ancho y separada por un filete: el emoji de la categoría en
+ * su cuadro de 44, el nombre y el monto en la misma línea, cuándo vence (en `dangerHard` si venció, en tinta si
+ * vence hoy) con el detalle (frecuencia, cuenta de cargo o lo que falta de un pago parcial), y abajo las fichas de
+ * los períodos atrasados (cada uno pagable por separado) y "Pagar": amarillo en lo vencido, tinta en lo demás. Si
+ * se paga solo, la ficha "Automático" en lugar del botón. Deslizar muestra Editar y Eliminar; tocar la fila la edita.
  */
-export function PaymentRow({ item, rule, emoji, first, last, late, today, onPay, onEdit, onDelete }: PaymentRowProps) {
+export function PaymentRow({ item, rule, emoji, first, late, today, onPay, onEdit, onDelete }: PaymentRowProps) {
   const { t, i18n } = useTranslation();
   const locale = getAppLocale(i18n.resolvedLanguage);
+  const { fontScale } = useWindowDimensions();
+  const stacked = fontScale >= COMPACT_FONT_SCALE;
   const { formatSensitiveAmount } = useSensitiveMoney();
   const lead = leadOccurrence(item);
   const periods = item.kind === "group" ? item.periods : null;
@@ -103,32 +109,28 @@ export function PaymentRow({ item, rule, emoji, first, last, late, today, onPay,
               : null;
   const meta = [when, detail].filter(Boolean).join(" · ");
   const amount = lead.totalAmount ?? lead.remainingAmount ?? 0;
+  const whenTone = due.kind === "overdue" || late ? "dangerHard" : due.kind === "today" ? "ink" : "inkMuted";
 
   const actions: SwipeAction[] = [];
-  if (onEdit) actions.push({ key: "edit", label: t("paymentsTab.edit"), icon: <Pencil size={18} color="$ink" />, tone: "neutral", run: onEdit });
+  if (onEdit) actions.push({ key: "edit", label: t("paymentsTab.edit"), icon: <Pencil size={18} color="$canvas" />, tone: "ink", run: onEdit });
   if (onDelete) actions.push({ key: "delete", label: t("paymentsTab.delete"), icon: <Trash2 size={18} color="$onDanger" />, tone: "danger", run: onDelete });
 
   let action: ReactNode = null;
-  if (auto && !legacy) {
-    action = (
-      <XStack height={24} px={8} gap={4} items="center" rounded={radius.pill} bg="$surfaceSunken">
-        <Zap size={11} color="$inkMuted" strokeWidth={2.4} />
-        <FText variant="caption" tone="inkMuted" style={{ fontSize: 11, lineHeight: 14, fontFamily: fontFace.sans[600] }}>
-          {t("paymentsTab.auto")}
-        </FText>
-      </XStack>
-    );
-  } else if (!legacy) {
+  if (!auto && !legacy) {
     action = (
       <PressableScale
         onPress={() => onPay(lead)}
         haptic="tap"
-        hitSlop={6}
+        hitSlop={5}
         accessibilityRole="button"
         accessibilityLabel={t("paymentsTab.payA11y", { title: lead.title })}
       >
-        <View height={28} px={12} rounded={radius.pill} bg={late ? "$brand" : "$brandWash"} items="center" justify="center">
-          <FText variant="caption" tone={late ? "onBrand" : "brand"} style={{ fontFamily: fontFace.sans[600] }}>
+        <View height={34} px={14} rounded={radius.pill} bg={late ? "$brand" : "$ink"} items="center" justify="center">
+          <FText
+            color={late ? "$onBrand" : "$canvas"}
+            maxFontSizeMultiplier={COMPACT_FONT_SCALE}
+            style={{ fontFamily: fontFace.display[700], fontSize: late ? 14 : 13, lineHeight: 18 }}
+          >
             {t("paymentsTab.pay")}
           </FText>
         </View>
@@ -136,12 +138,33 @@ export function PaymentRow({ item, rule, emoji, first, last, late, today, onPay,
     );
   }
 
+  const tags: ReactNode[] = [];
+  if (periods) {
+    periods.forEach((period, i) => {
+      const date = parseDateString(period.dueDate);
+      const label = date ? capitalize(new Intl.DateTimeFormat(locale, { month: "short" }).format(date).replace(".", "")) : "—";
+      tags.push(
+        <PressableScale
+          key={period.id}
+          onPress={() => onPay(period)}
+          haptic="tap"
+          hitSlop={9}
+          accessibilityRole="button"
+          accessibilityLabel={t("paymentsTab.payPeriodA11y", { period: label })}
+        >
+          <Tag label={label} danger={i === 0 && late} />
+        </PressableScale>,
+      );
+    });
+  }
+  if (auto && !legacy) tags.push(<Tag key="auto" label={t("paymentsTab.auto")} icon={<Zap size={11} color="$inkMuted" strokeWidth={2.4} />} />);
+
   const content = (
     <Pressable
       onPress={onEdit}
       disabled={!onEdit}
       accessibilityRole={onEdit ? "button" : undefined}
-      // La píldora "Automático" queda dentro de la fila (que ya es un solo elemento): su significado va en la etiqueta de la fila.
+      // La ficha "Automático" queda dentro de la fila (que ya es un solo elemento): su significado va en la etiqueta de la fila.
       accessibilityLabel={[lead.title, meta, formatSensitiveAmount(amount, lead.currency), auto && !legacy ? t("paymentsTab.autoA11y") : null]
         .filter(Boolean)
         .join(", ")}
@@ -149,53 +172,31 @@ export function PaymentRow({ item, rule, emoji, first, last, late, today, onPay,
       onAccessibilityAction={(e) => actions.find((a) => a.key === e.nativeEvent.actionName)?.run()}
     >
       {({ pressed }) => (
-        <XStack items="center" gap={space[3]} px={space[4]} py={space[3]} bg={pressed ? "$surfaceSunken" : "$surface"}>
-          <PaymentIcon emoji={emoji} auto={auto} late={late} card={legacy} />
-          <YStack flex={1} minW={0}>
-            <FText variant="body-strong" numberOfLines={1} style={{ letterSpacing: -0.15 }}>
-              {lead.title}
-            </FText>
-            <FText
-              variant="caption"
-              tone={late ? "dangerHard" : "inkFaint"}
-              numberOfLines={1}
-              style={{ marginTop: 1, fontFamily: late ? fontFace.sans[600] : undefined }}
-            >
+        <XStack items="flex-start" gap={space[3]} py={14} bg={pressed ? "$surfaceSunken" : "$canvas"}>
+          <PaymentIcon title={lead.title} emoji={emoji} auto={auto} card={legacy} />
+          <YStack flex={1} minW={0} gap={3}>
+            <XStack justify="space-between" items="baseline" gap={8} flexWrap={stacked ? "wrap" : "nowrap"}>
+              <FText numberOfLines={stacked ? undefined : 1} style={{ flexShrink: 1, fontFamily: fontFace.display[700], fontSize: 16, lineHeight: 21 }}>
+                {lead.title}
+              </FText>
+              <Amount value={amount} currency={lead.currency} style={{ fontFamily: fontFace.mono[600], fontSize: 16, lineHeight: 21 }} />
+            </XStack>
+            <FText tone={whenTone} numberOfLines={stacked ? undefined : 1} style={{ fontFamily: fontFace.display[700], fontSize: 13, lineHeight: 18 }}>
               {meta}
             </FText>
             {progress !== null ? (
-              <View width={120} height={4} mt={6} rounded={radius.pill} bg="$chartTrack" overflow="hidden">
+              <View width={120} height={4} mt={4} rounded={radius.pill} bg="$chartTrack" overflow="hidden">
                 <View width={`${Math.round(progress * 100)}%`} height="100%" rounded={radius.pill} bg="$flowIn" />
               </View>
             ) : null}
-            {periods ? (
-              <XStack mt={8} gap={6} flexWrap="wrap">
-                {periods.map((period, i) => {
-                  const date = parseDateString(period.dueDate);
-                  const label = date ? capitalize(new Intl.DateTimeFormat(locale, { month: "short" }).format(date).replace(".", "")) : "—";
-                  return (
-                    <PressableScale
-                      key={period.id}
-                      onPress={() => onPay(period)}
-                      haptic="tap"
-                      hitSlop={4}
-                      accessibilityRole="button"
-                      accessibilityLabel={t("paymentsTab.payPeriodA11y", { period: label })}
-                    >
-                      <View height={24} px={9} rounded={radius.pill} borderWidth={1} borderColor={i === 0 ? "$dangerHard" : "$lineStrong"} items="center" justify="center">
-                        <FText variant="caption" tone={i === 0 ? "dangerHard" : "inkMuted"} style={{ fontSize: 11, lineHeight: 14, fontFamily: fontFace.sans[600] }}>
-                          {label}
-                        </FText>
-                      </View>
-                    </PressableScale>
-                  );
-                })}
+            {tags.length || action ? (
+              <XStack mt={6} justify="space-between" items="center" gap={8} flexWrap="wrap">
+                <XStack gap={6} flexWrap="wrap" shrink={1}>
+                  {tags}
+                </XStack>
+                {action}
               </XStack>
             ) : null}
-          </YStack>
-          <YStack items="flex-end" gap={6} shrink={0}>
-            <Amount value={amount} currency={lead.currency} />
-            {action}
           </YStack>
         </XStack>
       )}
@@ -203,17 +204,17 @@ export function PaymentRow({ item, rule, emoji, first, last, late, today, onPay,
   );
 
   return (
-    <GroupedCell first={first} last={last} tone={late ? "danger" : "default"}>
+    <View borderTopWidth={first ? 0 : 1} borderColor="$line">
       <SwipeActions actions={actions}>{content}</SwipeActions>
-    </GroupedCell>
+    </View>
   );
 }
 
 /**
- * Fila del historial: el pago, cuándo se pagó y con qué cuenta, y el monto.
- * Los pagos de tarjeta heredados se muestran igual, de solo lectura.
+ * Fila del historial (marca D): el pago, cuándo se pagó y con qué cuenta, y el monto, a todo el ancho y separada
+ * por un filete. Los pagos de tarjeta heredados se muestran igual, de solo lectura.
  */
-export function HistoryRow({ occurrence, emoji, first, last }: { occurrence: PaymentOccurrence; emoji: string | null; first: boolean; last: boolean }) {
+export function HistoryRow({ occurrence, emoji, first }: { occurrence: PaymentOccurrence; emoji: string | null; first: boolean; last: boolean }) {
   const { t, i18n } = useTranslation();
   const locale = getAppLocale(i18n.resolvedLanguage);
   const paidAt = paidDay(occurrence);
@@ -231,25 +232,29 @@ export function HistoryRow({ occurrence, emoji, first, last }: { occurrence: Pay
     .join(" · ");
   const amount = occurrence.totalAmount ?? occurrence.paidAmount;
   return (
-    <GroupedCell first={first} last={last}>
-      <XStack items="center" gap={space[3]} px={space[4]} py={space[3]} accessible accessibilityLabel={`${occurrence.title}, ${meta}`}>
-        {emoji || occurrence.kind === "credit_card" ? (
-          <PaymentIcon emoji={emoji} auto={false} late={false} card={occurrence.kind === "credit_card"} />
-        ) : (
-          <View width={38} height={38} rounded={radius.md} bg="$surfaceSunken" items="center" justify="center">
-            <CheckCircle2 size={18} color="$flowIn" strokeWidth={1.9} />
-          </View>
-        )}
-        <YStack flex={1} minW={0}>
-          <FText variant="body-strong" numberOfLines={1} style={{ letterSpacing: -0.15 }}>
-            {occurrence.title}
-          </FText>
-          <FText variant="caption" tone="inkFaint" numberOfLines={1} style={{ marginTop: 1 }}>
-            {meta}
-          </FText>
-        </YStack>
-        <Amount value={amount} currency={occurrence.currency} />
-      </XStack>
-    </GroupedCell>
+    <XStack
+      items="center"
+      gap={space[3]}
+      py={14}
+      borderTopWidth={first ? 0 : 1}
+      borderColor="$line"
+      accessible
+      accessibilityLabel={`${occurrence.title}, ${meta}`}
+    >
+      {emoji || occurrence.kind === "credit_card" ? (
+        <PaymentIcon title={occurrence.title} emoji={emoji} auto={false} card={occurrence.kind === "credit_card"} />
+      ) : (
+        <Monogram name={occurrence.title} size={44} icon={<CheckCircle2 size={20} color="$flowIn" strokeWidth={2} />} />
+      )}
+      <YStack flex={1} minW={0} gap={2}>
+        <FText numberOfLines={1} style={{ fontFamily: fontFace.display[700], fontSize: 16, lineHeight: 21 }}>
+          {occurrence.title}
+        </FText>
+        <FText tone="inkFaint" numberOfLines={1} style={{ fontSize: 13, lineHeight: 18 }}>
+          {meta}
+        </FText>
+      </YStack>
+      <Amount value={amount} currency={occurrence.currency} style={{ fontFamily: fontFace.mono[600], fontSize: 15, lineHeight: 20 }} />
+    </XStack>
   );
 }

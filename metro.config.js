@@ -9,6 +9,11 @@ const projectNativeDirs = new RegExp(
   `^${__dirname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}${nativeDirs.source}`
 )
 const blockList = config.resolver.blockList
-config.resolver.blockList = [...(Array.isArray(blockList) ? blockList : blockList ? [blockList] : []), projectNativeDirs]
+const projectWorktrees = new RegExp(`^${__dirname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\\\/]\\.worktrees[\\\\/].*`)
+config.resolver.blockList = [
+  ...(Array.isArray(blockList) ? blockList : blockList ? [blockList] : []),
+  projectNativeDirs,
+  projectWorktrees,
+]
 
 module.exports = config

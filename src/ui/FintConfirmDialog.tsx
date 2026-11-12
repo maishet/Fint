@@ -36,7 +36,7 @@ export function FintConfirmDialog({
     >
       {/* Sin esto el diálogo se ancla abajo y tapa el campo que estabas usando. */}
       <Dialog.Portal items="center" justify="center">
-        <Dialog.Overlay bg="rgba(4,18,28,0.68)" />
+        <Dialog.Overlay bg="$scrim" />
         <Dialog.Content
           bordered
           elevate

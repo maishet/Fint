@@ -137,7 +137,7 @@ function AccountCard({
           bg={pressed ? "$surfaceSunken" : "$surface"}
           style={{ boxShadow: shadows[themeMode].card }}
         >
-          {account ? <AccountMonogram name={account.name} /> : <View width={38} height={38} rounded={999} bg="$surfaceSunken" />}
+          {account ? <AccountMonogram name={account.name} type={account.accountType} size={38} /> : <View width={38} height={38} rounded={999} bg="$surfaceSunken" />}
           <YStack flex={1} minW={0}>
             <FText variant="caption" tone="inkFaint" style={{ fontSize: 11, lineHeight: 14 }}>
               {label}

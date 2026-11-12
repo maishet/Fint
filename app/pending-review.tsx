@@ -544,7 +544,7 @@ export default function PendingReviewScreen() {
                 accessibilityRole="button"
                 style={{ alignSelf: "center", marginTop: 16, paddingVertical: 6, paddingHorizontal: 8 }}
               >
-                <FText variant="body-strong" tone="brand" style={{ fontSize: 14, textAlign: "center" }}>
+                <FText variant="body-strong" tone="ink" style={{ fontSize: 14, textAlign: "center" }}>
                   {t(mode === "transfer" ? "movementUx.transferNotATransfer" : "pendingScreen.asTransfer")}
                 </FText>
               </Pressable>
@@ -668,7 +668,7 @@ export default function PendingReviewScreen() {
                 trailing={
                   <XStack items="center" gap={10}>
                     {o.remainingAmount !== null ? <Amount value={o.remainingAmount} currency={o.currency} variant="amount-sm" tone="inkMuted" /> : null}
-                    {occurrenceId === o.id ? <Check size={18} color="$brand" strokeWidth={2.4} /> : null}
+                    {occurrenceId === o.id ? <Check size={18} color="$ink" strokeWidth={2.4} /> : null}
                   </XStack>
                 }
                 onPress={() => {
@@ -714,7 +714,7 @@ function SourceBox({ detail, label }: { detail: PendingMovementDetail; label: st
 
 /**
  * Fila de dato: icono en `surfaceSunken`, etiqueta, valor y flecha. Lo que
- * falta va en `brandWash` con "Elegir" en `brand`.
+ * falta va en `brandWash` con "Elegir" en tinta (el amarillo como texto no llega a 3:1 en claro).
  */
 function DataRow({
   icon,
@@ -759,7 +759,7 @@ function DataRow({
           </FText>
           <FText
             variant="body"
-            tone={missing ? "brand" : muted ? "inkFaint" : "ink"}
+            tone={missing ? "ink" : muted ? "inkFaint" : "ink"}
             numberOfLines={1}
             style={{ flex: 1, textAlign: "right", fontSize: 14, fontFamily: fontFace.sans[missing ? 600 : 500] }}
           >
@@ -768,7 +768,7 @@ function DataRow({
           {onClear ? (
             <IconButton label={clearLabel ?? ""} tone="sunken" size={34} icon={<X size={14} color="$inkMuted" strokeWidth={2.2} />} onPress={onClear} />
           ) : (
-            <ChevronRight size={16} color={missing ? "$brand" : "$inkFaint"} strokeWidth={2} />
+            <ChevronRight size={16} color={missing ? "$ink" : "$inkFaint"} strokeWidth={2} />
           )}
         </XStack>
       )}

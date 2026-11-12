@@ -6,7 +6,7 @@ import { useColorScheme, useWindowDimensions } from "react-native";
 import Animated, { FadeIn, useAnimatedStyle, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, Theme, YStack, type YStackProps } from "tamagui";
-import { HeroMesh } from "../home/HeroMesh";
+import { useThemeMode } from "../theme/ThemeMode";
 import { motion, radius } from "../theme/tokens";
 import { fontFace } from "../theme/typography";
 import { FintLogoLoader } from "./FintLogoLoader";
@@ -19,7 +19,10 @@ const SHOW_AFTER_MS = 400;
 const SLOW_AFTER_MS = 8000;
 
 export interface FintLoadingScreenProps extends YStackProps {
-  /** `slab`: pantalla completa sobre la losa (arranque, login → Inicio). `canvas`: dentro de una pantalla. */
+  /**
+   * `slab`: pantalla completa sobre `launchBg` (arranque, login → Inicio): la losa amarilla en claro y casi negro
+   * en oscuro, como la pantalla nativa. `canvas`: dentro de una pantalla.
+   */
   surface?: "slab" | "canvas";
   /** La frase de la etapa real que se espera; cambia con `fade`. Por defecto, `states.loading`. */
   stage?: string;
@@ -29,9 +32,9 @@ export interface FintLoadingScreenProps extends YStackProps {
   /** Con más de 8 s, "Reintentar" debajo de la frase. Sin esto, solo el aviso. */
   onRetry?: () => void;
   /**
-   * Releva a la pantalla nativa de arranque (la losa lisa con el logo completo, 132 px, en el centro): se ve
-   * desde el primer cuadro con el logo completo en el mismo lugar, la malla aparece con `fade` y, ya dibujada,
-   * oculta la pantalla nativa.
+   * Releva a la pantalla nativa de arranque (el logo D completo, 132 px, en el centro; en oscuro, dentro de su
+   * cuadrado amarillo): se ve desde el primer cuadro con el logo completo en el mismo lugar y, ya dibujada, oculta
+   * la pantalla nativa.
    */
   startComplete?: boolean;
   /**
@@ -42,10 +45,11 @@ export interface FintLoadingScreenProps extends YStackProps {
 }
 
 /**
- * La pantalla de carga v3 (`PantallaCarga` del design system): el logo se arma
- * con `FintLogoLoader` y debajo va la frase de la etapa. Sobre la losa lleva la
- * malla del hero y "My Fint" al pie; dentro de una pantalla, el logo chico en
- * el centro del área de contenido. Si la espera dura menos de 400 ms no se ve
+ * La pantalla de carga (marca D, J-03 a J-06): el logo D se arma con
+ * `FintLogoLoader` y debajo va la frase de la etapa. A pantalla completa va
+ * sobre `launchBg` con "My Fint" al pie (en claro, monedas sobre la losa; en
+ * oscuro, el cuadrado amarillo sobre casi negro); dentro de una pantalla, el
+ * logo chico en su cuadrado, en el centro del área de contenido. Si la espera dura menos de 400 ms no se ve
  * nada y `onDone` se llama enseguida (salvo con `startComplete`: el logo ya estaba en la pantalla nativa). Para contenido cuya forma se conoce (listas,
  * tarjetas) van los esqueletos de `src/components/Skeleton.tsx`.
  */
@@ -97,20 +101,19 @@ export function FintLoadingScreen({
   const systemScheme = useColorScheme();
   const nativeTheme = startComplete && onSlab && (systemScheme === "dark" || systemScheme === "light") ? systemScheme : null;
 
+  const { themeMode } = useThemeMode();
+  // `launchBg` es amarillo solo en claro: ahí los textos van en los tonos de la losa; en oscuro, en los del tema.
+  const onYellow = onSlab && (nativeTheme ?? themeMode) === "light";
+
   const screen = (
     <YStack
       flex={1}
-      bg={onSlab ? "$slab" : "$canvas"}
+      bg={onSlab ? "$launchBg" : "$canvas"}
       items="center"
       justify="center"
       overflow="hidden"
       {...props}
     >
-      {onSlab ? (
-        <Animated.View entering={startComplete ? FadeIn.duration(motion.fade.duration) : undefined} style={{ position: "absolute", inset: 0 }}>
-          <HeroMesh width={width} height={height} />
-        </Animated.View>
-      ) : null}
       {shown ? (
         <YStack items="center" width="100%" px={28}>
           {/* El logo y la frase se anuncian juntos como barra de progreso; "Reintentar" queda aparte. */}
@@ -133,7 +136,7 @@ export function FintLoadingScreen({
             />
             <Animated.View style={[{ position: "absolute", top: "100%", marginTop: onSlab ? 22 : 16, width: width - 56, alignItems: "center" }, captionStyle]}>
               <Animated.View key={text} entering={FadeIn.duration(motion.fade.duration)}>
-                <FText variant="caption" tone={onSlab ? "slabMuted" : "inkMuted"} style={{ fontSize: 13, lineHeight: 20, textAlign: "center" }}>
+                <FText variant="caption" tone={onYellow ? "slabMuted" : "inkMuted"} style={{ fontSize: 13, lineHeight: 20, textAlign: "center" }}>
                   {text}
                 </FText>
               </Animated.View>
@@ -145,7 +148,7 @@ export function FintLoadingScreen({
               entering={FadeIn.duration(motion.fade.duration)}
               style={{ position: "absolute", top: "100%", left: 28, right: 28, alignItems: "center", marginTop: (onSlab ? 22 : 16) + 20 + 24 }}
             >
-              <FText tone={onSlab ? "slabMuted" : "inkMuted"} style={{ fontSize: 13, lineHeight: 19, textAlign: "center" }}>
+              <FText tone={onYellow ? "slabMuted" : "inkMuted"} style={{ fontSize: 13, lineHeight: 19, textAlign: "center" }}>
                 {t("loadingScreen.slow")}
               </FText>
               {onRetry ? (
@@ -157,12 +160,11 @@ export function FintLoadingScreen({
                     height={40}
                     px={18}
                     rounded={radius.pill}
-                    bg={onSlab ? "$glassSlab" : "transparent"}
-                    borderWidth={1}
-                    borderColor={onSlab ? "$glassSlabLine" : "$lineStrong"}
+                    bg="$ink"
                   >
-                    <Repeat size={15} color={onSlab ? "$slabInk" : "$ink"} strokeWidth={2} />
-                    <FText variant="body-strong" tone={onSlab ? "slabInk" : "ink"} style={{ fontSize: 14 }}>
+                    {/* "Reintentar" en tinta: en oscuro, `ink` es el papel claro con el texto casi negro. */}
+                    <Repeat size={15} color="$canvas" strokeWidth={2} />
+                    <FText variant="body-strong" color="$canvas" style={{ fontSize: 14 }}>
                       {t("loadingScreen.retry")}
                     </FText>
                   </YStack>
@@ -174,8 +176,8 @@ export function FintLoadingScreen({
       ) : null}
       {onSlab ? (
         <YStack position="absolute" l={0} r={0} b={insets.bottom + 44} items="center" opacity={0.75} pointerEvents="none">
-          <Text color="$slabInk" style={{ fontFamily: fontFace.display[600], fontSize: 16, letterSpacing: -0.6 }}>
-            <Text color="$slabMuted">My </Text>
+          <Text color={onYellow ? "$slabInk" : "$ink"} style={{ fontFamily: fontFace.display[600], fontSize: 16, letterSpacing: -0.6 }}>
+            <Text color={onYellow ? "$slabMuted" : "$inkMuted"}>My </Text>
             Fint
           </Text>
         </YStack>

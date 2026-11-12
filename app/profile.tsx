@@ -10,7 +10,8 @@ import { z } from "zod";
 import { useAuth } from "../src/auth/AuthProvider";
 import { getValidationMessage, useSubmitValidation } from "../src/forms";
 import { Avatar, Group, GroupTitle, Item } from "../src/settings/SettingsList";
-import { radius, space } from "../src/theme/tokens";
+import { space } from "../src/theme/tokens";
+import { fontFace } from "../src/theme/typography";
 import { textStyles } from "../src/theme/typography";
 import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
 import { ErrorLine, FintButton, FintSheet, FintSpinner, FText, IconButton, SheetField, SheetTextInput, useNotify } from "../src/ui";
@@ -98,9 +99,14 @@ export default function ProfileScreen() {
 
   return (
     <YStack flex={1} bg="$canvas" pt={insets.top}>
-      <XStack items="center" px={space[4]} pt={space[2]} minH={48}>
+      <XStack items="center" gap={10} px={space[5]} pt={space[2]} minH={48}>
         <IconButton label={t("settingsScreen.back")} icon={<ChevronLeft size={20} color="$ink" strokeWidth={2} />} onPress={() => router.back()} />
-        <FText variant="heading" accessibilityRole="header" style={{ flex: 1, textAlign: "center", marginRight: 40 }} numberOfLines={1}>
+        <FText
+          accessibilityRole="header"
+          maxFontSizeMultiplier={1.3}
+          numberOfLines={2}
+          style={{ flex: 1, fontFamily: fontFace.display[700], fontSize: 26, lineHeight: 31, letterSpacing: -0.6 }}
+        >
           {t("profile.title")}
         </FText>
       </XStack>
@@ -112,19 +118,20 @@ export default function ProfileScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <YStack items="center" mt={14}>
-          <Avatar name={shownName} photoUrl={photoUrl} size={84} />
-          <FText variant="title" numberOfLines={1} style={{ marginTop: 12, letterSpacing: -0.5, paddingHorizontal: space[5] }}>
+        {/* K-13: avatar amarillo de 92 con las iniciales, el nombre y "Desde …". */}
+        <YStack items="center" mt={10} gap={6}>
+          <Avatar name={shownName} photoUrl={photoUrl} size={92} />
+          <FText numberOfLines={2} style={{ textAlign: "center", fontFamily: fontFace.display[700], fontSize: 22, lineHeight: 28, letterSpacing: -0.4, paddingHorizontal: space[5] }}>
             {shownName}
           </FText>
           {since ? (
-            <FText variant="label" tone="inkFaint">
+            <FText tone="inkFaint" style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18 }}>
               {t("profileScreen.since", { date: since })}
             </FText>
           ) : null}
         </YStack>
 
-        <YStack px={space[4]} mt={space[2]}>
+        <YStack px={space[5]} mt={space[2]}>
           <FieldLabel>{t("profile.name")}</FieldLabel>
           <SheetField focused={nameFocused} invalid={Boolean(validation.errors.displayName)}>
             <SheetTextInput
@@ -145,13 +152,13 @@ export default function ProfileScreen() {
           {validation.errors.displayName ? <ErrorLine message={validation.errors.displayName} /> : null}
 
           <FieldLabel>{t("profile.email")}</FieldLabel>
-          <SheetField>
-            <FText tone="inkMuted" numberOfLines={1} style={{ flex: 1, paddingVertical: 12, paddingLeft: 4 }}>
+          <SheetField locked>
+            <FText tone="inkMuted" numberOfLines={1} style={{ flex: 1, paddingVertical: 12, fontFamily: fontFace.sans[600] }}>
               {session?.user.email ?? "—"}
             </FText>
             <XStack items="center" gap={4}>
               <Lock size={13} color="$inkFaint" strokeWidth={2} />
-              <FText variant="caption" tone="inkFaint">
+              <FText tone="inkFaint" maxFontSizeMultiplier={1.3} style={{ fontFamily: fontFace.sans[600], fontSize: 12, lineHeight: 16 }}>
                 {t("profile.notEditable")}
               </FText>
             </XStack>
@@ -176,17 +183,17 @@ export default function ProfileScreen() {
         ) : null}
 
         {hasGoogle ? (
-          <XStack mx={space[4]} mt={hasPassword ? 10 : space[5]} px={14} py={12} gap={10} rounded={radius.md} bg="$surfaceSunken" items="flex-start">
+          <XStack mx={space[5]} mt={hasPassword ? 6 : space[5]} px={14} py={12} gap={10} rounded={16} bg="$surface" items="flex-start">
             <YStack mt={1}>
               <GoogleMark size={16} />
             </YStack>
-            <FText variant="caption" tone="inkMuted" style={{ flex: 1, lineHeight: 17 }}>
+            <FText tone="inkMuted" style={{ flex: 1, fontSize: 13, lineHeight: 19 }}>
               {hasPassword ? t("profileScreen.googleNote") : t("profileScreen.googleOnlyNote")}
             </FText>
           </XStack>
         ) : null}
 
-        <YStack mt="auto" pt={space[6]} px={space[4]}>
+        <YStack mt="auto" pt={space[6]} px={space[5]}>
           <FintButton disabled={!changed} pending={isSaving} onPress={() => void save()}>
             {isSaving ? <FintSpinner color="$onBrand" /> : t("profile.save")}
           </FintButton>
@@ -200,7 +207,7 @@ export default function ProfileScreen() {
 
 function FieldLabel({ children }: { children: string }) {
   return (
-    <FText variant="caption" tone="inkMuted" style={{ marginTop: 16, marginBottom: 6, marginLeft: 2 }}>
+    <FText tone="inkFaint" style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18, marginTop: 16, marginBottom: 6, marginLeft: 2 }}>
       {children}
     </FText>
   );

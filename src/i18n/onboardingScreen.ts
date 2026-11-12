@@ -42,6 +42,7 @@ export const onboardingScreenTranslations = {
         streaming: "Netflix",
         automatic: "Se registra solo",
         paid: "Pagado",
+        pay: "Pagar",
       },
       privacy: {
         title: "Privacidad visual",
@@ -49,6 +50,10 @@ export const onboardingScreenTranslations = {
         bullets: ["Cámbialo desde Inicio o Cuentas", "La preferencia queda guardada en tu cuenta", "Tus datos y reportes siguen intactos"],
         netWorth: "Patrimonio neto",
         hidden: "Montos ocultos",
+        food: "Pollería El Rancho",
+        foodCategory: "Comida",
+        taxi: "Taxi a la oficina",
+        taxiCategory: "Transporte",
       },
       notifications: {
         title: "Recordatorios útiles",
@@ -100,6 +105,7 @@ export const onboardingScreenTranslations = {
         streaming: "Netflix",
         automatic: "Recorded automatically",
         paid: "Paid",
+        pay: "Pay",
       },
       privacy: {
         title: "Visual privacy",
@@ -107,6 +113,10 @@ export const onboardingScreenTranslations = {
         bullets: ["Switch it from Home or Accounts", "Your preference is saved to your account", "Your data and reports stay intact"],
         netWorth: "Net worth",
         hidden: "Amounts hidden",
+        food: "Corner Grill",
+        foodCategory: "Food",
+        taxi: "Taxi to work",
+        taxiCategory: "Transport",
       },
       notifications: {
         title: "Useful reminders",
@@ -158,6 +168,7 @@ export const onboardingScreenTranslations = {
         streaming: "Netflix",
         automatic: "Registrado sozinho",
         paid: "Pago",
+        pay: "Pagar",
       },
       privacy: {
         title: "Privacidade visual",
@@ -165,6 +176,10 @@ export const onboardingScreenTranslations = {
         bullets: ["Mude em Início ou Contas", "A preferência fica salva na sua conta", "Seus dados e relatórios continuam intactos"],
         netWorth: "Patrimônio líquido",
         hidden: "Valores ocultos",
+        food: "Churrascaria do Bairro",
+        foodCategory: "Comida",
+        taxi: "Táxi para o escritório",
+        taxiCategory: "Transporte",
       },
       notifications: {
         title: "Lembretes úteis",

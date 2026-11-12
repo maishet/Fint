@@ -1,119 +1,107 @@
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Plus } from "@tamagui/lucide-icons-2";
-import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
-import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
-import { AccessibilityInfo, Pressable, StyleSheet, View } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withSpring,
-} from "react-native-reanimated";
+import { cloneElement, Fragment, isValidElement, useEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
+import { Pressable, Text, View, useWindowDimensions, type LayoutChangeEvent } from "react-native";
+import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTheme, useThemeName } from "tamagui";
-import { useThemeMode } from "../theme/ThemeMode";
-import { motion, radius, shadows } from "../theme/tokens";
+import { useTheme } from "tamagui";
+import { withAlpha } from "../theme/color";
+import { COMPACT_FONT_SCALE, motion } from "../theme/tokens";
+import { fontFace } from "../theme/typography";
 import { PressableScale } from "../ui/PressableScale";
 import { setFabOrigin } from "../ui/fabOrigin";
 import { haptics } from "../ui/haptics";
 
-/** Medidas del design system: tabs de 56x46, 7px de padding, botón central de 54px en un hueco de 70px. */
-const TAB_W = 56;
-const TAB_H = 46;
-const BAR_PADDING = 7;
-const BAR_HEIGHT = TAB_H + BAR_PADDING * 2;
-const FAB_SIZE = 54;
-const FAB_SLOT = 70;
-const FAB_LIFT = 22;
+/** Medidas de la marca D: barra de 70 con radio 26, botón central de 58 con radio 20 y punto activo de 5. */
+const BAR_HEIGHT = 70;
+const BAR_RADIUS = 26;
+const BAR_PADDING = 6;
+const FAB_SIZE = 58;
+const FAB_RADIUS = 20;
 const BAR_BOTTOM_GAP = 10;
 const BAR_INSET = 16;
 const FADE_HEIGHT = 150;
+const DOT = 5;
+const LABEL_COLOR_ON = "#FFFFFF";
+const BAR_SHADOW = "0 14px 30px -14px rgba(20,20,18,0.6)";
 
 /** Alto que ocupa la barra flotante; úsalo para el padding inferior de las listas. */
 export function floatingTabBarHeight(bottomInset: number) {
   return BAR_HEIGHT + Math.max(bottomInset, BAR_INSET) + BAR_BOTTOM_GAP;
 }
 
-function withAlpha(hex: string, alpha: number) {
-  const value = hex.replace("#", "");
-  if (value.length !== 6) return hex;
-  const int = Number.parseInt(value, 16);
-  return `rgba(${(int >> 16) & 255},${(int >> 8) & 255},${int & 255},${alpha})`;
-}
-
-function useReduceTransparency() {
-  const [reduce, setReduce] = useState(false);
-  useEffect(() => {
-    AccessibilityInfo.isReduceTransparencyEnabled?.().then(setReduce).catch(() => undefined);
-    const sub = AccessibilityInfo.addEventListener?.("reduceTransparencyChanged", setReduce);
-    return () => sub?.remove();
-  }, []);
-  return reduce;
-}
-
 export interface FintTabBarProps extends BottomTabBarProps {
   /**
-   * El botón central de registro. Con él, la barra deja un hueco de 70px al
-   * centro y pinta encima el disco `brand`. Siempre es el mismo más y siempre
-   * abre la misma hoja, en cualquier tab.
+   * El botón central de registro: el cuadrado amarillo de 58 en su propio hueco, entre los tabs 2 y 3. Siempre es
+   * el mismo más y siempre abre la misma hoja, en cualquier tab.
    */
   centerAction?: { label: string; onPress: () => void };
 }
 
 /**
- * Barra de tabs flotante: `glass` con desenfoque, `radius-2xl`, píldora
- * `brandWash` bajo el tab activo que se desliza con `spring-ui`. Solo iconos;
- * cada tab lleva su nombre para el lector de pantalla.
+ * Barra de tabs flotante, tinta en los dos temas. El tab activo lleva el ícono amarillo con trazo 2.3 y la etiqueta
+ * en blanco, y un punto amarillo que se desliza a la nueva pestaña con `springUi` (con movimiento reducido aparece
+ * sin moverse). Desde `COMPACT_FONT_SCALE` la barra deja las etiquetas y agranda los íconos; cada tab conserva su
+ * nombre para el lector de pantalla.
  */
+
 export function FintTabBar({ state, descriptors, navigation, centerAction }: FintTabBarProps) {
   const fabRef = useRef<View>(null);
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const themeName = useThemeName();
-  const { themeMode } = useThemeMode();
-  const reduceTransparency = useReduceTransparency();
+  const reduceMotion = useReducedMotion();
+  const { fontScale } = useWindowDimensions();
+  const showLabels = fontScale < COMPACT_FONT_SCALE;
+  const [barWidth, setBarWidth] = useState(0);
 
   const count = state.routes.length;
   const centerIndex = centerAction ? Math.ceil(count / 2) : -1;
-  /** Posición x de cada tab dentro de la barra, contando el hueco del botón central. */
-  const slotX = (index: number) => index * TAB_W + (centerAction && index >= centerIndex ? FAB_SLOT : 0);
+  const slots = count + (centerAction ? 1 : 0);
+  const slotW = barWidth > 0 ? (barWidth - BAR_PADDING * 2) / slots : 0;
+  /** Hueco de cada tab dentro de la barra, contando el del botón central. */
+  const slotOf = (index: number) => index + (centerAction && index >= centerIndex ? 1 : 0);
+  const dotX = (index: number) => BAR_PADDING + slotOf(index) * slotW + slotW / 2 - DOT / 2;
 
-  const pillX = useSharedValue(slotX(state.index));
+  const x = useSharedValue(0);
+  const placed = useRef(false);
   useEffect(() => {
-    pillX.value = withSpring(slotX(state.index), motion.springUi);
+    if (slotW <= 0) return;
+    const target = dotX(state.index);
+    if (!placed.current || reduceMotion) {
+      x.value = target;
+      placed.current = true;
+    } else {
+      x.value = withSpring(target, motion.springUi);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.index, centerIndex]);
-  const pillStyle = useAnimatedStyle(() => ({ transform: [{ translateX: pillX.value }] }));
+  }, [state.index, slotW, reduceMotion]);
+  const dotStyle = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
 
   const background = theme.canvas.val;
+  const active = theme.tabActive.val;
+  const inactive = theme.tabInactive.val;
 
   const centerButton = centerAction ? (
-    <View
-      pointerEvents="box-none"
-      style={{ position: "absolute", top: -FAB_LIFT, left: BAR_PADDING + centerIndex * TAB_W + (FAB_SLOT - FAB_SIZE - 6) / 2 }}
-    >
-      <PressableScale onPress={centerAction.onPress} haptic="tap" accessibilityRole="button" accessibilityLabel={centerAction.label} hitSlop={6}>
+    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+      <PressableScale onPress={centerAction.onPress} haptic="tap" accessibilityRole="button" accessibilityLabel={centerAction.label}>
         <View
           ref={fabRef}
           // El formulario de movimiento crece desde aquí: se guarda su centro en la pantalla. `measure` y no
           // `measureInWindow`, que en Android descuenta la barra de estado.
           onLayout={() =>
-            fabRef.current?.measure((_x, _y, w, h, pageX, pageY) => setFabOrigin({ x: pageX + w / 2, y: pageY + h / 2, size: w - 6 }))
+            fabRef.current?.measure((_x, _y, w, h, pageX, pageY) => setFabOrigin({ x: pageX + w / 2, y: pageY + h / 2, size: w }))
           }
           style={{
-            width: FAB_SIZE + 6,
-            height: FAB_SIZE + 6,
-            borderRadius: radius.pill,
-            borderWidth: 3,
-            borderColor: background,
+            width: FAB_SIZE,
+            height: FAB_SIZE,
+            borderRadius: FAB_RADIUS,
             backgroundColor: theme.brand.val,
             alignItems: "center",
             justifyContent: "center",
-            boxShadow: shadows[themeMode].float,
           }}
         >
-          <Plus size={24} color={theme.onBrand.val as any} strokeWidth={2.4} />
+          <Plus size={28} color={theme.onBrand.val as never} strokeWidth={2.6} />
         </View>
       </PressableScale>
     </View>
@@ -122,7 +110,7 @@ export function FintTabBar({ state, descriptors, navigation, centerAction }: Fin
   return (
     <View
       pointerEvents="box-none"
-      style={{ position: "absolute", left: 0, right: 0, bottom: 0, alignItems: "center", paddingBottom: Math.max(insets.bottom, BAR_INSET) }}
+      style={{ position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: BAR_INSET, paddingBottom: Math.max(insets.bottom, BAR_INSET) }}
     >
       <LinearGradient
         pointerEvents="none"
@@ -133,51 +121,46 @@ export function FintTabBar({ state, descriptors, navigation, centerAction }: Fin
 
       <View
         accessibilityRole="tablist"
+        onLayout={(e: LayoutChangeEvent) => setBarWidth(e.nativeEvent.layout.width)}
         style={{
           marginBottom: BAR_BOTTOM_GAP,
           height: BAR_HEIGHT,
-          padding: BAR_PADDING,
+          paddingHorizontal: BAR_PADDING,
           flexDirection: "row",
-          borderRadius: radius["2xl"],
-          borderWidth: 1,
-          borderColor: theme.glassLine.val,
-          backgroundColor: reduceTransparency ? theme.surface.val : theme.glass.val,
-          boxShadow: shadows[themeMode].float,
+          alignItems: "center",
+          borderRadius: BAR_RADIUS,
+          backgroundColor: theme.tabFloatingBackground.val,
+          boxShadow: BAR_SHADOW,
         }}
       >
-        {!reduceTransparency ? (
-          <View style={[StyleSheet.absoluteFill, { borderRadius: radius["2xl"], overflow: "hidden" }]} pointerEvents="none">
-            {/* Desenfoca solo en iOS. En Android, desenfocar exige envolver cada pantalla de tab en un `BlurTargetView` y
-                daba tirones al desplazar (medido en el A54): se queda el vidrio translúcido, el modo "none" de expo-blur. */}
-            <BlurView intensity={40} tint={themeName === "dark" ? "dark" : "light"} style={StyleSheet.absoluteFill} />
-          </View>
+        {slotW > 0 ? (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              { position: "absolute", left: 0, bottom: showLabels ? 6 : 12, width: DOT, height: DOT, borderRadius: DOT / 2, backgroundColor: active },
+              dotStyle,
+            ]}
+          />
         ) : null}
-
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            { position: "absolute", left: BAR_PADDING, top: BAR_PADDING, width: TAB_W, height: TAB_H, borderRadius: radius.xl, backgroundColor: theme.brandWash.val },
-            pillStyle,
-          ]}
-        />
 
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
           const focused = state.index === index;
           const label = typeof options.tabBarLabel === "string" ? options.tabBarLabel : (options.title ?? route.name);
+          const rawIcon = options.tabBarIcon?.({ color: focused ? active : inactive, focused, size: showLabels ? 22 : 26 });
+          const icon = isValidElement(rawIcon)
+            ? cloneElement(rawIcon as ReactElement<{ strokeWidth?: number }>, { strokeWidth: focused ? 2.3 : 1.9 })
+            : rawIcon;
           return (
             <Fragment key={route.key}>
-              {centerAction && index === centerIndex ? (
-                <>
-                  <View style={{ width: FAB_SLOT }} />
-                  {/* El botón central va en su hueco del árbol, entre los tabs 2 y 3: el lector lo recorre en el orden en que se ve. */}
-                  {centerButton}
-                </>
-              ) : null}
+              {/* El botón central va en su hueco del árbol, entre los tabs 2 y 3: el lector lo recorre en el orden en que se ve. */}
+              {centerAction && index === centerIndex ? centerButton : null}
               <TabButton
                 label={label}
                 focused={focused}
-                icon={options.tabBarIcon?.({ color: focused ? theme.brand.val : theme.inkFaint.val, focused, size: 24 })}
+                showLabel={showLabels}
+                icon={icon}
+                labelColor={focused ? LABEL_COLOR_ON : inactive}
                 onPress={() => {
                   const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
                   if (focused || event.defaultPrevented) return;
@@ -193,22 +176,42 @@ export function FintTabBar({ state, descriptors, navigation, centerAction }: Fin
   );
 }
 
-function TabButton({ label, focused, icon, onPress }: { label: string; focused: boolean; icon: ReactNode; onPress: () => void }) {
-  const scale = useSharedValue(1);
-  useEffect(() => {
-    if (focused) scale.value = withSequence(withSpring(1.08, motion.springUi), withSpring(1, motion.springUi));
-  }, [focused, scale]);
-  const iconStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-
+function TabButton({
+  label,
+  focused,
+  showLabel,
+  icon,
+  labelColor,
+  onPress,
+}: {
+  label: string;
+  focused: boolean;
+  showLabel: boolean;
+  icon: ReactNode;
+  labelColor: string;
+  onPress: () => void;
+}) {
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="tab"
       accessibilityLabel={label}
       accessibilityState={{ selected: focused }}
-      style={{ width: TAB_W, height: TAB_H, alignItems: "center", justifyContent: "center" }}
+      style={{ flex: 1, height: BAR_HEIGHT, alignItems: "center", justifyContent: "center", gap: 4 }}
     >
-      <Animated.View style={iconStyle}>{icon}</Animated.View>
+      {icon}
+      {showLabel ? (
+        // La etiqueta es visual: el nombre ya va en `accessibilityLabel` del tab, así no se lee dos veces.
+        <Text
+          numberOfLines={1}
+          maxFontSizeMultiplier={COMPACT_FONT_SCALE}
+          importantForAccessibility="no"
+          accessibilityElementsHidden
+          style={{ fontSize: 10, lineHeight: 13, color: labelColor, fontFamily: focused ? fontFace.sans[600] : fontFace.sans[500] }}
+        >
+          {label}
+        </Text>
+      ) : null}
     </Pressable>
   );
 }

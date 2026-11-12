@@ -1,11 +1,12 @@
 {
   "name": "finanzas-mobilev2",
-  "version": "2.0.6",
+  "version": "2.1.0",
   "license": "Apache-2.0",
   "main": "expo-router/entry",
   "scripts": {
     "postinstall": "node scripts/patch-expo-router.mjs && node scripts/patch-tamagui-sheet.mjs",
     "generate:emoji-index": "bun run scripts/generate-emoji-index.ts",
+    "lottie": "node scripts/lottie/build.mjs",
     "upgrade:tamagui": "bunx npm-check-updates -u '*tamagui*' '@tamagui/*' && bun install",
     "start": "bunx expo start -c",
     "android": "bunx expo run:android",

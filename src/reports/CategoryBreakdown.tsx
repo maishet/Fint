@@ -1,32 +1,18 @@
-import { Canvas, Circle, Path, Skia } from "@shopify/react-native-skia";
 import { ArrowDown, ArrowUp, ChevronRight } from "@tamagui/lucide-icons-2";
-import { NumberFlow } from "number-flow-react-native";
-import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable } from "react-native";
-import Animated, {
-  Easing,
-  interpolateColor,
-  useAnimatedStyle,
-  useDerivedValue,
-  useReducedMotion,
-  useSharedValue,
-  withSpring,
-  withTiming,
-  type SharedValue,
-} from "react-native-reanimated";
-import { View, XStack, YStack, useTheme } from "tamagui";
-import { motion, radius } from "../theme/tokens";
-import { fontFace, textStyles } from "../theme/typography";
-import { Amount, FText } from "../ui";
-import { haptics } from "../ui/haptics";
+import { useEffect, useRef, useState, type Ref } from "react";
+import { Pressable, useWindowDimensions, type GestureResponderEvent, type View as NativeView } from "react-native";
+import Animated, { useAnimatedProps, useReducedMotion, useSharedValue, withSpring, type SharedValue } from "react-native-reanimated";
+import { Path, Svg } from "react-native-svg";
+import { useTheme, View, XStack, YStack } from "tamagui";
+import { categoryAccent } from "../finance/categoryTint";
+import { useCategoryHue } from "../finance/emojiHue";
+import { useThemeMode } from "../theme/ThemeMode";
+import { useSensitiveMoney } from "../privacy/useSensitiveMoney";
+import { COMPACT_FONT_SCALE, motion } from "../theme/tokens";
+import { fontFace } from "../theme/typography";
+import { Amount, FText, Monogram } from "../ui";
 import type { CategoryRow } from "./logic";
-
-const SIZE = 150;
-const RING_WIDTH = 18;
-/** La porción elegida engorda 4px hacia afuera. */
-const GROW = 4;
-const RING_RADIUS = SIZE / 2 - GROW / 2 - RING_WIDTH / 2 - 2;
 
 /** "32%" o "4.5%": entero cuando lo es, con un decimal si no. */
 function pct(value: number) {
@@ -59,199 +45,336 @@ export function CategoryChange({ change }: { change: number | null }) {
 }
 
 /**
- * Donut de gasto con leyenda direccionada: tocar una porción o su fila elige
- * las dos; la porción crece con `spring-ui` y el porcentaje del centro rueda.
- * Tocar la fila ya elegida abre sus movimientos (la fila muestra la flecha).
+ * Categorías del periodo (marca D, F-07): un donut con el gasto total al centro y, debajo, una fila por categoría con
+ * su emoji en el cuadro de 38, el nombre, el porcentaje con la variación, el monto y el chevron. Las porciones son las
+ * mismas filas (las 5 mayores y "Otros"), cada una en el color fuerte del tono de su emoji (`categoryAccent`, ≥ 3:1
+ * contra el fondo); "Otros" y las categorías sin emoji, en `lineStrong`.
+ *
+ * Tocar una porción resalta su fila y la trae a la vista (`onReveal`); tocar la fila abre sus movimientos ("Otros" no
+ * abre nada). Para el lector, el donut es un solo elemento que dice el total y cada categoría con su porcentaje y su
+ * monto, respetando "Ocultar montos".
  */
-export function CategoryBreakdown({ rows, currency, onOpen }: { rows: readonly CategoryRow[]; currency: string; onOpen: (row: CategoryRow) => void }) {
+export function CategoryBreakdown({
+  rows,
+  currency,
+  onOpen,
+  iconFor,
+  onReveal,
+}: {
+  rows: readonly CategoryRow[];
+  currency: string;
+  onOpen: (row: CategoryRow) => void;
+  /** El emoji guardado de una categoría por su nombre (el de `useCategoryIcons`). */
+  iconFor: (name: string) => string | null;
+  /** Trae a la vista la fila de una porción tocada (la pantalla sabe desplazar su `ScrollView`). */
+  onReveal?: (row: NativeView) => void;
+}) {
   const { t } = useTranslation();
-  const theme = useTheme();
-  const reduceMotion = useReducedMotion();
-  const [selected, setSelected] = useState(0);
-  const index = Math.min(selected, rows.length - 1);
-  const sel = rows[index];
-  const colorOf = (i: number) => theme[`chart${i}` as "chart1"].val;
+  const [highlight, setHighlight] = useState<string | null>(null);
+  const rowRefs = useRef(new Map<string, NativeView>());
+  const clearTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => (clearTimer.current ? clearTimeout(clearTimer.current) : undefined), []);
 
-  // Al aparecer, las porciones se dibujan en secuencia, en el sentido del reloj.
-  const progress = useSharedValue(reduceMotion ? 1 : 0);
-  useEffect(() => {
-    setSelected(0);
-    if (!reduceMotion) {
-      progress.value = 0;
-      progress.value = withTiming(1, { duration: 500, easing: Easing.out(Easing.cubic) });
-    }
-  }, [progress, reduceMotion, rows]);
-
-  const slices = useMemo(() => {
-    const total = rows.reduce((a, r) => a + r.amount, 0) || 1;
-    let start = 0;
-    return rows.map((r) => {
-      const sweep = (r.amount / total) * 360;
-      const slice = { start, sweep };
-      start += sweep;
-      return slice;
-    });
-  }, [rows]);
-
-  const select = (i: number) => {
-    if (i === index) return;
-    haptics.select();
-    setSelected(i);
-  };
-
-  const onDonutPress = (x: number, y: number) => {
-    const dx = x - SIZE / 2;
-    const dy = y - SIZE / 2;
-    const distance = Math.hypot(dx, dy);
-    if (distance < RING_RADIUS - RING_WIDTH / 2 - 8 || distance > SIZE / 2 + 6) return;
-    const angle = ((Math.atan2(dy, dx) * 180) / Math.PI + 90 + 360) % 360;
-    const hit = slices.findIndex((s) => angle >= s.start && angle < s.start + s.sweep);
-    if (hit >= 0) select(hit);
+  const select = (row: CategoryRow) => {
+    const id = rowId(row);
+    setHighlight(id);
+    if (clearTimer.current) clearTimeout(clearTimer.current);
+    clearTimer.current = setTimeout(() => setHighlight(null), HIGHLIGHT_MS);
+    const node = rowRefs.current.get(id);
+    if (node) onReveal?.(node);
   };
 
   return (
     <YStack>
-      <XStack justify="center" mb={14}>
-        <Pressable onPress={(e) => onDonutPress(e.nativeEvent.locationX, e.nativeEvent.locationY)} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <Canvas style={{ width: SIZE, height: SIZE }}>
-            <Circle cx={SIZE / 2} cy={SIZE / 2} r={RING_RADIUS} style="stroke" strokeWidth={RING_WIDTH} color={theme.chartTrack.val} />
-            {slices.map((s, i) => (
-              <Slice
-                key={rows[i].key ?? "__other__"}
-                start={s.start}
-                sweep={s.sweep}
-                gap={rows.length > 1}
-                color={colorOf(rows[i].color)}
-                selected={i === index}
-                progress={progress}
-                reduceMotion={reduceMotion}
-              />
-            ))}
-          </Canvas>
-          {sel ? (
-            <YStack position="absolute" inset={0} items="center" justify="center" pointerEvents="none">
-              <NumberFlow
-                value={sel.percentage}
-                suffix="%"
-                format={{ maximumFractionDigits: 1 }}
-                style={{ ...textStyles["amount-lg"], color: theme.ink.val }}
-                containerStyle={{ alignSelf: "center" }}
-              />
-              <FText variant="caption" tone="inkFaint" numberOfLines={1} style={{ fontSize: 11, maxWidth: 88 }}>
-                {sel.label}
-              </FText>
-            </YStack>
-          ) : null}
-        </Pressable>
-      </XStack>
-
-      {rows.map((r, i) => (
-        <LegendRow
-          key={r.key ?? "__other__"}
-          row={r}
-          first={i === 0}
-          color={colorOf(r.color)}
-          currency={currency}
-          selected={i === index}
-          onPress={() => (i === index ? r.key && onOpen(r) : select(i))}
-          openLabel={r.key ? t("reportsTab.openCategory", { name: r.label }) : undefined}
-        />
-      ))}
+      <CategoryDonut rows={rows} currency={currency} iconFor={iconFor} highlight={highlight} onSelect={select} />
+      <YStack mt={14}>
+        {rows.map((r, i) => (
+          <BreakdownRow
+            key={rowId(r)}
+            ref={(node) => {
+              if (node) rowRefs.current.set(rowId(r), node);
+              else rowRefs.current.delete(rowId(r));
+            }}
+            row={r}
+            first={i === 0}
+            highlighted={highlight === rowId(r)}
+            emoji={r.key ? iconFor(r.key) : null}
+            currency={currency}
+            onPress={r.key ? () => onOpen(r) : undefined}
+            openLabel={r.key ? t("reportsTab.openCategory", { name: r.label }) : undefined}
+          />
+        ))}
+      </YStack>
     </YStack>
   );
 }
 
-function Slice({
-  start,
-  sweep,
-  gap,
-  color,
-  selected,
-  progress,
-  reduceMotion,
-}: {
-  start: number;
-  sweep: number;
-  gap: boolean;
-  color: string;
-  selected: boolean;
-  progress: SharedValue<number>;
-  reduceMotion: boolean;
-}) {
-  const grow = useSharedValue(selected ? 1 : 0);
-  useEffect(() => {
-    grow.value = reduceMotion ? (selected ? 1 : 0) : withSpring(selected ? 1 : 0, motion.springUi);
-  }, [grow, reduceMotion, selected]);
+/** Cuánto dura el resaltado de la fila de una porción tocada. */
+const HIGHLIGHT_MS = 1800;
+/** Separación entre porciones, en px sobre el anillo. */
+const GAP = 2;
+/** Lado y grosor del donut; desde `COMPACT_FONT_SCALE`, más chico para dejar sitio al texto. */
+const DONUT = { regular: { size: 176, stroke: 22 }, compact: { size: 150, stroke: 18 } } as const;
+/** Margen para acertar a una porción con el dedo, por dentro y por fuera del anillo. */
+const TOUCH_SLOP = 14;
 
-  // 2px de separación entre porciones vecinas, medidos sobre el radio del anillo.
-  const gapDeg = gap ? ((2 / RING_RADIUS) * 180) / Math.PI : 0;
-  const path = useDerivedValue(() => {
-    const r = RING_RADIUS + (GROW / 2) * grow.value;
-    const drawn = Math.min(1, Math.max(0, (progress.value * 360 - start) / sweep));
-    const arc = Math.min(359.9, Math.max(0, sweep - gapDeg) * drawn);
-    const p = Skia.Path.Make();
-    if (arc > 0) p.addArc(Skia.XYWHRect(SIZE / 2 - r, SIZE / 2 - r, r * 2, r * 2), start - 90 + gapDeg / 2, arc);
-    return p;
-  });
-  const strokeWidth = useDerivedValue(() => RING_WIDTH + GROW * grow.value);
-  return <Path path={path} style="stroke" strokeWidth={strokeWidth} color={color} />;
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+
+function rowId(row: CategoryRow) {
+  return row.key ?? "__other__";
 }
 
-/** Fila de la leyenda: punto, nombre y porcentaje, monto y variación. Al elegirla se tiñe de `surfaceSunken`. */
-function LegendRow({
+interface Slice {
+  row: CategoryRow;
+  /** Inicio y fin de la porción en grados, desde las 12 y en sentido horario. */
+  startDeg: number;
+  endDeg: number;
+  /**
+   * El arco que se traza, en radianes desde las 12: la porción recortada en media separación por lado y, con extremo
+   * redondeado, en medio grosor más (el extremo redondo sobresale eso del trazo).
+   */
+  fromRad: number;
+  toRad: number;
+  round: boolean;
+}
+
+/**
+ * El donut: cada porción es un arco (`Path`) con extremos redondeados y 2 px de separación; una porción tan chica que
+ * no cabe con sus extremos va recta. Con una sola categoría es un anillo completo. Entra barriendo desde las 12 con
+ * `spring-ui` (sin movimiento con "reducir movimiento"). El toque se resuelve por el ángulo del dedo.
+ */
+function CategoryDonut({
+  rows,
+  currency,
+  iconFor,
+  highlight,
+  onSelect,
+}: {
+  rows: readonly CategoryRow[];
+  currency: string;
+  iconFor: (name: string) => string | null;
+  highlight: string | null;
+  onSelect: (row: CategoryRow) => void;
+}) {
+  const { t } = useTranslation();
+  const { fontScale } = useWindowDimensions();
+  const { formatSensitiveAmount } = useSensitiveMoney();
+  const reduceMotion = useReducedMotion();
+  const { size, stroke } = fontScale >= COMPACT_FONT_SCALE ? DONUT.compact : DONUT.regular;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const total = rows.reduce((sum, r) => sum + Math.max(r.amount, 0), 0);
+
+  const single = rows.length === 1;
+  let cursor = 0;
+  const slices: Slice[] = rows.map((row) => {
+    const arc = total > 0 ? (Math.max(row.amount, 0) / total) * circumference : 0;
+    const startPx = cursor;
+    cursor += arc;
+    const round = !single && arc > stroke + GAP + 2;
+    const trim = single ? 0 : (GAP / 2 + (round ? stroke / 2 : 0)) / radius;
+    const fromRad = startPx / radius + trim;
+    const toRad = Math.max((startPx + arc) / radius - trim, fromRad + 0.004);
+    return {
+      row,
+      fromRad,
+      toRad,
+      round,
+      startDeg: (startPx / circumference) * 360,
+      endDeg: ((startPx + arc) / circumference) * 360,
+    };
+  });
+
+  const progress = useSharedValue(reduceMotion ? 1 : 0);
+  useEffect(() => {
+    if (reduceMotion) {
+      progress.value = 1;
+      return;
+    }
+    progress.value = 0;
+    progress.value = withSpring(1, motion.springUi);
+  }, [progress, reduceMotion, total, rows.length]);
+
+  const onPress = (e: GestureResponderEvent) => {
+    const { locationX, locationY } = e.nativeEvent;
+    if (locationX === undefined || locationY === undefined) return;
+    const dx = locationX - size / 2;
+    const dy = locationY - size / 2;
+    const dist = Math.hypot(dx, dy);
+    if (dist < radius - stroke / 2 - TOUCH_SLOP || dist > radius + stroke / 2 + TOUCH_SLOP) return;
+    const angle = ((Math.atan2(dx, -dy) * 180) / Math.PI + 360) % 360;
+    const hit = slices.find((s) => angle >= s.startDeg && angle < s.endDeg);
+    if (hit) onSelect(hit.row);
+  };
+
+  const label = [
+    `${t("reportsTab.categories")}. ${t("reportsTab.expenses")}: ${formatSensitiveAmount(total, currency)}`,
+    ...rows.map((r) => `${r.label}, ${pct(r.percentage)}%, ${formatSensitiveAmount(r.amount, currency)}`),
+  ].join(". ");
+
+  return (
+    <View items="center">
+      <Pressable onPress={onPress} accessible accessibilityRole="image" accessibilityLabel={label} style={{ width: size, height: size }}>
+        <Svg width={size} height={size}>
+          {slices.map((s) => (
+            <DonutSlice
+              key={rowId(s.row)}
+              slice={s}
+              emoji={s.row.key ? iconFor(s.row.key) : null}
+              size={size}
+              stroke={stroke}
+              radius={radius}
+              progress={progress}
+              dimmed={highlight !== null && highlight !== rowId(s.row)}
+            />
+          ))}
+        </Svg>
+        <YStack position="absolute" t={0} l={0} r={0} b={0} items="center" justify="center" px={stroke + 12} pointerEvents="none">
+          <Amount
+            value={total}
+            currency={currency}
+            smallCents
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            allowFontScaling={false}
+            style={{ fontFamily: fontFace.mono[600], fontSize: size >= DONUT.regular.size ? 24 : 20, lineHeight: size >= DONUT.regular.size ? 30 : 26 }}
+          />
+          <FText variant="caption" tone="inkFaint" numberOfLines={1} maxFontSizeMultiplier={COMPACT_FONT_SCALE}>
+            {t("reportsTab.expenses")}
+          </FText>
+        </YStack>
+      </Pressable>
+    </View>
+  );
+}
+
+/**
+ * El trazo de un arco de `from` a `to` (radianes desde las 12, en sentido horario) sobre el círculo del donut. Un
+ * anillo completo va en dos medias vueltas: un solo arco SVG no puede cerrar el círculo.
+ */
+function arcPath(c: number, r: number, from: number, to: number) {
+  "worklet";
+  const x = (a: number) => c + r * Math.sin(a);
+  const y = (a: number) => c - r * Math.cos(a);
+  if (to - from >= 2 * Math.PI - 0.0001) {
+    const half = from + Math.PI;
+    return `M ${x(from)} ${y(from)} A ${r} ${r} 0 1 1 ${x(half)} ${y(half)} A ${r} ${r} 0 1 1 ${x(from)} ${y(from)}`;
+  }
+  const large = to - from > Math.PI ? 1 : 0;
+  return `M ${x(from)} ${y(from)} A ${r} ${r} 0 ${large} 1 ${x(to)} ${y(to)}`;
+}
+
+/** Una porción: su color sale del tono del emoji; sin emoji, o "Otros", `lineStrong`. */
+function DonutSlice({
+  slice,
+  emoji,
+  size,
+  stroke,
+  radius,
+  progress,
+  dimmed,
+}: {
+  slice: Slice;
+  emoji: string | null;
+  size: number;
+  stroke: number;
+  radius: number;
+  progress: SharedValue<number>;
+  dimmed: boolean;
+}) {
+  const { themeMode } = useThemeMode();
+  const theme = useTheme();
+  const hue = useCategoryHue(emoji, slice.row.key ?? slice.row.label);
+  const color = slice.row.key && emoji ? categoryAccent(hue, themeMode) : theme.lineStrong.val;
+  const { fromRad, toRad } = slice;
+  const center = size / 2;
+  const animatedProps = useAnimatedProps(() => {
+    // Barrido desde las 12: cada porción se dibuja cuando el barrido llega a ella.
+    const to = Math.min(toRad, progress.value * 2 * Math.PI);
+    return { d: to <= fromRad ? "M 0 0" : arcPath(center, radius, fromRad, to), strokeOpacity: to <= fromRad ? 0 : 1 };
+  });
+  return (
+    <AnimatedPath
+      fill="none"
+      stroke={color}
+      strokeWidth={stroke}
+      strokeLinecap={slice.round ? "round" : "butt"}
+      opacity={dimmed ? 0.3 : 1}
+      animatedProps={animatedProps}
+    />
+  );
+}
+
+/**
+ * Una fila: el cuadro de 38 con el emoji (o la inicial; "Otros" sin emoji), el nombre a 16, el porcentaje en `mono`
+ * con la variación y el monto. Desde `COMPACT_FONT_SCALE` el monto baja debajo del nombre. `highlighted`: la porción
+ * de esta fila se tocó en el donut, así que la fila se marca en `surface` un momento.
+ */
+function BreakdownRow({
+  ref,
+  highlighted,
   row,
   first,
-  color,
+  emoji,
   currency,
-  selected,
   onPress,
   openLabel,
 }: {
+  ref?: Ref<NativeView>;
+  highlighted: boolean;
   row: CategoryRow;
   first: boolean;
-  color: string;
+  emoji: string | null;
   currency: string;
-  selected: boolean;
-  onPress: () => void;
+  onPress?: () => void;
   openLabel?: string;
 }) {
-  const theme = useTheme();
-  const tint = useSharedValue(selected ? 1 : 0);
-  useEffect(() => {
-    tint.value = withTiming(selected ? 1 : 0, { duration: motion.fade.duration });
-  }, [selected, tint]);
-  const to = theme.surfaceSunken.val;
-  const bg = useAnimatedStyle(() => ({ backgroundColor: interpolateColor(tint.value, [0, 1], ["rgba(0,0,0,0)", to]) }));
-
+  const { fontScale } = useWindowDimensions();
+  const stacked = fontScale >= COMPACT_FONT_SCALE;
+  const amount = <Amount value={row.amount} currency={currency} style={{ fontFamily: fontFace.mono[600], fontSize: 15, lineHeight: 20 }} />;
   return (
-    <View borderTopWidth={first ? 0 : 1} borderColor="$line">
+    <View ref={ref} borderTopWidth={first ? 0 : 1} borderColor="$line">
       <Pressable
         onPress={onPress}
-        accessibilityRole="button"
-        accessibilityState={{ selected }}
+        disabled={!onPress}
+        accessibilityRole={onPress ? "button" : undefined}
         accessibilityLabel={`${row.label}, ${pct(row.percentage)}%`}
-        accessibilityHint={selected ? openLabel : undefined}
+        accessibilityHint={openLabel}
       >
-        <Animated.View style={[{ borderRadius: radius.sm, marginVertical: 2 }, bg]}>
-          <XStack items="center" gap={10} py={6} px={6}>
-            <XStack flex={1} minW={0} items="center" gap={8}>
-              <View width={8} height={8} style={{ borderRadius: 2, backgroundColor: color }} />
-              <FText variant="body" numberOfLines={1} style={{ fontSize: 14, flexShrink: 1 }}>
+        {({ pressed }) => (
+          <XStack
+            items={stacked ? "flex-start" : "center"}
+            gap={12}
+            py={10}
+            mx={-8}
+            px={8}
+            rounded={14}
+            bg={pressed ? "$surfaceSunken" : highlighted ? "$surface" : undefined}
+          >
+            <Monogram name={row.label} emoji={emoji} size={38} />
+            <YStack flex={1} minW={0} gap={2}>
+              <FText numberOfLines={stacked ? undefined : 1} style={{ fontFamily: fontFace.display[700], fontSize: 16, lineHeight: 21, letterSpacing: -0.15 }}>
                 {row.label}
               </FText>
-              <FText variant="figure-caption" tone="inkFaint" style={{ fontSize: 11, fontFamily: fontFace.mono[400] }}>
-                {`${pct(row.percentage)}%`}
-              </FText>
-            </XStack>
-            <Amount value={row.amount} currency={currency} showSymbol={false} style={{ fontSize: 14 }} />
-            <XStack width={50} justify="flex-end">
-              <CategoryChange change={row.change} />
-            </XStack>
-            <XStack width={12} justify="flex-end">
-              {selected && openLabel ? <ChevronRight size={12} color="$inkFaint" strokeWidth={2.4} /> : null}
-            </XStack>
+              <XStack items="center" gap={8}>
+                <FText tone="inkFaint" style={{ fontFamily: fontFace.mono[500], fontSize: 13, lineHeight: 18 }}>
+                  {`${pct(row.percentage)}%`}
+                </FText>
+                <CategoryChange change={row.change} />
+              </XStack>
+              {stacked ? <View mt={2}>{amount}</View> : null}
+            </YStack>
+            {stacked ? null : amount}
+            {/* "Otros" no abre nada, pero guarda el hueco del chevron para que su monto quede alineado con los demás. */}
+            {onPress ? (
+              <View pt={stacked ? 10 : 0}>
+                <ChevronRight size={16} color="$inkFaint" strokeWidth={2.2} />
+              </View>
+            ) : (
+              <View width={16} />
+            )}
           </XStack>
-        </Animated.View>
+        )}
       </Pressable>
     </View>
   );

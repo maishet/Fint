@@ -1,8 +1,9 @@
 import { useTranslation } from "react-i18next";
+import { StyleSheet, type StyleProp, type TextStyle } from "react-native";
 import { Text, View, type ColorTokens, type TextProps } from "tamagui";
 import { amountParts, THIN_SPACE, type SignMode } from "../finance/formatAmount";
 import { useSensitiveAmounts } from "../privacy/SensitiveAmountsProvider";
-import { textStyles } from "../theme/typography";
+import { fontFace, textStyles } from "../theme/typography";
 import { AmountSkeleton } from "./AmountSkeleton";
 import type { FTextTone } from "./FText";
 
@@ -35,6 +36,16 @@ export interface AmountProps extends Omit<TextProps, "children"> {
 }
 
 const hidden = "••••••";
+/** Montos en filas y tarjetas: crecen con la letra del sistema hasta 1.5 y siempre en una línea. */
+const ROW_FONT_SCALE = 1.5;
+/** Los montos grandes (boleta y formulario) no escalan: ya son grandes y cambiarían de línea. */
+const FIXED_VARIANTS: readonly AmountVariant[] = ["amount-input", "amount-hero"];
+
+export function minorScale(fontSize: number): { symbol: number; cents: number } {
+  if (fontSize >= 22) return { symbol: 0.52, cents: 0.6 };
+  if (fontSize >= 15) return { symbol: 0.72, cents: 0.8 };
+  return { symbol: 0.85, cents: 1 };
+}
 
 /**
  * Toda cifra de la app pasa por aquí: IBM Plex Sans con cifras tabulares, signo
@@ -51,7 +62,7 @@ export function Amount({
   tone,
   onSlab = false,
   showSymbol = true,
-  smallCents = false,
+  smallCents,
   sensitive = true,
   style,
   ...props
@@ -66,9 +77,17 @@ export function Amount({
 
   const resolvedTone: FTextTone =
     tone ?? (onSlab ? "slabInk" : kind === "income" ? "flowIn" : kind === "expense" ? "flowOut" : kind === "transfer" ? "inkMuted" : "ink");
-  const minor = Math.round(base.fontSize * (variant === "amount-hero" ? 26 / 48 : variant === "amount-input" ? 30 / 64 : 0.82));
+  const flat = StyleSheet.flatten(style as StyleProp<TextStyle>);
+  const size = (flat?.fontSize as number | undefined) ?? base.fontSize;
+  // Un `color` en `style` (p. ej. la píldora tinta del cambio del mes) manda también en el símbolo y los centavos:
+  // sin esto, los tramos anidados salían en el color del tono y el "S/" no coincidía con la cifra.
+  const inner = flat?.color ? { color: flat.color } : null;
+  const scale = minorScale(size);
+  const symbolSize = Math.round(size * scale.symbol);
+  const centsSize = smallCents === false ? size : Math.round(size * scale.cents);
 
   const isHidden = sensitive && !(isHydrated && amountsVisible);
+  const scaling = FIXED_VARIANTS.includes(variant) ? { allowFontScaling: false } : { maxFontSizeMultiplier: ROW_FONT_SCALE };
   const label = isHidden
     ? t("privacy.amounts.hiddenLabel")
     : `${parts.sign}${parts.symbol} ${parts.integer.replaceAll(THIN_SPACE, "")}.${parts.fraction}`;
@@ -84,9 +103,16 @@ export function Amount({
     );
   }
 
+  // Oculto: el símbolo se queda ("S/ ••••••"), así se sigue sabiendo en qué moneda está.
   if (isHidden) {
     return (
-      <Text color={`$${resolvedTone}` as ColorTokens} style={[base, style]} aria-label={label} {...props}>
+      <Text color={`$${resolvedTone}` as ColorTokens} style={[base, style]} aria-label={label} numberOfLines={1} {...scaling} {...props}>
+        {showSymbol ? (
+          <Text color={`$${resolvedTone}` as ColorTokens} style={[{ fontSize: symbolSize, letterSpacing: 0 }, inner]}>
+            {parts.symbol}
+            {THIN_SPACE}
+          </Text>
+        ) : null}
         {hidden}
       </Text>
     );
@@ -96,20 +122,27 @@ export function Amount({
   const color = `$${resolvedTone}` as ColorTokens;
 
   return (
-    <Text color={color} style={[base, style]} aria-label={label} numberOfLines={1} {...props}>
+    <Text color={color} style={[base, style]} aria-label={label} numberOfLines={1} {...scaling} {...props}>
       {parts.sign}
       {showSymbol ? (
-        <Text color={color} style={{ fontSize: minor, letterSpacing: 0 }}>
+        <Text color={color} style={[{ fontSize: symbolSize, letterSpacing: 0 }, inner]}>
           {parts.symbol}
           {THIN_SPACE}
         </Text>
       ) : null}
       {parts.integer}
-      {smallCents ? (
-        <Text color={color} style={{ fontSize: minor }}>.{parts.fraction}</Text>
-      ) : parts.fraction ? (
-        `.${parts.fraction}`
+      {parts.fraction ? (
+        centsSize < size ? (
+          <Text color={color} style={[{ fontSize: centsSize, letterSpacing: 0 }, inner]}>.{parts.fraction}</Text>
+        ) : (
+          `.${parts.fraction}`
+        )
       ) : null}
     </Text>
   );
+}
+
+/** El monto de una fila de movimiento (marca D): 16/600 en Plex, con signo y color según `kind`. */
+export function RowAmount(props: Omit<AmountProps, "variant">) {
+  return <Amount variant="amount" {...props} style={[{ fontFamily: fontFace.mono[600], fontSize: 16, lineHeight: 21 }, props.style]} />;
 }

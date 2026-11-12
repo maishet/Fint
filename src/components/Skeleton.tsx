@@ -16,7 +16,7 @@ interface SkeletonListProps {
 
 export function SkeletonGroup({ children, label }: SkeletonGroupProps) {
   const opacity = useRef(new Animated.Value(0.5)).current;
-  // Con movimiento reducido el esqueleto se queda quieto (como `AmountSkeleton`).
+  // Pulso de opacidad .5 ↔ 1; con movimiento reducido el esqueleto se queda quieto (como `AmountSkeleton`).
   const reduceMotion = useReducedMotion();
 
   useEffect(() => {
@@ -25,7 +25,7 @@ export function SkeletonGroup({ children, label }: SkeletonGroupProps) {
       Animated.sequence([
         Animated.timing(opacity, {
           duration: 750,
-          toValue: 0.9,
+          toValue: 1,
           useNativeDriver: true,
         }),
         Animated.timing(opacity, {
@@ -58,7 +58,7 @@ export function SkeletonGroup({ children, label }: SkeletonGroupProps) {
 }
 
 export function SkeletonBlock({
-  bg = "$color4",
+  bg = "$surface",
   height = 14,
   rounded = "$4",
   width = "100%",

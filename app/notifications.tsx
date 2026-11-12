@@ -25,7 +25,7 @@ import { withAlpha } from "../src/theme/color";
 import { COMPACT_FONT_SCALE, motion, radius, space } from "../src/theme/tokens";
 import { fontFace } from "../src/theme/typography";
 import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
-import { Amount, FintConfirmDialog, FText, IconButton, PressableScale, SegmentedControl } from "../src/ui";
+import { Amount, FintConfirmDialog, FintLottie, FText, IconButton, PressableScale, SegmentedControl } from "../src/ui";
 import { AmountSkeleton } from "../src/ui/AmountSkeleton";
 import { useNotify } from "../src/ui/notify";
 
@@ -142,7 +142,7 @@ export default function NotificationsScreen() {
   const showTabs = feed.available;
   const groups = feedGroups(feed.items);
 
-  const card = (item: AttentionItem) => {
+  const card = (item: AttentionItem, i: number, list: readonly AttentionItem[]) => {
     const occurrence = occurrenceOf(item);
     return (
       <Animated.View key={item.key} entering={FadeIn.duration(motion.fade.duration)} exiting={FadeOut.duration(motion.fade.duration)} layout={layout}>
@@ -163,6 +163,7 @@ export default function NotificationsScreen() {
         >
           <NoticeCard
             item={item}
+            last={i === list.length - 1}
             occurrence={occurrence}
             onPay={setPaying}
             canResolve={canResolve(occurrence)}
@@ -202,9 +203,18 @@ export default function NotificationsScreen() {
           />
         }
       >
-        <YStack px={space[4]} pt={space[2]}>
-          <XStack items="center" justify="space-between">
+        <YStack px={space[5]} pt={space[2]}>
+          {/* F-09: volver, el título a 26 y "Marcar leídos" en tinta. */}
+          <XStack items="center" gap={10}>
             <IconButton label={t("notificationsScreen.back")} icon={<ChevronLeft size={20} color="$ink" strokeWidth={2} />} onPress={() => router.back()} />
+            <FText
+              accessibilityRole="header"
+              numberOfLines={2}
+              maxFontSizeMultiplier={1.3}
+              style={{ flex: 1, fontFamily: fontFace.display[700], fontSize: 26, lineHeight: 31, letterSpacing: -0.6 }}
+            >
+              {t("notificationsScreen.title")}
+            </FText>
             {unreadShown.size ? (
               <PressableScale
                 onPress={() => {
@@ -215,17 +225,14 @@ export default function NotificationsScreen() {
                 hitSlop={8}
                 accessibilityRole="button"
               >
-                <FText tone="brand" style={{ fontFamily: fontFace.sans[600], fontSize: 14, lineHeight: 19 }}>
+                <FText tone="ink" maxFontSizeMultiplier={1.3} style={{ fontFamily: fontFace.display[700], fontSize: 14, lineHeight: 19 }}>
                   {t("notificationsScreen.markRead")}
                 </FText>
               </PressableScale>
             ) : null}
           </XStack>
-          <FText variant="display-lg" accessibilityRole="header" style={{ marginTop: space[3] }}>
-            {t("notificationsScreen.title")}
-          </FText>
           {showTabs ? (
-            <View mt={space[4]}>
+            <View mt={6}>
               <SegmentedControl
                 options={[
                   { value: "all" as const, label: t("notificationsScreen.tabs.all") },
@@ -239,33 +246,36 @@ export default function NotificationsScreen() {
         </YStack>
 
         {attention.isLoading ? (
-          <YStack px={space[4]} mt={space[5]} gap={10} accessibilityRole="progressbar">
+          <YStack px={space[5]} mt={space[5]} gap={18} accessibilityRole="progressbar">
             {[0, 1].map((i) => (
-              <YStack key={i} p={14} gap={10} rounded={radius.lg} bg="$surface" borderWidth={1} borderColor="$line">
-                <AmountSkeleton width={200} height={16} />
-                <AmountSkeleton width={240} height={12} />
-                <AmountSkeleton width={90} height={30} />
-              </YStack>
+              <XStack key={i} gap={12}>
+                <View width={42} height={42} rounded={14} bg="$surface" />
+                <YStack flex={1} gap={8}>
+                  <AmountSkeleton width={200} height={15} />
+                  <AmountSkeleton width={240} height={12} />
+                  <AmountSkeleton width={90} height={30} />
+                </YStack>
+              </XStack>
             ))}
           </YStack>
         ) : attention.error ? (
-          <YStack px={space[4]} mt={space[5]}>
+          <YStack px={space[5]} mt={space[5]}>
             <DataStateCard message={t("notificationsScreen.loadError")} onRetry={() => void attention.refetch()} />
           </YStack>
         ) : nothing ? (
           <AllClear upcoming={attention.upcoming} onChoose={() => router.push("/settings")} />
         ) : (
-          <YStack px={space[4]}>
+          <YStack px={space[5]}>
             {todoList}
             {showTabs && tab === "all"
               ? groups.map((group) => (
                   <Group key={group.key} title={t(`notificationsScreen.feed.${group.key}`)}>
-                    <YStack rounded={radius.lg} bg="$surface" borderWidth={1} borderColor="$line" overflow="hidden">
+                    <YStack>
                       {group.items.map((item, i) => (
                         <FeedRow
                           key={item.id}
                           item={item}
-                          first={i === 0}
+                          last={i === group.items.length - 1}
                           unread={unreadShown.has(item.id)}
                           locale={locale}
                           installationId={installationQuery.data ?? null}
@@ -278,7 +288,7 @@ export default function NotificationsScreen() {
               : null}
             {showTabs && tab === "all" && feed.hasMore ? (
               <PressableScale onPress={feed.loadMore} disabled={feed.loadingMore} accessibilityRole="button" style={{ alignSelf: "center", marginTop: space[4] }}>
-                <FText tone="brand" style={{ fontFamily: fontFace.sans[600], fontSize: 14, opacity: feed.loadingMore ? 0.5 : 1 }}>
+                <FText tone="ink" style={{ fontFamily: fontFace.display[700], fontSize: 14, opacity: feed.loadingMore ? 0.5 : 1 }}>
                   {t("notificationsScreen.loadMore")}
                 </FText>
               </PressableScale>
@@ -310,14 +320,35 @@ export default function NotificationsScreen() {
   );
 }
 
+/** Un grupo de F-09 ("Por hacer", "Hoy", "Esta semana"): el título a 16 y sus avisos en línea de tiempo. */
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <YStack mt={space[5]} gap={10}>
-      <FText variant="caption" tone="inkMuted" style={{ fontFamily: fontFace.sans[600], marginLeft: 2 }}>
+    <YStack pt={18}>
+      <FText accessibilityRole="header" maxFontSizeMultiplier={1.5} style={{ fontFamily: fontFace.display[700], fontSize: 16, lineHeight: 21, marginBottom: 12 }}>
         {title}
       </FText>
       {children}
     </YStack>
+  );
+}
+
+/**
+ * Un aviso en la línea de tiempo de F-09: el cuadro de 42 con su ícono y, debajo, un filete vertical que lo une con
+ * el siguiente (el último no lo lleva); a la derecha, el contenido.
+ */
+function Timeline({ icon, tint, last, children }: { icon: ReactNode; tint: "danger" | "neutral"; last: boolean; children: ReactNode }) {
+  return (
+    <XStack gap={12}>
+      <YStack items="center">
+        <View width={42} height={42} rounded={14} items="center" justify="center" bg={tint === "danger" ? "$dangerWash" : "$surface"}>
+          {icon}
+        </View>
+        {last ? null : <View flex={1} width={2} my={6} bg="$line" />}
+      </YStack>
+      <YStack flex={1} minW={0} pb={18}>
+        {children}
+      </YStack>
+    </XStack>
   );
 }
 
@@ -329,9 +360,14 @@ function dayParams(title: string, dueDate: string | null, locale: string) {
   return { title, day: locale.startsWith("en") ? weekday : weekday.toLocaleLowerCase(locale), date: String(date.getDate()) };
 }
 
-/** Una tarjeta de "Por hacer": icono en un círculo teñido, título, detalle y los botones que lo resuelven. */
+/**
+ * Un aviso de "Por hacer" (F-09): en la línea de tiempo, el ícono (en `dangerWash` si venció o hay que reconectar),
+ * el título a 15, el detalle (en `dangerHard` si venció) y los botones que lo resuelven: el principal en amarillo
+ * (Pagar) o en tinta (Revisar, Reconectar) y los demás con contorno.
+ */
 function NoticeCard({
   item,
+  last,
   occurrence,
   onPay,
   canResolve,
@@ -341,6 +377,7 @@ function NoticeCard({
   onReconnect,
 }: {
   item: AttentionItem;
+  last: boolean;
   occurrence: PaymentOccurrence | null;
   onPay: (occurrence: PaymentOccurrence) => void;
   canResolve: boolean;
@@ -353,30 +390,32 @@ function NoticeCard({
   const theme = useTheme();
   const locale = getAppLocale(i18n.resolvedLanguage);
 
-  let color: string = theme.signal.val;
-  let icon = <Receipt size={18} color={color as never} strokeWidth={2} />;
+  let color: string = theme.inkMuted.val;
+  let icon = <Receipt size={21} color={color as never} strokeWidth={2} />;
   let title = "";
   let detail: ReactNode = null;
-  const actions: Array<{ label: string; onPress: () => void; soft?: boolean }> = [];
+  let tint: "danger" | "neutral" = "neutral";
+  const actions: Array<{ label: string; onPress: () => void; soft?: boolean; ink?: boolean }> = [];
   const danger = item.kind === "overdue";
   const settleTarget = canResolve ? occurrence : null;
 
   if (item.kind === "review") {
-    color = theme.brand.val;
-    icon = <Inbox size={18} color={color as never} strokeWidth={2} />;
+    icon = <Inbox size={21} color={color as never} strokeWidth={2} />;
     title = t("notificationsScreen.review", { count: item.count ?? 0 });
     detail = <Line>{t("notificationsScreen.reviewBody")}</Line>;
-    actions.push({ label: t("notificationsScreen.reviewAction"), onPress: onReview });
+    actions.push({ label: t("notificationsScreen.reviewAction"), onPress: onReview, ink: true });
   } else if (item.kind === "gmail") {
     color = theme.dangerHard.val;
-    icon = <Mail size={18} color={color as never} strokeWidth={2} />;
+    tint = "danger";
+    icon = <Mail size={21} color={color as never} strokeWidth={2} />;
     title = t("notificationsScreen.gmail");
     detail = <Line>{t("notificationsScreen.gmailBody")}</Line>;
-    actions.push({ label: t("notificationsScreen.gmailAction"), onPress: onReconnect });
+    actions.push({ label: t("notificationsScreen.gmailAction"), onPress: onReconnect, ink: true });
   } else {
     if (danger) {
       color = theme.dangerHard.val;
-      icon = <TriangleAlert size={18} color={color as never} strokeWidth={2} />;
+      tint = "danger";
+      icon = <TriangleAlert size={21} color={color as never} strokeWidth={2} />;
     }
     const days = item.days ?? 0;
     title =
@@ -391,8 +430,17 @@ function NoticeCard({
     const when = day ? weekdayAndDay(new Date(day.y, day.m, day.d), locale) : null;
     detail = (
       <XStack items="center" flexWrap="wrap" columnGap={4}>
-        {item.amount != null && item.currency ? <Amount value={item.amount} currency={item.currency} variant="amount-sm" kind="neutral" /> : null}
-        <Line>{[when, occurrence?.cardAccount ? t("notificationsScreen.paidFrom", { account: occurrence.cardAccount }) : null].filter(Boolean).map((s) => ` · ${s}`).join("")}</Line>
+        {item.amount != null && item.currency ? (
+          <Amount
+            value={item.amount}
+            currency={item.currency}
+            variant="amount-sm"
+            kind="neutral"
+            tone={danger ? "dangerHard" : "inkFaint"}
+            style={{ fontFamily: fontFace.mono[600], fontSize: 13, lineHeight: 18 }}
+          />
+        ) : null}
+        <Line danger={danger}>{[when, occurrence?.cardAccount ? t("notificationsScreen.paidFrom", { account: occurrence.cardAccount }) : null].filter(Boolean).map((s) => ` · ${s}`).join("")}</Line>
       </XStack>
     );
     if (occurrence) {
@@ -405,25 +453,12 @@ function NoticeCard({
   }
 
   return (
-    <XStack
-      p={14}
-      gap={12}
-      rounded={radius.lg}
-      bg="$surface"
-      borderWidth={1}
-      borderColor={danger ? "$dangerHard" : "$line"}
-      accessible={false}
-      accessibilityLabel={title}
-    >
-      <View width={40} height={40} rounded={radius.pill} items="center" justify="center" style={{ backgroundColor: withAlpha(color, 0.14) }}>
-        {icon}
-      </View>
-      <YStack flex={1} minW={0}>
+    <Timeline icon={icon} tint={tint} last={last}>
+      <YStack accessible={false} accessibilityLabel={title}>
         {/* Deslizar para "Listo" no existe con lector de pantalla (el deslizamiento es de navegación): la misma acción
             va en el título, que abre la misma confirmación. */}
         <FText
-          variant="body-strong"
-          style={{ letterSpacing: -0.15 }}
+          style={{ fontFamily: fontFace.display[700], fontSize: 15, lineHeight: 20 }}
           accessibilityActions={settleTarget ? [{ name: "settle", label: t("notificationsScreen.settle") }] : undefined}
           onAccessibilityAction={() => settleTarget && onSettle(settleTarget)}
         >
@@ -435,11 +470,19 @@ function NoticeCard({
             {actions.map((action) => (
               // La forma mide 34; el área de toque llega a 48 sin cambiar lo que se ve.
               <PressableScale key={action.label} onPress={action.onPress} haptic="tap" hitSlop={{ top: 7, bottom: 7 }} accessibilityRole="button">
-                <XStack minH={34} px={14} rounded={radius.pill} bg={action.soft ? "$brandWash" : "$brand"} items="center">
+                <XStack
+                  minH={34}
+                  px={14}
+                  rounded={radius.pill}
+                  items="center"
+                  bg={action.soft ? "transparent" : action.ink ? "$ink" : "$brand"}
+                  borderWidth={action.soft ? 1.5 : 0}
+                  borderColor="$line"
+                >
                   <FText
-                    tone={action.soft ? "brand" : "onBrand"}
+                    color={action.soft ? "$ink" : action.ink ? "$canvas" : "$onBrand"}
                     maxFontSizeMultiplier={COMPACT_FONT_SCALE}
-                    style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18 }}
+                    style={{ fontFamily: fontFace.display[700], fontSize: action.soft || action.ink ? 13 : 14, lineHeight: 18 }}
                   >
                     {action.label}
                   </FText>
@@ -449,21 +492,24 @@ function NoticeCard({
           </XStack>
         ) : null}
       </YStack>
-    </XStack>
+    </Timeline>
   );
 }
 
-/** Una fila de lo informativo: icono de 34px, título (a peso 600 si no se leyó, con el punto), detalle y la hora. */
+/**
+ * Un aviso informativo en la línea de tiempo (F-09): el ícono en su cuadro, el título a 15 (con el punto amarillo
+ * si no se leyó), el detalle y la hora.
+ */
 function FeedRow({
   item,
-  first,
+  last,
   unread,
   locale,
   installationId,
   onPress,
 }: {
   item: UserNotification;
-  first: boolean;
+  last: boolean;
   unread: boolean;
   locale: string;
   /** El de este teléfono: el aviso de inicio de sesión dice si fue aquí. */
@@ -516,38 +562,30 @@ function FeedRow({
   }
   return (
     <PressableScale onPress={onPress} scaleTo={0.99} accessibilityRole="button" accessibilityLabel={unread ? `${t("notificationsScreen.unread")}. ${title}` : title}>
-      <XStack items="center" gap={12} px={14} py={12} borderTopWidth={first ? 0 : 1} borderColor="$line">
-        <View width={8} height={8} rounded={4} bg={unread ? "$brand" : "transparent"} ml={-4} />
-        <View
-          width={34}
-          height={34}
-          rounded={radius.pill}
-          items="center"
-          justify="center"
-          // El de inicio de sesión va neutro, como en el diseño: informa, no alerta.
-          bg={item.kind === "new_login" ? "$surfaceSunken" : undefined}
-          style={item.kind === "new_login" ? undefined : { backgroundColor: withAlpha(color, 0.14) }}
-          ml={-8}
-        >
-          {icon}
-        </View>
-        <YStack flex={1} minW={0}>
-          <FText numberOfLines={1} style={{ fontFamily: unread ? fontFace.sans[600] : fontFace.sans[500], fontSize: 14, lineHeight: 19 }}>
-            {title}
+      <Timeline icon={icon} tint="neutral" last={last}>
+        <XStack items="flex-start" gap={8}>
+          <YStack flex={1} minW={0}>
+            <XStack items="center" gap={6}>
+              {unread ? <View width={8} height={8} rounded={4} bg="$brand" /> : null}
+              <FText numberOfLines={2} style={{ flexShrink: 1, fontFamily: fontFace.display[700], fontSize: 15, lineHeight: 20 }}>
+                {title}
+              </FText>
+            </XStack>
+            <View mt={2}>{detail}</View>
+          </YStack>
+          <FText tone="inkFaint" style={{ fontFamily: fontFace.mono[500], fontSize: 12, lineHeight: 16, marginTop: 2 }}>
+            {feedTime(item.createdAt, new Date(), locale)}
           </FText>
-          <View mt={1}>{detail}</View>
-        </YStack>
-        <FText tone="inkFaint" style={{ fontFamily: fontFace.mono[500], fontSize: 12, lineHeight: 16 }}>
-          {feedTime(item.createdAt, new Date(), locale)}
-        </FText>
-      </XStack>
+        </XStack>
+      </Timeline>
     </PressableScale>
   );
 }
 
-function Line({ children }: { children: ReactNode }) {
+/** El detalle de un aviso: 13 en seminegrita, en `inkFaint` (o `dangerHard` si venció). */
+function Line({ children, danger = false }: { children: ReactNode; danger?: boolean }) {
   return (
-    <FText variant="caption" tone="inkMuted" style={{ lineHeight: 17 }}>
+    <FText tone={danger ? "dangerHard" : "inkFaint"} style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18 }}>
       {children}
     </FText>
   );
@@ -564,9 +602,7 @@ function AllClear({ upcoming, onChoose }: { upcoming: PaymentOccurrence | null; 
   return (
     <Animated.View entering={FadeIn.duration(motion.fade.duration)}>
       <YStack items="center" px={space[6]} mt={48}>
-        <View width={64} height={64} rounded={radius.pill} items="center" justify="center" style={{ backgroundColor: withAlpha(theme.flowIn.val, 0.14) }}>
-          <Check size={28} color="$flowIn" strokeWidth={2.4} />
-        </View>
+        <FintLottie name="coin-stack" size={76} play={["build", "shine"]} loop="breathe" />
         <FText variant="section-title" style={{ marginTop: space[4], textAlign: "center" }}>
           {t("notificationsScreen.allClear")}
         </FText>
@@ -575,7 +611,7 @@ function AllClear({ upcoming, onChoose }: { upcoming: PaymentOccurrence | null; 
         </FText>
       </YStack>
       {upcoming ? (
-        <XStack mx={space[4]} mt={space[5]} p={14} gap={12} items="center" rounded={radius.lg} bg="$surface" borderWidth={1} borderColor="$line">
+        <XStack mx={space[5]} mt={space[5]} p={14} gap={12} items="center" rounded={22} bg="$surface">
           <View width={40} height={40} rounded={radius.md} items="center" justify="center" style={{ backgroundColor: withAlpha(theme.signal.val, 0.14) }}>
             <Receipt size={18} color={theme.signal.val as never} strokeWidth={2} />
           </View>
@@ -591,7 +627,7 @@ function AllClear({ upcoming, onChoose }: { upcoming: PaymentOccurrence | null; 
         </XStack>
       ) : null}
       <PressableScale onPress={onChoose} accessibilityRole="button" style={{ alignSelf: "center", marginTop: space[5] }}>
-        <FText variant="label" tone="brand" style={{ fontFamily: fontFace.sans[600] }}>
+        <FText variant="label" tone="ink" style={{ fontFamily: fontFace.sans[600] }}>
           {t("notificationsScreen.choose")}
         </FText>
       </PressableScale>

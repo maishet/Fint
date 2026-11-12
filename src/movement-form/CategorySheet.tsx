@@ -1,18 +1,19 @@
-import { Check, Plus, Search, X } from "@tamagui/lucide-icons-2";
+import { Check, Grid2x2, Plus, Search, X } from "@tamagui/lucide-icons-2";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable } from "react-native";
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
-import { Text, View, XStack, YStack, useTheme, type ColorTokens } from "tamagui";
+import { Text, View, XStack, YStack, useTheme } from "tamagui";
 import type { Category } from "../api/types";
 import { CreateCategorySheet } from "../components/CreateCategorySheet";
 import { getCategoryLabel } from "../finance/categoryLabels";
-import { categoryColorIndex } from "../home/spending";
+import { categoryTint } from "../finance/categoryTint";
+import { useCategoryHue } from "../finance/emojiHue";
 import { useThemeMode } from "../theme/ThemeMode";
 import { compactBlockMaxWidth, motion } from "../theme/tokens";
 import { fontFace } from "../theme/typography";
 import { FintSheet, FText, SheetField, SheetTextInput } from "../ui";
-import { DashedOutline } from "../ui/DashedOutline";
+import { MONOGRAM_RADIUS } from "../ui/Monogram";
 import { haptics } from "../ui/haptics";
 
 /** Tiempo para que la persona alcance a ver su elección antes de que la hoja se cierre. */
@@ -134,7 +135,7 @@ export function CategorySheet({ open, onClose, type, categories, frequent, value
                 accessibilityLabel={t("movementForm.categorySheet.search")}
               />
               {query ? (
-                <Pressable onPress={() => setQuery("")} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("movementForm.clearSearch")}>
+                <Pressable onPress={() => setQuery("")} hitSlop={14} accessibilityRole="button" accessibilityLabel={t("movementForm.clearSearch")}>
                   <X size={16} color="$inkFaint" />
                 </Pressable>
               ) : null}
@@ -231,9 +232,10 @@ function Grid({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * El disco de una categoría, igual en la hoja y en el formulario: el emoji en el disco neutro y, elegida, fondo
- * `brandWash`, anillo `brand` y la marca arriba a la derecha. `compact` es la versión del formulario (cinco en una
- * fila: disco de 50px y nombre a 11px).
+ * El cuadro de una categoría, igual en la hoja y en el formulario: el emoji al 52 % sobre el fondo de su propio
+ * tono (`categoryTint`), con radio del 32 % del lado; sin emoji, la inicial en `ink` sobre `surface`. Elegida, anillo
+ * `ink` y la marca arriba a la derecha. `compact` es la versión del formulario (cinco en una fila: cuadro de 50px y
+ * nombre a 11px).
  */
 export function CategoryTile({
   category,
@@ -256,7 +258,7 @@ export function CategoryTile({
   const theme = useTheme();
   const { themeMode } = useThemeMode();
   const reduceMotion = useReducedMotion();
-  // El anillo `brand` crece desde el centro y la marca entra de 0.6 a 1, con `spring-ui`.
+  // El anillo `ink` crece desde el centro y la marca entra de 0.6 a 1, con `spring-ui`.
   const on = useSharedValue(selected ? 1 : 0);
   useEffect(() => {
     on.value = reduceMotion ? withTiming(selected ? 1 : 0, motion.fade) : withSpring(selected ? 1 : 0, motion.springUi);
@@ -266,6 +268,9 @@ export function CategoryTile({
 
   const initial = label.trim().charAt(0).toUpperCase() || "·";
   const DISC = compact ? COMPACT_DISC : SHEET_DISC;
+  const hasEmoji = Boolean(category.icon?.trim());
+  const hue = useCategoryHue(hasEmoji ? category.icon : null, category.name);
+  const radius = Math.round(DISC * MONOGRAM_RADIUS);
 
   return (
     <Pressable
@@ -283,17 +288,23 @@ export function CategoryTile({
         <View
           width={DISC}
           height={DISC}
-          rounded={999}
+          rounded={radius}
           items="center"
           justify="center"
-          bg={selected ? "$brandWash" : "$surfaceSunken"}
-          borderWidth={themeMode === "dark" && !selected ? 1 : 0}
-          borderColor="$line"
+          bg={hasEmoji ? undefined : "$surface"}
+          style={hasEmoji ? { backgroundColor: categoryTint(hue, themeMode) } : undefined}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
         >
-          {category.icon ? (
-            <Text style={{ fontSize: 24, lineHeight: 30, includeFontPadding: false, textAlign: "center" }}>{category.icon}</Text>
+          {hasEmoji ? (
+            <Text
+              allowFontScaling={false}
+              style={{ fontSize: Math.round(DISC * 0.52), lineHeight: Math.round(DISC * 0.65), includeFontPadding: false, textAlign: "center" }}
+            >
+              {category.icon}
+            </Text>
           ) : (
-            <Text fontFamily={fontFace.display[600] as never} fontSize={20} color={`$chart${categoryColorIndex(category.name)}` as ColorTokens}>
+            <Text allowFontScaling={false} fontFamily={fontFace.display[700] as never} fontSize={Math.round(DISC * 0.4)} color="$ink">
               {initial}
             </Text>
           )}
@@ -301,13 +312,13 @@ export function CategoryTile({
         <Animated.View
           pointerEvents="none"
           style={[
-            { position: "absolute", width: DISC + 4, height: DISC + 4, borderRadius: 999, borderWidth: 2, borderColor: theme.brand.val },
+            { position: "absolute", width: DISC + 6, height: DISC + 6, borderRadius: radius + 3, borderWidth: 2, borderColor: theme.ink.val },
             ringStyle,
           ]}
         />
         <Animated.View pointerEvents="none" style={[{ position: "absolute", right: -3, top: -3 }, checkStyle]}>
-          <View width={20} height={20} rounded={999} bg="$brand" borderWidth={2} borderColor={compact ? "$canvas" : "$surfaceOverlay"} items="center" justify="center">
-            <Check size={11} color="$onBrand" strokeWidth={3} />
+          <View width={20} height={20} rounded={999} bg="$ink" borderWidth={2} borderColor={compact ? "$canvas" : "$surfaceOverlay"} items="center" justify="center">
+            <Check size={11} color="$canvas" strokeWidth={3} />
           </View>
         </Animated.View>
       </View>
@@ -327,7 +338,7 @@ export function CategoryTile({
   );
 }
 
-/** El disco punteado: "Nueva" en la hoja (en `brand`) u "Otra" en el formulario (`compact`, en `inkMuted`). */
+/** "Nueva" en la hoja (cuadro `surface` con el más en tinta) o "Todas" en el formulario (`compact`, cuadro hundido con la cuadrícula). */
 export function NewTile({ label, onPress, compact = false }: { label: string; onPress: () => void; compact?: boolean }) {
   const DISC = compact ? COMPACT_DISC : SHEET_DISC;
   return (
@@ -340,13 +351,16 @@ export function NewTile({ label, onPress, compact = false }: { label: string; on
       accessibilityRole="button"
       accessibilityLabel={label}
     >
-      <View width={DISC} height={DISC} rounded={999} items="center" justify="center">
-        <DashedOutline radius={DISC / 2} />
-        <Plus size={compact ? 20 : 22} color={compact ? "$inkMuted" : "$brand"} strokeWidth={2.2} />
+      <View width={DISC} height={DISC} rounded={Math.round(DISC * MONOGRAM_RADIUS)} items="center" justify="center" bg={compact ? "$surfaceSunken" : "$surface"}>
+        {compact ? (
+          <Grid2x2 size={20} color="$inkMuted" strokeWidth={2} />
+        ) : (
+          <Plus size={22} color="$ink" strokeWidth={2.2} />
+        )}
       </View>
       <FText
         variant="caption"
-        tone={compact ? "inkMuted" : "brand"}
+        tone={compact ? "inkMuted" : "ink"}
         style={compact ? { fontSize: 11, lineHeight: 14 } : { fontFamily: fontFace.sans[600], lineHeight: 15 }}
       >
         {label}

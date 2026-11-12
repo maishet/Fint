@@ -4,8 +4,8 @@ import { Pressable } from "react-native";
 import Animated, { interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { XStack, YStack, useTheme } from "tamagui";
 import type { AmountKey } from "../forms/amountInput";
-import { COMPACT_FONT_SCALE, compactBlockMaxWidth, motion, radius } from "../theme/tokens";
-import { textStyles } from "../theme/typography";
+import { COMPACT_FONT_SCALE, compactBlockMaxWidth, motion } from "../theme/tokens";
+import { fontFace, textStyles } from "../theme/typography";
 import { haptics } from "./haptics";
 
 const ROWS: AmountKey[][] = [
@@ -22,16 +22,17 @@ export interface AmountKeypadProps {
 }
 
 /**
- * Teclado propio del monto: doce teclas de 48px. Cada tecla responde en el
- * `onPressIn`: fondo `surfaceSunken` con la curva `press` y `haptics.select()`
- * en el mismo frame. El teclado del sistema nunca aparece en el monto.
+ * Teclado propio del monto (marca D): doce teclas de 54px en `surface` con radio
+ * 16. Cada tecla responde en el `onPressIn`: pasa a `surfaceSunken` y a escala
+ * .94 con la curva `press`, y `haptics.select()` en el mismo frame. El teclado
+ * del sistema nunca aparece en el monto.
  */
 export function AmountKeypad({ onKey, onClear }: AmountKeypadProps) {
   return (
-    <YStack px={10} pt={10} borderTopWidth={1} borderColor="$line" items="center">
-      <YStack gap={4} width="100%" maxW={compactBlockMaxWidth}>
+    <YStack px={20} pt={12} items="center">
+      <YStack gap={6} width="100%" maxW={compactBlockMaxWidth}>
         {ROWS.map((row) => (
-          <XStack key={row.join("")} gap={4}>
+          <XStack key={row.join("")} gap={6}>
             {row.map((key) => (
               <Key key={key} value={key} onKey={onKey} onClear={onClear} />
             ))}
@@ -46,9 +47,12 @@ function Key({ value, onKey, onClear }: { value: AmountKey; onKey: (k: AmountKey
   const { t } = useTranslation();
   const theme = useTheme();
   const pressed = useSharedValue(0);
-  const from = "rgba(0,0,0,0)";
+  const from = theme.surface.val;
   const to = theme.surfaceSunken.val;
-  const bg = useAnimatedStyle(() => ({ backgroundColor: interpolateColor(pressed.value, [0, 1], [from, to]) }));
+  const bg = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(pressed.value, [0, 1], [from, to]),
+    transform: [{ scale: 1 - 0.06 * pressed.value }],
+  }));
   const isDelete = value === "del";
 
   return (
@@ -77,11 +81,11 @@ function Key({ value, onKey, onClear }: { value: AmountKey; onKey: (k: AmountKey
       accessibilityActions={isDelete && onClear ? [{ name: "longpress", label: t("amountKeypad.clear") }] : undefined}
       onAccessibilityAction={() => onClear?.()}
     >
-      <Animated.View style={[{ height: 48, borderRadius: radius.md, alignItems: "center", justifyContent: "center" }, bg]}>
+      <Animated.View style={[{ height: 54, borderRadius: 16, alignItems: "center", justifyContent: "center" }, bg]}>
         {isDelete ? (
           <Delete size={24} color="$ink" strokeWidth={1.8} />
         ) : (
-          <Animated.Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[textStyles.amount, { fontSize: 26, lineHeight: 30, color: theme.ink.val }]}>
+          <Animated.Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[textStyles.amount, { fontFamily: fontFace.mono[600], fontSize: 24, lineHeight: 30, color: theme.ink.val }]}>
             {value}
           </Animated.Text>
         )}

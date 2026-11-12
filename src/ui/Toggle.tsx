@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { Pressable } from "react-native";
 import Animated, { interpolateColor, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { useTheme } from "tamagui";
-import { useThemeMode } from "../theme/ThemeMode";
-import { motion, opacity, shadows } from "../theme/tokens";
+import { motion, opacity } from "../theme/tokens";
 import { haptics } from "./haptics";
 
 export interface ToggleProps {
@@ -13,19 +12,19 @@ export interface ToggleProps {
   disabled?: boolean;
 }
 
-const W = 46;
-const H = 28;
-const KNOB = 22;
+const W = 48;
+const H = 30;
+const PAD = 3;
+const KNOB = H - PAD * 2;
 
 /**
- * Interruptor del sistema: encendido en `brand`. La perilla se desliza con `spring-ui`
+ * Interruptor del sistema: encendido en `brand` con la perilla en `onBrand`. La perilla se desliza con `spring-ui`
  * al presionar; `onValueChange` y el háptico van al soltar, para que empezar a desplazar
  * una lista con el dedo sobre el interruptor no lo cambie (WCAG 2.5.2). Si el toque se
  * cancela, la perilla vuelve sola.
  */
 export function Toggle({ value, onValueChange, accessibilityLabel, disabled }: ToggleProps) {
   const theme = useTheme();
-  const { themeMode } = useThemeMode();
   const [pressing, setPressing] = useState(false);
   const shown = pressing ? !value : value;
   const on = useSharedValue(value ? 1 : 0);
@@ -36,15 +35,14 @@ export function Toggle({ value, onValueChange, accessibilityLabel, disabled }: T
 
   const off = theme.surfaceSunken.val;
   const brand = theme.brand.val;
-  const knobOff = themeMode === "dark" ? theme.inkFaint.val : theme.surface.val;
+  const knobOff = theme.lineStrong.val;
   const knobOn = theme.onBrand.val;
 
   const trackStyle = useAnimatedStyle(() => ({
     backgroundColor: interpolateColor(on.value, [0, 1], [off, brand]),
-    borderColor: interpolateColor(on.value, [0, 1], [theme.line.val, brand]),
   }));
   const knobStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: on.value * (W - KNOB - 6) }],
+    transform: [{ translateX: on.value * (W - KNOB - PAD * 2) }],
     backgroundColor: interpolateColor(on.value, [0, 1], [knobOff, knobOn]),
   }));
 
@@ -64,10 +62,8 @@ export function Toggle({ value, onValueChange, accessibilityLabel, disabled }: T
       }}
       style={{ opacity: disabled ? opacity.disabled : 1 }}
     >
-      <Animated.View style={[{ width: W, height: H, borderRadius: H / 2, borderWidth: 1, padding: 2 }, trackStyle]}>
-        <Animated.View
-          style={[{ width: KNOB, height: KNOB, borderRadius: KNOB / 2, boxShadow: shadows[themeMode].raised }, knobStyle]}
-        />
+      <Animated.View style={[{ width: W, height: H, borderRadius: H / 2, padding: PAD }, trackStyle]}>
+        <Animated.View style={[{ width: KNOB, height: KNOB, borderRadius: KNOB / 2 }, knobStyle]} />
       </Animated.View>
     </Pressable>
   );

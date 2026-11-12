@@ -190,7 +190,7 @@ export function OccurrencePaymentSheet({
                         borderColor="$line"
                         bg={pressed ? "$surfaceSunken" : "transparent"}
                       >
-                        <AccountMonogram name={account.name} />
+                        <AccountMonogram name={account.name} type={account.accountType} />
                         <YStack flex={1} minW={0}>
                           <FText variant="body-strong" numberOfLines={1}>
                             {account.name}
@@ -200,7 +200,7 @@ export function OccurrencePaymentSheet({
                           </FText>
                         </YStack>
                         {balance !== null ? <Amount value={balance} currency={account.currency} variant="amount-sm" tone="inkMuted" /> : null}
-                        <View width={18}>{selected ? <Check size={18} color="$brand" strokeWidth={2.4} /> : null}</View>
+                        <View width={18}>{selected ? <Check size={18} color="$ink" strokeWidth={2.4} /> : null}</View>
                       </XStack>
                     )}
                   </Pressable>

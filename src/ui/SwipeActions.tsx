@@ -20,18 +20,19 @@ let openRow: SwipeableMethods | null = null;
 export interface SwipeAction {
   key: string;
   label: string;
-  /** Icono de 18px, ya con su color (`$ink` en `neutral`, `$onDanger` en `danger`). */
+  /** Icono de 18px, ya con su color (`$ink` en `neutral`, `$canvas` en `ink`, `$onDanger` en `danger`). */
   icon: ReactNode;
   /**
-   * `neutral` (Editar, Descartar) en `surfaceSunken`; `danger` (Eliminar, Revertir) en `dangerHard`;
-   * `brand` (Confirmar un pendiente) en `brand`, con el icono en `$onBrand`.
+   * `neutral` (Descartar) en `surfaceSunken`; `ink` (Editar, marca D) en `ink` con el texto en `canvas`;
+   * `danger` (Eliminar, Revertir) en `dangerHard`; `brand` (Confirmar un pendiente) en `brand`, con el icono en
+   * `$onBrand`.
    */
-  tone: "neutral" | "danger" | "brand";
+  tone: "neutral" | "ink" | "danger" | "brand";
   run: () => void;
 }
 
-const toneBg = { neutral: "$surfaceSunken", danger: "$dangerHard", brand: "$brand" } as const;
-const toneInk = { neutral: "$ink", danger: "$onDanger", brand: "$onBrand" } as const;
+const toneBg = { neutral: "$surfaceSunken", ink: "$ink", danger: "$dangerHard", brand: "$brand" } as const;
+const toneInk = { neutral: "$ink", ink: "$canvas", danger: "$onDanger", brand: "$onBrand" } as const;
 
 /**
  * Deslizar a la izquierda muestra las acciones de la fila, de 78px cada una.

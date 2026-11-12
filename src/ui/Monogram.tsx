@@ -2,62 +2,87 @@ import { useState, type ReactNode } from "react";
 import { Image } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { Text, View, type ColorTokens } from "tamagui";
+import { categoryTint } from "../finance/categoryTint";
+import { useCategoryHue } from "../finance/emojiHue";
+import { useThemeMode } from "../theme/ThemeMode";
 import { motion } from "../theme/tokens";
 import { fontFace } from "../theme/typography";
 
 export interface MonogramProps {
   /** Nombre del comercio, banco o categoría. Se usa su inicial. */
   name: string;
-  /** Color de la inicial: `$chart1`..`$chart6` para la identidad de la categoría. */
+  /** Ya no tiñe nada: la inicial va en `ink` y el color de la categoría sale del emoji. Se conserva por compatibilidad. */
   color?: ColorTokens;
   /** Logo del comercio o banco. Mientras carga, o si falla, se ve la inicial. */
   logoUrl?: string | null;
   /** Icono en lugar de la inicial (transferencias). */
   icon?: ReactNode;
   /**
-   * El emoji que la persona eligió para la categoría. Va chico dentro del disco
-   * neutro, lo que lo integra al resto de la interfaz; sin emoji, la inicial.
+   * El emoji que la persona eligió para la categoría. Va al 52 % del lado sobre `categoryTint` de su propio tono
+   * (medido del emoji en el teléfono); sin emoji, la inicial.
    */
   emoji?: string | null;
-  size?: 32 | 38 | 52 | 64;
+  size?: 32 | 38 | 44 | 52 | 64;
   /** Pequeña insignia abajo a la derecha (pendiente, automático). */
   badge?: ReactNode;
 }
 
+/** Radio del cuadro de categoría: 32 % del lado (marca D). */
+export const MONOGRAM_RADIUS = 0.32;
+const EMOJI_SCALE = 0.52;
+
 /**
- * Avatar de una fila: logo, inicial o icono sobre `surfaceSunken`. El logo que
- * termina de cargar aparece con un cruce de 180ms, nunca con un salto.
+ * Cuadro de una fila: emoji sobre el fondo de su categoría, o logo, inicial o icono sobre `surface` (las cuentas
+ * no tienen emoji: van con su inicial). Es decorativo para el lector: la fila ya dice el nombre, y sin ocultarlo se
+ * leería el emoji ("carrito de compras"). El logo que termina de cargar aparece con un cruce de 180ms, nunca con un
+ * salto.
  */
-export function Monogram({ name, color = "$inkMuted", logoUrl, icon, emoji, size = 38, badge }: MonogramProps) {
+export function Monogram({ name, logoUrl, icon, emoji, size = 38, badge }: MonogramProps) {
   const [failed, setFailed] = useState(false);
+  const { themeMode } = useThemeMode();
+  const showEmoji = !icon && Boolean(emoji?.trim());
+  const hue = useCategoryHue(showEmoji ? emoji : null, name);
   const logoOpacity = useSharedValue(0);
   const logoStyle = useAnimatedStyle(() => ({ opacity: logoOpacity.value }));
   const initial = name.trim().charAt(0).toUpperCase() || "·";
+  const radius = Math.round(size * MONOGRAM_RADIUS);
 
   return (
-    // Decorativo: la fila ya dice el nombre; sin esto el lector de pantalla lee el emoji ("carrito de compras").
     <View
       width={size}
       height={size}
-      rounded={999}
-      bg="$surfaceSunken"
+      rounded={radius}
+      bg={showEmoji ? undefined : "$surface"}
+      style={showEmoji ? { backgroundColor: categoryTint(hue, themeMode) } : undefined}
       items="center"
       justify="center"
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
     >
       {icon ??
-        (emoji ? (
-          <Text style={{ fontSize: Math.round(size * 0.47), lineHeight: Math.round(size * 0.6), includeFontPadding: false, textAlign: "center" }}>
+        (showEmoji ? (
+          <Text
+            allowFontScaling={false}
+            style={{
+              fontSize: Math.round(size * EMOJI_SCALE),
+              lineHeight: Math.round(size * EMOJI_SCALE * 1.25),
+              includeFontPadding: false,
+              textAlign: "center",
+            }}
+          >
             {emoji}
           </Text>
         ) : (
-          <Text color={color} style={{ fontFamily: fontFace.display[600], fontSize: Math.round(size * 0.4) }}>
+          <Text
+            allowFontScaling={false}
+            color="$ink"
+            style={{ fontFamily: fontFace.display[700], fontSize: Math.round(size * 0.45), includeFontPadding: false }}
+          >
             {initial}
           </Text>
         ))}
       {logoUrl && !failed ? (
-        <Animated.View style={[{ position: "absolute", inset: 0, borderRadius: size / 2, overflow: "hidden" }, logoStyle]}>
+        <Animated.View style={[{ position: "absolute", inset: 0, borderRadius: radius, overflow: "hidden" }, logoStyle]}>
           <Image
             source={{ uri: logoUrl }}
             style={{ width: size, height: size }}

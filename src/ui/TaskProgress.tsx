@@ -99,13 +99,13 @@ export function TaskProgress({ variant = "screen", kind, icon, title, steps = []
 
   if (variant === "inline") {
     return (
-      <XStack height={36} px={14} gap={8} items="center" rounded={radius.pill} bg="$brandWash" accessibilityRole="progressbar" accessibilityValue={known ? { min: 0, max: 100, now: Math.round((progress ?? 0) * 100) } : undefined}>
-        <FText tone="brand" style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18 }}>
+      <XStack height={36} px={14} gap={8} items="center" rounded={radius.pill} bg="$surface" accessibilityRole="progressbar" accessibilityValue={known ? { min: 0, max: 100, now: Math.round((progress ?? 0) * 100) } : undefined}>
+        <FText tone="ink" style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18 }}>
           {title}
         </FText>
-        {known ? <Odometer value={Math.round((progress ?? 0) * 100)} digits={2} size={13} tone="brand" /> : <Clock seconds={elapsed} size={13} tone="brand" />}
+        {known ? <Odometer value={Math.round((progress ?? 0) * 100)} digits={2} size={13} tone="ink" /> : <Clock seconds={elapsed} size={13} tone="ink" />}
         {known ? (
-          <FText tone="brand" style={{ fontFamily: fontFace.mono[500], fontSize: 13, lineHeight: 18 }}>
+          <FText tone="ink" style={{ fontFamily: fontFace.mono[500], fontSize: 13, lineHeight: 18 }}>
             %
           </FText>
         ) : null}
@@ -297,7 +297,8 @@ function Clock({ seconds, size, tone = "ink" }: { seconds: number; size: number;
 
 /**
  * El riel: con cantidad, la parte hecha crece con `spring-ui`; sin cantidad, un tramo de un tercio lo recorre de lado
- * a lado sin simular un porcentaje. Con movimiento reducido, quieto al 100 % y la opacidad late.
+ * a lado sin simular un porcentaje. Con movimiento reducido, quieto al 100 % y la opacidad late. El tono `brand`
+ * se pinta en tinta (marca D: la barra de avance va en tinta; el amarillo queda para la boleta y el CTA).
  */
 function Rail({ progress, height, tone }: { progress: number | null; height: number; tone: "brand" | "flowIn" | "dangerHard" }) {
   const theme = useTheme();
@@ -327,7 +328,7 @@ function Rail({ progress, height, tone }: { progress: number | null; height: num
     return { left: -segment + (width + segment) * sweep.value, width: segment, opacity: 1 };
   });
 
-  const color = tone === "flowIn" ? theme.flowIn.val : tone === "dangerHard" ? theme.dangerHard.val : theme.brand.val;
+  const color = tone === "flowIn" ? theme.flowIn.val : tone === "dangerHard" ? theme.dangerHard.val : theme.ink.val;
   return (
     <View height={height} rounded={height / 2} overflow="hidden" bg="$chartTrack" onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
       <Animated.View style={[{ position: "absolute", top: 0, bottom: 0, borderRadius: height / 2, backgroundColor: color }, bar]} />

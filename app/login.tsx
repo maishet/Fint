@@ -16,7 +16,6 @@ import { authErrorFor, type AuthErrorField } from "../src/auth/authErrors";
 import { ForgotPasswordStep } from "../src/auth/ForgotPasswordStep";
 import { VerifyEmailStep } from "../src/auth/VerifyEmailStep";
 import { getValidationMessage, useSubmitValidation } from "../src/forms";
-import { HeroMesh } from "../src/home/HeroMesh";
 import { radius, space } from "../src/theme/tokens";
 import { fontFace, textStyles } from "../src/theme/typography";
 import { ErrorLine, FintButton, FintSpinner, FText, PressableScale } from "../src/ui";
@@ -27,8 +26,8 @@ type Field = "confirmPassword" | "displayName" | "email" | "password";
 type ServerError = { field: AuthErrorField; message: string };
 
 /**
- * Entrar y crear cuenta. La losa de marca arriba (isotipo, titular y frase,
- * con la malla del Inicio) y el formulario en una hoja que sube sobre ella.
+ * Entrar y crear cuenta (marca D). La losa amarilla arriba (logo D, titular y
+ * frase) y el formulario en una hoja que sube sobre ella, con el CTA amarillo.
  * "Continuar con Google" va primero: es un toque y no pide recordar nada; el
  * correo queda debajo para quien lo prefiera. Los errores aparecen al tocar el
  * botón, no mientras se escribe: el campo toma borde `dangerHard` y el mensaje
@@ -75,10 +74,10 @@ export default function LoginScreen() {
     return () => sub.remove();
   }, []);
 
-  // La losa va arriba en los dos temas: la barra de estado siempre clara.
+  // La losa amarilla va arriba en los dos temas: la barra de estado siempre con iconos oscuros.
   useFocusEffect(
     useCallback(() => {
-      setStatusBarStyle("light");
+      setStatusBarStyle("dark");
     }, []),
   );
 
@@ -177,16 +176,21 @@ export default function LoginScreen() {
           overflow="hidden"
           onLayout={(e) => setHeroSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
         >
-          <HeroMesh width={heroSize.width} height={heroSize.height} />
           <YStack width="100%" maxW={420} self="center">
           <XStack items="center" gap={10}>
-            <BrandSymbol size={34} disc="$glassSlab" />
-            <Text style={{ fontFamily: fontFace.display[600], fontSize: 22, letterSpacing: -0.8 }}>
+            <BrandSymbol size={38} />
+            <Text maxFontSizeMultiplier={1.3} style={{ fontFamily: fontFace.display[700], fontSize: 22, letterSpacing: -0.8 }}>
               <Text color="$slabMuted">My </Text>
               <Text color="$slabInk">Fint</Text>
             </Text>
           </XStack>
-          <Text color="$slabInk" mt={26} style={{ ...textStyles["display-lg"], letterSpacing: -1 }} accessibilityRole="header">
+          <Text
+            color="$slabInk"
+            mt={26}
+            maxFontSizeMultiplier={1.3}
+            style={{ ...textStyles["display-lg"], fontSize: 32, lineHeight: 36, letterSpacing: -1 }}
+            accessibilityRole="header"
+          >
             {isLogin ? t("loginScreen.headline") : t("loginScreen.registerHeadline")}
           </Text>
           <FText tone="slabMuted" style={{ fontSize: 14, lineHeight: 20, marginTop: 8, maxWidth: 320 }}>
@@ -216,7 +220,7 @@ export default function LoginScreen() {
           ) : null}
           {/* El formulario sigue montado detrás de los pasos: al volver conserva lo escrito. */}
           <YStack width="100%" maxW={420} self="center" grow={1} display={pendingEmail || isRecovering ? "none" : "flex"}>
-            <Text color="$ink" style={{ ...textStyles.title, fontSize: 22, lineHeight: 28, letterSpacing: -0.5 }}>
+            <Text color="$ink" maxFontSizeMultiplier={1.5} style={{ ...textStyles.title, fontFamily: fontFace.display[700], fontSize: 22, lineHeight: 28, letterSpacing: -0.5 }}>
               {isLogin ? t("auth.welcome") : t("auth.registerTitle")}
             </Text>
             {isLogin ? (
@@ -296,7 +300,7 @@ export default function LoginScreen() {
                 }}
                 trailing={
                   <Pressable
-                    hitSlop={10}
+                    hitSlop={13}
                     accessibilityRole="button"
                     accessibilityLabel={isPasswordVisible ? t("auth.hidePassword") : t("auth.showPassword")}
                     onPress={() => setIsPasswordVisible((current) => !current)}
@@ -317,7 +321,7 @@ export default function LoginScreen() {
                   disabled={isSubmitting}
                   style={{ alignSelf: "flex-end" }}
                 >
-                  <FText tone="brand" style={{ fontSize: 14, fontFamily: fontFace.sans[600] }}>
+                  <FText tone="ink" style={{ fontSize: 14, fontFamily: fontFace.sans[600], textDecorationLine: "underline" }}>
                     {t("loginScreen.forgotPassword")}
                   </FText>
                 </Pressable>
@@ -361,7 +365,7 @@ export default function LoginScreen() {
                 {isLogin ? t("auth.noAccount") : t("auth.hasAccount")}
               </FText>
               <Pressable onPress={switchMode} hitSlop={10} accessibilityRole="button" disabled={isSubmitting}>
-                <FText tone="brand" style={{ fontSize: 14, fontFamily: fontFace.sans[600] }}>
+                <FText tone="ink" style={{ fontSize: 14, fontFamily: fontFace.sans[600], textDecorationLine: "underline" }}>
                   {isLogin ? t("auth.registerLink") : t("auth.loginLink")}
                 </FText>
               </Pressable>

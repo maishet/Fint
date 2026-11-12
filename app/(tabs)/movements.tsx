@@ -1,6 +1,6 @@
 import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowLeftRight, ArrowUp, CalendarDays, Check, ChevronDown, ChevronRight, Mail, ScanLine, Search, Trash2, X } from "@tamagui/lucide-icons-2";
+import { Check, ChevronDown, Mail, ScanLine, Search, Trash2, X } from "@tamagui/lucide-icons-2";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -34,10 +34,12 @@ import {
   type ListEntry,
   type MovementFilter,
 } from "../../src/movements/logic";
-import { radius, space } from "../../src/theme/tokens";
+import { COMPACT_FONT_SCALE, radius, space, ticket } from "../../src/theme/tokens";
+import { fintPalette } from "../../src/theme/palette";
+import { SkeletonBlock, SkeletonGroup } from "../../src/components/Skeleton";
 import { fontFace, textStyles } from "../../src/theme/typography";
 import { useScreenStatusBar } from "../../src/theme/useScreenStatusBar";
-import { Amount, Chip, FintButton, FintCard, FintConfirmDialog, FintSheet, FintSpinner, FText, IconButton, ListRow, PressableScale, SoonBadge, useComingSoon } from "../../src/ui";
+import { Amount, Chip, FintButton, FintConfirmDialog, FintLottie, FintSheet, FintSpinner, FText, IconButton, ListRow, PressableScale, SoonBadge, useComingSoon } from "../../src/ui";
 import { AmountSkeleton } from "../../src/ui/AmountSkeleton";
 import { useNotify } from "../../src/ui/notify";
 import { detailParams } from "../../src/movements/detailParams";
@@ -233,8 +235,12 @@ export default function MovementsScreen() {
   const header = (
     <YStack pt={space[2]} pb={space[2]}>
       {/* Título y Escanear. Registrar a mano está en el botón central de la barra. */}
-      <XStack items="center" justify="space-between" px={space[4]} gap={space[3]}>
-        <FText variant="display-lg" accessibilityRole="header">
+      <XStack items="center" justify="space-between" px={space[5]} gap={space[3]}>
+        <FText
+          accessibilityRole="header"
+          maxFontSizeMultiplier={1.3}
+          style={{ fontFamily: fontFace.display[700], fontSize: 32, lineHeight: 38, letterSpacing: -0.96, flexShrink: 1 }}
+        >
           {t("movementsTab.title")}
         </FText>
         {isComingSoon("photoCapture") ? (
@@ -248,34 +254,52 @@ export default function MovementsScreen() {
         ) : null}
       </XStack>
 
-      {/* Buscador: en comercio, nota y categoría de todos los meses. */}
-      <XStack mx={space[4]} mt={space[4]} height={48} px={16} gap={10} items="center" rounded={radius.pill} bg="$surface" borderWidth={1} borderColor="$line">
+      {/* Buscador: en comercio, nota y categoría de todos los meses. Campo `surface` con filete `lineStrong` (≥ 3:1). */}
+      <XStack mx={space[5]} mt={space[3]} minH={44} px={16} gap={10} items="center" rounded={radius.pill} bg="$surface" borderWidth={1} borderColor="$lineStrong">
         <Search size={18} color="$inkFaint" />
-        <TextInput
-          value={search}
-          onChangeText={setSearch}
-          placeholder={t("movementsTab.search")}
-          placeholderTextColor={theme.inkFaint.val}
-          selectionColor={theme.brand.val}
-          returnKeyType="search"
-          autoCapitalize="none"
-          accessibilityLabel={t("movementsTab.search")}
-          style={[textStyles.body, { flex: 1, color: theme.ink.val, paddingVertical: 10 }]}
-        />
+        <View flex={1} justify="center">
+          {/* El marcador va aparte, en una línea con puntos suspensivos: el `placeholder` de Android salta de línea
+              con letra grande y se corta dentro de la píldora. */}
+          {search ? null : (
+            <View position="absolute" l={0} r={0} t={0} b={0} justify="center" pointerEvents="none">
+              <FText
+                tone="inkFaint"
+                numberOfLines={1}
+                maxFontSizeMultiplier={COMPACT_FONT_SCALE}
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+                style={textStyles.body}
+              >
+                {t("movementsTab.search")}
+              </FText>
+            </View>
+          )}
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            // Campo de una línea en una píldora: tope 1.3 como los filtros.
+            maxFontSizeMultiplier={COMPACT_FONT_SCALE}
+            selectionColor={theme.ink.val}
+            returnKeyType="search"
+            autoCapitalize="none"
+            accessibilityLabel={t("movementsTab.search")}
+            style={[textStyles.body, { color: theme.ink.val, paddingVertical: 10 }]}
+          />
+        </View>
         {search ? (
-          <Pressable onPress={() => setSearch("")} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("movementsTab.searchClear")}>
+          <Pressable onPress={() => setSearch("")} hitSlop={14} accessibilityRole="button" accessibilityLabel={t("movementsTab.searchClear")}>
             <X size={16} color="$inkFaint" />
           </Pressable>
         ) : null}
       </XStack>
 
-      {/* Filtros por tipo: relleno `ink`, no índigo, porque filtran y no ejecutan. */}
+      {/* Filtros por tipo: el activo en `chipOn` (tinta), no amarillo, porque filtran y no ejecutan. */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         // Relleno abajo (y menos espacio en lo que sigue): Android recorta el margen de toque de los chips al borde del
         // contenedor, así que el `ScrollView` tiene que dejar sitio a los 8 de `hitSlop` también por debajo.
-        contentContainerStyle={{ paddingHorizontal: space[4], gap: 8, paddingTop: space[3], paddingBottom: space[2] }}
+        contentContainerStyle={{ paddingHorizontal: space[5], gap: 6, paddingTop: space[3], paddingBottom: space[2] }}
         accessibilityLabel={t("movementsTab.filtersLabel")}
       >
         {FILTERS.map((f) => (
@@ -294,14 +318,14 @@ export default function MovementsScreen() {
       </ScrollView>
 
       {isSearching ? (
-        <FText variant="caption" tone="inkFaint" style={{ marginHorizontal: space[4], marginTop: space[1] }}>
+        <FText variant="caption" tone="inkFaint" style={{ marginHorizontal: space[5], marginTop: space[1] }}>
           {t("movementsTab.searchScope")}
         </FText>
       ) : (
         <>
-          {/* Mes y moneda. */}
-          <XStack mx={space[4]} mt={space[2]} justify="space-between" items="center">
-            <Pill icon={<CalendarDays size={16} color="$ink" />} label={monthLabel} onPress={() => setSheet("month")} />
+          {/* Mes (título 20/800 con su flecha) y moneda (ficha `surface`). */}
+          <XStack mx={space[5]} mt={space[2]} justify="space-between" items="center" gap={space[3]}>
+            <MonthButton label={monthLabel} onPress={() => setSheet("month")} />
             <Pill label={currency} onPress={currencies.length > 1 ? () => setSheet("currency") : undefined} />
           </XStack>
 
@@ -317,31 +341,32 @@ export default function MovementsScreen() {
         </>
       )}
 
-      {/* Por revisar: solo si hay importados sin confirmar. */}
+      {/* Por revisar: solo si hay importados sin confirmar. Tarjeta amarilla (es lo que pide acción) con "Revisar" en tinta. */}
       {pendingCount > 0 ? (
         <PressableScale onPress={() => router.push("/pending-movements")} haptic="tap" accessibilityRole="button" accessibilityLabel={t("movementsTab.review", { count: pendingCount })}>
-          <XStack mx={space[4]} mt={space[3]} px={space[4]} py={14} gap={space[3]} items="center" rounded={radius.lg} bg="$brandWash">
-            <View width={38} height={38} rounded={999} bg="$surface" items="center" justify="center">
-              <Mail size={18} color="$brand" />
+          <XStack mx={space[5]} mt={space[4]} px={14} py={12} gap={space[3]} items="center" rounded={22} bg="$slab">
+            <View width={40} height={40} rounded={14} items="center" justify="center" style={{ backgroundColor: ticket.control }}>
+              <Mail size={20} color="$slabInk" strokeWidth={2} />
             </View>
             <YStack flex={1} minW={0}>
-              <FText variant="body-strong">{t("movementsTab.review", { count: pendingCount })}</FText>
-              <FText variant="caption" tone="inkMuted">
+              <FText tone="slabInk" style={{ fontFamily: fontFace.display[700], fontSize: 15, lineHeight: 20 }}>
+                {t("movementsTab.review", { count: pendingCount })}
+              </FText>
+              <FText tone="slabMuted" style={{ fontSize: 13, lineHeight: 18 }}>
                 {t("movementsTab.reviewHint")}
               </FText>
             </YStack>
-            <XStack items="center" gap={2}>
-              <FText variant="label" tone="brand" style={{ fontFamily: fontFace.sans[600] }}>
+            <XStack minH={34} px={14} items="center" rounded={999} style={{ backgroundColor: fintPalette.light.ink }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+              <FText maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18, color: fintPalette.light.brand }}>
                 {t("movementsTab.reviewAction")}
               </FText>
-              <ChevronRight size={16} color="$brand" />
             </XStack>
           </XStack>
         </PressableScale>
       ) : null}
 
       {movementsQuery.error ? (
-        <View mx={space[4]} mt={space[3]}>
+        <View mx={space[5]} mt={space[3]}>
           <DataStateCard message={t("states.error")} onRetry={() => void movementsQuery.refetch()} />
         </View>
       ) : null}
@@ -353,7 +378,7 @@ export default function MovementsScreen() {
     const { item } = entry;
     if (item.kind === "transfer") {
       return (
-        <View px={space[4]}>
+        <View px={space[5]}>
           <MovementRow item={item} first={entry.first} last={entry.last} emoji={null} destroyKind="revert" onDestroy={() => setReverseTransferTarget(item.transferGroupId)} />
         </View>
       );
@@ -363,7 +388,7 @@ export default function MovementsScreen() {
     const stranded = m.type === "transfer";
     const canReverse = isPayment && Boolean(m.paymentOccurrencePaymentId);
     return (
-      <View px={space[4]}>
+      <View px={space[5]}>
         <MovementRow
           item={item}
           first={entry.first}
@@ -382,9 +407,13 @@ export default function MovementsScreen() {
     <ListSkeleton />
   ) : movementsQuery.error ? null : (
     <YStack items="center" gap={space[3]} px={space[6]} pt={space[8]}>
-      <View width={52} height={52} rounded={999} bg="$surfaceSunken" items="center" justify="center">
-        {isSearching ? <Search size={22} color="$inkMuted" /> : <ArrowLeftRight size={22} color="$inkMuted" />}
-      </View>
+      {isSearching ? (
+        <View width={52} height={52} rounded={999} bg="$surfaceSunken" items="center" justify="center">
+          <Search size={22} color="$inkMuted" />
+        </View>
+      ) : (
+        <FintLottie name="coin-stack" size={76} loop="breathe" />
+      )}
       <FText variant="heading" style={{ textAlign: "center" }}>
         {isSearching
           ? t("movementsTab.searchEmptyTitle")
@@ -419,7 +448,7 @@ export default function MovementsScreen() {
         ListFooterComponent={
           movementsQuery.isFetchingNextPage ? (
             <YStack py={space[4]} items="center">
-              <FintSpinner color="$brand" />
+              <FintSpinner color="$ink" />
             </YStack>
           ) : null
         }
@@ -433,8 +462,8 @@ export default function MovementsScreen() {
               setPulling(true);
               void Promise.all([movementsQuery.refetch(), pendingSummaryQuery.refetch()]).finally(() => setPulling(false));
             }}
-            tintColor={theme.brand.val}
-            colors={[theme.brand.val]}
+            tintColor={theme.ink.val}
+            colors={[theme.ink.val]}
             progressBackgroundColor={theme.surface.val}
           />
         }
@@ -461,7 +490,7 @@ export default function MovementsScreen() {
             key={c}
             divider={i > 0}
             title={c}
-            trailing={c === currency ? <Check size={18} color="$brand" strokeWidth={2.4} /> : undefined}
+            trailing={c === currency ? <Check size={18} color="$ink" strokeWidth={2.4} /> : undefined}
             onPress={() => {
               setSummaryCurrency(c);
               setSheet(null);
@@ -514,7 +543,7 @@ export default function MovementsScreen() {
 /**
  * La hoja de mes: los últimos 6 meses en una grilla de 3 × 2, del más antiguo
  * al actual, como el calendario del formulario pero por meses. El elegido va en
- * `brand` y el actual lleva el anillo, igual que "hoy" en el calendario.
+ * `chipOn` (tinta) y el actual lleva el anillo `ink`, igual que "hoy" en el calendario.
  */
 function MonthGrid({ value, locale, onPick }: { value: Date; locale: string; onPick: (month: Date) => void }) {
   const today = new Date();
@@ -543,13 +572,13 @@ function MonthGrid({ value, locale, onPick }: { value: Date; locale: string; onP
               gap={2}
               rounded={radius.md}
               borderWidth={selected ? 0 : current ? 1.5 : 1}
-              borderColor={current ? "$brand" : "$lineStrong"}
-              bg={selected ? "$brand" : "$surface"}
+              borderColor={current ? "$ink" : "$lineStrong"}
+              bg={selected ? "$chipOn" : "$surface"}
             >
-              <FText variant="body-strong" color={selected ? "$onBrand" : current ? "$brand" : "$ink"}>
+              <FText variant="body-strong" color={selected ? "$onChipOn" : "$ink"}>
                 {capitalize(short.format(m).replace(".", ""))}
               </FText>
-              <FText variant="caption" color={selected ? "$onBrand" : "$inkFaint"} style={{ fontFamily: fontFace.mono[500], opacity: selected ? 0.8 : 1 }}>
+              <FText variant="caption" color={selected ? "$onChipOn" : "$inkFaint"} style={{ fontFamily: fontFace.mono[500], opacity: selected ? 0.8 : 1 }}>
                 {String(m.getFullYear())}
               </FText>
             </YStack>
@@ -560,22 +589,44 @@ function MonthGrid({ value, locale, onPick }: { value: Date; locale: string; onP
   );
 }
 
-/** Píldora de mes o de moneda. Sin `onPress` (una sola moneda) no lleva flecha. */
-function Pill({ label, icon, onPress }: { label: string; icon?: React.ReactNode; onPress?: () => void }) {
+/** El mes como título de 20/800 con su flecha: abre la hoja de meses. */
+function MonthButton({ label, onPress }: { label: string; onPress: () => void }) {
   return (
-    <PressableScale onPress={onPress} disabled={!onPress} haptic="tap" accessibilityRole="button" accessibilityLabel={label}>
-      <XStack height={40} pl={14} pr={onPress ? 12 : 14} gap={8} items="center" rounded={radius.pill} borderWidth={1} borderColor="$lineStrong" bg="$surface">
-        {icon}
-        <FText variant="label" style={{ fontSize: 14 }}>
+    <PressableScale onPress={onPress} haptic="tap" hitSlop={8} accessibilityRole="button" accessibilityLabel={label} style={{ flexShrink: 1 }}>
+      <XStack minH={36} gap={6} items="center">
+        <FText maxFontSizeMultiplier={1.5} style={{ fontFamily: fontFace.display[700], fontSize: 20, lineHeight: 25, letterSpacing: -0.4, flexShrink: 1 }}>
           {label}
         </FText>
-        {onPress ? <ChevronDown size={16} color="$ink" strokeWidth={2.2} /> : null}
+        <ChevronDown size={18} color="$ink" strokeWidth={2.2} />
       </XStack>
     </PressableScale>
   );
 }
 
-/** "Entró" en `flowIn` y "Salió" con signo menos en `ink`, separadas por un filete; debajo, la cantidad y el neto. */
+/** Ficha de moneda (`surface`, 32). Sin `onPress` (una sola moneda) es solo el código, sin flecha. */
+function Pill({ label, onPress }: { label: string; onPress?: () => void }) {
+  const chip = (
+    <XStack minH={32} px={12} gap={4} items="center" rounded={radius.pill} bg="$surface" accessibilityLabel={onPress ? undefined : label}>
+      <FText maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={{ fontSize: 13, lineHeight: 18, fontFamily: fontFace.sans[600] }}>
+        {label}
+      </FText>
+      {onPress ? <ChevronDown size={14} color="$ink" strokeWidth={2.2} /> : null}
+    </XStack>
+  );
+  if (!onPress) return chip;
+  return (
+    <PressableScale onPress={onPress} haptic="tap" hitSlop={6} accessibilityRole="button" accessibilityLabel={label}>
+      {chip}
+    </PressableScale>
+  );
+}
+
+/**
+ * Resumen del mes (marca D): "Entró" con + en `flowIn` y "Salió" con − en `flowOut`, a 26/700; debajo, una barra con
+ * la proporción de los dos y, al pie, la cantidad de movimientos y el neto con su signo en `ink`.
+ */
+const SUMMARY_FIGURE = { fontFamily: fontFace.mono[600], fontSize: 26, lineHeight: 32, letterSpacing: -0.5 } as const;
+
 function SummaryCard({
   loading,
   currency,
@@ -592,61 +643,74 @@ function SummaryCard({
   count: number;
 }) {
   const { t } = useTranslation();
+  const total = income + expenses;
   return (
-    <FintCard mx={space[4]} mt={space[3]} p={0}>
-      <XStack>
-        <YStack flex={1} px={space[4]} pt={14} pb={12} gap={4}>
-          <XStack items="center" gap={6}>
-            <ArrowUp size={14} color="$flowIn" strokeWidth={2.2} />
-            <FText variant="caption" tone="inkMuted">
-              {t("movementsTab.in")}
-            </FText>
-          </XStack>
-          {loading ? <AmountSkeleton width={120} height={20} /> : <Amount value={income} currency={currency} kind="income" variant="amount-lg" />}
+    <YStack mx={space[5]} mt={space[4]} gap={10}>
+      <XStack justify="space-between" items="flex-end" gap={space[3]} flexWrap="wrap">
+        <YStack gap={2}>
+          <FText tone="inkMuted" style={{ fontSize: 13, lineHeight: 18 }}>
+            {t("movementsTab.in")}
+          </FText>
+          {loading ? <AmountSkeleton width={130} height={26} /> : <Amount value={income} currency={currency} kind="income" variant="amount-lg" style={SUMMARY_FIGURE} />}
         </YStack>
-        <View width={1} my={14} bg="$line" />
-        <YStack flex={1} px={space[4]} pt={14} pb={12} gap={4}>
-          <XStack items="center" gap={6}>
-            <ArrowDown size={14} color="$flowOut" strokeWidth={2.2} />
-            <FText variant="caption" tone="inkMuted">
-              {t("movementsTab.out")}
-            </FText>
-          </XStack>
-          {loading ? <AmountSkeleton width={120} height={20} /> : <Amount value={expenses} currency={currency} kind="expense" variant="amount-lg" />}
+        <YStack gap={2} items="flex-end">
+          <FText tone="inkMuted" style={{ fontSize: 13, lineHeight: 18 }}>
+            {t("movementsTab.out")}
+          </FText>
+          {loading ? <AmountSkeleton width={130} height={26} /> : <Amount value={expenses} currency={currency} kind="expense" variant="amount-lg" style={SUMMARY_FIGURE} />}
         </YStack>
       </XStack>
-      <XStack mx={space[4]} py={12} borderTopWidth={1} borderColor="$line" justify="space-between" items="center">
-        <FText variant="caption" tone="inkMuted">
+      {/* La proporción entre lo que entró y lo que salió: decorativa, los montos ya están arriba. */}
+      <XStack height={10} gap={4} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        {total > 0 ? (
+          <>
+            {income > 0 ? <View flex={income} rounded={5} bg="$flowIn" /> : null}
+            {expenses > 0 ? <View flex={expenses} rounded={5} bg="$flowOut" /> : null}
+          </>
+        ) : (
+          <View flex={1} rounded={5} bg="$surface" />
+        )}
+      </XStack>
+      <XStack justify="space-between" items="center" gap={space[3]} flexWrap="wrap">
+        <FText tone="inkFaint" style={{ fontSize: 13, lineHeight: 18 }}>
           {t("movementsTab.count", { count })}
         </FText>
-        <XStack items="center" gap={6}>
-          <FText variant="caption" tone="inkMuted">
+        <XStack items="baseline" gap={4}>
+          <FText tone="inkFaint" style={{ fontSize: 13, lineHeight: 18 }}>
             {t("movementsTab.net")}
           </FText>
-          <Amount value={net} currency={currency} kind={net > 0 ? "income" : net < 0 ? "expense" : "neutral"} variant="amount-sm" />
+          <Amount
+            value={net}
+            currency={currency}
+            kind={net > 0 ? "income" : net < 0 ? "expense" : "neutral"}
+            tone="ink"
+            variant="amount-sm"
+            style={{ fontFamily: fontFace.mono[600], fontSize: 13, lineHeight: 18 }}
+          />
         </XStack>
       </XStack>
-    </FintCard>
+    </YStack>
   );
 }
 
-/** Encabezado del día: "Hoy · jueves 18" o "15 set · lunes", con el neto del día a la derecha. Queda pegado arriba. */
+/** Carga de Movimientos con la forma real: encabezado de día y filas con su cuadro de 44, a todo el ancho. */
 function ListSkeleton() {
+  const { t } = useTranslation();
   return (
-    <YStack px={space[4]} pt={18} gap={8}>
-      <AmountSkeleton width={140} height={14} />
-      <YStack rounded={radius.lg} borderWidth={1} borderColor="$line" bg="$surface" overflow="hidden">
-        {[0, 1, 2, 3].map((i) => (
-          <XStack key={i} items="center" gap={space[3]} px={space[4]} py={space[3]} borderTopWidth={i ? 1 : 0} borderColor="$line">
-            <View width={38} height={38} rounded={999} bg="$surfaceSunken" />
-            <YStack flex={1} gap={6}>
-              <AmountSkeleton width={130} height={12} />
-              <AmountSkeleton width={90} height={10} />
+    <SkeletonGroup label={t("states.loading")}>
+      <YStack px={space[5]} pt={20}>
+        <SkeletonBlock width={140} height={16} rounded={6} mb={6} />
+        {[0, 1, 2, 3, 4].map((i) => (
+          <XStack key={i} items="center" gap={space[3]} py={space[3]} borderTopWidth={i ? 1 : 0} borderColor="$line">
+            <SkeletonBlock width={44} height={44} rounded={14} />
+            <YStack flex={1} gap={8}>
+              <SkeletonBlock width="60%" height={14} rounded={6} />
+              <SkeletonBlock width="40%" height={11} rounded={6} />
             </YStack>
-            <AmountSkeleton width={70} height={12} />
+            <SkeletonBlock width={64} height={14} rounded={6} />
           </XStack>
         ))}
       </YStack>
-    </YStack>
+    </SkeletonGroup>
   );
 }

@@ -13,9 +13,9 @@ import { UnsavedChangesDialog } from "../src/components/UnsavedChangesDialog";
 import { useUnsavedChangesGuard } from "../src/hooks/useUnsavedChangesGuard";
 import { deviceLine } from "../src/support/deviceLine";
 import { getSupportDiagnostics } from "../src/support/diagnostics";
-import { motion, radius, space } from "../src/theme/tokens";
+import { motion, space } from "../src/theme/tokens";
 import { GroupTitle } from "../src/settings/SettingsList";
-import { textStyles } from "../src/theme/typography";
+import { fontFace, textStyles } from "../src/theme/typography";
 import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
 import { Chip, ErrorLine, FintButton, FintCard, FintSheet, FintSpinner, FText, IconButton, SheetField, SheetTextInput, useNotify } from "../src/ui";
 
@@ -93,22 +93,27 @@ export default function SupportScreen() {
 
   return (
     <YStack flex={1} bg="$canvas" pt={insets.top}>
-      <XStack items="center" px={space[4]} pt={space[2]} minH={48}>
+      <XStack items="center" gap={10} px={space[5]} pt={space[2]} minH={48}>
         <IconButton label={t("settingsScreen.back")} icon={<ChevronLeft size={20} color="$ink" strokeWidth={2} />} onPress={() => router.back()} />
-        <FText variant="heading" accessibilityRole="header" style={{ flex: 1, textAlign: "center", marginRight: 40 }} numberOfLines={1}>
+        <FText
+          accessibilityRole="header"
+          maxFontSizeMultiplier={1.3}
+          numberOfLines={2}
+          style={{ flex: 1, fontFamily: fontFace.display[700], fontSize: 26, lineHeight: 31, letterSpacing: -0.6 }}
+        >
           {t("reportScreen.title")}
         </FText>
       </XStack>
 
       <KeyboardAwareScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingHorizontal: space[4], paddingBottom: footerHeight + space[4] }}
+        contentContainerStyle={{ paddingHorizontal: space[5], paddingBottom: footerHeight + space[4] }}
         bottomOffset={footerHeight + KEYBOARD_GAP}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         <Label>{t("reportScreen.about")}</Label>
-        <XStack flexWrap="wrap" gap={8} accessibilityRole="radiogroup" accessibilityLabel={t("reportScreen.about")}>
+        <XStack flexWrap="wrap" gap={6} accessibilityRole="radiogroup" accessibilityLabel={t("reportScreen.about")}>
           {topics.map((item) => (
             <Chip
               key={item}
@@ -146,7 +151,7 @@ export default function SupportScreen() {
         </SheetField>
         <XStack mt={4} gap={8}>
           <View flex={1}>{errors.description ? <ErrorLine message={errors.description} mt={0} /> : null}</View>
-          <FText variant="caption" tone="inkFaint" style={{ ...textStyles["figure-caption"] }}>
+          <FText tone="inkFaint" style={{ fontFamily: fontFace.mono[600], fontSize: 12, lineHeight: 16 }}>
             {`${description.length} / ${MAX_DESCRIPTION}`}
           </FText>
         </XStack>
@@ -168,16 +173,16 @@ export default function SupportScreen() {
         </SheetField>
 
         {/* Qué se adjunta y qué no: versión, sistema y modelo; nunca montos, movimientos ni correos. */}
-        <XStack mt={14} px={14} py={12} gap={10} rounded={radius.md} bg="$surfaceSunken" items="flex-start">
+        <XStack mt={14} px={14} py={12} gap={10} rounded={16} bg="$surface" items="flex-start">
           <ShieldCheck size={16} color="$flowIn" strokeWidth={2} style={{ marginTop: 1 }} />
-          <FText variant="caption" tone="inkMuted" style={{ flex: 1, lineHeight: 17 }}>
+          <FText tone="inkMuted" style={{ flex: 1, fontSize: 13, lineHeight: 19 }}>
             {t("reportScreen.privacy")}
           </FText>
         </XStack>
         {/* Las respuestas rápidas, debajo del formulario (como antes): se despliegan de a una. */}
-        <View mx={-space[4]}>
+        <View mx={-space[5]}>
           <GroupTitle>{t("helpScreen.faq")}</GroupTitle>
-          <FintCard p={0} mx={space[4]} overflow="hidden">
+          <FintCard p={0} mx={space[5]} mt={8} overflow="hidden">
             {faqs.map((faq, i) => (
               <FaqItem
                 key={faq.q}
@@ -193,7 +198,7 @@ export default function SupportScreen() {
 
       <KeyboardStickyView offset={{ opened: Math.max(insets.bottom, 16) - 2 }}>
         <View
-          px={space[4]}
+          px={space[5]}
           pt={space[3]}
           pb={Math.max(insets.bottom, 16) + 10}
           bg="$canvas"
@@ -208,8 +213,8 @@ export default function SupportScreen() {
       {confirmMounted ? (
         <FintSheet open={confirmOpen} onClose={() => !sending && setConfirmOpen(false)}>
           <YStack items="center" px={space[5]} pt={space[4]}>
-            <View width={56} height={56} rounded={999} bg="$brandWash" items="center" justify="center">
-              <Mail size={24} color="$brand" strokeWidth={2} />
+            <View width={60} height={60} rounded={20} bg="$surface" items="center" justify="center">
+              <Mail size={24} color="$ink" strokeWidth={2} />
             </View>
             <FText variant="title" style={{ fontSize: 22, lineHeight: 28, marginTop: 14, textAlign: "center" }}>
               {t("reportScreen.confirmTitle")}
@@ -218,7 +223,7 @@ export default function SupportScreen() {
               {t("reportScreen.confirmBody")}
             </FText>
             {/* Resumen de lo que se envía. */}
-            <YStack self="stretch" mt={16} px={14} py={12} rounded={radius.md} bg="$surfaceSunken">
+            <YStack self="stretch" mt={16} px={14} py={12} rounded={16} bg="$surface">
               <FText variant="caption" tone="inkFaint" style={{ fontSize: 11 }}>
                 {topic}
               </FText>
@@ -233,7 +238,7 @@ export default function SupportScreen() {
               <FintButton pending={sending} onPress={() => void send()}>
                 {sending ? <FintSpinner color="$onBrand" /> : t("reportScreen.confirmSend")}
               </FintButton>
-              <FintButton variant="ghost" pending={sending} onPress={() => setConfirmOpen(false)}>
+              <FintButton variant="soft" pending={sending} onPress={() => setConfirmOpen(false)}>
                 {t("reportScreen.keepEditing")}
               </FintButton>
             </YStack>
@@ -247,7 +252,7 @@ export default function SupportScreen() {
 
 function Label({ children }: { children: string }) {
   return (
-    <FText variant="caption" tone="inkMuted" style={{ marginTop: 16, marginBottom: 6, marginLeft: 2 }}>
+    <FText tone="inkFaint" style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18, marginTop: 16, marginBottom: 6, marginLeft: 2 }}>
       {children}
     </FText>
   );

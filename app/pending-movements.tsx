@@ -1,11 +1,11 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeftRight, Check, ChevronLeft, Inbox, Mail, Repeat, X } from "@tamagui/lucide-icons-2";
+import { ArrowLeftRight, Check, ChevronLeft, Inbox, Mail, Repeat, Wallet, X } from "@tamagui/lucide-icons-2";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, Pressable, RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { View, XStack, YStack, useTheme, type ColorTokens } from "tamagui";
+import { View, XStack, YStack, useTheme } from "tamagui";
 import { useCapabilities } from "../src/api/capabilities";
 import { financeApi } from "../src/api/finance";
 import type { Category, ConfirmPendingInput, PaymentOccurrence, PendingMovementCard } from "../src/api/types";
@@ -13,7 +13,6 @@ import { supabase } from "../src/auth/supabase";
 import { DataStateCard } from "../src/components/DataStateCard";
 import { getCategoryLabel } from "../src/finance/categoryLabels";
 import { parseDateString } from "../src/finance/dates";
-import { categoryColorIndex } from "../src/home/spending";
 import { getAppLocale } from "../src/i18n";
 import { CategorySheet } from "../src/movement-form/CategorySheet";
 import { shortDay } from "../src/movement-form/DateSheet";
@@ -299,7 +298,7 @@ export default function PendingMovementsScreen() {
   };
 
   const header = (
-    <YStack px={space[4]} pb={space[3]}>
+    <YStack px={space[5]} pb={space[1]}>
       {selectionMode ? (
         <XStack items="center" justify="space-between" gap={space[3]} minH={40}>
           <Pressable
@@ -314,25 +313,34 @@ export default function PendingMovementsScreen() {
           <TextAction label={t("pendingScreen.cancel")} onPress={exitSelection} />
         </XStack>
       ) : (
-        <XStack items="center" gap={space[3]}>
+        <XStack items="center" gap={10}>
           <IconButton label={t("pendingScreen.back")} icon={<ChevronLeft size={20} color="$ink" strokeWidth={2} />} onPress={() => router.back()} />
-          <FText variant="display-lg" accessibilityRole="header" numberOfLines={1} style={{ flex: 1 }}>
+          <FText
+            accessibilityRole="header"
+            numberOfLines={2}
+            maxFontSizeMultiplier={1.3}
+            style={{ flex: 1, fontFamily: fontFace.display[700], fontSize: 26, lineHeight: 31, letterSpacing: -0.6 }}
+          >
             {t("pendingScreen.title")}
           </FText>
           {items.length ? <TextAction label={t("pendingScreen.select")} onPress={() => enterSelection()} /> : null}
         </XStack>
       )}
       {!selectionMode ? (
-        <FText variant="body" tone="inkMuted" style={{ fontSize: 14, lineHeight: 20, marginTop: 10 }}>
-          {t("pendingScreen.hint")}
-        </FText>
+        // H-05: la nota de que nada se registra sin confirmar, en un recuadro `surface` con el sobre.
+        <XStack mt={6} px={14} py={12} gap={10} rounded={18} bg="$surface" items="flex-start">
+          <Mail size={18} color="$ink" strokeWidth={2} style={{ marginTop: 1 }} />
+          <FText tone="inkMuted" style={{ flex: 1, fontSize: 13, lineHeight: 19 }}>
+            {t("pendingScreen.hint")}
+          </FText>
+        </XStack>
       ) : null}
       {items.length ? (
         <XStack items="center" justify="space-between" gap={space[3]} mt={space[4]}>
-          <FText variant="body-strong" style={{ fontSize: 14 }}>
+          <FText style={{ fontFamily: fontFace.display[700], fontSize: 13, lineHeight: 18 }}>
             {t("pendingScreen.count", { count: total })}
           </FText>
-          <FText variant="caption" tone="inkFaint" numberOfLines={1} style={{ flexShrink: 1 }}>
+          <FText tone="inkFaint" numberOfLines={1} style={{ flexShrink: 1, fontSize: 13, lineHeight: 18 }}>
             {t(selectionMode ? "pendingScreen.tapToMark" : "pendingScreen.swipeHint")}
           </FText>
         </XStack>
@@ -347,7 +355,7 @@ export default function PendingMovementsScreen() {
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: space[2], paddingBottom: insets.bottom + (selectionMode ? 110 : space[6]), flexGrow: 1 }}
-        ItemSeparatorComponent={() => <View height={10} />}
+        ItemSeparatorComponent={() => <View mx={space[5]} height={1} bg="$line" />}
         ListHeaderComponent={header}
         refreshControl={
           <RefreshControl
@@ -369,7 +377,7 @@ export default function PendingMovementsScreen() {
           pendingQuery.isLoading ? (
             <ListSkeleton />
           ) : pendingQuery.error ? (
-            <View mx={space[4]}>
+            <View mx={space[5]}>
               <DataStateCard message={t("movementUx.pendingError")} onRetry={() => void pendingQuery.refetch()} />
             </View>
           ) : (
@@ -389,12 +397,12 @@ export default function PendingMovementsScreen() {
         ListFooterComponent={
           pendingQuery.isFetchingNextPage ? (
             <YStack py={space[4]} items="center">
-              <FintSpinner color="$brand" />
+              <FintSpinner color="$ink" />
             </YStack>
           ) : null
         }
-        renderItem={({ item }) => (
-          <View px={space[4]}>
+        renderItem={({ item, index }) => (
+          <View px={space[5]} borderTopWidth={index === 0 ? 1 : 0} borderColor="$line">
             <PendingCard
               item={item}
               detected={detectedLabel(item)}
@@ -515,7 +523,7 @@ function transferLine(item: PendingMovementCard, t: (key: string, options?: Reco
 function TextAction({ label, onPress }: { label: string; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} hitSlop={10} accessibilityRole="button">
-      <FText variant="body-strong" tone="brand">
+      <FText tone="ink" maxFontSizeMultiplier={1.3} style={{ fontFamily: fontFace.display[700], fontSize: 14, lineHeight: 19 }}>
         {label}
       </FText>
     </Pressable>
@@ -523,8 +531,10 @@ function TextAction({ label, onPress }: { label: string; onPress: () => void }) 
 }
 
 /**
- * Tarjeta de un pendiente. En el modo en lote es compacta (círculo de
- * selección, fila y monto) y la marcada lleva borde `brand`.
+ * Un pendiente (marca D, H-05), a todo el ancho y separado por un filete: de dónde vino y cuándo, el comercio a 16
+ * con el monto a 20, la categoría con su emoji (o "Elegir categoría" en amarillo) y la cuenta, el aviso de pago que
+ * coincide en un recuadro `surface`, y abajo "Descartar" con contorno y "Confirmar" amarillo. En el modo en lote es
+ * compacta (círculo de selección, fila y monto) y la marcada se marca con el círculo.
  */
 function PendingCard({
   item,
@@ -574,9 +584,54 @@ function PendingCard({
         ? t("pendingScreen.chooseCategory")
         : t("pendingScreen.confirm");
   const primaryIsConfirm = primaryLabel === t("pendingScreen.confirm");
+  // H-05: sin categoría, la categoría ya se elige en la ficha amarilla de arriba; el botón de abajo dice "Confirmar"
+  // (y abre primero la hoja de categoría, como antes) para no repetir "Elegir categoría" dos veces.
+  const buttonLabel = needsCategory ? t("pendingScreen.confirm") : primaryLabel;
+  const buttonIsConfirm = primaryIsConfirm || needsCategory;
 
   const accountName = item.transfer ? transferLine(item, t) : (item.accountSuggestion?.name ?? t("pendingScreen.noAccount"));
   const kind = item.transfer ? "transfer" : item.type === "income" ? "income" : "expense";
+
+  const amountNode =
+    item.amount !== null && item.currency ? (
+      <Amount value={item.amount} currency={item.currency} kind={kind} style={{ fontFamily: fontFace.mono[600], fontSize: 20, lineHeight: 26 }} />
+    ) : (
+      <FText tone="inkMuted" style={{ fontSize: 13, lineHeight: 18 }}>
+        {t("pendingScreen.noAmount")}
+      </FText>
+    );
+
+  // Línea de la categoría (o "Elegir categoría") y la cuenta, como en H-05.
+  const meta = (
+    <XStack items="center" justify="space-between" gap={10} flexWrap="wrap">
+      {item.transfer ? (
+        <XStack items="center" gap={6}>
+          <ArrowLeftRight size={14} color="$inkMuted" strokeWidth={2} />
+        </XStack>
+      ) : match && applyPayment ? (
+        <FText style={{ fontFamily: fontFace.display[700], fontSize: 13, lineHeight: 18 }}>{t("pendingScreen.appliedTo", { title: match.title })}</FText>
+      ) : category ? (
+        <XStack items="center" gap={6}>
+          <Monogram name={getCategoryLabel(category.name, t)} emoji={category.icon} size={32} />
+          <FText style={{ fontFamily: fontFace.display[700], fontSize: 13, lineHeight: 18 }}>{getCategoryLabel(category.name, t)}</FText>
+        </XStack>
+      ) : (
+        <PressableScale onPress={busy ? undefined : onChooseCategory} haptic="tap" hitSlop={7} accessibilityRole="button">
+          <XStack height={30} px={10} rounded={radius.pill} bg="$brand" items="center">
+            <FText color="$onBrand" maxFontSizeMultiplier={1.3} style={{ fontFamily: fontFace.display[700], fontSize: 12, lineHeight: 16 }}>
+              {t("pendingScreen.chooseCategory")}
+            </FText>
+          </XStack>
+        </PressableScale>
+      )}
+      <XStack items="center" gap={4} shrink={1}>
+        <Wallet size={14} color="$inkMuted" strokeWidth={2} />
+        <FText tone="inkMuted" numberOfLines={1} style={{ flexShrink: 1, fontSize: 13, lineHeight: 18 }}>
+          {accountName}
+        </FText>
+      </XStack>
+    </XStack>
+  );
 
   const row = (
     <XStack items="center" gap={12}>
@@ -597,7 +652,7 @@ function PendingCard({
       {item.transfer ? (
         <Monogram name={item.title} icon={<ArrowLeftRight size={17} color="$inkMuted" strokeWidth={2} />} />
       ) : (
-        <Monogram name={item.title} color={`$chart${categoryColorIndex(item.title)}` as ColorTokens} />
+        <Monogram name={item.title} />
       )}
       <YStack flex={1} minW={0}>
         <FText variant="body-strong" numberOfLines={1} style={{ letterSpacing: -0.15 }}>
@@ -667,25 +722,29 @@ function PendingCard({
           else onPrimary();
         }}
       >
-        <FintCard
-          p={selectionMode ? 14 : 16}
-          gap={12}
-          opacity={busy ? 0.6 : 1}
-          borderWidth={selected ? 1.5 : 1}
-          borderColor={selected ? "$brand" : "$line"}
-        >
-          {!selectionMode ? (
-            <XStack items="center" gap={6}>
-              <Mail size={13} color="$inkFaint" strokeWidth={2} />
-              <FText variant="caption" tone="inkFaint" numberOfLines={1} style={{ fontSize: 12 }}>
-                {detected}
-              </FText>
-            </XStack>
-          ) : null}
-          {row}
+        <YStack py={selectionMode ? 12 : 16} gap={8} opacity={busy ? 0.6 : 1} bg="$canvas">
+          {selectionMode ? (
+            row
+          ) : (
+            <>
+              <XStack items="center" gap={6}>
+                <Mail size={13} color="$inkFaint" strokeWidth={2} />
+                <FText tone="inkFaint" numberOfLines={1} style={{ flexShrink: 1, fontFamily: fontFace.display[700], fontSize: 12, lineHeight: 16 }}>
+                  {detected}
+                </FText>
+              </XStack>
+              <XStack items="center" justify="space-between" gap={10}>
+                <FText numberOfLines={1} style={{ flex: 1, fontFamily: fontFace.display[700], fontSize: 16, lineHeight: 21 }}>
+                  {item.title}
+                </FText>
+                {amountNode}
+              </XStack>
+              {meta}
+            </>
+          )}
 
           {!selectionMode && match && item.type === "expense" ? (
-            <YStack gap={10} p={12} rounded={radius.md} bg="$surfaceSunken">
+            <YStack gap={10} p={12} mt={2} rounded={14} bg="$surface">
               <XStack items="center" gap={8}>
                 <Repeat size={14} color="$inkMuted" strokeWidth={2} />
                 <FText variant="caption" tone="inkMuted" style={{ flex: 1, fontSize: 13 }}>
@@ -710,32 +769,30 @@ function PendingCard({
           ) : null}
 
           {!selectionMode ? (
-            <XStack items="center" justify="flex-end" gap={8}>
-              <Pressable onPress={busy ? undefined : onDiscard} hitSlop={6} accessibilityRole="button" style={{ paddingHorizontal: 12, paddingVertical: 8 }}>
-                <FText variant="body-strong" tone="inkMuted" style={{ fontSize: 14 }}>
-                  {t("pendingScreen.discard")}
-                </FText>
-              </Pressable>
-              <PressableScale onPress={busy ? undefined : needsCategory ? onChooseCategory : onPrimary} accessibilityRole="button">
-                <XStack
-                  height={36}
-                  px={16}
-                  rounded={radius.pill}
-                  items="center"
-                  gap={6}
-                  bg={primaryIsConfirm ? "$brandWash" : "transparent"}
-                  borderWidth={primaryIsConfirm ? 0 : 1}
-                  borderColor="$lineStrong"
-                >
-                  {busy ? <FintSpinner color="$brand" /> : null}
-                  <FText variant="body-strong" tone={primaryIsConfirm ? "brand" : "ink"} style={{ fontSize: 14 }}>
-                    {primaryLabel}
+            // "Descartar" con contorno y la acción principal amarilla a lo ancho; si falta la categoría, "Elegir".
+            <XStack items="center" gap={8} mt={4}>
+              <PressableScale onPress={busy ? undefined : onDiscard} hitSlop={2} accessibilityRole="button">
+                <XStack height={40} px={14} rounded={radius.pill} items="center" borderWidth={1.5} borderColor="$line">
+                  <FText tone="ink" maxFontSizeMultiplier={1.3} style={{ fontFamily: fontFace.display[700], fontSize: 13, lineHeight: 18 }}>
+                    {t("pendingScreen.discard")}
+                  </FText>
+                </XStack>
+              </PressableScale>
+              <PressableScale onPress={busy ? undefined : needsCategory ? onChooseCategory : onPrimary} hitSlop={2} accessibilityRole="button" style={{ flex: 1 }}>
+                <XStack height={40} px={14} rounded={radius.pill} items="center" justify="center" gap={6} bg={buttonIsConfirm ? "$brand" : "$ink"}>
+                  {busy ? <FintSpinner color={buttonIsConfirm ? "$onBrand" : "$canvas"} /> : null}
+                  <FText
+                    color={buttonIsConfirm ? "$onBrand" : "$canvas"}
+                    maxFontSizeMultiplier={1.3}
+                    style={{ fontFamily: fontFace.display[700], fontSize: 14, lineHeight: 18 }}
+                  >
+                    {buttonLabel}
                   </FText>
                 </XStack>
               </PressableScale>
             </XStack>
           ) : null}
-        </FintCard>
+        </YStack>
       </Pressable>
     </SwipeActions>
   );
@@ -766,7 +823,7 @@ function SwipeConfirmSheet({
         <FText variant="body" tone="inkMuted" style={{ fontSize: 14, lineHeight: 20 }}>
           {t(confirm ? "pendingScreen.confirmHint" : "pendingScreen.discardHint")}
         </FText>
-        <XStack items="center" gap={12} p={14} rounded={radius.lg} bg="$surfaceSunken">
+        <XStack items="center" gap={12} p={14} rounded={18} bg="$surface">
           <YStack flex={1} minW={0}>
             <FText variant="body-strong" numberOfLines={2}>
               {item.title}
@@ -780,10 +837,10 @@ function SwipeConfirmSheet({
           {item.amount !== null && item.currency ? <Amount value={item.amount} currency={item.currency} kind={kind} /> : null}
         </XStack>
         <YStack gap={10}>
-          <FintButton minH={50} rounded={radius.md} haptic={confirm ? "tap" : "warning"} onPress={onConfirm}>
+          <FintButton haptic={confirm ? "tap" : "warning"} onPress={onConfirm}>
             {t(confirm ? "pendingScreen.confirm" : "pendingScreen.discard")}
           </FintButton>
-          <FintButton variant="ghost" minH={50} rounded={radius.md} bg="$surfaceSunken" color="$ink" onPress={onClose}>
+          <FintButton variant="soft" onPress={onClose}>
             {t("pendingScreen.cancel")}
           </FintButton>
         </YStack>
@@ -792,19 +849,21 @@ function SwipeConfirmSheet({
   );
 }
 
+/** Esqueleto con la forma de los pendientes de H-05: a todo el ancho, separados por un filete. */
 function ListSkeleton() {
   return (
-    <YStack gap={10} px={space[4]}>
+    <YStack px={space[5]}>
       {[0, 1, 2].map((i) => (
-        <YStack key={i} gap={12} p={16} rounded={radius.lg} borderWidth={1} borderColor="$line" bg="$surface">
-          <AmountSkeleton width={140} height={10} />
-          <XStack items="center" gap={12}>
-            <View width={38} height={38} rounded={999} bg="$surfaceSunken" />
-            <YStack flex={1} gap={6}>
-              <AmountSkeleton width={120} height={12} />
-              <AmountSkeleton width={160} height={10} />
-            </YStack>
-            <AmountSkeleton width={80} height={12} />
+        <YStack key={i} gap={10} py={16} borderTopWidth={1} borderColor="$line">
+          <AmountSkeleton width={120} height={10} />
+          <XStack items="center" justify="space-between" gap={12}>
+            <AmountSkeleton width={170} height={14} />
+            <AmountSkeleton width={80} height={18} />
+          </XStack>
+          <AmountSkeleton width={140} height={12} />
+          <XStack gap={8}>
+            <View width={96} height={40} rounded={999} bg="$surface" />
+            <View flex={1} height={40} rounded={999} bg="$surface" />
           </XStack>
         </YStack>
       ))}

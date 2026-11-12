@@ -29,10 +29,10 @@ import { useScreenStatusBar } from "../src/theme/useScreenStatusBar";
 import {
   Amount,
   FintButton,
-  FintCard,
   FintSpinner,
   FText,
   IconButton,
+  Monogram,
   PressableScale,
   SegmentedControl,
   SheetField,
@@ -258,23 +258,23 @@ export default function DebtFormScreen() {
       <UnsavedChangesDialog open={guard.open} onCancel={guard.onCancel} onConfirm={guard.onConfirm} />
       <YStack flex={1} bg="$canvas" pt={insets.top}>
         {/* Cerrar y título. */}
-        <XStack items="center" gap={space[3]} px={space[4]} pt={space[2]}>
-          <IconButton label={t("paymentForm.close")} icon={<X size={18} color="$ink" strokeWidth={2} />} onPress={() => router.back()} />
+        {/* H-08: cerrar y el título a 18, alineado a la izquierda. */}
+        <XStack items="center" gap={10} px={space[5]} pt={space[2]}>
+          <IconButton label={t("paymentForm.close")} icon={<X size={20} color="$ink" strokeWidth={2} />} onPress={() => router.back()} />
           <FText
-            variant="title"
             accessibilityRole="header"
-            numberOfLines={1}
-            style={{ flex: 1, textAlign: "center", fontSize: 18, lineHeight: 23, letterSpacing: -0.4 }}
+            numberOfLines={2}
+            maxFontSizeMultiplier={1.3}
+            style={{ flex: 1, fontFamily: fontFace.display[700], fontSize: 18, lineHeight: 23, letterSpacing: -0.3 }}
           >
             {t(isEditing ? "payments.editRecurring" : "payments.newRecurring")}
           </FText>
-          <View width={40} />
         </XStack>
 
         <KeyboardAwareScrollView
           style={{ flex: 1 }}
           bottomOffset={footerHeight + KEYBOARD_GAP}
-          contentContainerStyle={{ paddingHorizontal: space[4], paddingBottom: space[6] }}
+          contentContainerStyle={{ paddingHorizontal: space[5], paddingBottom: space[6] }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -293,8 +293,8 @@ export default function DebtFormScreen() {
           {ready ? (
             <>
               {/* Monto de cada pago, con la moneda en una píldora. */}
-              <FintCard mt={18} pt={18} px={16} pb={16} items="center">
-                <FText variant="caption" tone="inkMuted">
+              <YStack mt={18} pb={8} items="center">
+                <FText tone="inkFaint" maxFontSizeMultiplier={1.3} style={{ fontFamily: fontFace.display[700], fontSize: 12, lineHeight: 16 }}>
                   {t("paymentForm.amount")}
                 </FText>
                 <BigAmountInput
@@ -313,19 +313,8 @@ export default function DebtFormScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={t("paymentForm.currency", { currency })}
                 >
-                  <XStack
-                    height={28}
-                    mt={8}
-                    pl={12}
-                    pr={10}
-                    gap={4}
-                    items="center"
-                    rounded={radius.pill}
-                    borderWidth={1}
-                    borderColor="$lineStrong"
-                    bg="$surface"
-                  >
-                    <FText variant="caption" style={{ fontFamily: fontFace.mono[500], fontSize: 12 }}>
+                  <XStack height={32} mt={8} pl={12} pr={10} gap={4} items="center" rounded={radius.pill} bg="$surface">
+                    <FText maxFontSizeMultiplier={1.3} style={{ fontFamily: fontFace.display[700], fontSize: 13, lineHeight: 18 }}>
                       {currency}
                     </FText>
                     {isEditing ? (
@@ -341,7 +330,7 @@ export default function DebtFormScreen() {
                     {t(amountLocked ? "paymentForm.amountLocked" : "paymentForm.currencyLocked")}
                   </FText>
                 ) : null}
-              </FintCard>
+              </YStack>
 
               {/* Nombre */}
               <Field label={t("paymentForm.name")} error={validation.errors.title}>
@@ -367,15 +356,15 @@ export default function DebtFormScreen() {
               </Field>
 
               {/* Primera fecha y categoría. */}
-              <FintCard mt={16} p={0} overflow="hidden">
+              <YStack mt={10}>
                 <LinkRow
-                  icon={<CalendarDays size={16} color="$inkMuted" strokeWidth={2} />}
+                  icon={<CalendarDays size={20} color="$inkMuted" strokeWidth={2} />}
                   label={t("payments.firstDate")}
                   value={startLabel}
                   onPress={() => setSheet("date")}
                 />
                 {categories.length === 0 ? (
-                  <YStack px={14} py={13} gap={10} borderTopWidth={1} borderColor="$line">
+                  <YStack py={13} gap={10} borderTopWidth={1} borderColor="$line">
                     <FText variant="body" style={{ fontSize: 14 }}>
                       {t("payments.categoryRequiredHint")}
                     </FText>
@@ -386,13 +375,9 @@ export default function DebtFormScreen() {
                 ) : (
                   <LinkRow
                     divider
-                    icon={
-                      selectedCategory?.icon ? (
-                        <Text style={{ fontSize: 16, lineHeight: 20, includeFontPadding: false }}>{selectedCategory.icon}</Text>
-                      ) : (
-                        <Shapes size={16} color="$inkMuted" strokeWidth={2} />
-                      )
-                    }
+                    icon={<Shapes size={20} color="$inkMuted" strokeWidth={2} />}
+                    emoji={selectedCategory?.icon ?? null}
+                    emojiName={selectedCategory ? getCategoryLabel(selectedCategory.name, t) : ""}
                     label={t("paymentForm.category")}
                     value={selectedCategory ? getCategoryLabel(selectedCategory.name, t) : t("paymentForm.choose")}
                     muted={!selectedCategory}
@@ -400,16 +385,17 @@ export default function DebtFormScreen() {
                     onPress={() => setSheet("category")}
                   />
                 )}
-              </FintCard>
+              </YStack>
               {fieldErrors.map((message) => (
                 <ErrorText key={message}>{message}</ErrorText>
               ))}
 
               {/* Próximas fechas, para confirmar la frecuencia. */}
               {upcoming.length > 0 ? (
-                <XStack items="center" gap={8} mt={10} mx={2}>
-                  <Repeat size={14} color="$inkFaint" strokeWidth={2} />
-                  <FText variant="caption" tone="inkFaint" style={{ flex: 1 }}>
+                // H-08: las próximas fechas en un recuadro `surface` con el calendario.
+                <XStack items="center" gap={8} mt={10} px={14} py={12} rounded={16} bg="$surface">
+                  <Repeat size={16} color="$ink" strokeWidth={2} />
+                  <FText variant="caption" tone="inkMuted" style={{ flex: 1, fontSize: 13, lineHeight: 18 }}>
                     {t("paymentForm.next", { count: upcoming.length, list: "" })}
                     {upcoming.map((date, i) => (
                       <FText key={date.iso} variant="caption" tone="inkFaint">
@@ -425,14 +411,19 @@ export default function DebtFormScreen() {
 
               {/* Débito automático. */}
               {autoPayAvailable ? (
-                <FintCard mt={16} p={0} overflow="hidden">
-                  <XStack items="center" gap={12} px={14} py={13}>
+                <YStack mt={10} borderTopWidth={1} borderColor="$line">
+                  <XStack items="center" gap={12} py={13}>
                     <RowIcon>
-                      <Zap size={16} color="$inkMuted" strokeWidth={2} />
+                      <Zap size={20} color="$inkMuted" strokeWidth={2} />
                     </RowIcon>
-                    <FText variant="body" style={{ flex: 1, fontSize: 14 }}>
-                      {t("payments.autoPayLabel")}
-                    </FText>
+                    <YStack flex={1} minW={0} gap={2}>
+                      <FText tone="inkFaint" style={{ fontFamily: fontFace.display[700], fontSize: 12, lineHeight: 16 }}>
+                        {t("payments.autoPayLabel")}
+                      </FText>
+                      <FText tone="inkFaint" style={{ fontSize: 13, lineHeight: 18 }}>
+                        {t("payments.autoPayHint")}
+                      </FText>
+                    </YStack>
                     <Toggle
                       value={autoPayEnabled}
                       accessibilityLabel={t("payments.autoPayLabel")}
@@ -442,16 +433,9 @@ export default function DebtFormScreen() {
                       }}
                     />
                   </XStack>
-                  <FText
-                    variant="caption"
-                    tone="inkFaint"
-                    style={{ lineHeight: 17, paddingLeft: 58, paddingRight: 14, paddingBottom: 12, marginTop: -6 }}
-                  >
-                    {t("payments.autoPayHint")}
-                  </FText>
                   {autoPayEnabled ? (
                     autoPayAccounts.length === 0 && !autoPayAccountsQuery.isPending ? (
-                      <YStack px={14} py={13} gap={10} borderTopWidth={1} borderColor="$line">
+                      <YStack py={13} gap={10} borderTopWidth={1} borderColor="$line">
                         <FText variant="body" style={{ fontSize: 14 }}>
                           {t("payments.autoPayNoAccounts", { currency })}
                         </FText>
@@ -462,7 +446,7 @@ export default function DebtFormScreen() {
                     ) : (
                       <LinkRow
                         divider
-                        icon={<Landmark size={16} color="$inkMuted" strokeWidth={2} />}
+                        icon={<Landmark size={20} color="$inkMuted" strokeWidth={2} />}
                         label={t("payments.autoPayAccount")}
                         detail={
                           autoPayAccount ? (
@@ -484,7 +468,7 @@ export default function DebtFormScreen() {
                       />
                     )
                   ) : null}
-                </FintCard>
+                </YStack>
               ) : null}
               {validation.errors.autoPayAccountId ? <ErrorText>{validation.errors.autoPayAccountId}</ErrorText> : null}
             </>
@@ -495,16 +479,13 @@ export default function DebtFormScreen() {
         {ready ? (
           <KeyboardStickyView offset={{ opened: Math.max(insets.bottom, 16) - 2 }}>
             <View
-              px={space[4]}
+              px={space[5]}
               pt={space[3]}
               pb={Math.max(insets.bottom, 16) + 10}
               bg="$canvas"
               onLayout={(event) => setFooterHeight(event.nativeEvent.layout.height)}
             >
               <FintButton
-                minH={52}
-                rounded={radius.md}
-                fontSize={16}
                 pending={mutation.isPending || (autoPayEnabled && autoPayAccountsQuery.isPending)}
                 icon={mutation.isPending ? <FintSpinner color="$onBrand" /> : undefined}
                 onPress={submit}
@@ -604,7 +585,7 @@ function NameField({
 function Field({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
   return (
     <YStack mt={16}>
-      <FText variant="caption" tone="inkMuted" style={{ marginBottom: 6, marginLeft: 2 }}>
+      <FText tone="inkFaint" maxFontSizeMultiplier={1.5} style={{ fontFamily: fontFace.display[700], fontSize: 12, lineHeight: 16, marginBottom: 6, marginLeft: 2 }}>
         {label}
       </FText>
       {children}
@@ -621,17 +602,23 @@ function ErrorText({ children }: { children: ReactNode }) {
   );
 }
 
+/** Cuadro `surface` de 40 con el ícono de la fila (H-08). */
 function RowIcon({ children }: { children: ReactNode }) {
   return (
-    <View width={32} height={32} rounded={radius.sm} bg="$surfaceSunken" items="center" justify="center">
+    <View width={40} height={40} rounded={14} bg="$surface" items="center" justify="center">
       {children}
     </View>
   );
 }
 
-/** Fila de tarjeta que abre una hoja: icono, etiqueta, valor a la derecha y flecha. */
+/**
+ * Fila que abre una hoja (H-08), a todo el ancho: el cuadro de 40 con el ícono (o el emoji de la categoría sobre su
+ * color), la etiqueta a 12 arriba y el valor a 15 debajo, y la flecha.
+ */
 function LinkRow({
   icon,
+  emoji,
+  emojiName,
   label,
   detail,
   value,
@@ -641,6 +628,8 @@ function LinkRow({
   onPress,
 }: {
   icon: ReactNode;
+  emoji?: string | null;
+  emojiName?: string;
   label: string;
   detail?: ReactNode;
   value?: string;
@@ -651,41 +640,48 @@ function LinkRow({
 }) {
   return (
     <PressableScale onPress={onPress} scaleTo={0.99} accessibilityRole="button" accessibilityLabel={value ? `${label}: ${value}` : label}>
-      <XStack items="center" gap={12} px={14} py={13} borderTopWidth={divider ? 1 : 0} borderColor="$line">
-        <RowIcon>{icon}</RowIcon>
-        <YStack flex={1} minW={0}>
-          <FText variant="body" tone={invalid ? "dangerHard" : "ink"} style={{ fontSize: 14 }} numberOfLines={1}>
+      <XStack items="center" gap={12} py={13} borderTopWidth={divider ? 1 : 0} borderColor="$line">
+        {emoji ? <Monogram name={emojiName ?? label} emoji={emoji} size={38} /> : <RowIcon>{icon}</RowIcon>}
+        <YStack flex={1} minW={0} gap={2}>
+          <FText tone={invalid ? "dangerHard" : "inkFaint"} maxFontSizeMultiplier={1.5} style={{ fontFamily: fontFace.display[700], fontSize: 12, lineHeight: 16 }}>
             {label}
           </FText>
+          {value ? (
+            <FText tone={muted ? "inkFaint" : "ink"} numberOfLines={2} style={{ fontFamily: fontFace.display[700], fontSize: 15, lineHeight: 20 }}>
+              {value}
+            </FText>
+          ) : null}
           {detail}
         </YStack>
-        {value ? (
-          <FText
-            variant="body"
-            tone={muted ? "inkFaint" : "ink"}
-            numberOfLines={1}
-            style={{ fontSize: 14, fontFamily: fontFace.sans[500], flexShrink: 1 }}
-          >
-            {value}
-          </FText>
-        ) : null}
-        <ChevronRight size={16} color="$inkFaint" strokeWidth={2} />
+        <ChevronRight size={18} color="$inkFaint" strokeWidth={2} />
       </XStack>
     </PressableScale>
   );
 }
 
+/** Esqueleto con la forma de H-08: el monto, los campos y las filas a todo el ancho. */
 function FormSkeleton() {
   return (
     <YStack gap={16} mt={18}>
-      <View height={150} rounded={radius.lg} bg="$surfaceSunken" />
+      <YStack items="center" gap={8}>
+        <AmountSkeleton width={110} height={10} />
+        <AmountSkeleton width={170} height={44} />
+      </YStack>
       {[0, 1].map((i) => (
         <YStack key={i} gap={8}>
           <AmountSkeleton width={70} height={10} />
-          <View height={48} rounded={radius.md} bg="$surfaceSunken" />
+          <View height={48} rounded={radius.pill} bg="$surface" />
         </YStack>
       ))}
-      <View height={120} rounded={radius.lg} bg="$surfaceSunken" />
+      {[0, 1].map((i) => (
+        <XStack key={`r${i}`} items="center" gap={12}>
+          <View width={40} height={40} rounded={14} bg="$surface" />
+          <YStack gap={6}>
+            <AmountSkeleton width={80} height={10} />
+            <AmountSkeleton width={140} height={13} />
+          </YStack>
+        </XStack>
+      ))}
     </YStack>
   );
 }

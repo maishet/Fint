@@ -2,12 +2,12 @@
   "expo": {
     "name": "My Fint",
     "slug": "finanzas-mobilev2",
-    "version": "2.0.6",
+    "version": "2.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "finanzasmobilev2",
     "userInterfaceStyle": "automatic",
-    "backgroundColor": "#14172B",
+    "backgroundColor": "#FFC629",
     "assetBundlePatterns": ["**/*"],
     "runtimeVersion": {
       "policy": "fingerprint"
@@ -23,13 +23,19 @@
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleDevelopmentRegion": "es",
         "CFBundleLocalizations": ["es", "en", "pt"]
+      },
+      "icon": {
+        "light": "./assets/images/ios-light.png",
+        "dark": "./assets/images/ios-dark.png",
+        "tinted": "./assets/images/ios-tinted.png"
       }
     },
     "android": {
       "package": "com.fint.finanzasmobilev2",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#14172B"
+        "monochromeImage": "./assets/images/android-icon-monochrome.png",
+        "backgroundColor": "#FFC629"
       }
     },
     "plugins": [
@@ -60,22 +66,22 @@
           "image": "./assets/images/splash-logo.png",
           "imageWidth": 132,
           "resizeMode": "contain",
-          "backgroundColor": "#14172B",
+          "backgroundColor": "#FFC629",
           "dark": {
             "image": "./assets/images/splash-logo-dark.png",
-            "backgroundColor": "#1A2040"
+            "backgroundColor": "#0F0F0D"
           }
         }
       ],
-      ["./plugins/withNightWindowBackground", { "color": "#1A2040" }],
+      ["./plugins/withNightWindowBackground", { "color": "#0F0F0D" }],
       "./plugins/withAndroidFreeOrientation",
       "@react-native-google-signin/google-signin",
       "expo-apple-authentication",
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/android-icon-monochrome.png",
-          "color": "#5C6CFF"
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#FFC629"
         }
       ],
       [
@@ -116,6 +122,9 @@
         }
       ]
     ],
+    "web": {
+      "favicon": "./assets/images/favicon.png"
+    },
     "experiments": {
       "typedRoutes": true
     },

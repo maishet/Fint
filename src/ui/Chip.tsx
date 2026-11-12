@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { Text, View, XStack, type ColorTokens } from "tamagui";
 import { COMPACT_FONT_SCALE, radius } from "../theme/tokens";
 import { fontFace } from "../theme/typography";
-import { DashedOutline } from "./DashedOutline";
 import { FText } from "./FText";
 import { PressableScale } from "./PressableScale";
 
@@ -10,8 +9,8 @@ export interface ChipProps {
   label: string;
   selected?: boolean;
   /**
-   * - `filter`: filtros de lista. Elegido = relleno `ink`.
-   * - `choice`: una opción de formulario (categoría rápida). Elegido = `brandWash` con filete `brand`.
+   * - `filter`: filtros de lista. Elegido = `chipOn`.
+   * - `choice`: una opción de formulario (categoría rápida). Elegido = `chipOn`.
    * - `detail`: los chips de fecha, lugar y nota del formulario. Nunca "elegidos"; `empty` los apaga.
    */
   variant?: "filter" | "choice" | "detail";
@@ -20,9 +19,7 @@ export interface ChipProps {
   /** El emoji que la persona eligió para la categoría; va en lugar del punto. */
   emoji?: string | null;
   icon?: ReactNode;
-  /** Borde punteado para "Más" o "Nueva". */
-  dashed?: boolean;
-  /** Chip de detalle sin valor todavía: texto en `inkMuted`. */
+  /** Chip de detalle sin valor todavía: contorno `line` y texto en `inkMuted`. */
   empty?: boolean;
   /** Ocupa el ancho disponible (chips de detalle de igual ancho). */
   grow?: boolean;
@@ -31,6 +28,8 @@ export interface ChipProps {
    * interruptor. El contenedor lleva `accessibilityRole="radiogroup"`.
    */
   single?: boolean;
+  /** Nombre para el lector cuando la etiqueta visible no basta ("Nota: …" en lugar del texto cortado). */
+  accessibilityLabel?: string;
   onPress?: () => void;
 }
 
@@ -41,15 +40,15 @@ export function Chip({
   dotColor,
   emoji,
   icon,
-  dashed = false,
   empty = false,
   grow = false,
   single = false,
+  accessibilityLabel,
   onPress,
 }: ChipProps) {
-  const filterOn = variant === "filter" && selected;
-  const choiceOn = variant === "choice" && selected;
-  const tone = filterOn ? "canvas" : choiceOn || variant === "detail" ? (empty ? "inkMuted" : "ink") : "inkMuted";
+  const on = variant !== "detail" && selected;
+  const emptyDetail = variant === "detail" && empty;
+  const height = variant === "filter" ? 36 : 40;
 
   return (
     <PressableScale
@@ -57,23 +56,22 @@ export function Chip({
       haptic="select"
       accessibilityRole={variant === "detail" ? "button" : single ? "radio" : "togglebutton"}
       accessibilityState={single ? { checked: selected } : { selected }}
-      accessibilityLabel={label}
-      // La forma mide 32; el área de toque llega a 48 (Android) sin cambiar lo que se ve.
-      hitSlop={{ top: 8, bottom: 8 }}
+      accessibilityLabel={accessibilityLabel ?? label}
+      // La forma mide 36 o 40; el área de toque llega a 48 (Android) sin cambiar lo que se ve.
+      hitSlop={{ top: (48 - height) / 2, bottom: (48 - height) / 2 }}
       style={grow ? { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0 } : undefined}
     >
       <XStack
-        minH={32}
-        px={13}
+        minH={height}
+        px={variant === "filter" ? 16 : 14}
         gap={6}
         items="center"
         justify="center"
         rounded={radius.pill}
-        borderWidth={dashed ? 0 : 1}
-        bg={filterOn ? "$ink" : choiceOn ? "$brandWash" : "$surface"}
-        borderColor={filterOn ? "$ink" : choiceOn ? "$brand" : "$lineStrong"}
+        borderWidth={emptyDetail ? 1.5 : 0}
+        borderColor="$line"
+        bg={on ? "$chipOn" : emptyDetail ? "transparent" : "$surface"}
       >
-        {dashed ? <DashedOutline radius={radius.pill} strokeWidth={1} /> : null}
         {emoji ? (
           <Text style={{ fontSize: 15, lineHeight: 19, includeFontPadding: false }} accessibilityElementsHidden importantForAccessibility="no">
             {emoji}
@@ -84,9 +82,9 @@ export function Chip({
         {icon}
         <FText
           variant="label"
-          tone={tone === "canvas" ? undefined : (tone as "ink" | "inkMuted")}
-          color={tone === "canvas" ? "$canvas" : undefined}
-          style={[{ flexShrink: 1 }, selected ? { fontFamily: fontFace.sans[600] } : null]}
+          tone={on ? undefined : variant === "filter" || emptyDetail ? "inkMuted" : "ink"}
+          color={on ? "$onChipOn" : undefined}
+          style={[{ flexShrink: 1, fontFamily: fontFace.sans[600], fontSize: variant === "filter" ? 14 : 13 }]}
           numberOfLines={1}
           maxFontSizeMultiplier={COMPACT_FONT_SCALE}
         >

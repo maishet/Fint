@@ -79,9 +79,10 @@ export function MiniMap({ latitude, longitude, height, zoom = DEFAULT_ZOOM, roun
         <UserMapPin size={PIN_SIZE} />
       </YStack>
 
+      {/* Sobre el mapa, igual en los dos temas: pastilla tinta de la marca D al 70 % con texto blanco (≥ 7:1). */}
       {interactive && hintLabel ? (
-        <YStack position="absolute" t="$2" self="center" bg="rgba(4,48,54,0.7)" px="$2.5" py="$1" rounded={999} pointerEvents="none">
-          <Paragraph color="#F6FBFC" fontSize={10.5} fontWeight="700">
+        <YStack position="absolute" t="$2" self="center" bg="rgba(20,20,18,0.7)" px="$2.5" py="$1" rounded={999} pointerEvents="none">
+          <Paragraph color="#FFFFFF" fontSize={10.5} fontWeight="700">
             {hintLabel}
           </Paragraph>
         </YStack>
@@ -94,10 +95,10 @@ export function MiniMap({ latitude, longitude, height, zoom = DEFAULT_ZOOM, roun
           r="$2"
           circular
           size="$3"
-          bg="rgba(4,48,54,0.7)"
+          bg="rgba(20,20,18,0.7)"
           borderWidth={0}
-          pressStyle={{ bg: 'rgba(4,48,54,0.85)' }}
-          icon={<Maximize2 size={15} color="#F6FBFC" />}
+          pressStyle={{ bg: 'rgba(20,20,18,0.85)' }}
+          icon={<Maximize2 size={15} color="#FFFFFF" />}
           onPress={onExpand}
           aria-label={accessibilityLabel}
         />

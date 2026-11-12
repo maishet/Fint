@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { Pressable, type LayoutChangeEvent } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { XStack, useTheme } from "tamagui";
-import { useThemeMode } from "../theme/ThemeMode";
-import { COMPACT_FONT_SCALE, motion, radius, shadows } from "../theme/tokens";
+import { COMPACT_FONT_SCALE, motion, radius } from "../theme/tokens";
 import { fontFace } from "../theme/typography";
 import { FText } from "./FText";
 import { haptics } from "./haptics";
@@ -19,23 +18,24 @@ export interface SegmentedControlProps<T extends string> {
   options: readonly SegmentOption<T>[];
   value: T;
   onChange: (value: T) => void;
-  /** `md` 38px (pestañas de tarjeta y del formulario), `sm` 34px (dentro de un recuadro). */
+  /** `md` 48px (pestañas de tarjeta y del formulario), `sm` 40px (dentro de un recuadro). */
   size?: "md" | "sm";
+  /** `ink` (por defecto): filtros y vistas, el activo en `chipOn`. `brand`: el tipo de movimiento, el activo en amarillo. */
+  tone?: "ink" | "brand";
   accessibilityLabel?: string;
 }
 
-const PAD = 3;
+const PAD = 4;
 
 /**
- * Selector segmentado. El fondo `segmentThumb` se desliza con `spring-ui` y el
+ * Selector segmentado. La píldora `chipOn` se desliza con `spring-ui` y el
  * texto cambia de peso en el mismo frame en que se presiona. `onChange` y
  * `haptics.select()` van al soltar: dentro de un scroll, empezar a desplazar con
  * el dedo sobre el control no lo activa (WCAG 2.5.2); el cambio visual se
  * deshace solo si el toque se cancela.
  */
-export function SegmentedControl<T extends string>({ options, value, onChange, size = "md", accessibilityLabel }: SegmentedControlProps<T>) {
+export function SegmentedControl<T extends string>({ options, value, onChange, size = "md", tone = "ink", accessibilityLabel }: SegmentedControlProps<T>) {
   const theme = useTheme();
-  const { themeMode } = useThemeMode();
   const [width, setWidth] = useState(0);
   const [pressing, setPressing] = useState<T | null>(null);
   const shown = pressing ?? value;
@@ -45,7 +45,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange, s
   );
   const segment = width > 0 ? (width - PAD * 2) / options.length : 0;
   const x = useSharedValue(0);
-  const height = size === "md" ? 38 : 34;
+  const height = size === "md" ? 48 : 40;
 
   useEffect(() => {
     if (segment > 0) x.value = withSpring(index * segment, motion.springUi);
@@ -58,7 +58,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange, s
       height={height}
       p={PAD}
       rounded={radius.pill}
-      bg="$surfaceSunken"
+      bg="$surface"
       role="tablist"
       aria-label={accessibilityLabel}
       onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width)}
@@ -74,10 +74,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange, s
               width: segment,
               height: height - PAD * 2,
               borderRadius: radius.pill,
-              backgroundColor: theme.segmentThumb.val,
-              borderWidth: 1,
-              borderColor: theme.line.val,
-              boxShadow: shadows[themeMode].card,
+              backgroundColor: tone === "brand" ? theme.brand.val : theme.chipOn.val,
             },
             thumbStyle,
           ]}
@@ -90,8 +87,8 @@ export function SegmentedControl<T extends string>({ options, value, onChange, s
           <Pressable
             key={option.value}
             style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
-            // Cada segmento mide 28-32; el área de toque llega a 48 (Android) sin cambiar lo que se ve.
-            hitSlop={{ top: 10, bottom: 10 }}
+            // Cada segmento mide 32-40; el área de toque llega a 48 (Android) sin cambiar lo que se ve.
+            hitSlop={{ top: (48 - height) / 2 + PAD, bottom: (48 - height) / 2 + PAD }}
             accessibilityRole="tab"
             accessibilityState={{ selected }}
             onPressIn={() => {
@@ -107,14 +104,20 @@ export function SegmentedControl<T extends string>({ options, value, onChange, s
           >
             <FText
               variant="label"
-              tone={active ? "ink" : "inkMuted"}
-              style={active ? { fontFamily: fontFace.sans[600] } : undefined}
+              tone={active ? undefined : "inkMuted"}
+              color={active ? (tone === "brand" ? "$onBrand" : "$onChipOn") : undefined}
+              style={{ fontFamily: fontFace.sans[600], fontSize: 14 }}
               numberOfLines={1}
               maxFontSizeMultiplier={COMPACT_FONT_SCALE}
             >
               {option.label}
               {option.count !== undefined ? (
-                <FText variant="label" tone={active ? "inkMuted" : "inkFaint"} style={{ fontFamily: fontFace.mono[500], fontSize: 12 }}>
+                <FText
+                  variant="label"
+                  tone={active ? undefined : "inkFaint"}
+                  color={active ? (tone === "brand" ? "$onBrand" : "$onChipOn") : undefined}
+                  style={{ fontFamily: fontFace.mono[500], fontSize: 12, opacity: active ? 0.72 : 1 }}
+                >
                   {`  ${option.count}`}
                 </FText>
               ) : null}

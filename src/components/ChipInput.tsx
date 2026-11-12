@@ -89,7 +89,6 @@ export function ChipInput({
           gap="$1"
           borderColor="$primary"
           borderWidth={1.5}
-          borderStyle="dashed"
           rounded="$10"
           pl="$3"
           pr="$3.5"

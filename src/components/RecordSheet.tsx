@@ -3,17 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, type Href } from "expo-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable } from "react-native";
-import Animated, {
-  cancelAnimation,
-  Easing,
-  FadeIn,
-  interpolateColor,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from "react-native-reanimated";
+import Animated, { cancelAnimation, Easing, FadeIn, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
 import { View, XStack, YStack, useTheme } from "tamagui";
 import { financeApi } from "../api/finance";
 import { getAppLocale } from "../i18n";
@@ -32,8 +22,9 @@ interface SheetProps {
 }
 
 /**
- * La hoja del botón central: Egreso, Ingreso y Transferencia, en ese orden,
- * que es el de frecuencia real. Es siempre la misma hoja, desde cualquier tab.
+ * La hoja del botón central (marca D, con el lenguaje de la hoja Más): Egreso, lo que más se registra, como acceso
+ * grande en amarillo a todo el ancho, y debajo Ingreso y Transferencia en dos accesos `surface`. Es siempre la misma
+ * hoja, desde cualquier tab.
  */
 export function RecordSheet({ open, onClose }: SheetProps) {
   const { t } = useTranslation();
@@ -56,80 +47,97 @@ export function RecordSheet({ open, onClose }: SheetProps) {
   };
 
   return (
-    <FintSheet open={open} onClose={onClose} title={t("home.record.title")} titleSize="compact">
-      <YStack px={space[4]} pt={space[3]} gap={4}>
-        <Option
-          icon={<ArrowDown size={20} color="$flowOut" strokeWidth={2} />}
+    <FintSheet open={open} onClose={onClose} title={t("home.record.title")}>
+      <YStack px={space[5]} pt={space[2]} gap={10}>
+        <KindTile
+          primary
+          icon={<ArrowDown size={22} color="$slabInk" strokeWidth={2.2} />}
           title={t("home.record.expense")}
           hint={t("home.record.expenseHint")}
-          selected={chosen === "expense"}
+          dimmed={chosen !== null && chosen !== "expense"}
           onPress={() => go("expense")}
         />
-        <Option
-          icon={<ArrowUp size={20} color="$flowIn" strokeWidth={2} />}
-          title={t("home.record.income")}
-          hint={t("home.record.incomeHint")}
-          selected={chosen === "income"}
-          onPress={() => go("income")}
-        />
-        <Option
-          icon={<ArrowLeftRight size={20} color="$inkMuted" strokeWidth={2} />}
-          title={t("home.record.transfer")}
-          hint={t("home.record.transferHint")}
-          selected={chosen === "transfer"}
-          onPress={() => go("transfer")}
-        />
+        <XStack gap={10}>
+          <KindTile
+            icon={<ArrowUp size={20} color="$flowIn" strokeWidth={2.2} />}
+            title={t("home.record.income")}
+            hint={t("home.record.incomeHint")}
+            dimmed={chosen !== null && chosen !== "income"}
+            onPress={() => go("income")}
+          />
+          <KindTile
+            icon={<ArrowLeftRight size={20} color="$ink" strokeWidth={2.2} />}
+            title={t("home.record.transfer")}
+            hint={t("home.record.transferHint")}
+            dimmed={chosen !== null && chosen !== "transfer"}
+            onPress={() => go("transfer")}
+          />
+        </XStack>
       </YStack>
     </FintSheet>
   );
 }
 
 /**
- * Una opción de la hoja: sin borde; al presionar, el fondo pasa a `surfaceSunken` con la curva `press`. Elegida
- * (`selected`), el fondo se queda mientras se abre el formulario.
+ * Un acceso de la hoja de registrar. `primary` (Egreso): la losa amarilla a todo el ancho, con el ícono en un cuadro
+ * de tinta translúcida, el nombre a 20 y la línea al lado. Los demás: `surface` de radio 20 con el ícono en un
+ * círculo `canvas`, el nombre a 16 y la línea debajo (hasta dos renglones). Al elegir uno, los otros se apagan
+ * mientras se abre el formulario, para que se note que el toque llegó.
  */
-function Option({ icon, title, hint, selected, onPress }: { icon: ReactNode; title: string; hint: string; selected: boolean; onPress: () => void }) {
-  const theme = useTheme();
-  const pressed = useSharedValue(0);
-  const from = "rgba(0,0,0,0)";
-  const to = theme.surfaceSunken.val;
-  const bgStyle = useAnimatedStyle(() => ({ backgroundColor: interpolateColor(pressed.value, [0, 1], [from, to]) }));
-
-  useEffect(() => {
-    if (!selected) pressed.value = withTiming(0, motion.fade);
-  }, [pressed, selected]);
-
+function KindTile({
+  icon,
+  title,
+  hint,
+  primary = false,
+  dimmed,
+  onPress,
+}: {
+  icon: ReactNode;
+  title: string;
+  hint: string;
+  primary?: boolean;
+  dimmed: boolean;
+  onPress: () => void;
+}) {
   return (
-    <Pressable
-      onPress={() => {
-        // `onPressOut` ya empezó a apagar el fondo: se vuelve a encender porque la opción queda elegida.
-        pressed.value = withTiming(1, motion.press);
-        onPress();
-      }}
-      onPressIn={() => {
-        pressed.value = withTiming(1, motion.press);
-        haptics.tap();
-      }}
-      onPressOut={() => {
-        if (!selected) pressed.value = withTiming(0, motion.fade);
-      }}
+    <PressableScale
+      onPress={onPress}
+      haptic="tap"
       accessibilityRole="button"
       accessibilityLabel={`${title}. ${hint}`}
+      style={{ flex: primary ? undefined : 1, opacity: dimmed ? 0.45 : 1 }}
     >
-      <Animated.View style={[{ borderRadius: radius.md }, bgStyle]}>
-        <XStack items="center" gap={14} px={space[3]} py={13}>
-          <View width={40} height={40} rounded={radius.md} bg="$surfaceSunken" items="center" justify="center">
+      {primary ? (
+        <XStack minH={96} px={18} py={16} gap={14} items="center" rounded={24} bg="$slab">
+          <View width={48} height={48} rounded={16} items="center" justify="center" style={{ backgroundColor: "rgba(20,20,18,0.10)" }}>
             {icon}
           </View>
-          <YStack flex={1} minW={0}>
-            <FText variant="body-strong">{title}</FText>
-            <FText variant="caption" tone="inkFaint" numberOfLines={1}>
+          <YStack flex={1} minW={0} gap={2}>
+            <FText tone="slabInk" maxFontSizeMultiplier={1.5} style={{ fontFamily: fontFace.display[700], fontSize: 20, lineHeight: 25 }}>
+              {title}
+            </FText>
+            <FText tone="slabMuted" style={{ fontSize: 14, lineHeight: 19 }}>
               {hint}
             </FText>
           </YStack>
+          <ChevronRight size={20} color="$slabInk" strokeWidth={2} />
         </XStack>
-      </Animated.View>
-    </Pressable>
+      ) : (
+        <YStack flex={1} minH={124} p={16} gap={12} justify="space-between" rounded={20} bg="$surface">
+          <View width={40} height={40} rounded={999} bg="$canvas" items="center" justify="center">
+            {icon}
+          </View>
+          <YStack gap={2}>
+            <FText maxFontSizeMultiplier={1.5} style={{ fontFamily: fontFace.display[700], fontSize: 16, lineHeight: 21 }}>
+              {title}
+            </FText>
+            <FText tone="inkFaint" numberOfLines={2} style={{ fontSize: 12, lineHeight: 16 }}>
+              {hint}
+            </FText>
+          </YStack>
+        </YStack>
+      )}
+    </PressableScale>
   );
 }
 
@@ -202,162 +210,121 @@ export function MoreSheet({ open, onClose }: SheetProps) {
               ? t("home.more.gmailRead", { when: readWhen(gmail.lastSyncAt) })
               : t("home.more.gmailNever");
 
+  const gmailSoon = isComingSoon("gmail");
+  const gmailTone = gmail?.state === "connected" ? "flowIn" : gmail?.state === "reconnect" ? "dangerHard" : "inkFaint";
+  const gmailStatus = gmail
+    ? t(gmail.state === "connected" ? "home.more.gmailConnected" : gmail.state === "reconnect" ? "home.more.gmailReconnect" : "home.more.gmailOff")
+    : "";
+
+  const rows: { key: string; icon: typeof Download; label: string; subtitle?: string; trailing: ReactNode; onPress?: () => void; a11y?: string }[] = [];
+  if (pending > 0) {
+    rows.push({
+      key: "review",
+      icon: Inbox,
+      label: t("home.more.review"),
+      subtitle: t("home.more.reviewBody", { count: pending }),
+      // F-11: "Revisar" en tinta; el número ya va en el subtítulo.
+      trailing: <PillButton label={t("home.more.reviewAction")} tone="ink" onPress={() => go("/pending-movements")} />,
+      onPress: () => go("/pending-movements"),
+    });
+  }
+  if (gmail) {
+    rows.push({
+      key: "gmail",
+      icon: Mail,
+      label: t("home.more.gmail"),
+      subtitle: gmailSoon ? gmailLine : `${gmailStatus} · ${gmailLine}`,
+      trailing: gmailSoon ? (
+        <SoonBadge />
+      ) : gmail.state === "connected" ? (
+        <ReadNowButton label={t("home.more.gmailReadNow")} busy={readMutation.isPending} onPress={() => readMutation.mutate()} />
+      ) : (
+        <SmallButton label={t(gmail.state === "reconnect" ? "home.more.gmailReconnect" : "home.more.gmailConnect")} onPress={() => go("/gmail-settings")} />
+      ),
+      onPress: gmailSoon ? () => explain("gmail") : () => go("/gmail-settings"),
+      a11y: gmailSoon ? `${t("home.more.gmail")}. ${t("comingSoon.tapHint")}` : `${t("home.more.gmail")}. ${gmailStatus}`,
+    });
+  }
+  const exportSoon = isComingSoon("reportExport");
+  rows.push(
+    {
+      key: "export",
+      icon: Download,
+      label: t("home.more.export"),
+      subtitle: t("home.more.exportHint"),
+      trailing: exportSoon ? <SoonBadge /> : <Aside />,
+      onPress: exportSoon ? () => explain("reportExport") : () => go({ pathname: "/(tabs)/reports", params: { open: "export" } }),
+      a11y: exportSoon ? `${t("home.more.export")}. ${t("comingSoon.tapHint")}` : undefined,
+    },
+    { key: "settings", icon: Settings, label: t("home.more.settings"), trailing: <Aside />, onPress: () => go("/settings") },
+    { key: "help", icon: HelpCircle, label: t("home.more.help"), trailing: <Aside />, onPress: () => go("/support") },
+  );
+
+  const categoriesDetail = categoriesQuery.data ? t("home.more.categoriesCount", { count: categoriesQuery.data.length }) : "";
   const cards: { key: string; node: ReactNode }[] = [
     {
+      // F-11: Transferir es el acceso grande (amarillo, dos filas de alto); Importar y Categorías van a su lado,
+      // apilados. Si Importar está oculto, Categorías pasa a ser un acceso alto como Transferir (136, mitad y mitad,
+      // ícono arriba y texto abajo): un solo acceso chico a la derecha dejaba la columna medio vacía.
       key: "tiles",
       node: (
-        <XStack gap={8} px={space[4]} mt={space[4]}>
-          <ActionTile
+        <XStack gap={8} px={space[5]} mt={space[2]} minH={136}>
+          <BigTile
             icon={ArrowLeftRight}
-            color={theme.brand.val}
             title={t("home.more.transfer")}
             detail={t("home.more.transferHint")}
             onPress={() => go({ pathname: "/transaction-form", params: { type: "transfer" } })}
           />
-          {isHidden("csvImport") ? null : (
-            <ActionTile icon={Upload} color={theme.chart4.val} title={t("home.more.import")} detail={t("home.more.importHint")} onPress={() => go("/import-transactions")} />
+          {isHidden("csvImport") ? (
+            <ActionTile tall icon={Tag} title={t("home.more.categories")} detail={categoriesDetail} onPress={() => go("/categories")} />
+          ) : (
+            <YStack flex={1.15} gap={8}>
+              <ActionTile icon={Upload} title={t("home.more.import")} detail={t("home.more.importHint")} onPress={() => go("/import-transactions")} />
+              <ActionTile icon={Tag} title={t("home.more.categories")} detail={categoriesDetail} onPress={() => go("/categories")} />
+            </YStack>
           )}
-          <ActionTile
-            icon={Tag}
-            color={theme.chart3.val}
-            title={t("home.more.categories")}
-            detail={categoriesQuery.data ? t("home.more.categoriesCount", { count: categoriesQuery.data.length }) : ""}
-            mono
-            onPress={() => go("/categories")}
-          />
         </XStack>
       ),
     },
-  ];
-
-  // Por revisar solo si hay algo esperando: la hoja no muestra un "0".
-  if (pending > 0) {
-    cards.push({
-      key: "review",
-      node: (
-        <XStack mx={space[4]} mt={10} rounded={radius.lg} bg="$brandWash" py={12} pl={14} pr={12} items="center" gap={12}>
-          <View width={40} height={40} rounded={radius.pill} bg="$brand" items="center" justify="center">
-            <Inbox size={18} color="$onBrand" strokeWidth={2} />
-            <View position="absolute" t={-4} r={-6} minW={20} height={20} px={5} rounded={radius.pill} bg="$surfaceOverlay" items="center" justify="center">
-              <FText tone="brand" style={{ fontFamily: fontFace.mono[600], fontSize: 11, lineHeight: 14 }}>
-                {pending > 99 ? "99+" : String(pending)}
-              </FText>
-            </View>
-          </View>
-          <YStack flex={1} minW={0}>
-            <FText variant="body-strong" style={{ letterSpacing: -0.15 }}>
-              {t("home.more.review")}
-            </FText>
-            <FText variant="caption" tone="inkMuted">
-              {t("home.more.reviewBody", { count: pending })}
-            </FText>
-          </YStack>
-          <SmallButton label={t("home.more.reviewAction")} onPress={() => go("/pending-movements")} />
-        </XStack>
-      ),
-    });
-  }
-
-  if (gmail) {
-    const tone = gmail.state === "connected" ? "flowIn" : gmail.state === "reconnect" ? "dangerHard" : "inkFaint";
-    const gmailSoon = isComingSoon("gmail");
-    const gmailCard = (
-      <XStack mx={space[4]} mt={10} rounded={radius.lg} bg="$surface" borderWidth={1} borderColor="$line" py={12} pl={14} pr={12} items="center" gap={12}>
-        <View width={40} height={40} rounded={radius.md} items="center" justify="center" style={{ backgroundColor: withAlpha(theme.chart2.val, 0.14) }}>
-          <Mail size={18} color={theme.chart2.val as never} strokeWidth={2} />
-        </View>
-        <YStack flex={1} minW={0}>
-          <XStack items="center" gap={8}>
-            <FText variant="body-strong" style={{ letterSpacing: -0.15 }}>
-              {t("home.more.gmail")}
-            </FText>
-            <XStack items="center" gap={5}>
-              <View width={6} height={6} rounded={radius.pill} bg={`$${tone}`} />
-              <FText tone={tone} style={{ fontFamily: fontFace.sans[600], fontSize: 11, lineHeight: 14 }}>
-                {t(gmail.state === "connected" ? "home.more.gmailConnected" : gmail.state === "reconnect" ? "home.more.gmailReconnect" : "home.more.gmailOff")}
-              </FText>
-            </XStack>
-          </XStack>
-          {/* La línea de estado cambia con `fade` (leyendo, lo que trajo la lectura). */}
-          <Animated.View key={gmailLine} entering={FadeIn.duration(motion.fade.duration)}>
-            <FText variant="caption" tone="inkFaint" numberOfLines={1}>
-              {gmailLine}
-            </FText>
-          </Animated.View>
-        </YStack>
-        {gmailSoon ? (
-          <SoonBadge />
-        ) : gmail.state === "connected" ? (
-          <ReadNowButton label={t("home.more.gmailReadNow")} busy={readMutation.isPending} onPress={() => readMutation.mutate()} />
-        ) : (
-          <SmallButton label={t(gmail.state === "reconnect" ? "home.more.gmailReconnect" : "home.more.gmailConnect")} onPress={() => go("/gmail-settings")} />
-        )}
-      </XStack>
-    );
-    cards.push({
-      key: "gmail",
-      node: gmailSoon ? (
-        <PressableScale
-          haptic="tap"
-          onPress={() => explain("gmail")}
-          accessibilityRole="button"
-          accessibilityLabel={t("home.more.gmail")}
-          accessibilityHint={t("comingSoon.tapHint")}
-        >
-          {gmailCard}
-        </PressableScale>
-      ) : (
-        gmailCard
-      ),
-    });
-  }
-
-  const rows: { icon: typeof Download; label: string; aside?: string; href: Href; soon?: boolean }[] = [
     {
-      icon: Download,
-      label: t("home.more.export"),
-      aside: t("home.more.exportHint"),
-      href: { pathname: "/(tabs)/reports", params: { open: "export" } },
-      soon: isComingSoon("reportExport"),
+      // Filas a todo el ancho sobre el fondo de la hoja, sin tarjeta, con el ícono en un cuadro `surface` de 40.
+      key: "list",
+      node: (
+        <YStack mx={space[5]} mt={space[2]}>
+          {rows.map((row, i) => (
+            <ListRow
+              key={row.key}
+              flush
+              divider={i > 0}
+              title={row.label}
+              subtitle={row.subtitle}
+              leading={
+                <View width={40} height={40} rounded={14} bg="$surface" items="center" justify="center">
+                  <row.icon size={20} color="$inkMuted" strokeWidth={2} />
+                  {row.key === "gmail" ? (
+                    <View
+                      position="absolute"
+                      r={-2}
+                      b={-2}
+                      width={11}
+                      height={11}
+                      rounded={radius.pill}
+                      bg={`$${gmailTone}`}
+                      borderWidth={2}
+                      borderColor="$background"
+                    />
+                  ) : null}
+                </View>
+              }
+              trailing={row.trailing}
+              onPress={row.onPress}
+              accessibilityLabel={row.a11y}
+            />
+          ))}
+        </YStack>
+      ),
     },
-    { icon: Settings, label: t("home.more.settings"), href: "/settings" },
-    { icon: HelpCircle, label: t("home.more.help"), href: "/support" },
   ];
-  cards.push({
-    key: "list",
-    node: (
-      <YStack mx={space[4]} mt={10} rounded={radius.lg} borderWidth={1} borderColor="$line" bg="$surface" overflow="hidden">
-        {rows.map((row, i) => (
-          <ListRow
-            key={row.label}
-            divider={i > 0}
-            title={row.label}
-            leading={
-              <View width={32} height={32} rounded={radius.sm} bg="$surfaceSunken" items="center" justify="center">
-                <row.icon size={17} color="$inkMuted" strokeWidth={1.8} />
-              </View>
-            }
-            trailing={
-              row.soon ? (
-                <SoonBadge />
-              ) : (
-              <XStack items="center" gap={4}>
-                {row.aside ? (
-                  <FText variant="caption" tone="inkFaint">
-                    {row.aside}
-                  </FText>
-                ) : null}
-                <ChevronRight size={16} color="$inkFaint" />
-              </XStack>
-              )
-            }
-            onPress={row.soon ? () => explain("reportExport") : () => go(row.href)}
-            accessibilityLabel={row.soon ? `${row.label}. ${t("comingSoon.tapHint")}` : undefined}
-          />
-        ))}
-      </YStack>
-    ),
-  });
 
   return (
     <FintSheet open={open} onClose={onClose} title={t("home.more.title")}>
@@ -371,38 +338,19 @@ export function MoreSheet({ open, onClose }: SheetProps) {
   );
 }
 
-/** Un acceso grande de la hoja Más: icono en un círculo teñido al 14 % de su color, nombre y una línea. */
-function ActionTile({
-  icon: Icon,
-  color,
-  title,
-  detail,
-  mono,
-  onPress,
-}: {
-  icon: typeof Download;
-  color: string;
-  title: string;
-  detail: string;
-  mono?: boolean;
-  onPress: () => void;
-}) {
-  const { themeMode } = useThemeMode();
+/** El acceso grande de la hoja Más (F-11): amarillo, ícono en un cuadro tinta al 10 %, nombre a 18 y su línea. */
+function BigTile({ icon: Icon, title, detail, onPress }: { icon: typeof Download; title: string; detail: string; onPress: () => void }) {
   return (
-    <PressableScale onPress={onPress} haptic="tap" accessibilityRole="button" accessibilityLabel={detail ? `${title}. ${detail}` : title} style={{ flex: 1 }}>
-      <YStack minH={96} p={12} gap={10} rounded={radius.lg} bg="$surfaceSunken" borderWidth={themeMode === "dark" ? 1 : 0} borderColor="$line">
-        <View width={36} height={36} rounded={radius.pill} items="center" justify="center" style={{ backgroundColor: withAlpha(color, 0.14) }}>
-          <Icon size={17} color={color as never} strokeWidth={2} />
+    <PressableScale onPress={onPress} haptic="tap" accessibilityRole="button" accessibilityLabel={`${title}. ${detail}`} style={{ flex: 1 }}>
+      <YStack flex={1} minH={136} p={16} gap={12} justify="space-between" rounded={24} bg="$slab">
+        <View width={44} height={44} rounded={14} items="center" justify="center" style={{ backgroundColor: "rgba(20,20,18,0.10)" }}>
+          <Icon size={22} color="$slabInk" strokeWidth={2} />
         </View>
-        <YStack>
-          <FText numberOfLines={1} style={{ fontFamily: fontFace.sans[600], fontSize: 14, lineHeight: 18, letterSpacing: -0.15 }}>
+        <YStack gap={2}>
+          <FText tone="slabInk" maxFontSizeMultiplier={1.5} style={{ fontFamily: fontFace.display[700], fontSize: 18, lineHeight: 23 }}>
             {title}
           </FText>
-          <FText
-            tone="inkFaint"
-            numberOfLines={2}
-            style={{ fontFamily: mono ? fontFace.mono[400] : fontFace.sans[400], fontSize: 11.5, lineHeight: 15, marginTop: 1 }}
-          >
+          <FText tone="slabMuted" style={{ fontSize: 13, lineHeight: 18 }}>
             {detail}
           </FText>
         </YStack>
@@ -411,12 +359,107 @@ function ActionTile({
   );
 }
 
-/** Botón chico en `brand` de las tarjetas (Revisar, Conectar, Reconectar). */
-function SmallButton({ label, onPress }: { label: string; onPress: () => void }) {
+/**
+ * Un acceso chico de la hoja Más (F-11): radio 20 con el ícono, el nombre a 15 y una línea. `tall`: el mismo alto y
+ * la misma forma que Transferir (136, ícono arriba en su cuadro de 44, texto abajo), para cuando va solo a su lado.
+ *
+ * El fondo es `surface` en claro y `surfaceSunken` en oscuro, como `SheetField`: en oscuro la hoja ya es `surface`
+ * y un acceso del mismo tono no se veía.
+ */
+function ActionTile({
+  icon: Icon,
+  title,
+  detail,
+  onPress,
+  tall = false,
+}: {
+  icon: typeof Download;
+  title: string;
+  detail: string;
+  onPress: () => void;
+  tall?: boolean;
+}) {
+  const { themeMode } = useThemeMode();
+  const bg = themeMode === "dark" ? "$surfaceSunken" : "$surface";
+  const text = (
+    <YStack flex={tall ? undefined : 1} minW={0} gap={tall ? 2 : 0}>
+      <FText maxFontSizeMultiplier={1.5} style={{ fontFamily: fontFace.display[700], fontSize: tall ? 18 : 15, lineHeight: tall ? 23 : 20 }}>
+        {title}
+      </FText>
+      {detail ? (
+        <FText tone="inkFaint" style={{ fontSize: tall ? 13 : 12, lineHeight: tall ? 18 : 16 }}>
+          {detail}
+        </FText>
+      ) : null}
+    </YStack>
+  );
   return (
-    <PressableScale onPress={onPress} haptic="tap" accessibilityRole="button">
-      <XStack height={34} px={14} rounded={radius.pill} bg="$brand" items="center">
-        <FText tone="onBrand" style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18 }}>
+    <PressableScale onPress={onPress} haptic="tap" accessibilityRole="button" accessibilityLabel={detail ? `${title}. ${detail}` : title} style={{ flex: 1 }}>
+      {tall ? (
+        <YStack flex={1} minH={136} p={16} gap={12} justify="space-between" rounded={24} bg={bg}>
+          <View width={44} height={44} rounded={14} items="center" justify="center" bg="$canvas">
+            <Icon size={22} color="$ink" strokeWidth={2} />
+          </View>
+          {text}
+        </YStack>
+      ) : (
+        <XStack flex={1} minH={64} px={14} py={12} gap={10} items="center" rounded={20} bg={bg}>
+          <Icon size={20} color="$ink" strokeWidth={2} />
+          {text}
+        </XStack>
+      )}
+    </PressableScale>
+  );
+}
+
+/** Lo de la derecha de una fila de la hoja Más: el chevron. */
+function Aside() {
+  return <ChevronRight size={18} color="$inkFaint" />;
+}
+
+/**
+ * Botón de 34 en una fila de la hoja Más: `ink` (Revisar), `outline` (Leer ahora) o `brand` (Conectar, Reconectar).
+ * El área táctil llega a 44 con `hitSlop`.
+ */
+function PillButton({
+  label,
+  tone,
+  onPress,
+  disabled = false,
+  icon,
+}: {
+  label: string;
+  tone: "ink" | "outline" | "brand";
+  onPress: () => void;
+  disabled?: boolean;
+  icon?: ReactNode;
+}) {
+  return (
+    <PressableScale
+      onPress={onPress}
+      disabled={disabled}
+      haptic="tap"
+      hitSlop={5}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled, busy: disabled }}
+    >
+      <XStack
+        height={34}
+        px={14}
+        gap={6}
+        rounded={radius.pill}
+        items="center"
+        bg={tone === "ink" ? "$ink" : tone === "brand" ? "$brand" : "transparent"}
+        borderWidth={tone === "outline" ? 1.5 : 0}
+        borderColor="$line"
+      >
+        {icon}
+        <FText
+          color={tone === "ink" ? "$canvas" : tone === "brand" ? "$onBrand" : "$ink"}
+          maxFontSizeMultiplier={1.3}
+          style={{ fontFamily: fontFace.display[700], fontSize: 13, lineHeight: 18 }}
+        >
           {label}
         </FText>
       </XStack>
@@ -424,26 +467,41 @@ function SmallButton({ label, onPress }: { label: string; onPress: () => void })
   );
 }
 
-/** Leer ahora: un botón redondo cuyo icono gira mientras dura la sincronización. */
+/** Botón chico en `brand` de la fila de Gmail (Conectar, Reconectar). */
+function SmallButton({ label, onPress }: { label: string; onPress: () => void }) {
+  return <PillButton label={label} tone="brand" onPress={onPress} />;
+}
+
+/**
+ * Leer ahora (F-11): botón con contorno y el texto; mientras dura la sincronización el ícono gira. Con movimiento
+ * reducido no gira (sin animación continua): la espera se ve en el botón apagado y el lector la anuncia con `busy`.
+ */
 function ReadNowButton({ label, busy, onPress }: { label: string; busy: boolean; onPress: () => void }) {
   const turn = useSharedValue(0);
+  const reduceMotion = useReducedMotion();
   useEffect(() => {
-    if (busy) {
+    if (busy && !reduceMotion) {
       turn.value = 0;
       turn.value = withRepeat(withTiming(1, { duration: 900, easing: Easing.linear }), -1, false);
     } else {
       cancelAnimation(turn);
       turn.value = 0;
     }
-  }, [busy, turn]);
+  }, [busy, reduceMotion, turn]);
   const spin = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.value * 360}deg` }] }));
   return (
-    <PressableScale onPress={onPress} disabled={busy} haptic="tap" accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ busy }}>
-      <View width={36} height={36} rounded={radius.pill} bg="$surfaceSunken" items="center" justify="center">
-        <Animated.View style={spin}>
-          <RefreshCw size={16} color="$ink" strokeWidth={2} />
-        </Animated.View>
-      </View>
-    </PressableScale>
+    <PillButton
+      label={label}
+      tone="outline"
+      disabled={busy}
+      onPress={onPress}
+      icon={
+        busy ? (
+          <Animated.View style={spin}>
+            <RefreshCw size={14} color="$ink" strokeWidth={2} />
+          </Animated.View>
+        ) : null
+      }
+    />
   );
 }

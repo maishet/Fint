@@ -1,9 +1,8 @@
 import { Check } from "@tamagui/lucide-icons-2";
 import { useTranslation } from "react-i18next";
-import { XStack, type ColorTokens } from "tamagui";
+import { XStack } from "tamagui";
 import type { AccountOption } from "../api/types";
-import { getAccountTypeLabel } from "../finance/accountTypes";
-import { categoryColorIndex } from "../home/spending";
+import { getAccountRowIcon, getAccountTypeLabel } from "../finance/accountTypes";
 import { Amount, FintSheet, ListRow, Monogram } from "../ui";
 import { haptics } from "../ui/haptics";
 import { accountBalance, accountCurrencies } from "./logic";
@@ -28,9 +27,13 @@ export interface AccountSheetProps {
   perBalance?: boolean;
 }
 
-/** La inicial de la cuenta en el color de identidad que le toca por su nombre. */
-export function AccountMonogram({ name, size = 38 }: { name: string; size?: 32 | 38 }) {
-  return <Monogram name={name} size={size} color={`$chart${categoryColorIndex(name)}` as ColorTokens} />;
+/**
+ * El ícono del tipo de cuenta en tinta sobre `surface`, igual que en Cuentas (F-08): las cuentas no tienen emoji en
+ * la API, así que no llevan `categoryTint` ni la inicial.
+ */
+export function AccountMonogram({ name, type, size = 44 }: { name: string; type?: string | null; size?: 38 | 44 }) {
+  const Icon = getAccountRowIcon(type);
+  return <Monogram name={name} size={size} icon={<Icon size={Math.round(size / 2)} color="$ink" strokeWidth={2} />} />;
 }
 
 /** Hoja para elegir la cuenta del movimiento: nombre, tipo y saldo disponible. */
@@ -53,13 +56,13 @@ export function AccountSheet({ open, onClose, title, accounts, selected, onSelec
           <ListRow
             key={`${account.id}-${currency}`}
             divider={i > 0}
-            leading={<AccountMonogram name={account.name} />}
+            leading={<AccountMonogram name={account.name} type={account.accountType} />}
             title={multi ? `${account.name} · ${currency}` : account.name}
             subtitle={[typeLabel, currency].filter(Boolean).join(" · ")}
             trailing={
               <XStack items="center" gap={10}>
                 {balance !== null ? <Amount value={balance} currency={currency} variant="amount-sm" tone="inkMuted" /> : null}
-                {isSelected ? <Check size={18} color="$brand" strokeWidth={2.4} /> : null}
+                {isSelected ? <Check size={18} color="$ink" strokeWidth={2.4} /> : null}
               </XStack>
             }
             onPress={() => {

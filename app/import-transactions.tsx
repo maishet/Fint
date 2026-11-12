@@ -154,7 +154,7 @@ export default function ImportTransactionsScreen() {
     return (
       <TaskProgress
         kind={t("importTask.kind")}
-        icon={<FileSpreadsheet size={15} color="$brand" strokeWidth={2} />}
+        icon={<FileSpreadsheet size={15} color="$ink" strokeWidth={2} />}
         title={t("importTask.title")}
         hint={t("importTask.hint")}
         steps={[
@@ -208,7 +208,7 @@ export default function ImportTransactionsScreen() {
       {!hasFile ? (
         <YStack flex={1} items="center" justify="center" gap={space[3]} px={space[6]}>
           <View width={64} height={64} rounded={999} bg="$brandWash" items="center" justify="center">
-            <FileSpreadsheet size={26} color="$brand" strokeWidth={2} />
+            <FileSpreadsheet size={26} color="$ink" strokeWidth={2} />
           </View>
           <FText variant="section-title" accessibilityRole="header" style={{ textAlign: "center", marginTop: 6 }}>
             {t("import.chooseTitle")}
@@ -237,8 +237,8 @@ export default function ImportTransactionsScreen() {
               <FText variant="body-strong" numberOfLines={1} style={{ flex: 1 }}>
                 {fileName}
               </FText>
-              <Pressable onPress={pickFile} disabled={isReading} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("import.change")}>
-                {isReading ? <FintSpinner color="$brand" /> : <RefreshCw size={18} color="$brand" strokeWidth={2} />}
+              <Pressable onPress={pickFile} disabled={isReading} hitSlop={13} accessibilityRole="button" accessibilityLabel={t("import.change")}>
+                {isReading ? <FintSpinner color="$ink" /> : <RefreshCw size={18} color="$ink" strokeWidth={2} />}
               </Pressable>
             </XStack>
 
@@ -270,10 +270,10 @@ export default function ImportTransactionsScreen() {
             ) : (
               <Pressable onPress={() => setShowMapping((value) => !value)} accessibilityRole="button" accessibilityState={{ expanded: showMapping }}>
                 <XStack items="center" justify="center" gap={6} py={14}>
-                  <FText variant="label" tone="brand" style={{ fontFamily: fontFace.sans[600] }}>
+                  <FText variant="label" tone="ink" style={{ fontFamily: fontFace.sans[600] }}>
                     {t("import.adjustColumns")}
                   </FText>
-                  {showMapping ? <ChevronUp size={16} color="$brand" /> : <ChevronDown size={16} color="$brand" />}
+                  {showMapping ? <ChevronUp size={16} color="$ink" /> : <ChevronDown size={16} color="$ink" />}
                 </XStack>
               </Pressable>
             )}

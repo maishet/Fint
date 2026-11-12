@@ -305,7 +305,7 @@ export function ReportExportSheet({ open, onClose, subtitle, transactionCount, f
               </FText>
             ) : null}
             <PressableScale onPress={() => void run(file.format === "pdf" ? "xlsx" : "pdf")} haptic="tap" accessibilityRole="button" style={{ alignSelf: "center", marginTop: 16 }} hitSlop={8}>
-              <FText tone="brand" style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18 }}>
+              <FText tone="ink" style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18 }}>
                 {file.format === "pdf" ? t("reports.export.alsoXlsx") : t("reports.export.alsoPdf")}
               </FText>
             </PressableScale>

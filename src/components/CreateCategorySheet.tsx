@@ -1,8 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Lock, Pencil, Trash2 } from "@tamagui/lucide-icons-2";
+import { Lock, Pencil, Plus, Trash2 } from "@tamagui/lucide-icons-2";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, Text as RNText, type TextInput } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
 import EmojiPicker, { en, es, pt, type EmojiType } from "rn-emoji-keyboard";
 import { useTheme, View, XStack, YStack } from "tamagui";
 import { z } from "zod";
@@ -10,9 +11,11 @@ import { ApiRequestError } from "../api/client";
 import { financeApi } from "../api/finance";
 import type { Category, CategoryMutationResult, CreateCategoryResult, TransactionType } from "../api/types";
 import { suggestedCategoryIcons } from "../finance/categoryIcons";
+import { categoryTint } from "../finance/categoryTint";
+import { useCategoryHue } from "../finance/emojiHue";
 import { getValidationMessage, useSubmitValidation } from "../forms";
 import { useThemeMode } from "../theme/ThemeMode";
-import { radius, space } from "../theme/tokens";
+import { motion, radius, space } from "../theme/tokens";
 import { fontFace } from "../theme/typography";
 import { ErrorLine, FintButton, FintSheet, FintSpinner, FText, PressableScale, SegmentedControl, SheetField, SheetTextInput, useNotify } from "../ui";
 import { haptics } from "../ui/haptics";
@@ -31,13 +34,14 @@ interface CreateCategorySheetProps {
 const SUGGESTIONS = 5;
 
 /**
- * Nueva o editar categoría (HojaCategoria). Sube sobre Categorías o sobre el
+ * Nueva o editar categoría (marca D, K-07). Sube sobre Categorías o sobre el
  * selector de categorías del formulario; ahí, al crear, la nueva queda elegida.
- * El tipo (Egreso | Ingreso; al editar, una píldora bloqueada: cambiarlo
- * movería el historial), el emoji grande en un disco de 76px con el lápiz
- * `brand` (abre el selector completo), el nombre con foco al abrir, y cinco
- * sugeridos que cambian mientras se escribe, más "Más". Si la persona no elige,
- * se usa el primero sugerido.
+ * El tipo (Egreso | Ingreso en tinta; al editar, una píldora bloqueada:
+ * cambiarlo movería el historial), el emoji grande de 84 sobre `categoryTint`
+ * de su propio tono con el lápiz en tinta (abre el selector completo), el
+ * nombre con foco al abrir, y cinco sugeridos en cuadros de 52 con su fondo,
+ * que cambian mientras se escribe, más "Más". Si la persona no elige, se usa el
+ * primero sugerido.
  */
 export function CreateCategorySheet({ initialType, category, onCreated, onUpdated, onDelete, onOpenChange, open }: CreateCategorySheetProps) {
   const { t, i18n } = useTranslation();
@@ -126,7 +130,7 @@ export function CreateCategorySheet({ initialType, category, onCreated, onUpdate
   const suggested = suggestedCategoryIcons(name, type).slice(0, SUGGESTIONS);
   const suggestions = suggested.includes(icon) ? suggested : [icon, ...suggested].slice(0, SUGGESTIONS);
   const nameError = validation.errors.name ?? errorMessage;
-  const sunkenLine = themeMode === "dark" ? "$line" : "$surfaceSunken";
+  const hue = useCategoryHue(icon, name || icon);
   const typeLabel = type === "income" ? t("categorySheet.income") : t("categorySheet.expense");
 
   return (
@@ -163,31 +167,45 @@ export function CreateCategorySheet({ initialType, category, onCreated, onUpdate
             />
           )}
 
-          {/* El emoji elegido, grande; tocarlo abre el selector completo. */}
+          {/* El emoji elegido, grande, sobre el fondo de su propio tono; tocarlo abre el selector completo. Al cambiar
+              de emoji, el cuadro nuevo entra con `fade` (cruce del fondo y del emoji). */}
           <YStack items="center" mt={18} mb={4}>
             <Pressable onPress={() => setPickerOpen(true)} accessibilityRole="button" accessibilityLabel={t("categoryUx.changeEmoji")}>
-              <View width={76} height={76} rounded={999} bg="$surfaceSunken" items="center" justify="center">
-                <Emoji size={36}>{icon}</Emoji>
+              <View width={BIG_TILE} height={BIG_TILE}>
+                <Animated.View
+                  key={icon}
+                  entering={FadeIn.duration(motion.fade.duration)}
+                  style={{
+                    width: BIG_TILE,
+                    height: BIG_TILE,
+                    borderRadius: Math.round(BIG_TILE * 0.32),
+                    backgroundColor: categoryTint(hue, themeMode),
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Emoji size={46}>{icon}</Emoji>
+                </Animated.View>
                 <View
                   position="absolute"
-                  r={-2}
-                  b={-2}
-                  width={28}
-                  height={28}
+                  r={-6}
+                  b={-6}
+                  width={32}
+                  height={32}
                   rounded={999}
-                  bg="$brand"
+                  bg="$ink"
                   borderWidth={3}
                   borderColor="$surfaceOverlay"
                   items="center"
                   justify="center"
                 >
-                  <Pencil size={13} color="$onBrand" strokeWidth={2.4} />
+                  <Pencil size={14} color="$canvas" strokeWidth={2.4} />
                 </View>
               </View>
             </Pressable>
           </YStack>
 
-          <FText variant="caption" tone="inkMuted" style={{ marginTop: 12, marginBottom: 6, marginLeft: 2 }}>
+          <FText tone="inkFaint" style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18, marginTop: 14, marginBottom: 6, marginLeft: 2 }}>
             {t("categorySheet.name")}
           </FText>
           <SheetField focused={focused} invalid={Boolean(nameError)}>
@@ -213,50 +231,28 @@ export function CreateCategorySheet({ initialType, category, onCreated, onUpdate
           {nameError ? <ErrorLine message={nameError} /> : null}
 
           <FText
-            variant="caption"
-            tone="inkMuted"
+            tone="inkFaint"
             numberOfLines={1}
-            style={{ fontFamily: fontFace.sans[600], marginTop: 16, marginBottom: 8, marginHorizontal: 2 }}
+            style={{ fontFamily: fontFace.sans[600], fontSize: 13, lineHeight: 18, marginTop: 16, marginBottom: 8, marginHorizontal: 2 }}
           >
             {name.trim() ? t("categorySheet.suggestedFor", { name: name.trim() }) : t("categorySheet.suggested")}
           </FText>
           <XStack gap={8}>
-            {suggestions.map((option) => {
-              const selected = option === icon;
-              return (
-                <PressableScale
-                  key={option}
-                  style={{ flex: 1 }}
-                  onPress={() => pick(option)}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected }}
-                  accessibilityLabel={option}
-                >
-                  <View
-                    height={46}
-                    rounded={radius.md}
-                    items="center"
-                    justify="center"
-                    bg={selected ? "$brandWash" : "$surfaceSunken"}
-                    borderWidth={selected ? 2 : 1}
-                    borderColor={selected ? "$brand" : sunkenLine}
-                  >
-                    <Emoji size={22}>{option}</Emoji>
-                  </View>
-                </PressableScale>
-              );
-            })}
+            {suggestions.map((option) => (
+              <SuggestionTile key={option} emoji={option} selected={option === icon} onPress={() => pick(option)} />
+            ))}
             <PressableScale
               style={{ flex: 1 }}
               onPress={() => setPickerOpen(true)}
               accessibilityRole="button"
               accessibilityLabel={t("categoryUx.changeEmoji")}
             >
-              <View height={46} rounded={radius.md} items="center" justify="center" bg="$surfaceSunken" borderWidth={1} borderColor={sunkenLine}>
-                <FText variant="label" tone="inkMuted" style={{ fontFamily: fontFace.sans[600] }}>
+              <YStack height={SMALL_TILE} rounded={17} items="center" justify="center" gap={1} bg="$surfaceSunken">
+                <Plus size={16} color="$ink" strokeWidth={2.4} />
+                <FText maxFontSizeMultiplier={1.3} style={{ fontFamily: fontFace.sans[600], fontSize: 11, lineHeight: 14 }}>
                   {t("categorySheet.more")}
                 </FText>
-              </View>
+              </YStack>
             </PressableScale>
           </XStack>
 
@@ -265,14 +261,15 @@ export function CreateCategorySheet({ initialType, category, onCreated, onUpdate
               {mutation.isPending ? <FintSpinner color="$onBrand" /> : t(isEditing ? "categories.update" : "categories.create")}
             </FintButton>
             {isEditing && category && onDelete ? (
-              <PressableScale onPress={() => onDelete(category)} disabled={mutation.isPending} accessibilityRole="button">
-                <XStack height={40} items="center" justify="center" gap={8}>
-                  <Trash2 size={16} color="$dangerHard" strokeWidth={2} />
-                  <FText variant="body-strong" tone="dangerHard" style={{ fontSize: 14 }}>
-                    {t("categorySheet.delete")}
-                  </FText>
-                </XStack>
-              </PressableScale>
+              <FintButton
+                variant="destructive"
+                size="row"
+                disabled={mutation.isPending}
+                icon={<Trash2 size={16} color="$dangerHard" strokeWidth={2} />}
+                onPress={() => onDelete(category)}
+              >
+                {t("categorySheet.delete")}
+              </FintButton>
             ) : null}
           </YStack>
         </YStack>
@@ -299,9 +296,9 @@ export function CreateCategorySheet({ initialType, category, onCreated, onUpdate
           skinTonesContainer: theme.surfaceSunken.val,
           category: {
             icon: theme.inkFaint.val,
-            iconActive: theme.brand.val,
+            iconActive: theme.ink.val,
             container: theme.surfaceSunken.val,
-            containerActive: theme.brandWash.val,
+            containerActive: theme.surface.val,
           },
           search: {
             background: theme.surfaceSunken.val,
@@ -310,15 +307,41 @@ export function CreateCategorySheet({ initialType, category, onCreated, onUpdate
             icon: theme.inkFaint.val,
           },
           customButton: {
-            icon: theme.brand.val,
+            icon: theme.ink.val,
             iconPressed: theme.ink.val,
             background: theme.surfaceSunken.val,
-            backgroundPressed: theme.brandWash.val,
+            backgroundPressed: theme.surface.val,
           },
-          emoji: { selected: theme.brandWash.val },
+          // Marca D: lo elegido en el selector va sobre `surface`, sin el lavado amarillo.
+          emoji: { selected: theme.surface.val },
         }}
       />
     </>
+  );
+}
+
+/** El emoji grande de la hoja (84) y los sugeridos (52). */
+const BIG_TILE = 84;
+const SMALL_TILE = 52;
+
+/** Un sugerido: el emoji sobre el fondo de su tono; el elegido con anillo tinta de 2.5. */
+function SuggestionTile({ emoji, selected, onPress }: { emoji: string; selected: boolean; onPress: () => void }) {
+  const { themeMode } = useThemeMode();
+  const hue = useCategoryHue(emoji, emoji);
+  return (
+    <PressableScale style={{ flex: 1 }} onPress={onPress} accessibilityRole="radio" accessibilityState={{ selected }} accessibilityLabel={emoji}>
+      <View
+        height={SMALL_TILE}
+        rounded={17}
+        items="center"
+        justify="center"
+        borderWidth={selected ? 2.5 : 0}
+        borderColor="$ink"
+        style={{ backgroundColor: categoryTint(hue, themeMode) }}
+      >
+        <Emoji size={24}>{emoji}</Emoji>
+      </View>
+    </PressableScale>
   );
 }
 
