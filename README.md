@@ -4,12 +4,12 @@
   <p><strong>Organiza cuentas, movimientos, deudas y reportes personales sin perder el control de tus datos.</strong></p>
 
   <p>
-    <a href="https://github.com/maishet/Fint/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-2f89b8?style=flat-square" alt="Apache License 2.0" /></a>
-    <a href="https://myfint.app"><img src="https://img.shields.io/badge/web-myfint.app-2f89b8?style=flat-square" alt="myfint.app" /></a>
+    <a href="https://github.com/maishet/Fint/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-141412?style=flat-square" alt="Apache License 2.0" /></a>
+    <a href="https://myfint.app"><img src="https://img.shields.io/badge/web-myfint.app-FFC629?labelColor=141412?style=flat-square" alt="myfint.app" /></a>
     <a href="https://expo.dev"><img src="https://img.shields.io/badge/Expo-SDK%2055-000020?style=flat-square&logo=expo&logoColor=white" alt="Expo SDK 55" /></a>
     <a href="https://reactnative.dev"><img src="https://img.shields.io/badge/React%20Native-0.83-20232a?style=flat-square&logo=react&logoColor=61dafb" alt="React Native 0.83" /></a>
     <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/TypeScript-5.9-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript 5.9" /></a>
-    <img src="https://img.shields.io/badge/status-pre--release-54b9e8?style=flat-square" alt="Pre-release" />
+    <img src="https://img.shields.io/badge/status-pre--release-FFC629?labelColor=141412?style=flat-square" alt="Pre-release" />
   </p>
 
   <p>
@@ -40,7 +40,9 @@ My Fint ayuda a construir una vision completa de las finanzas personales desde e
 - **Gmail opcional:** deteccion de movimientos pendientes con filtros definidos por el usuario y confirmacion obligatoria.
 - **Acceso seguro:** sesiones administradas con Supabase Auth, con Google OAuth y Sign in with Apple en iOS.
 - **Experiencia localizada:** interfaz disponible en espanol, ingles y portugues.
-- **Tema adaptable:** modos claro y oscuro con un sistema visual ocean-blue.
+- **Marca D «Boleta + Mosaico»:** losa amarilla `#FFC629`, tinta `#141412` y el color de cada categoría tomado del tono de su emoji, en modos claro y oscuro.
+- **Onboarding animado:** cinco pantallas con demostraciones en bucle (el saldo que sube, el pago que pasa a «Pagado», los montos que se ocultan) que respetan «reducir movimiento».
+- **Texto grande:** las pantallas principales se desplazan y siguen legibles con la letra del sistema hasta el 200 %.
 - **Notificaciones push:** recordatorios de pagos proximos y avisos de movimientos pendientes detectados.
 - **Privacidad visual:** oculta montos sensibles en pantalla con un control rapido, util en espacios compartidos.
 - **Centro de mejoras:** tablero de sugerencias integrado (Featurebase) para reportar ideas y errores sin salir de la app.
@@ -70,7 +72,7 @@ La aplicacion movil mantiene la presentacion y las interacciones en Expo. La API
 | Capa | Tecnologia |
 | --- | --- |
 | Mobile | Expo SDK 55, React Native 0.83, Expo Router |
-| UI | Tamagui 2, React Native SVG, Reanimated |
+| UI | Tamagui 2, React Native SVG, Reanimated, Skia, Lottie |
 | Datos | TanStack Query, Zod, API HTTP privada |
 | Identidad | Supabase Auth, Google OAuth, Sign in with Apple, Secure Store |
 | IA | Cloudflare Workers AI (Llama 4 Scout) para extraer datos de constancias fotografiadas |
@@ -86,19 +88,31 @@ src/analytics/        Definicion de eventos permitidos para analitica
 src/api/              Cliente HTTP, contratos y mappers
 src/auth/             Sesion, autenticacion y rutas iniciales
 src/capture/          Importacion de constancias con IA y cola de imagenes compartidas
+src/accounts/         Cuentas y sus saldos por moneda
+src/categories/       Categorías, sus emojis y su color
 src/components/       Componentes reutilizables del producto
 src/finance/          Reglas financieras, reportes y exportaciones
 src/forms/            Validacion y utilidades de formularios
+src/home/             Inicio: hero, avisos, gasto del mes y mosaico de categorías
 src/hooks/            Hooks compartidos de UI
 src/i18n/             Configuracion y traducciones
 src/monitoring/       Sanitizacion de datos sensibles para Sentry
+src/movement-form/    Formulario de movimientos y sus hojas (cuenta, categoría, fecha, nota, lugar)
+src/movements/        Lista, búsqueda y detalle de movimientos
 src/notifications/    Registro y copy de notificaciones push
+src/onboarding/       Recorrido de primera vez y sus demostraciones animadas
+src/payments/         Pagos recurrentes, atrasos e historial
+src/pending/          Movimientos detectados por Gmail pendientes de revisar
 src/privacy/          Ocultar y mostrar montos sensibles en pantalla
 src/providers/        Composicion de providers de la aplicacion
+src/reports/          Reportes: flujo, donut de categorías y mayores gastos
+src/settings/         Ajustes, idioma e integraciones
 src/shared/           Utilidades compartidas entre modulos
 src/support/          Diagnosticos adjuntos a los reportes de soporte
-src/theme/            Tema, tipografia y preferencias visuales
+src/theme/            Paleta de la marca D, tipografia y preferencias visuales
 src/ui/               Primitivas del sistema de interfaz
+assets/lottie/        Animaciones Lottie generadas con scripts/lottie
+docs/redesign/        Marca D: handoff, paleta y archivos listos para copiar
 tests/unit/           Pruebas unitarias
 ```
 
