@@ -26,7 +26,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { AppState, Linking, ScrollView, Share } from "react-native";
+import { AppState, Linking, Platform, ScrollView, Share } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { View, XStack, YStack } from "tamagui";
 import { financeApi } from "../src/api/finance";
@@ -70,6 +70,8 @@ import { isComingSoon } from "../src/config/comingSoon";
 
 type Sheet = "language" | "appearance" | "notifications" | "delete" | null;
 const SHEET_UNMOUNT_MS = 600;
+/** ID numérico de la app en App Store Connect (solo dígitos). Vacío mientras la app no esté publicada en iOS. */
+const APP_STORE_ID = /^\d+$/.test(process.env.EXPO_PUBLIC_APP_STORE_ID?.trim() ?? "") ? process.env.EXPO_PUBLIC_APP_STORE_ID!.trim() : "";
 const LANGUAGES: { value: AppLanguage; label: string; icon: ReactNode }[] = [
   { value: "es", label: "Español", icon: <LanguageFlag language="es" /> },
   { value: "en", label: "English", icon: <LanguageFlag language="en" /> },
@@ -348,12 +350,32 @@ export default function SettingsScreen() {
             onPress={() => void Share.share({ message: t("settings.shareMessage"), url: "https://myfint.app" })}
           />
           <Item icon={Code} label={t("settings.github")} onPress={() => void Linking.openURL("https://github.com/maishet/Fint")} />
-          <Item
-            icon={Star}
-            label={t("settings.rateStore")}
-            detail={t("settingsScreen.rateDetail")}
-            onPress={() => void Linking.openURL("https://play.google.com/store/apps/details?id=com.fint.finanzasmobilev2")}
-          />
+          {Platform.OS === "ios" && APP_STORE_ID ? (
+            // Con el ID numérico de App Store Connect configurado, abre directo la reseña en la App Store.
+            <Item
+              icon={Star}
+              label={t("settings.rateStore")}
+              detail={t("settingsScreen.rateDetailIos")}
+              onPress={() => void Linking.openURL(`itms-apps://itunes.apple.com/app/id${APP_STORE_ID}?action=write-review`)}
+            />
+          ) : Platform.OS === "ios" ? (
+            // Sin ID (la app aún no está en la App Store): la fila se ve, pero todavía no se puede usar.
+            <Item
+              icon={Star}
+              label={t("settings.rateStore")}
+              detail={t("settingsScreen.rateDetailIos")}
+              tone="dim"
+              right={<SoonBadge />}
+              accessibilityLabel={`${t("settings.rateStore")}. ${t("comingSoon.hint")}`}
+            />
+          ) : (
+            <Item
+              icon={Star}
+              label={t("settings.rateStore")}
+              detail={t("settingsScreen.rateDetail")}
+              onPress={() => void Linking.openURL("https://play.google.com/store/apps/details?id=com.fint.finanzasmobilev2")}
+            />
+          )}
         </Group>
 
         <GroupTitle>{t("settings.legal")}</GroupTitle>

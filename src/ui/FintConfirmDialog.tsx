@@ -1,5 +1,6 @@
-import type { ComponentProps } from "react";
+import { useContext, type ComponentProps } from "react";
 import { Button, Dialog, YStack } from "tamagui";
+import { InlineSheetContext } from "./FintSheet";
 import { FintSpinner } from "./FintSpinner";
 import { haptics } from "./haptics";
 
@@ -28,9 +29,11 @@ export function FintConfirmDialog({
   onConfirm: () => void;
   title: string;
 }) {
+  // Dentro del formulario (pantalla modal) el portal de la raíz queda tapado: ver `InlineSheetContext`.
+  const inline = useContext(InlineSheetContext);
   return (
     <Dialog
-      modal
+      modal={!inline}
       open={open}
       onOpenChange={(nextOpen) => !nextOpen && !isPending && onCancel()}
     >

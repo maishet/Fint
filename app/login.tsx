@@ -389,7 +389,8 @@ function GoogleButton({ disabled, onPress }: { disabled: boolean; onPress: () =>
   return (
     <PressableScale onPress={onPress} disabled={disabled} haptic="tap" accessibilityRole="button" accessibilityLabel={t("auth.google")}>
       <XStack
-        height={50}
+        // En iOS, al lado del botón nativo de Apple (cuyo texto escala con su alto), los dos miden 44.
+        height={Platform.OS === "ios" ? 44 : 50}
         rounded={radius.md}
         bg="$surface"
         borderWidth={1}
@@ -436,7 +437,7 @@ function AppleSignInButton({ authMode, disabled, onPress }: { authMode: "login" 
         themeName === "dark" ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
       }
       cornerRadius={radius.md}
-      style={{ height: 50, width: "100%", opacity: disabled ? 0.42 : 1 }}
+      style={{ height: 44, width: "100%", opacity: disabled ? 0.42 : 1 }}
       onPress={() => {
         if (!disabled) onPress();
       }}

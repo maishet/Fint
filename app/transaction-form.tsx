@@ -60,6 +60,7 @@ import {
   SegmentedControl,
 } from "../src/ui";
 import { AmountSkeleton } from "../src/ui/AmountSkeleton";
+import { InlineSheetContext } from "../src/ui/FintSheet";
 import { riseIn } from "../src/ui/entering";
 import { haptics } from "../src/ui/haptics";
 import { useNotify } from "../src/ui/notify";
@@ -449,7 +450,7 @@ export default function TransactionFormScreen() {
   const layout = reduceMotion ? undefined : LinearTransition.springify().damping(26).stiffness(240);
 
   return (
-    <>
+    <InlineSheetContext.Provider value>
       <UnsavedChangesDialog
         open={guard.open}
         onCancel={guard.onCancel}
@@ -727,7 +728,7 @@ export default function TransactionFormScreen() {
       {mountedSheet === "note" ? (
         <NoteSheet open={sheet === "note"} onClose={() => setSheet(null)} value={note} onChange={setNote} recent={notes} />
       ) : null}
-    </>
+    </InlineSheetContext.Provider>
   );
 }
 

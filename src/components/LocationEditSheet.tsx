@@ -1,5 +1,5 @@
 import { ChevronLeft, MapPin, Search, Trash2, X } from '@tamagui/lucide-icons-2'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Keyboard, Platform, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -11,7 +11,9 @@ import { USER_PIN_TIP, UserMapPin } from './UserMapPin'
 import { describeLocation, getLastKnownPosition, requestAndCaptureLocation, type CapturedLocation } from '../location/captureLocation'
 import { suggestionKey, useLocationSearch } from '../location/useLocationSearch'
 import { FintButton, FintSpinner } from '../ui'
+import { InlineSheetContext } from '../ui/FintSheet'
 import { useHoldModal } from '../ui/ModalScope'
+import { useNotify } from '../ui/notify'
 import { regionFor } from './MiniMap'
 import { PlaceCategoryIcon } from './PlaceCategoryIcon'
 
@@ -39,8 +41,11 @@ export function LocationEditSheet({
   onSave: (next: CapturedLocation | null) => void
 }) {
   const { t } = useTranslation()
+  const notify = useNotify()
   const insets = useSafeAreaInsets()
   const { themeMode } = useThemeMode()
+  // Dentro del formulario de movimiento (pantalla modal) el portal de la raíz queda tapado: ver `InlineSheetContext`.
+  const inline = useContext(InlineSheetContext)
   const mapRef = useRef<MapView>(null)
   const isFirstRegion = useRef(true)
   const isProgrammaticMove = useRef(false)
@@ -142,13 +147,15 @@ export function LocationEditSheet({
     if (result) {
       setDraft(result)
       jumpTo(result)
+    } else {
+      notify.error(t('movementForm.locationSheet.locateFailed'), { message: t('movementForm.locationSheet.locateFailedHint') })
     }
   }
 
   const { primary, secondary } = splitAddress(draft?.formattedAddress ?? null)
 
   return (
-    <Sheet modal open={open} onOpenChange={onOpenChange} snapPoints={[100]} snapPointsMode="percent" dismissOnSnapToBottom={false} zIndex={110_000}>
+    <Sheet modal={!inline} open={open} onOpenChange={onOpenChange} snapPoints={[100]} snapPointsMode="percent" dismissOnSnapToBottom={false} zIndex={110_000}>
       <Sheet.Overlay bg="rgba(0,0,0,0.4)" />
       <Sheet.Frame bg="$background" p={0}>
         {/* El estilo del mapa sigue la apariencia de la app, no la del sistema; Google solo lo lee al crear el mapa. */}
@@ -195,10 +202,12 @@ export function LocationEditSheet({
               onPress={closeSheet}
               aria-label={t('actions.cancel')}
             />
-            <XStack flex={1} items="center" gap="$2" bg="$card" borderColor="$borderColor" borderWidth={1} rounded={14} px="$3" py="$1" shadowColor="rgba(20,20,18,0.2)" shadowRadius={10} shadowOffset={{ width: 0, height: 4 }}>
+            {/* Alto fijo: con `unstyled`, el campo vacío mide menos en iOS 27 y la barra se veía aplastada hasta escribir. */}
+            <XStack flex={1} minH={46} items="center" gap="$2" bg="$card" borderColor="$borderColor" borderWidth={1} rounded={14} px="$3" shadowColor="rgba(20,20,18,0.2)" shadowRadius={10} shadowOffset={{ width: 0, height: 4 }}>
               <Search size={17} color="$color10" />
               <Input
                 flex={1}
+                height={44}
                 unstyled
                 color="$color12"
                 placeholderTextColor="$mutedForeground"

@@ -276,6 +276,13 @@ function CalendarGrid({
   }, [cellW, reduceMotion, selectedIndex, shown, x, y]);
   const dotStyle = useAnimatedStyle(() => ({ opacity: shown.value, transform: [{ translateX: x.value }, { translateY: y.value }] }));
 
+  // La cuadrícula en filas de 7 (se completa la última con vacíos); `i` sigue siendo el índice del día en `grid`.
+  const rows = useMemo(() => {
+    const padded = [...grid];
+    while (padded.length % 7 !== 0) padded.push(null);
+    return Array.from({ length: padded.length / 7 }, (_, r) => padded.slice(r * 7, r * 7 + 7).map((day, c) => ({ day, i: r * 7 + c })));
+  }, [grid]);
+
   return (
     <YStack px={20} onLayout={(e: LayoutChangeEvent) => setCellW((e.nativeEvent.layout.width - 40) / 7)}>
       {cellW > 0 ? (
@@ -283,9 +290,12 @@ function CalendarGrid({
           <View flex={1} rounded={BOX_RADIUS} bg="$brand" />
         </Animated.View>
       ) : null}
-      <XStack flexWrap="wrap" rowGap={ROW_GAP}>
-        {grid.map((day, i) => {
-          if (day === null) return <View key={`e${i}`} width={`${100 / 7}%`} height={CELL_H} />;
+      {/* Filas de 7 con `flex: 1`: con `flexWrap` y `14.28%` de ancho, en iOS 27 el redondeo pasaba del 100 % y rompía a los 6 días. */}
+      <YStack rowGap={ROW_GAP}>
+        {rows.map((row, r) => (
+          <XStack key={r}>
+            {row.map(({ day, i }) => {
+          if (day === null) return <View key={`e${i}`} flex={1} height={CELL_H} />;
           const date = new Date(view.y, view.m, day);
           const future = allowFuture ? false : isTodayMonth ? day > today.getDate() : date > today;
           const isToday = isTodayMonth && day === today.getDate();
@@ -295,7 +305,7 @@ function CalendarGrid({
               key={day}
               disabled={future}
               onPress={() => onPick(date)}
-              style={{ width: `${100 / 7}%`, height: CELL_H, alignItems: "center", justifyContent: "center" }}
+              style={{ flex: 1, height: CELL_H, alignItems: "center", justifyContent: "center" }}
               accessibilityRole="button"
               accessibilityState={{ selected: isSelected, disabled: future }}
               // Los puntos solo se ven: el lector dice ", con movimientos" para el mismo dato.
@@ -323,8 +333,10 @@ function CalendarGrid({
               </View>
             </Pressable>
           );
-        })}
-      </XStack>
+            })}
+          </XStack>
+        ))}
+      </YStack>
     </YStack>
   );
 }

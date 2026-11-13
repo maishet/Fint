@@ -15,5 +15,6 @@ export function authErrorFor(message: string): { field: AuthErrorField; key: str
   if (normalized.includes("has expired")) return { field: "code", key: "loginScreen.invalidCode" };
   if (normalized.includes("different from the old")) return { field: "password", key: "loginScreen.samePassword" };
   if (normalized.includes("security purposes") || normalized.includes("rate limit")) return { field: null, key: "loginScreen.resendTooSoon" };
+  if (normalized.includes("authorization attempt failed")) return { field: null, key: "loginScreen.appleFailed" };
   return { field: null, key: null };
 }

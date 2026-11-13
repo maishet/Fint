@@ -1,6 +1,6 @@
 import { Tabs, useIsFocused, useNavigation } from "expo-router";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { Easing } from "react-native";
+import { Easing, Platform } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Freeze } from "react-freeze";
 import { useTheme } from "tamagui";
@@ -16,6 +16,9 @@ import { TabFirstMount } from "../../src/components/TabFirstMount";
  */
 /** Pantallas encima de los tabs que los dejan ver (el formulario crece sobre la pantalla anterior). */
 const SEE_THROUGH_ROUTES = ["transaction-form"];
+
+/** `Platform.Version` en iOS es un texto como "27.2". */
+const IOS_27_OR_LATER = Platform.OS === "ios" && Number.parseInt(String(Platform.Version), 10) >= 27;
 
 export default function TabLayout() {
   const { t } = useTranslation();
@@ -86,7 +89,9 @@ export default function TabLayout() {
           },
           headerTintColor: theme.color.val,
           // `fade` cruzado de 180 ms (20-movimiento, "Cambio de tab"); el de la librería dura 150 ms y es lineal.
-          animation: "fade",
+          // En iOS 27 el `fade` deja a veces la pestaña montada pero invisible (en blanco) hasta volver a entrar: con
+          // `animation: "none"` no fallaba en ~11 cambios seguidos. Allí se cambia sin transición; en el resto, el `fade`.
+          animation: IOS_27_OR_LATER ? "none" : "fade",
           transitionSpec: { animation: "timing", config: { duration: 180, easing: Easing.out(Easing.cubic) } },
         }}
       >

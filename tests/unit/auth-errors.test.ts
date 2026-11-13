@@ -28,6 +28,10 @@ describe("authErrorFor", () => {
     expect(authErrorFor("Email rate limit exceeded")).toEqual(tooSoon);
   });
 
+  it("traduce el fallo de autorización de Apple sin marcar ningún campo", () => {
+    expect(authErrorFor("The authorization attempt failed for an unknown reason")).toEqual({ field: null, key: "loginScreen.appleFailed" });
+  });
+
   it("deja sin campo un error desconocido", () => {
     expect(authErrorFor("Network request failed")).toEqual({ field: null, key: null });
   });

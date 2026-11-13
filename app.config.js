@@ -14,7 +14,7 @@ if (!iosUrlScheme && isProductionBuild && process.env.EAS_BUILD_PLATFORM === 'io
   )
 }
 
-module.exports = ({ config }) => ({
+const buildConfig = ({ config }) => ({
   ...config,
   ...appJson.expo,
   android: {
@@ -46,6 +46,15 @@ module.exports = ({ config }) => ({
     return plugin
   }),
 })
+
+module.exports = (ctx) => {
+  const expoConfig = buildConfig(ctx)
+  // Solo desarrollo local con Xcode 27 (ver plugins/withXcode27Compat.js). No afecta builds de EAS.
+  if (process.env.FINT_XCODE27_COMPAT === '1') {
+    expoConfig.plugins = [...expoConfig.plugins, './plugins/withXcode27Compat']
+  }
+  return expoConfig
+}
 
 function reverseClientId(clientId) {
   if (!clientId?.endsWith('.apps.googleusercontent.com')) return undefined

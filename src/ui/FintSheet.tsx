@@ -1,5 +1,5 @@
 import { X } from "@tamagui/lucide-icons-2";
-import { useContext, useEffect, useRef, useState, type ReactNode, type Ref } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode, type Ref } from "react";
 import { useTranslation } from "react-i18next";
 import { TextInput, useWindowDimensions, type TextInputProps } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
@@ -22,6 +22,14 @@ import { PressableScale } from "./PressableScale";
 const SETTLED_MS = 800;
 
 export const SHEET_OUT_MS = 220;
+
+/**
+ * Las hojas se dibujan por defecto en el portal de Tamagui, en la raíz de la app. Una pantalla presentada como
+ * `transparentModal` (el formulario de movimiento) queda por encima de esa raíz en iOS 27: la hoja se abría pero
+ * quedaba tapada y los botones del formulario parecían muertos. Con `true`, las hojas de adentro se dibujan en la
+ * propia pantalla.
+ */
+export const InlineSheetContext = createContext(false);
 
 export interface FintSheetProps {
   open: boolean;
@@ -82,6 +90,7 @@ export function FintSheet({
   // La hoja se dibuja en el portal de Tamagui, fuera de los proveedores de la app: se vuelve a proveer
   // "Ocultar montos" para que un `Amount` dentro de la hoja lo respete.
   const sensitiveAmounts = useContext(SensitiveAmountsContext);
+  const inline = useContext(InlineSheetContext);
 
   useSheetBackHandler(open, onClose);
 
@@ -160,7 +169,7 @@ export function FintSheet({
 
   return (
     <Sheet
-      modal
+      modal={!inline}
       open={shown}
       onOpenChange={(next: boolean) => {
         if (!next) onClose();

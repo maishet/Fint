@@ -210,6 +210,8 @@ export function LocationSheet({ open, onClose, value, suggestion, context, onSav
     if (result) {
       setHere(result);
       choose(result);
+    } else {
+      notify.error(t("movementForm.locationSheet.locateFailed"), { message: t("movementForm.locationSheet.locateFailedHint") });
     }
   };
 
